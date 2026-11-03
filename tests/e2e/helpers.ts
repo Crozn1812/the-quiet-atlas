@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { test, type Page, type Response } from "@playwright/test";
+import type { Page, Response } from "@playwright/test";
 
 export const WORLD_MARKER = "__TQA_WORLD_CHUNK__";
 /** File types that belong to the 3D world (spec §5, Q18): none may be requested before Enter World. */

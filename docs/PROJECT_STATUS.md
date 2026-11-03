@@ -102,11 +102,33 @@ Kiểm `main` sau đợt 4: lint, typecheck, unit (109), build, check:bundle/lea
 
 Lưu ý ngân sách: JS ban đầu 141,8/150 KB (94,5 %) — L1 gần như hết chỗ.
 
+### Đợt 5 (2026-11-04)
+
+| Ticket | Trạng thái |
+|---|---|
+| ADR 0008 hợp đồng sự kiện UI ↔ world | Accepted |
+| L2-005 P01-D camera orbit 360°, zoom 4–16 m, spring arm, mờ tán lá; ADR 0008 phía world | **Merged** (5db7b27) |
+| L1-005 menu world (Esc), focus trap, quality, Return to path, bảng phím; nạp lazy | **Merged** (ad858ae); JS ban đầu không đổi (139,3 KB) |
+| L3-005 e2e bàn phím/focus/heading/reflow/reduced motion + Q18 bản VI | **Merged** (438473d) |
+
+Kiểm `main`: lint 0 warning, unit 130, build, check:bundle/leaks/licenses, e2e 106 (3 `test.fail()` skip link), test:perf EN+VI đều exit 0.
+
+**Lead kiểm tích hợp trên trình duyệt** (built-in browser, Chromium, máy dev, `tools/serve-out`): Enter World → Esc mở menu, `data-world-paused=true`, focus vào tiêu đề; đổi quality Low → `data-world-quality=low`, canvas giữ nguyên phần tử (không remount), cây thưa hơn; Tab ở phần tử cuối quay về đầu; Esc đóng → `paused=false`, focus về vùng world. Xoay camera bằng ← quan sát được nhưng nhỏ (công cụ gửi phím rời) — T05 trên trình duyệt chưa đo đủ.
+
+### Gate cập nhật
+
+| Gate | Trạng thái |
+|---|---|
+| T11 | Tự động: axe 0 serious; bàn phím, focus nhìn thấy, heading, reflow 320/640, reduced motion PASS trên các trang đã thử. **FAIL**: chưa có skip link. Screen reader, zoom trình duyệt thật, tương phản focus ring: NOT RUN. Chi tiết `docs/evidence/A1/a11y-keyboard-2026-11-04.md` |
+| Q18 | PASS (local) cả EN và VI; time-to-playable xấu nhất 2,00 s |
+| T05/T06 | Logic có unit test (yaw, zoom kẹp, spring arm, tán lá); log trên trình duyệt NOT RUN |
+| T07 | Menu (overlay) mở/đóng, pause, focus trả lại: Lead kiểm tay PASS; e2e tự động NOT RUN |
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L2-005: P01-D camera 360° (← →, kéo chuột không pointer lock), zoom giới hạn, spring arm, dither tán lá.
-- L1-005: nút "Return to path" + chọn quality trong menu world (gửi `tqa:return-to-path`, quality qua opts) — cần thiết kế menu §6.4.
-- L3-005: e2e T07/Q13/Q14 phần world (overlay chưa có → chờ P01-E); kiểm VI cho load budget.
+- L1-006: skip link "Bỏ qua đến nội dung" trên mọi trang (T11).
+- L2-006: P01-E interaction: bảng chỉ đường + vùng tương tác E/click, overlay nội dung demo, giữ vị trí khi đóng.
+- L3-006: e2e world: menu/pause/quality theo ADR 0008, Q13 (gõ trong ô nhập không điều khiển), Q14 (Skip/overlay), T07.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 
 Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.

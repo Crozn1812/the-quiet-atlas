@@ -1,6 +1,6 @@
 ## TICKET L3-005 — T11 phần còn lại tự động hóa được: bàn phím, focus nhìn thấy, zoom/reflow, reduced motion; load budget bản VI
 
-- Trạng thái: **Assigned → subagent Claude** (2026-11-04), nhánh `lane/L3-005`, worktree `D:/tqa-worktrees/L3-005`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L3 / A1
 - Mục tiêu: thu hẹp khoảng trống của T11 (§9) bằng phép thử tự động trên HTML; đo Q18 cho `/vi/`.
 - Spec liên quan: §9 (WCAG 2.2 AA: heading, focus nhìn rõ, link/nút có tên, zoom 200 %, reflow, reduced motion), §13 T11, Q18

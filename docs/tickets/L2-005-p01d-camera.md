@@ -1,6 +1,6 @@
 ## TICKET L2-005 — P01-D camera 360° + zoom + spring arm + dither tán lá; hợp đồng ADR 0008 phía world
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L2-005`, worktree `D:/tqa-worktrees/L2-005`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L2 / B1 (P01-D)
 - Mục tiêu (theo trải nghiệm người chơi): xoay camera quanh nhân vật 360° bằng ← → hoặc kéo chuột trên vùng trống (không pointer lock), vuốt hai ngón ngang trên touchpad; zoom bằng + / − / cuộn trong giới hạn; camera không chui xuống đất; tán cây che nhân vật thì mờ dần thay vì kéo camera vào.
 - Spec liên quan: §6.2 (mục 1, 3, 8), §6.4 (bảng điều khiển: hàng Xoay camera, Zoom), §7.4 (spring arm, dither tán lá), §13 T05, T06; ADR 0008

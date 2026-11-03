@@ -1,6 +1,6 @@
 ## TICKET L1-005 — Menu trong world (Esc) + Return to path + chọn chất lượng; hợp đồng ADR 0008 phía UI
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-005`, worktree `D:/tqa-worktrees/L1-005`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L1 / A1 + P01-E (phần UI)
 - Mục tiêu (theo trải nghiệm người dùng): khi đang ở trong world, nhấn Esc (hoặc nút menu nhỏ ở góc) mở menu; world tạm dừng. Menu có: Chất lượng (Low/Balanced/High), "Return to path", "Mở Quick Portfolio", Bảng phím, Đóng. Esc hoặc nút X đóng menu, focus trở về chỗ cũ, world chạy tiếp.
 - Spec liên quan: §6.2 mục 1 (overlay: dừng input, focus vào tiêu đề, Esc/X đóng, focus trả lại, Tab không thoát modal), §6.4 (Esc: đóng UI trước, không có UI thì mở menu; menu items), §9 (focus trap theo APG modal dialog), ADR 0008
