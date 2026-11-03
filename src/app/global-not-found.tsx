@@ -1,3 +1,4 @@
+import { SkipLink } from "@/components/portfolio/SkipLink";
 import Link from "next/link";
 import "./portfolio.css";
 import type { Metadata } from "next";
@@ -15,7 +16,11 @@ export const metadata: Metadata = {
 export default function GlobalNotFound() {
   return (<html lang="en">
     <body>
-      <main>
+      <SkipLink />
+      <main
+      id="content"
+      tabIndex={-1}
+    >
         <h1>Page not found</h1>
         <Link
           prefetch={false}

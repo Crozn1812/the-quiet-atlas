@@ -1,8 +1,10 @@
+import { mountWorldContent } from "./WorldContent";
 import { worldMenuMessages } from "@/i18n/world-menu";
 import { escapeAction, pauseWorld, returnToPath, setWorldQuality, trapFocus } from "./worldMenuControls";
 import type { Quality } from "./worldMenuControls";
 
 export function mountWorldMenu(container: HTMLElement, locale: string) {
+  const removeContent = mountWorldContent(container, locale);
   const copy = worldMenuMessages[locale === "vi" ? "vi" : "en"];
   const host = document.createElement("div");
   host.className = "world-menu";
@@ -77,6 +79,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string) {
   button(copy.close, close);
 
   function open(source: HTMLElement) {
+    if (document.querySelector("dialog[open]")) return;
     opener = source;
     syncQuality();
     dialog.showModal();
@@ -115,6 +118,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string) {
   document.addEventListener("keydown", onEscape, true);
   return () => {
     close();
+    removeContent();
     document.removeEventListener("keydown", onEscape, true);
     container.removeEventListener("tqa:world-state", syncQuality);
     host.remove();

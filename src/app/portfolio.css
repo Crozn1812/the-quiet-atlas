@@ -56,3 +56,40 @@ nav[aria-label="Language"] ul {
   font: inherit;
   margin-top: .5rem;
 }
+
+.skip-link {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  padding: 1rem;
+  background: #f7f3e8;
+  transform: translateY(calc(-100% - 2rem));
+}
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid #875017;
+}
+.world-content {
+  box-sizing: border-box;
+  width: 90vw;
+  height: 90dvh;
+  max-width: none;
+  max-height: none;
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 3rem);
+  color: #203e35;
+  background: #f7f3e8;
+  border: 1px solid #88968b;
+}
+.world-content::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+.world-content > div {
+  max-width: 64rem;
+  margin: auto;
+}
+.world-content button,
+.world-content a {
+  margin: .5rem;
+}

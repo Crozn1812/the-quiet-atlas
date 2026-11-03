@@ -19,7 +19,10 @@ export default async function Page({ params }: Props) {
   const t = portfolioCopy[locale];
   const p = content.profiles.find(p => p.locale === locale)!;
   return (
-    <main>
+    <main
+      id="content"
+      tabIndex={-1}
+    >
       <nav aria-label="Language">
         <a
           href={"/en/" + "privacy/"}

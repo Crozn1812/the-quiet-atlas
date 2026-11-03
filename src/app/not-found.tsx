@@ -1,6 +1,9 @@
 import Link from "next/link";
 export default function NotFound() {
-  return <main>
+  return <main
+      id="content"
+      tabIndex={-1}
+    >
     <h1>Page not found</h1>
     <Link
       prefetch={false}

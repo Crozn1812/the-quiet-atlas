@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = pageMetadata("en");
 // Trang vào `/`: nhẹ, chạy khi tắt JS, không tự chuyển locale (spec §5).
 export default function RootEntryPage() {
-  return (<main>
+  return (<main
+      id="content"
+      tabIndex={-1}
+    >
     <h1>The Quiet Atlas</h1>
     <nav aria-label="Language">
       <ul>

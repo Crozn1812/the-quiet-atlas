@@ -1,8 +1,13 @@
+import { ProjectHeading } from "./ProjectHeading";
 import { projectStatusLabel } from "@/content/schema";
 import { portfolioCopy } from "@/i18n/portfolio";
 import { ProjectEvidence, SourceLink, type Project } from "./ProjectLinks";
 
-export function CaseStudy({ project: p }: { project: Project }) {
+export function CaseStudy({ project: p, embedded = false }: {
+  project: Project;
+  embedded?: boolean;
+}) {
+  const Container = embedded ? "article" : "main";
   const t = portfolioCopy[p.locale];
   const groups = [
     [p.summary, p.problem, p.myRole],
@@ -17,7 +22,10 @@ export function CaseStudy({ project: p }: { project: Project }) {
     [p.lessons],
   ];
   return (
-    <main>
+    <Container
+      id={embedded ? undefined : "content"}
+      tabIndex={-1}
+    >
       <nav aria-label="Language">
         <a
           href={'/en/projects/' + p.slug + '/'}
@@ -33,8 +41,10 @@ export function CaseStudy({ project: p }: { project: Project }) {
         </a>
         <a href={'/' + p.locale + '/quick/'}>Quick Portfolio</a>
       </nav>
-      <h1>{p.title}</h1>
-      <p>{projectStatusLabel(p)}</p>
+      <ProjectHeading
+        title={p.title}
+        statusLabel={projectStatusLabel(p)}
+      />
       {groups.map((values, i) => (
         <section
           key={i}
@@ -54,6 +64,6 @@ export function CaseStudy({ project: p }: { project: Project }) {
         <h2>{t.sections[10]}</h2>
         {p.repoUrl === "TBD" ? <p>TBD</p> : <SourceLink project={p} />}
       </section>
-    </main>
+    </Container>
   );
 }

@@ -1,3 +1,4 @@
+import { SkipLink } from "@/components/portfolio/SkipLink";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
@@ -31,6 +32,9 @@ export default async function Layout({ children,params }: {
   if(!isLocale(locale))
     notFound();
   return <html lang={locale}>
-    <body>{children}</body>
+    <body>
+      <SkipLink locale={locale} />
+      {children}
+    </body>
   </html>;
 }

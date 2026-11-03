@@ -1,3 +1,4 @@
+import { SkipLink } from "@/components/portfolio/SkipLink";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "../portfolio.css";
@@ -14,6 +15,9 @@ export default function RootLayout({ children }: {
   children: ReactNode;
 }) {
   return <html lang="en">
-    <body>{children}</body>
+    <body>
+      <SkipLink />
+      {children}
+    </body>
   </html>;
 }

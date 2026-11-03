@@ -1,7 +1,6 @@
 import { portfolioCopy } from "@/i18n/portfolio";
-import { ProjectEvidence, SourceLink } from "./ProjectLinks";
+import { ProfileContent, ProjectsContent } from "./ServerZoneContent";
 import { content } from "@/content";
-import { projectStatusLabel } from "@/content/schema";
 import type { Locale } from "@/i18n/locales";
 import { messages } from "@/i18n/messages";
 import { WorldEntry } from "./WorldEntry";
@@ -13,7 +12,10 @@ export function Portfolio({ locale, quick = false }: {
   const p = content.profiles.find(p => p.locale === locale)!;
   const t = messages[locale];
   return (
-    <main>
+    <main
+      id="content"
+      tabIndex={-1}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -46,10 +48,7 @@ export function Portfolio({ locale, quick = false }: {
         </a>
       </nav>
       <p>The Quiet Atlas{quick ? " / Quick Portfolio" : ""}</p>
-      <h1>{p.name}</h1>
-      <p>{p.role} · {p.level}</p>
-      {p.reviewStatus !== "approved" && <p>Draft</p>}
-      <p>{p.introduction}</p>
+      <ProfileContent locale={locale} />
       {!quick && (
         <WorldEntry
           locale={locale}
@@ -61,20 +60,7 @@ export function Portfolio({ locale, quick = false }: {
         <a href="#cv">CV · TBD</a>
       </nav>
       {quick && (
-        <section aria-labelledby="projects">
-          <h2 id="projects">{t.projects}</h2>
-          {content.projects.filter(p => p.locale === locale).map(project => (
-            <article key={project.id}>
-              <h3>
-                <a href={`/${locale}/projects/${project.slug}/`}>{project.title}</a>
-              </h3>
-              <p>{projectStatusLabel(project)}</p>
-              <p>{project.summary}</p>
-              <ProjectEvidence project={project} />
-              <SourceLink project={project} />
-            </article>
-          ))}
-        </section>
+        <ProjectsContent locale={locale} />
       )}
       <a href={`/${locale}/privacy/`}>{portfolioCopy[locale].privacy}</a>
       <section
