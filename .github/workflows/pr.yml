@@ -17,9 +17,9 @@ concurrency:
 
 jobs:
   verify:
-    name: lint · typecheck · test · build · check-bundle · leaks · licenses · e2e
+    name: lint · typecheck · test · build · check-bundle · leaks · licenses · e2e · perf
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
@@ -94,6 +94,30 @@ jobs:
 
       - name: E2E (Playwright + axe-core)
         run: pnpm exec playwright test
+
+      # L3-004 — §8 / Q18 cold-cache load budget: 3 cold loads, CDP 10 Mbps / RTT 100 ms, gzip like CloudFront,
+      # gate on the worst run. Runner = bundled Chromium + SwiftShader, NOT the ADR 0007 reference machine:
+      # byte gates are machine-independent; time-to-playable here is a regression signal, not the T08 result.
+      - name: Load budget trace (§8, Q18)
+        run: pnpm exec playwright test -c tests/perf/playwright.perf.config.ts
+
+      # L3-004 — Lighthouse CI (§8 Quick web UX, lab): LCP ≤ 2.5 s, CLS ≤ 0.1, TBT ≤ 200 ms as lab proxy for INP;
+      # accessibility score recorded only. Uses the runner's preinstalled Chrome. Reports go to the
+      # filesystem (test-results/lhci) and are uploaded as a workflow artifact only — no public storage.
+      - name: Lighthouse CI (filesystem reports only)
+        run: pnpm exec lhci autorun
+
+      - name: Upload perf reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-reports
+          path: |
+            test-results/load-budget/
+            test-results/lhci/
+            .lighthouseci/
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
