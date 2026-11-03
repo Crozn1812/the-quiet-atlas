@@ -11,7 +11,8 @@
     "build": "next build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:bundle": "node tools/check-bundle/index.mjs out"
   },
   "dependencies": {
     "next": "16.4.4",

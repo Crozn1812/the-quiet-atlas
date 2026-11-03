@@ -30,6 +30,16 @@
 
 Đây là kiểm tra nền, chưa phải gate T/Q nào.
 
+### Ticket
+
+| Ticket | Lane | Trạng thái |
+|---|---|---|
+| L1-001 schema + Welcome/Quick + `lang` | L1 Codex | Đang chạy |
+| L2-001 spike physics + ADR 0002 | L2 Codex | Đang chạy |
+| L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
+
+Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.
+
 ## Chưa có
 
 - Remote GitHub (repo public — Duy tạo hoặc giao Lead).
