@@ -78,11 +78,35 @@ Kiểm `main`: lint, typecheck, unit test, build, check:bundle/leaks/licenses ex
 | Q12 | PASS local; CloudFront/tên miền NOT RUN |
 | gitleaks | BLOCKED — Docker Desktop không khởi động (WSL chưa cài). Image ghim digest `sha256:cdbb7c95…a854` (đọc từ registry, chưa pull) |
 
+### Đợt 4 (2026-11-04)
+
+| Ticket | Trạng thái |
+|---|---|
+| L1-004 nút CV, target 24 px, favicon tự vẽ, tắt RSC prefetch | **Merged** (da1582b); Lead xóa hết `KNOWN_ISSUES` trong e2e |
+| L2-004 P01-C: WASD theo yaw camera, chạy, dốc 45°, autostep, recovery | **Merged** (315c9cb) |
+| L3-004 đo ngân sách tải cold-cache + Lighthouse CI | **Merged**; Lead chạy lại trên `main` |
+
+Kiểm `main` sau đợt 4: lint, typecheck, unit (109), build, check:bundle/leaks/licenses, e2e 21/21, test:perf, perf:lhci đều exit 0.
+
+### Gate cập nhật (môi trường: máy dev ADR 0007, Edge 156, server local — **không phải CDN**)
+
+| Gate | Trạng thái | Bằng chứng |
+|---|---|---|
+| T01 | PASS (local) — 0 lỗi console, không còn ngoại lệ | `docs/evidence/A1/e2e-2026-11-04.md` + e2e 21/21 sau L1-004 |
+| T02 | PASS (local) | như trên |
+| T11 (axe) | PASS phần axe (0 critical/serious, 16 trang); bàn phím/screen reader/zoom 200%: NOT RUN → T11 tổng thể chưa PASS | e2e a11y |
+| Q18 | PASS (local): Welcome 146,6 KB/JS 141,8 KB, Quick 146,9 KB, 0 request 3D trước Enter, 3D 1,70 MB, time-to-playable xấu nhất 2,03 s (3 lần, 10 Mbps/RTT 100 ms) | `docs/evidence/A1/load-budget-2026-11-04.md` |
+| Web vitals lab (§8) | PASS (local, Lighthouse mobile): LCP ≤ 2,05 s, CLS ≤ 0,015, TBT ≤ 79 ms (proxy INP), a11y 1,00 | `test-results/lhci` (không commit) |
+| T03/T04 | Logic có unit test; video/checklist: NOT RUN | — |
+| T08 | NOT RUN (FPS/frame time chưa đo) | — |
+
+Lưu ý ngân sách: JS ban đầu 141,8/150 KB (94,5 %) — L1 gần như hết chỗ.
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L1-004: sửa a11y (nút CV, target-size), favicon, prefetch 404 → T01/T11.
-- L2-004: P01-C character controller (slope limit, recovery point "Return to path") trên Rapier.
-- L3-004: Lighthouse CI + đo ngân sách tải cold-cache với mạng giả lập (Q18, §8).
+- L2-005: P01-D camera 360° (← →, kéo chuột không pointer lock), zoom giới hạn, spring arm, dither tán lá.
+- L1-005: nút "Return to path" + chọn quality trong menu world (gửi `tqa:return-to-path`, quality qua opts) — cần thiết kế menu §6.4.
+- L3-005: e2e T07/Q13/Q14 phần world (overlay chưa có → chờ P01-E); kiểm VI cho load budget.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 
 Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.

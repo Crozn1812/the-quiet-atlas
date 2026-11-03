@@ -1,6 +1,6 @@
 ## TICKET L1-004 — Sửa lỗi a11y T11, favicon, prefetch 404
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-004`, worktree `D:/tqa-worktrees/L1-004`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L1 / A1
 - Mục tiêu (theo trải nghiệm người dùng): trang không có lỗi console; nút và link đọc đúng tên bằng screen reader; link ngôn ngữ dễ bấm trên màn hình cảm ứng.
 - Spec liên quan: §7.3 (asset + giấy phép), §9, §13 T01/T11

@@ -1,6 +1,6 @@
 ## TICKET L2-004 — P01-C: character controller, collision, slope, recovery point
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L2-004`, worktree `D:/tqa-worktrees/L2-004`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L2 / B1 (P01-C)
 - Mục tiêu (theo trải nghiệm người chơi): trong rừng thử, W/A/S/D đi theo hướng camera nhìn, giữ Shift để chạy; nhân vật có trọng lực, bám mặt đất khi xuống dốc, không đi xuyên thân cây, bị chặn ở dốc quá gắt; rơi khỏi thế giới hoặc kẹt thì tự về điểm an toàn gần nhất, không mất tiến trình.
 - Spec liên quan: §6.1 (`sessionProgress.lastSafePosition`), §6.2 mục 3, 6, 8; §7.4; §13 T03, T04; §16.1, §16.3 P01-C

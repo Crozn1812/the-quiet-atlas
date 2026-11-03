@@ -1,6 +1,6 @@
 ## TICKET L3-004 — Đo ngân sách tải cold-cache (Q18/§8) + Lighthouse CI
 
-- Trạng thái: **Assigned → subagent Claude** (2026-11-04), nhánh `lane/L3-004`, worktree `D:/tqa-worktrees/L3-004`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L3 / A1 + P01
 - Mục tiêu: có phép đo lặp lại được cho các ngưỡng §8 không phụ thuộc GPU, chạy trên `out/` qua `tools/serve-out`.
 - Spec liên quan: §8 (bảng ngân sách), §13 Q18, T08 (chỉ phần time-to-playable mạng), ADR 0007

@@ -19,3 +19,4 @@ next-env.d.ts
 
 # Nội dung nháp/mật không vào repo (§4.1)
 content-private/
+.lighthouseci/
