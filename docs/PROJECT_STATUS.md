@@ -16,18 +16,32 @@
 - ADR 0001 (static export và routes): **Proposed**.
 - Ticket nháp đầu tiên cho L1/L2/L3 ở `docs/tickets/` — chưa giao, chưa có repo.
 
+- Git repo trên nhánh `main` (chưa có remote).
+- Nền P01-A: Next.js 16.4.4 static export, lockfile pnpm, route `/`, `/en/`, `/vi/`, `404.html` dựng được; luật lint chặn import tĩnh `features/world`. Phiên bản ghim trong ADR 0001.
+
+### Kiểm tra local đã chạy (2026-11-03, máy dev Windows 11, Node 26.13.0)
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm build` | Exit 0 |
+| `pnpm typecheck` | Exit 0 |
+| `pnpm lint` | Exit 0; probe import `features/world` từ `src/app` → fail đúng |
+| `pnpm test` | 2/2 test pass |
+
+Đây là kiểm tra nền, chưa phải gate T/Q nào.
+
 ## Chưa có
 
-- Git repository (chưa `git init`, chưa có commit).
-- `package.json`, lockfile, Next.js, production build.
-- Worktree cho các lane.
+- Remote GitHub (repo public — Duy tạo hoặc giao Lead).
+- Worktree cho các lane; chưa giao ticket nào cho Codex.
+- `lang` theo locale cho `/vi/` (ADR 0001, việc còn mở).
 
 ## Blocker thật
 
 | # | Blocker | Ảnh hưởng | Cần ai |
 |---|---|---|---|
 | ~~B1–B3~~ | ~~Thiếu git/node/pnpm/codex~~ | Đã cài 2026-11-03, xem `docs/runbook/setup.md` | — |
-| B4 | Chưa có `git config user.name/user.email` | Chưa commit được trên repo public | Duy chọn tên/email hiển thị |
+| ~~B4~~ | ~~Chưa có git identity~~ | Đã đặt global theo lựa chọn của Duy (Gmail) | — |
 
 ## Gate
 

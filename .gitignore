@@ -5,6 +5,8 @@ coverage/
 playwright-report/
 test-results/
 *.log
+next-env.d.ts
+*.tsbuildinfo
 .env
 .env.*
 !.env.example
