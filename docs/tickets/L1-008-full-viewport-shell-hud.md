@@ -1,6 +1,6 @@
 ## TICKET L1-008 — Shell toàn màn hình + HUD góc dưới trái (ADR 0009)
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-008`, worktree `D:/tqa-worktrees/L1-008`
+- Trạng thái: **Done — merged vào main** `f54407e` (2026-11-04, Duy duyệt giao diện). e2e cập nhật ở L3-008.
 - Lane / milestone: L1 / A1 + B1 (UI)
 - Đọc trước: `docs/adr/0009-full-viewport-shell-and-hud.md` (quyết định của chủ dự án — làm đúng), `docs/adr/0008-ui-world-event-contract.md`.
 - Mục tiêu (theo trải nghiệm người dùng):
