@@ -84,3 +84,46 @@ ngưỡng §8 để hợp thức hóa thất bại.
   autostep thực tế, mép/góc/tunneling, network trace sau Enter.
 - T08 **BLOCKED**: máy iGPU tham chiếu TBD. Nối `/en/` thuộc L1, kiểm bundle thuộc
   L3; README có loader mẫu xử lý rời shell trong lúc mount chờ.
+
+## Số đo P01-B — L2-003 (2026-11-04)
+
+Máy ghi nhãn theo ADR 0007: **desktop dGPU RTX 3060**, i5-14400F,
+RAM 36 GB; Node 26.13.0, Windows. Đây là CLI CPU/offline, GPU không tham gia;
+không phải máy iGPU, không suy ra FPS/T08. OS build/nguồn điện: TBD.
+
+Lệnh thực chạy: `node tools/benchmark-physics/index.mjs` (exit 0).
+Cảnh placeholder 60×60 m, 3.721 đỉnh terrain, 7.200 tam giác terrain,
+200 collider thân cây cylinder độc lập quality. Mesh và Rapier heightfield
+nhận cùng Float32Array theo thứ tự column-major `z + x * 61`.
+
+| Quality | Cây hiển thị | Collider cây | Tam giác terrain + cây | Geometry batches terrain + cây |
+|---|---:|---:|---:|---:|
+| Low | 80 | 200 | 10.240 | 3 |
+| Balanced (mặc định) | 140 | 200 | 12.520 | 3 |
+| High | 200 | 200 | 14.800 | 3 |
+
+Các số trên đếm trực tiếp index/vertex và instance count từ geometry sinh bởi
+cùng code scene; **không phải draw calls/tam giác renderer thực tế**. Chưa gồm
+capsule, frustum culling và shadow passes. Draw calls trình duyệt: **TBD / NOT RUN**;
+đã có `debug: true` hiển thị `renderer.info` để Lead đo. Không ghi 3 batches
+thành 3 draw calls thực đo. FPS browser: **DEFERRED P01-F** theo ticket.
+
+World library gzip tổng **1.794.104 bytes**: `world.js` 91.772,
+shared `scene` 54.373, dynamic Rapier 1.647.276, raycast 683 bytes.
+Phương pháp: Vite ES library target es2022, minify, không external dependencies,
+gzip Node mặc định từng JS chunk, cộng tất cả chunk (gồm cả hai lựa chọn collision).
+Đây là toàn world library offline, không phải riêng controller, không phải network
+trace Next hay số bytes chắc chắn tải sau Enter; không khẳng định gate 8 MB.
+
+CPU Rapier trên terrain + 200 collider cây: init **121,8167 ms**, step mean
+**0,059849 ms**, p95 **0,090300 ms**; 8.400 warm-up, 84.000 mẫu dt=1/60,
+reset controller mỗi 840 bước ngoài timer. Tuyến trung tâm lên/xuống dốc rồi
+lệch ngang; không chứng minh va chạm mọi cây. Benchmark mặc định P01-B chỉ chạy
+Rapier, số so sánh A/B P01-A phía trên giữ nguyên lịch sử.
+
+Xác minh: `pnpm test` 89/89 (12 files), gồm actual heightfield buffer, ray hit
+mesh ↔ collider tại bốn điểm (sai số < 1e-5 m), instance ratios, danh sách collider
+thực không đổi theo quality, KCC đứng và lên dốc. Lần test đầu ray đúng đỉnh lưới
+trả null; đã đổi ray kiểm tra vào nội bộ ô (0,23; 0,31 m), vẫn kiểm height buffer
+ngay tại đỉnh. Chưa kiểm bằng browser: visual bốn hướng, Enter World, GPU leak qua
+nhiều mount/unmount, draw calls. Không tuyên bố các mục này PASS.

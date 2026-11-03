@@ -1,10 +1,13 @@
+import { addTerrainColliders } from "./terrain-colliders";
+import type { Terrain, Trees } from "./terrain";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Vector3 } from "three";
 import { boxes, HALF_HEIGHT, HEIGHT, RADIUS, rotation, SLOPE_LIMIT, type Controller } from "./scene";
-export async function createController(): Promise<Controller> {
+export async function createController(terrain?: Terrain, trees: Trees = []): Promise<Controller> {
   await RAPIER.init();
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
-  for (const box of boxes) {
+  if (terrain) addTerrainColliders(world, terrain, trees);
+  for (const box of terrain ? [] : boxes) {
     world.createCollider(RAPIER.ColliderDesc.cuboid(box.size[0]! / 2, box.size[1]! / 2, box.size[2]! / 2)
       .setTranslation(box.position[0]!, box.position[1]!, box.position[2]!).setRotation(rotation(box.angle)));
   }

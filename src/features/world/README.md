@@ -72,3 +72,34 @@ tổng quát và không thay thế shape sweep chính xác. Không dùng B cho p
 khi chưa bổ sung các ca góc/cạnh, dốc gắt, bậc và tunneling.
 
 Xem quyết định và số đo tại `docs/adr/0002-physics.draft.md`.
+
+## P01-B procedural placeholder (L2-003)
+
+`mountWorld(container, { collision: "rapier", quality: "Balanced", debug: false })`
+keeps the existing Promise/unmount contract and chunk marker. Quality is optional:
+Low/Balanced/High = 80/140/200 visible trees (40/70/100%), DPR caps 1/1.25/2,
+shadow off/1024/2048. No assets, textures, baked AO or post-processing pipeline;
+all terrain, trunks, crowns and capsule are **procedural placeholders**, not final art.
+Dawn palette: sky/fog #e4c8a5, sun #ffce91, hemisphere #ffe2bb/#43574a,
+terrain #657552, crowns #344e3d. Linear fog near/far 15/65 m, ACES tone mapping.
+
+Terrain is 60×60 m, 60×60 cells, flat around spawn (0,4), with a continuous
+northbound 20% ramp beginning at z=-2 and plateau at 5 m. Height array indexing
+is `z + x * 61` (Rapier column-major); mesh and heightfield use the same Float32Array.
+Seed 73021 fixes tree layout: 140 west-grove and 60 east-grove trunks, a clear
+central walking corridor. All 200 cylinder colliders remain in Rapier at every
+quality; reduced quality can therefore leave invisible obstacles in groves.
+The raycast option remains an experimental mesh-based comparison from P01-A;
+it does not provide Rapier's quality-independent trunk collider guarantee.
+
+`debug: true` is a developer opt-in, never enabled by default or persisted.
+It appends an output containing rolling RAF FPS/frame interval and renderer draw
+calls, triangles, geometry/texture counts. This instrumentation is not a T08
+result. Unmount disposes instances, geometries/materials, shadow target, renderer,
+physics world (including heightfield/trunks), listeners, observer, RAF and output.
+
+`node tools/benchmark-physics/index.mjs` runs offline: structural terrain/forest
+counts and a Vite world library gzip breakdown, then CPU controller timings.
+These counts exclude capsule, camera culling and shadow passes; actual browser
+renderer draw calls and visual/lifecycle QA remain NOT RUN. Browser FPS is deferred
+to P01-F. Label machine **desktop dGPU RTX 3060**, per ADR 0007, never iGPU.
