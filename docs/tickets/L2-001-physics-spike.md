@@ -1,14 +1,26 @@
 ## TICKET L2-001 — Spike physics + lazy boundary + ADR 0002 nháp
 
-- Trạng thái: **Draft** — chờ P01-A nền và Codex
+- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L2-001`, worktree `../tqa-L2`
 - Lane / milestone: L2 / B1 (P01-A)
-- Mục tiêu: bấm Enter World mới tải chunk 3D; trong cảnh thử có capsule đi trên mặt phẳng + một dốc, so sánh hai phương án collision.
-- Spec liên quan: §5 (lazy 3D), §6.1, §15 (quy tắc physics), §16.3 P01-A
-- Được sửa: `src/features/world/`, `src/state/`, `docs/adr/0002-physics.draft.md` (chỉ file nháp này)
-- Không được sửa: mọi thứ khác; đặc biệt lockfile, `package.json` (cần dependency mới → ghi vào bàn giao để Lead thêm), `src/app/` ngoài điểm gắn đã thống nhất
+- Mục tiêu: có một module world nạp được bằng `import()` động; trong cảnh thử có capsule đi trên mặt phẳng + một dốc; so sánh hai phương án collision bằng số đo thật.
+- Spec liên quan (`docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`): §5 (không tải 3D trước Enter World), §6.1, §6.2 mục 3 và 8, §8, §15 (quy tắc physics), §16.3 P01-A
+- Dependency đã được Lead thêm sẵn trên nhánh (không tự thêm/đổi): `three`, `@types/three`, `@react-three/fiber`, `@dimforge/rapier3d-compat`.
+- Được sửa: `src/features/world/`, `src/state/`, `tests/unit/state/`, `tests/unit/world/`, `docs/adr/0002-physics.draft.md` (chỉ file này trong docs/)
+- Không được sửa: mọi thứ khác; đặc biệt `src/app/`, `src/components/`, `package.json`, `pnpm-lock.yaml`, config gốc. Không chạy `pnpm add/install`.
+- Hợp đồng ranh giới (Lead chốt, L3 dựa vào để kiểm bundle):
+  - Điểm vào duy nhất: `src/features/world/index.ts` export `async function mountWorld(container: HTMLElement, opts): Promise<() => void>` (trả hàm unmount dọn sạch loop/listener/GPU/physics).
+  - File điểm vào chứa hằng `export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";` và phải được dùng (ví dụ gán lên `container.dataset`) để không bị tree-shake. Script kiểm bundle sẽ tìm chuỗi này trong JS mà trang Welcome/Quick tải ban đầu.
+  - Chưa nối vào trang `/en/` trong ticket này (L1 sở hữu `src/app/`). Thay vào đó cung cấp một hàm loader mẫu trong `src/features/world/README.md` cho Lead nối sau.
 - Ràng buộc:
-  - So sánh Rapier kinematic character controller vs capsule + raycast tự viết: phiên bản, dung lượng gzip, cách khởi tạo (WASM, CSP `'wasm-unsafe-eval'`), slope/autostep/ground snap, chi phí runtime đo được trên máy hiện có (ghi rõ không phải máy tham chiếu).
-  - Timestep cố định, giới hạn bước bù khi tab treo.
-  - Không lưu state ngoài memory.
-- Điều kiện xong: build pass; network trace `/en/` trước Enter World = 0 request chunk 3D/WASM; ADR 0002 nháp có số đo thật.
-- Bàn giao: tóm tắt, số đo, đề xuất phương án, việc chưa làm.
+  - Phương án A: Rapier `KinematicCharacterController` (capsule, slope limit, autostep, snap-to-ground). Phương án B: capsule + raycast tự viết trên cùng cảnh. Cả hai dùng chung một cảnh thử (mặt phẳng + dốc + vài cột chắn).
+  - Timestep cố định (ví dụ 60 Hz), giới hạn số bước bù mỗi frame; khi tab bị ẩn thì dừng.
+  - Input đọc theo `KeyboardEvent.code`; blur xóa tập phím đang giữ.
+  - `src/state/`: reducer có kiểu cho `appMode`, `pauseReasons` (§6.1) — unit test không cần WebGL.
+  - Không lưu gì ngoài memory.
+  - ADR 0002 nháp ghi: phiên bản, dung lượng gzip của từng phương án (đo từ output build hoặc `gzip` trên file bundle), cách khởi tạo WASM (Rapier compat nhúng WASM base64 → cần CSP `'wasm-unsafe-eval'`), thời gian khởi tạo, chi phí step đo trên máy dev (ghi rõ: desktop i5-14400F + RTX 3060, **không phải máy tham chiếu iGPU**). Đề xuất một phương án, có điều kiện xem xét lại.
+- Điều kiện xong:
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` exit 0
+  - `out/` không có JS nào trong các trang hiện tại chứa `__TQA_WORLD_CHUNK__` (vì chưa được nối) — kiểm bằng tìm chuỗi
+  - Unit test cho reducer state và cho hàm giới hạn bước physics
+  - Một commit trên nhánh, conventional commit message
+- Bàn giao: tóm tắt, bảng số đo, đề xuất phương án, việc chưa làm.

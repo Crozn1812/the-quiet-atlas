@@ -1,15 +1,32 @@
-## TICKET L1-001 — Schema nội dung + Welcome/Quick khung
+## TICKET L1-001 — Schema nội dung + Welcome/Quick khung + `lang` theo locale
 
-- Trạng thái: **Draft** — chờ P01-A nền (Next.js + lockfile) và Codex
+- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L1-001`, worktree `../tqa-L1`
 - Lane / milestone: L1 / A0 → A1
-- Mục tiêu (theo trải nghiệm người dùng): mở `/en/` hoặc `/vi/` thấy tên, vai trò, một câu giới thiệu, link CV và ba nút Enter World / Quick Portfolio / Sound; mở `/en/quick/` thấy khung Quick Portfolio. Mọi dữ liệu chưa xác minh hiển thị `TBD` và chỉ ở chế độ nháp.
-- Spec liên quan: §3.1, §4.1, §4.2, §4.4, §5
-- Được sửa: `src/content/`, `src/app/[locale]/page.tsx`, `src/app/[locale]/quick/`, `src/components/portfolio/`, `tests/unit/content/` (chỉ test của schema)
-- Không được sửa: mọi thứ khác; đặc biệt lockfile, `package.json`, `docs/`, `infra/`, `src/features/`
+- Mục tiêu (theo trải nghiệm người dùng):
+  - Mở `/en/` hoặc `/vi/` thấy tên, vai trò/cấp độ, một câu giới thiệu, link CV và ba nút Enter World / Quick Portfolio / Sound. Trang `/vi/` có `<html lang="vi">`.
+  - Mở `/en/quick/`, `/vi/quick/` thấy khung Quick Portfolio: tên, vai trò, giới thiệu ngắn, hai dự án nổi bật, nút CV, liên hệ.
+  - Tất cả chạy khi tắt JavaScript.
+- Spec liên quan (đọc trong `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`): §1 (nguyên tắc), §3.1, §3.4, §4.1, §4.2, §4.3, §4.4, §5
+- Được sửa: `src/app/` (trừ `src/app/**/world*`), `src/components/portfolio/`, `src/content/`, `src/i18n/`, `tests/unit/content/`, `tests/unit/i18n/`
+- Không được sửa: mọi thứ khác; đặc biệt `package.json`, `pnpm-lock.yaml`, `next.config.ts`, `eslint.config.mjs`, `docs/`, `infra/`, `src/features/`, `src/state/`, `.github/`. Không chạy `pnpm add/install`.
+- Dữ kiện đã được chủ dự án xác nhận (chỉ dùng đúng những gì dưới đây):
+  - Tên: Nguyễn Hữu Bảo Duy (EN: Nguyen Huu Bao Duy)
+  - Vai trò: "Cloud & DevOps Engineer", cấp độ "Intern"
+  - Email liên hệ hiện trên web: `duybao09012004@gmail.com`
+  - Điện thoại: hiện trên web nhưng **số chưa có** → `TBD`
+  - Bốn dự án theo §2.2 (tên giữ nguyên); trạng thái, mô tả, URL repo: **`TBD`**
+  - "6 tháng kinh nghiệm": chưa có evidence → không hiển thị ở public, chỉ là trường nháp có `TBD` evidence
 - Ràng buộc:
-  - Schema Zod cho project (đủ trường §4.1), evidence (§4.2), profile; validator chạy lúc build, fail khi: slug trùng, thiếu trường, thiếu khóa EN/VI, evidence ID không tồn tại, status sai, URL ngoài allowlist.
-  - Dữ liệu nháp tách khỏi public; nháp không vào client bundle.
-  - Không import `src/features/world`. Nút Enter World chỉ là placeholder chưa nạp gì.
-  - Không bịa tên dự án/số liệu/URL ngoài các tên đã có trong §2.2; nội dung còn lại `TBD`.
-- Điều kiện xong: `pnpm lint`, `pnpm typecheck`, `pnpm test` (có test fail cho từng luật validator), `pnpm build` pass; trang chạy khi tắt JS.
-- Bàn giao: tóm tắt thay đổi, lệnh đã chạy + kết quả, việc chưa làm.
+  - Zod schema cho `profile`, `project` (đủ trường §4.1), `evidence` (§4.2). Validator chạy lúc build (import trong page/generateStaticParams hoặc script `prebuild` nằm trong `src/content/`), **fail build** khi: slug trùng; thiếu trường bắt buộc; thiếu khóa ở một locale; evidence ID không tồn tại; status ngoài planned/in-progress/completed/archived; URL không thuộc allowlist (https + host trong danh sách: github.com, linkedin.com, mailto:).
+  - Mỗi luật validator có ít nhất một unit test fail-case (vitest, thư mục `tests/unit/content/`).
+  - Nội dung có `reviewStatus` ≠ approved hiển thị nhãn "Draft" và không ghi "completed".
+  - Không bịa: mọi trường chưa có dữ kiện → chuỗi `TBD`. Không sinh số liệu, URL, công ty, chứng chỉ.
+  - `lang` theo locale mà không cần JS: chuyển root layout vào `src/app/[locale]/layout.tsx` với `<html lang={locale}>`; trang `/` và 404 có layout riêng (route group hoặc cách tương đương Next 16 hỗ trợ cho static export). `out/404.html` vẫn phải sinh ra.
+  - Nút Enter World chỉ là `<button>` placeholder disabled kèm lý do ("đang xây dựng"); **không import gì từ `src/features/`**. Nút Sound placeholder, không tạo AudioContext.
+  - Không lưu gì vào localStorage/sessionStorage/cookie.
+  - HTML ngữ nghĩa (h1, nav, article, main), link/nút có tên truy cập được.
+- Điều kiện xong (Codex tự chạy trong worktree, dán kết quả vào bàn giao):
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` đều exit 0
+  - `out/en/index.html`, `out/vi/index.html`, `out/en/quick/index.html`, `out/vi/quick/index.html`, `out/404.html` tồn tại; `out/vi/index.html` chứa `lang="vi"`
+  - Một commit trên nhánh, conventional commit message
+- Bàn giao: tóm tắt thay đổi, lệnh đã chạy + kết quả, việc chưa làm, câu hỏi cho Lead.
