@@ -1,0 +1,22 @@
+## TICKET L1-005 — Menu trong world (Esc) + Return to path + chọn chất lượng; hợp đồng ADR 0008 phía UI
+
+- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-005`, worktree `D:/tqa-worktrees/L1-005`
+- Lane / milestone: L1 / A1 + P01-E (phần UI)
+- Mục tiêu (theo trải nghiệm người dùng): khi đang ở trong world, nhấn Esc (hoặc nút menu nhỏ ở góc) mở menu; world tạm dừng. Menu có: Chất lượng (Low/Balanced/High), "Return to path", "Mở Quick Portfolio", Bảng phím, Đóng. Esc hoặc nút X đóng menu, focus trở về chỗ cũ, world chạy tiếp.
+- Spec liên quan: §6.2 mục 1 (overlay: dừng input, focus vào tiêu đề, Esc/X đóng, focus trả lại, Tab không thoát modal), §6.4 (Esc: đóng UI trước, không có UI thì mở menu; menu items), §9 (focus trap theo APG modal dialog), ADR 0008
+- Được sửa: `src/components/portfolio/`, `src/app/`, `src/i18n/`, `tests/unit/portfolio/`, `tests/unit/i18n/`
+- Không được sửa: mọi thứ khác; đặc biệt `src/features/`, `src/state/`, `src/content/index.ts`, `evidence.json`, `tests/e2e/`, `package.json`, lockfile, config gốc, `docs/`, `tools/`. Không `pnpm add/install`.
+- Ràng buộc:
+  - **Ngân sách JS**: trang Welcome đang dùng 141,8/150 KB gzip. Component menu phải nằm trong file riêng, nạp bằng `import()` **chỉ sau khi world mount xong** (không vào bundle ban đầu). `pnpm check:bundle` phải PASS và JS ban đầu tăng ≤ 1 KB.
+  - Giao tiếp với world **chỉ** qua ADR 0008: dispatch `tqa:pause` (`reason: "overlay"`) khi mở/đóng menu, `tqa:set-quality`, `tqa:return-to-path` trên container; đọc `data-world-quality` để hiện lựa chọn hiện tại. Không import `@/features/world` ngoài `import()` đã có.
+  - Menu là `role="dialog"` `aria-modal="true"` có tiêu đề; mở → focus vào tiêu đề; Tab/Shift+Tab xoay vòng trong dialog; Esc/X đóng và trả focus về phần tử đã mở (nút menu, hoặc vùng world nếu mở bằng Esc).
+  - Esc: nếu đang có dialog → đóng; nếu không → mở menu. Listener Esc chỉ hoạt động khi `appMode === "world"`; không nuốt phím khi focus đang ở ô nhập.
+  - "Mở Quick Portfolio": link thường tới `/{locale}/quick/` (điều hướng hẳn khỏi document là hợp lệ — lượt chơi kết thúc, §6.3).
+  - Bảng phím: liệt kê đúng §6.4 (chỉ những phím đã có: WASD, Shift, ← →, + −, Esc). Không liệt kê C/J/E vì chưa có tính năng.
+  - Chuỗi EN/VI trong `src/i18n/`.
+  - Không lưu lựa chọn quality vào storage (memory-only, §1.2).
+- Điều kiện xong:
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle`, `pnpm check:leaks` exit 0
+  - Unit test: logic Esc (đóng trước/mở sau), hàm focus-trap (phần tử đầu/cuối), dispatch đúng event + detail (dùng `EventTarget` giả)
+  - Không commit (sandbox chặn); Lead commit
+- Bàn giao: tóm tắt, bảng check:bundle (JS ban đầu trước/sau), lệnh + exit code, việc chưa làm.
