@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import type { Page, Response } from "@playwright/test";
+import { expect, type Page, type Response } from "@playwright/test";
 
 export const WORLD_MARKER = "__TQA_WORLD_CHUNK__";
 /** File types that belong to the 3D world (spec §5, Q18): none may be requested before Enter World. */
@@ -120,6 +120,38 @@ export async function settle(page: Page, quietMs = 750, maxMs = 8_000) {
   } finally {
     page.off("request", bump);
   }
+}
+
+/**
+ * L3-006: opens `/<locale>/`, clicks Enter World and waits until the world and its lazy menu are mounted.
+ * Returns `undefined` (caller skips as NOT RUN) when the browser has no WebGL2.
+ */
+export async function enterWorld(page: Page, locale = "en") {
+  await page.goto(`/${locale}/`);
+  if (!(await hasWebGL2(page))) return undefined;
+  await page.getByRole("button", { name: "Enter World" }).click();
+  const world = page.locator(`[data-world-chunk="${WORLD_MARKER}"]`);
+  await expect(world).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator("[data-app-mode='world']")).toHaveCount(1, { timeout: 45_000 });
+  await expect(world).toHaveAttribute("data-world-paused", /^(true|false)$/);
+  // The menu chunk is imported after mount; with software WebGL rendering under parallel load the
+  // main thread is busy, so give the lazy import generous time.
+  await expect(page.locator(".world-menu > button[aria-haspopup='dialog']")).toBeAttached({ timeout: 30_000 });
+  return world;
+}
+
+/**
+ * A browser window without focus (`document.hasFocus() === false`, possible headless/in CI) makes the
+ * world start with a `windowBlur` pause reason, so `data-world-paused` cannot reveal the menu's
+ * `overlay` reason. (Local headless Edge 2026-11-04 reported real focus.) When the window is
+ * unfocused, this emulates the window gaining focus (the world's own `focus` listener clears
+ * `windowBlur`), so the attribute reflects only the overlay. Returns which mode was used.
+ */
+export async function ensureWindowFocus(page: Page): Promise<"real focus" | "emulated window focus"> {
+  const focused = await page.evaluate(() => document.hasFocus());
+  if (focused) return "real focus";
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  return "emulated window focus";
 }
 
 export async function hasWebGL2(page: Page) {
