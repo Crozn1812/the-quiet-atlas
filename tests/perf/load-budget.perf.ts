@@ -31,6 +31,8 @@ import {
 } from "../../tools/load-budget/index.mjs";
 
 const RUNS = Number(process.env.PERF_RUNS ?? 3);
+// L3-005: Q18 for both locales. PERF_LOCALES=en (or vi) narrows the run.
+const LOCALES = (process.env.PERF_LOCALES ?? "en,vi").split(",").map(l => l.trim()).filter(Boolean);
 const VIEWPORT = { width: 1366, height: 800 };
 const DPR = 1;
 const OUT_DIR = path.resolve(process.cwd(), "test-results", "load-budget");
@@ -216,94 +218,97 @@ function machineInfo(browser: Browser, renderer: string) {
   };
 }
 
-test("load budget §8: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs)", async ({ baseURL }) => {
-  const base = baseURL ?? "http://127.0.0.1:4174";
-  const runs: (RunResult & { details: Record<string, unknown> })[] = [];
-  let machine: ReturnType<typeof machineInfo> | undefined;
+for (const locale of LOCALES) {
+  test(`load budget §8 /${locale}/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs)`, async ({ baseURL }) => {
+    const base = baseURL ?? "http://127.0.0.1:4174";
+    const runs: (RunResult & { details: Record<string, unknown> })[] = [];
+    let machine: ReturnType<typeof machineInfo> | undefined;
 
-  for (let i = 1; i <= RUNS; i++) {
-    const browser = await chromium.launch({ ...(CHANNEL ? { channel: CHANNEL } : {}), args: LAUNCH_ARGS });
-    try {
-      // --- Welcome /en/ → Enter World → playable
-      const welcomeContext = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: DPR });
-      const page = await welcomeContext.newPage();
-      await page.addInitScript(installProbe, WORLD_MARKER);
-      const welcome = await record(page);
-      await page.goto(`${base}/en/`, { waitUntil: "load" });
-      const enter = page.getByRole("button", { name: "Enter World" });
-      await expect(enter).toBeEnabled({ timeout: 30_000 });
-      await welcome.settle();
-      const renderer = await page.evaluate(() => {
-        const gl = document.createElement("canvas").getContext("webgl2");
-        if (!gl) return "no WebGL2";
-        const ext = gl.getExtension("WEBGL_debug_renderer_info");
-        return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
-      });
-      machine ??= machineInfo(browser, renderer);
+    for (let i = 1; i <= RUNS; i++) {
+      const browser = await chromium.launch({ ...(CHANNEL ? { channel: CHANNEL } : {}), args: LAUNCH_ARGS });
+      try {
+        // --- Welcome /<locale>/ → Enter World → playable
+        const welcomeContext = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: DPR });
+        const page = await welcomeContext.newPage();
+        await page.addInitScript(installProbe, WORLD_MARKER);
+        const welcome = await record(page);
+        await page.goto(`${base}/${locale}/`, { waitUntil: "load" });
+        const enter = page.getByRole("button", { name: "Enter World" });
+        await expect(enter).toBeEnabled({ timeout: 30_000 });
+        await welcome.settle();
+        const renderer = await page.evaluate(() => {
+          const gl = document.createElement("canvas").getContext("webgl2");
+          if (!gl) return "no WebGL2";
+          const ext = gl.getExtension("WEBGL_debug_renderer_info");
+          return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+        });
+        machine ??= machineInfo(browser, renderer);
 
-      await enter.click();
-      await page
-        .waitForFunction(() => (window as unknown as { __tqaPerf: Probe }).__tqaPerf.playableMs !== null, null, { timeout: 60_000, polling: 50 })
-        .catch(() => undefined);
-      const probe = await page.evaluate(() => (window as unknown as { __tqaPerf: Probe }).__tqaPerf);
-      await welcome.drain(probe.playableMs ?? Date.now());
-      await welcome.bodies();
-      const welcomeRequests = welcome.snapshot();
-      const clickMs = probe.clickMs ?? Number.POSITIVE_INFINITY;
-      const initial = evaluateInitialPage("Welcome /en/", welcomeRequests.filter(r => r.startMs < clickMs));
-      const world = evaluateWorld(welcomeRequests, { clickMs, playableMs: probe.playableMs });
-      const worldRequests = welcomeRequests.filter(r => r.startMs >= clickMs && (probe.playableMs === null || r.startMs <= probe.playableMs));
-      await welcomeContext.close();
+        await enter.click();
+        await page
+          .waitForFunction(() => (window as unknown as { __tqaPerf: Probe }).__tqaPerf.playableMs !== null, null, { timeout: 60_000, polling: 50 })
+          .catch(() => undefined);
+        const probe = await page.evaluate(() => (window as unknown as { __tqaPerf: Probe }).__tqaPerf);
+        await welcome.drain(probe.playableMs ?? Date.now());
+        await welcome.bodies();
+        const welcomeRequests = welcome.snapshot();
+        const clickMs = probe.clickMs ?? Number.POSITIVE_INFINITY;
+        const initial = evaluateInitialPage(`Welcome /${locale}/`, welcomeRequests.filter(r => r.startMs < clickMs));
+        const world = evaluateWorld(welcomeRequests, { clickMs, playableMs: probe.playableMs });
+        const worldRequests = welcomeRequests.filter(r => r.startMs >= clickMs && (probe.playableMs === null || r.startMs <= probe.playableMs));
+        await welcomeContext.close();
 
-      // --- Quick /en/quick/
-      const quickContext = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: DPR });
-      const quickPage = await quickContext.newPage();
-      const quick = await record(quickPage);
-      await quickPage.goto(`${base}/en/quick/`, { waitUntil: "load" });
-      await quick.settle();
-      await quick.bodies();
-      const quickRequests = quick.snapshot();
-      const quickResult = evaluateInitialPage("Quick /en/quick/", quickRequests);
-      await quickContext.close();
+        // --- Quick /<locale>/quick/
+        const quickContext = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: DPR });
+        const quickPage = await quickContext.newPage();
+        const quick = await record(quickPage);
+        await quickPage.goto(`${base}/${locale}/quick/`, { waitUntil: "load" });
+        await quick.settle();
+        await quick.bodies();
+        const quickRequests = quick.snapshot();
+        const quickResult = evaluateInitialPage(`Quick /${locale}/quick/`, quickRequests);
+        await quickContext.close();
 
-      const gates = [
-        ...initial.gates.filter(g => !g.id.endsWith("no-3d-before-enter")),
-        ...quickResult.gates.filter(g => !g.id.endsWith("no-3d-before-enter")),
-        ...initial.gates.filter(g => g.id.endsWith("no-3d-before-enter")),
-        ...quickResult.gates.filter(g => g.id.endsWith("no-3d-before-enter")),
-        ...world.gates,
-      ];
-      const describe = (s: Summary) => ({ ...s, totalHuman: fmtBytes(s.total) });
-      runs.push({
-        label: `Lần ${i}`,
-        gates,
-        details: {
-          probe,
-          clickToFirstDrawMs: probe.clickMs !== null && probe.firstDrawMs !== null ? probe.firstDrawMs - probe.clickMs : null,
-          welcome: { summary: describe(initial.summary), forbidden: initial.forbidden, top: top(welcomeRequests.filter(r => r.startMs < clickMs)) },
-          quick: { summary: describe(quickResult.summary), forbidden: quickResult.forbidden, top: top(quickRequests) },
-          world: { summary: describe(world.summary), timeMs: world.timeMs, top: top(worldRequests) },
-          warnings: [...welcome.warnings, ...quick.warnings],
-        },
-      });
-      console.log(`run ${i}: ${gates.map(g => `${g.label}=${g.measured} ${g.status}`).join("; ")}`);
-    } finally {
-      await browser.close();
+        const gates = [
+          ...initial.gates.filter(g => !g.id.endsWith("no-3d-before-enter")),
+          ...quickResult.gates.filter(g => !g.id.endsWith("no-3d-before-enter")),
+          ...initial.gates.filter(g => g.id.endsWith("no-3d-before-enter")),
+          ...quickResult.gates.filter(g => g.id.endsWith("no-3d-before-enter")),
+          ...world.gates,
+        ];
+        const describe = (s: Summary) => ({ ...s, totalHuman: fmtBytes(s.total) });
+        runs.push({
+          label: `Lần ${i}`,
+          gates,
+          details: {
+            probe,
+            clickToFirstDrawMs: probe.clickMs !== null && probe.firstDrawMs !== null ? probe.firstDrawMs - probe.clickMs : null,
+            welcome: { summary: describe(initial.summary), forbidden: initial.forbidden, top: top(welcomeRequests.filter(r => r.startMs < clickMs)) },
+            quick: { summary: describe(quickResult.summary), forbidden: quickResult.forbidden, top: top(quickRequests) },
+            world: { summary: describe(world.summary), timeMs: world.timeMs, top: top(worldRequests) },
+            warnings: [...welcome.warnings, ...quick.warnings],
+          },
+        });
+        console.log(`run ${i}: ${gates.map(g => `${g.label}=${g.measured} ${g.status}`).join("; ")}`);
+      } finally {
+        await browser.close();
+      }
     }
-  }
 
-  const result = { measuredAt: new Date().toISOString(), machine, network: NETWORK, runs };
-  const markdown = formatMarkdown(result);
-  const name = CPU_THROTTLE > 1 ? `load-budget-cpu${CPU_THROTTLE}x` : "load-budget";
-  mkdirSync(OUT_DIR, { recursive: true });
-  writeFileSync(path.join(OUT_DIR, `${name}.json`), JSON.stringify(result, null, 2));
-  writeFileSync(path.join(OUT_DIR, `${name}.md`), `${markdown}\n`);
-  console.log(`\n${markdown}\n\nmachine: ${JSON.stringify(machine)}\nresults: ${OUT_DIR}`);
+    const result = { measuredAt: new Date().toISOString(), locale, machine, network: NETWORK, runs };
+    const markdown = formatMarkdown(result);
+    // EN keeps the L3-004 file names (load-budget.json/.md); other locales get a suffix (load-budget-vi.json/.md).
+    const name = `load-budget${locale === "en" ? "" : `-${locale}`}${CPU_THROTTLE > 1 ? `-cpu${CPU_THROTTLE}x` : ""}`;
+    mkdirSync(OUT_DIR, { recursive: true });
+    writeFileSync(path.join(OUT_DIR, `${name}.json`), JSON.stringify(result, null, 2));
+    writeFileSync(path.join(OUT_DIR, `${name}.md`), `${markdown}\n`);
+    console.log(`\n${markdown}\n\nmachine: ${JSON.stringify(machine)}\nresults: ${OUT_DIR}`);
 
-  const worst = worstOf(runs);
-  if (CPU_THROTTLE > 1) {
-    test.info().annotations.push({ type: "reference-only", description: `CPU throttling ${CPU_THROTTLE}× (ADR 0007 "mô phỏng máy yếu"): not a gate; result ${worst.ok ? "within" : "outside"} §8 limits` });
-    return;
-  }
-  expect(worst.gates.filter(g => g.status === "FAIL").map(g => `${g.label}: ${g.measured}`), "§8 gates (worst of runs)").toEqual([]);
-});
+    const worst = worstOf(runs);
+    if (CPU_THROTTLE > 1) {
+      test.info().annotations.push({ type: "reference-only", description: `CPU throttling ${CPU_THROTTLE}× (ADR 0007 "mô phỏng máy yếu"): not a gate; result ${worst.ok ? "within" : "outside"} §8 limits` });
+      return;
+    }
+    expect(worst.gates.filter(g => g.status === "FAIL").map(g => `${g.label}: ${g.measured}`), "§8 gates (worst of runs)").toEqual([]);
+  });
+}
