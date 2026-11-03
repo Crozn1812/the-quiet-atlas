@@ -185,3 +185,7 @@ nhiều mount/unmount, draw calls. Không tuyên bố các mục này PASS.
   Pause overlay/error v? world-state/data attributes d?ng container theo ADR 0008.
 - Log T05/T06 tr?n tr?nh duy?t: **NOT RUN**. Unit test kh?ng thay th? ki?m tra
   shader WebGL, ???ng ?i/g?c nh?n, visibility > 1 gi?y hay log debug th?c t?.
+
+## P01-E: interaction radius — L2-006 (2026-11-04)
+
+- Chốt bán kính tương tác `INTERACTION_RADIUS = 2,5 m` (T07), khoảng cách Euclid 3D từ tâm capsule tới tâm mục tiêu, bao gồm biên.

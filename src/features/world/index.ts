@@ -1,3 +1,5 @@
+import { createInteraction, type InteractionTarget } from "../interaction/targets";
+import { BoxGeometry } from "three";
 import { clampZoom, wrapYaw, springArm, selectOccludingCrowns, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { createCrownFade } from "./crown-fade";
 import { createLocomotion } from "./locomotion";
@@ -64,9 +66,37 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   scene.add(...obstacles);
   const player = new Mesh(new CapsuleGeometry(RADIUS, HALF_HEIGHT * 2), new MeshBasicMaterial({ color: 0xcc754e }));
   scene.add(player);
+  const supports: Mesh<BoxGeometry, MeshBasicMaterial>[] = [];
+  const props = [
+    { id: "signpost", zoneId: "first-light" as const, x: 1.8, z: 4, size: [1.2, 0.7, 0.18] },
+    { id: "desk", zoneId: "workshop" as const, x: 2, z: -3, size: [1.8, 0.25, 0.9] },
+  ].map(spec => {
+    const mesh = new Mesh(
+      new BoxGeometry(...spec.size as [number, number, number]),
+      new MeshBasicMaterial({ color: spec.id === "desk" ? 0x8b6040 : 0xd9bd7b }),
+    );
+    mesh.position.set(spec.x, terrainHeight(terrain, spec.x, spec.z) + 1, spec.z);
+    mesh.name = spec.id + " (placeholder)";
+    const feet = spec.id === "desk" ? [-0.65, 0.65] : [0];
+    for (const x of feet) {
+      const support = new Mesh(
+        new BoxGeometry(0.15, 0.9, spec.id === "desk" ? 0.7 : 0.15),
+        new MeshBasicMaterial({ color: 0x8b6040 }),
+      );
+      support.position.set(x, -0.5, 0);
+      mesh.add(support);
+      supports.push(support);
+    }
+    mesh.updateMatrixWorld(true);
+    scene.add(mesh);
+    return { id: spec.id, zoneId: spec.zoneId, position: mesh.position, mesh };
+  });
+  const labels = document.createElement("p");
+  labels.textContent = "First Light signpost (placeholder) · The Workshop desk (placeholder)";
+  container.appendChild(labels);
   const camera = new PerspectiveCamera(55, 1, 0.1, 100);
   gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
-  gpu.domElement.setAttribute("aria-label", "P01-D placeholder forest. WASD to walk, Shift to run, arrows or drag to orbit, plus/minus or wheel to zoom.");
+  gpu.domElement.setAttribute("aria-label", "P01-E placeholder forest. WASD to walk, Shift to run, arrows or drag to orbit, plus/minus or wheel to zoom. E or click nearby signpost or desk to open content.");
   container.appendChild(gpu.domElement);
   const metrics = opts.debug ? document.createElement("output") : undefined;
   if (metrics) {
@@ -84,7 +114,24 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let belowTerrainFrames = 0;
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
-  const cameraObstacles = [obstacles[0]!, cameraForest[0], ...obstacles.slice(3)];
+  const cameraObstacles = [obstacles[0]!, cameraForest[0], ...obstacles.slice(3), ...props.map(prop => prop.mesh)];
+  const sightRay = new Raycaster();
+  const interaction = createInteraction({
+    container,
+    targets: props,
+    player: () => physics.position,
+    enabled: cameraEnabled,
+    lineOfSight(target: InteractionTarget) {
+      const direction = new Vector3().copy(target.position).sub(physics.position);
+      sightRay.set(physics.position, direction.clone().normalize());
+      sightRay.far = Math.max(0, direction.length() - 0.01);
+      const blockers = cameraObstacles.filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh));
+      return sightRay.intersectObjects(blockers).length === 0;
+    },
+    visit(zoneId) {
+      state = sessionReducer(state, { type: "visitZone", zoneId });
+    },
+  });
   let keys: ReadonlySet<string> = new Set();
   let accumulator = 0;
   let last = 0;
@@ -104,11 +151,13 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     metricFrames = 0;
     clear({ type: reason === "windowBlur" ? "blur" : "hidden" });
     publishState();
+    interaction.update();
   }
   function cameraEnabled() {
     return canSimulate(state) && !isInputTarget(document.activeElement);
   }
   function keydown(event: KeyboardEvent) {
+    if (interaction.keydown(event)) return;
     if (cameraEnabled() && !isInputTarget(event.target)) {
       if (["Equal", "NumpadAdd"].includes(event.code)) zoom = clampZoom(zoom - 0.75);
       if (["Minus", "NumpadSubtract"].includes(event.code)) zoom = clampZoom(zoom + 0.75);
@@ -137,13 +186,25 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     state = locomotion.recover(state);
     clear();
   }
+  function click(event: MouseEvent) {
+    if (event.button !== 0 || !cameraEnabled()) return;
+    const rect = gpu.domElement.getBoundingClientRect();
+    raycaster.far = Infinity;
+    raycaster.setFromCamera(new Vector2(
+      (event.clientX - rect.left) / rect.width * 2 - 1,
+      -(event.clientY - rect.top) / rect.height * 2 + 1,
+    ), camera);
+    const hit = raycaster.intersectObjects([...obstacles, player, ...props.map(prop => prop.mesh)])[0];
+    const target = props.find(prop => prop.mesh === hit?.object || prop.mesh === hit?.object.parent);
+    if (target) interaction.click(target.id);
+  }
   function pointerdown(event: PointerEvent) {
     if (event.button !== 0 || !cameraEnabled()) return;
     const rect = gpu.domElement.getBoundingClientRect();
     raycaster.far = Infinity;
     raycaster.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
     // Terrain is empty space; visible character, trees and props retain click ownership.
-    if (raycaster.intersectObjects([...forest, player, ...obstacles.slice(3)]).length) return;
+    if (raycaster.intersectObjects([...forest, player, ...obstacles.slice(3), ...props.map(prop => prop.mesh)]).length) return;
     drag = { id: event.pointerId, x: event.clientX };
     gpu.domElement.setPointerCapture(event.pointerId);
   }
@@ -232,6 +293,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     last = now;
     player.position.copy(physics.position);
     updateCamera(dt);
+    interaction.update();
     sun.target.position.copy(physics.position);
     sun.position.copy(physics.position).add(new Vector3(-20, 12, 15));
     gpu.render(scene, camera);
@@ -251,6 +313,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   container.addEventListener("tqa:return-to-path", returnToPath);
   container.addEventListener("tqa:pause", externalPause);
   container.addEventListener("tqa:set-quality", setQuality);
+  gpu.domElement.addEventListener("click", click);
   gpu.domElement.addEventListener("pointerdown", pointerdown);
   gpu.domElement.addEventListener("pointermove", pointermove);
   gpu.domElement.addEventListener("pointerup", pointerup);
@@ -276,6 +339,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     observer.disconnect();
     container.removeEventListener("tqa:pause", externalPause);
     container.removeEventListener("tqa:set-quality", setQuality);
+    gpu.domElement.removeEventListener("click", click);
+    interaction.dispose();
+    labels.remove();
     gpu.domElement.removeEventListener("pointerdown", pointerdown);
     gpu.domElement.removeEventListener("pointermove", pointermove);
     gpu.domElement.removeEventListener("pointerup", pointerup);
@@ -294,7 +360,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     document.removeEventListener("focusin", focusin);
     clear();
     physics.dispose();
-    for (const mesh of [...obstacles, player]) {
+    for (const mesh of [...obstacles, player, ...props.map(prop => prop.mesh), ...supports]) {
       mesh.geometry.dispose();
       mesh.material.dispose();
     }

@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 const harness = vi.hoisted(() => ({
   canvas: undefined as unknown,
   camera: undefined as unknown,
+  scene: undefined as unknown,
   next: undefined as ((now: number) => void) | undefined,
   dpr: 0,
 }));
@@ -22,6 +23,7 @@ vi.mock("three", async importOriginal => {
         scene.updateMatrixWorld(true);
         camera.updateMatrixWorld(true);
         harness.camera = camera;
+        harness.scene = scene;
       }
       dispose() {}
       forceContextLoss() {}
@@ -89,9 +91,32 @@ it("implements container pause/quality events in place and gates camera input", 
     const tick = (now: number) => harness.next!(now);
     tick(100);
     const camera = harness.camera as import("three").Camera;
+    const scene = harness.scene as import("three").Scene;
+    const opened = vi.fn();
+    container.addEventListener("tqa:open-content", opened);
+    const sign = scene.getObjectByName("signpost (placeholder)")!;
+    const desk = scene.getObjectByName("desk (placeholder)")!;
+    const clickObject = (object: import("three").Object3D) => {
+      const point = object.position.clone().project(camera);
+      send(canvas, "click", {
+        button: 0,
+        clientX: (point.x + 1) * 500,
+        clientY: (1 - point.y) * 400,
+      });
+    };
+    expect(container.dataset.worldHint).toBe("first-light");
+    clickObject(desk);
+    expect(opened).not.toHaveBeenCalled();
+    clickObject(sign);
+    expect(opened).toHaveBeenCalledOnce();
+    expect(opened.mock.calls[0]![0].detail).toEqual({ zoneId: "first-light" });
     const position = camera.position.clone();
     const stateCount = states.length;
     send(container, "tqa:pause", { detail: { reason: "overlay", paused: true } });
+    send(container, "tqa:content-closed", { detail: { zoneId: "first-light" } });
+    expect(container.dataset.worldHint).toBeUndefined();
+    clickObject(sign);
+    expect(opened).toHaveBeenCalledOnce();
     expect(container.dataset.worldPaused).toBe("true");
     send(window, "keydown", { code: "ArrowLeft" });
     send(canvas, "wheel", { deltaX: 100, deltaY: 100, deltaMode: 0, ctrlKey: false });

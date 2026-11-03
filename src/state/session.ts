@@ -18,6 +18,7 @@ export interface SessionState {
 export type SessionAction =
   | { type: "safePosition"; position: Position }
   | { type: "recover" }
+  | { type: "visitZone"; zoneId: string }
   | { type: "mode"; mode: AppMode }
   | { type: "pause"; reason: PauseReason; paused: boolean };
 export const initialSession = (): SessionState => ({
@@ -31,6 +32,15 @@ export const initialSession = (): SessionState => ({
   },
 });
 export function sessionReducer(state: SessionState, action: SessionAction): SessionState {
+  if (action.type === "visitZone") {
+    return {
+      ...state,
+      sessionProgress: {
+        ...state.sessionProgress,
+        visitedZones: new Set([...state.sessionProgress.visitedZones, action.zoneId]),
+      },
+    };
+  }
   if (action.type === "recover") {
     return { ...state, position: { ...state.sessionProgress.lastSafePosition } };
   }
