@@ -1,4 +1,3 @@
-| World ? UI | `tqa:world-error` (container, bubbles: false) | `{ kind: "context-lost" }` | GPU context lost: world stops permanently; UI returns to HTML; no renderer recovery promised |
 # ADR 0008 — Hợp đồng sự kiện giữa UI portfolio và world
 
 - Trạng thái: **Accepted** (Lead, 2026-11-04)
@@ -34,6 +33,12 @@ World phát `tqa:world-state` (bubbles: false) trên container mỗi khi `paused
 | World → UI | `tqa:open-content` (trên container) | `{ zoneId: "first-light" \| "roots" \| "workshop" \| "milestones" \| "old-trail" \| "horizon" \| "quiet-shore" \| "last-postcard" }` | Người chơi tương tác (E/click) với vật thể của khu; UI mở overlay |
 | UI → world | `tqa:content-closed` | `{ zoneId }` | Overlay đã đóng; world ghi "đã ghé" khu này (memory) |
 | World → UI | `data-world-hint` | `zoneId` của mục tiêu tương tác đang được gợi ý, hoặc vắng mặt | Để UI/test biết gợi ý "E" đang hiện |
+
+## Mở rộng 2026-11-04 (P01-F, L2-007)
+
+| Hướng | Event | `detail` | Ý nghĩa |
+|---|---|---|---|
+| World → UI | `tqa:world-error` (trên container, bubbles: false) | `{ kind: "context-lost" }` | Mất WebGL context: world dừng hẳn; UI đưa người xem về HTML (Q15); không hứa khôi phục renderer |
 
 World **không** tự mở overlay khi đang có lý do pause; UI chịu trách nhiệm pause/resume qua `tqa:pause` như menu.
 
