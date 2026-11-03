@@ -1,0 +1,5 @@
+{
+  "$comment": "L3-002 — allowlist cho tools/scan-leaks. emails: địa chỉ được phép xuất hiện công khai (luật 6). values: giá trị cụ thể được miễn ở mọi luật 1–4/6 (so khớp chính xác, không phân biệt hoa thường) — chỉ thêm sau khi Lead duyệt.",
+  "emails": ["duybao09012004@gmail.com"],
+  "values": []
+}

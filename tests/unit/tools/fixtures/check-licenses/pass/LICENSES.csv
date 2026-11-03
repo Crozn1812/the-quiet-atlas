@@ -1,0 +1,3 @@
+file,creator_source,license,modify_allowed,web_distribution_allowed,repo_distribution_allowed,attribution,proof_of_rights,texture_size,material_count,lod,collider
+models/tree.glb,"Fake Studio, test fixture",CC0-1.0,yes,yes,yes,,https://example.invalid/proof,512,1,"LOD0,LOD1",none
+/public/fonts/sample.woff2,Fake Foundry,OFL-1.1,yes,yes,yes,"Fake Foundry ""Sample""",https://example.invalid/ofl,,,,

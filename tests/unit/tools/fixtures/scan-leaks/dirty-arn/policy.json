@@ -1,0 +1,4 @@
+{
+  "comment": "Fake fixture (L3-002) — rule R2",
+  "Resource": "arn:aws:s3:::example-bucket/*"
+}

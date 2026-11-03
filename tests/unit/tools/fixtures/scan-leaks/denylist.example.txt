@@ -1,0 +1,3 @@
+# Fake denylist for tests only (L3-002). The real list lives OUTSIDE the repo, see $TQA_DENYLIST_FILE.
+acme-partner
+colleague@example.invalid

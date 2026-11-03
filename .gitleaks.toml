@@ -1,0 +1,60 @@
+# L3-002 — gitleaks cho The Quiet Atlas (spec §4.6).
+# Ruleset mặc định của gitleaks + luật riêng R1–R4 (regex RE2, không lookaround).
+# R5 (denylist tên khách hàng/đối tác/email đồng nghiệp) và R6 (email ngoài allowlist) chỉ có trong
+# tools/scan-leaks (denylist đọc từ file ngoài repo qua $TQA_DENYLIST_FILE — repo public).
+# CI chạy: gitleaks dir out/ và gitleaks dir src/content/ (xem .github/workflows/pr.yml).
+
+title = "The Quiet Atlas gitleaks config"
+
+[extend]
+useDefault = true
+
+# R1 — AWS account ID: đúng 12 chữ số, không dính chữ/số/+/=/ (loại hash hex/base64/integrity)
+# và không phải phần số thực (`3.123…`). Heuristic chi tiết hơn nằm ở tools/scan-leaks.
+[[rules]]
+id = "tqa-aws-account-id"
+description = "AWS account ID (12 standalone digits)"
+regex = '''(?:^|[^A-Za-z0-9+/=.])(\d{12})(?:$|[^A-Za-z0-9+/=.]|\.(?:$|[^0-9]))'''
+secretGroup = 1
+
+# R2 — ARN AWS (gồm phân vùng aws-cn, aws-us-gov).
+[[rules]]
+id = "tqa-aws-arn"
+description = "AWS ARN"
+regex = '''(?i)(arn:aws(?:-[a-z]+)*:[^\s"'<>`]*)'''
+secretGroup = 1
+keywords = ["arn:aws"]
+
+# R3 — GUID Azure subscription/tenant/directory: chỉ khi từ khóa cách GUID ≤ 80 ký tự (trước hoặc sau).
+[[rules]]
+id = "tqa-azure-guid-after-keyword"
+description = "Azure subscription/tenant/directory GUID (keyword before)"
+regex = '''(?is)(?:subscription|tenant|directory).{0,80}?\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b'''
+secretGroup = 1
+keywords = ["subscription", "tenant", "directory"]
+
+[[rules]]
+id = "tqa-azure-guid-before-keyword"
+description = "Azure subscription/tenant/directory GUID (keyword after)"
+regex = '''(?is)\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b.{0,80}?(?:subscription|tenant|directory)'''
+secretGroup = 1
+keywords = ["subscription", "tenant", "directory"]
+
+# R4 — IP nội bộ RFC 1918.
+[[rules]]
+id = "tqa-internal-ip"
+description = "Private IPv4 address (10/8, 172.16/12, 192.168/16)"
+regex = '''(?:^|[^0-9.])((?:10\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)|172\.(?:1[6-9]|2\d|3[01])|192\.168)\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d))(?:$|[^0-9.]|\.(?:$|[^0-9]))'''
+secretGroup = 1
+
+# R4 — domain nội bộ.
+[[rules]]
+id = "tqa-internal-domain"
+description = "Internal domain (.internal, .local, .corp, .lan)"
+regex = '''(?i)(?:^|[^\w.@-])((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:internal|local|corp|lan))(?:$|[^\w.-]|\.(?:$|[^\w-]))'''
+secretGroup = 1
+
+# Fixture "bẩn" cố ý (giá trị giả) cho unit test của tools/scan-leaks — chỉ liên quan khi quét cả repo.
+[allowlist]
+description = "Intentional fake fixtures for scan-leaks unit tests"
+paths = ['''tests/unit/tools/fixtures/scan-leaks/''']

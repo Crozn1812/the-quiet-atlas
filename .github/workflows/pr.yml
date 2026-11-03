@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   verify:
-    name: lint · typecheck · test · build · check-bundle
+    name: lint · typecheck · test · build · check-bundle · leaks · licenses
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -56,3 +56,23 @@ jobs:
 
       - name: Check bundle (no 3D before Enter World, §8 budgets)
         run: node tools/check-bundle/index.mjs out
+
+      # L3-002 — §4.6 quét rò rỉ (luật riêng R1–R6) trên nội dung nguồn + artifact build.
+      # R5 (denylist) bỏ qua kèm cảnh báo vì CI không có TQA_DENYLIST_FILE (danh sách thật không nằm trong repo public).
+      - name: Scan leaks (§4.6 custom rules)
+        run: node tools/scan-leaks/index.mjs src/content out
+
+      # §4.6 gitleaks: ruleset mặc định + .gitleaks.toml, quét thư mục (không quét lịch sử git).
+      # Image ghim phiên bản; nên ghim thêm digest (@sha256:…) sau khi Lead xác minh.
+      - name: Gitleaks (pinned v8.28.0) on out/ and src/content/
+        env:
+          GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.28.0
+        run: |
+          for target in out src/content; do
+            docker run --rm --network none -v "$GITHUB_WORKSPACE:/repo:ro" "$GITLEAKS_IMAGE" \
+              dir "/repo/$target" --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
+          done
+
+      # L3-002 — §7.3 mỗi file trong public/ phải có dòng trong assets/LICENSES.csv.
+      - name: Check asset licenses (§7.3)
+        run: node tools/check-licenses/index.mjs
