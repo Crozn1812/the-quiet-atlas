@@ -1,11 +1,16 @@
+import { messages } from "@/i18n/messages";
+import type { WorldCopy } from "./WorldEntry";
+import { replaceWorldLocale, type WorldLocale } from "./worldLocale";
 import { mountWorldContent } from "./WorldContent";
 import { worldMenuMessages } from "@/i18n/world-menu";
 import { escapeAction, pauseWorld, returnToPath, setWorldQuality, trapFocus } from "./worldMenuControls";
 import type { Quality } from "./worldMenuControls";
 
-export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void) {
+export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void, onLocale: (locale: WorldLocale, copy: WorldCopy, labels: { sound: string; actions: string }) => void) {
   const removeContent = mountWorldContent(container, locale);
-  const copy = worldMenuMessages[locale === "vi" ? "vi" : "en"];
+  let language: WorldLocale = locale === "vi" ? "vi" : "en";
+  let copy = worldMenuMessages[language];
+  const translations: (() => void)[] = [];
   const host = document.createElement("div");
   host.className = "world-menu";
   const dialog = document.createElement("dialog");
@@ -15,7 +20,9 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   const title = document.createElement("h2");
   title.id = "world-menu-title";
   title.tabIndex = -1;
-  title.textContent = copy.menu;
+  translations.push(() => {
+    title.textContent = copy.menu;
+  });
   dialog.append(title);
   let opener: HTMLElement = container;
 
@@ -26,23 +33,31 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     opener.focus();
   }
 
-  function button(label: string, action: () => void) {
+  function button(label: () => string, action: () => void) {
     const element = document.createElement("button");
     element.type = "button";
-    element.textContent = label;
+    translations.push(() => {
+      element.textContent = label();
+    });
     element.addEventListener("click", action);
     dialog.append(element);
     return element;
   }
 
-  button(`× ${copy.close}`, close);
+  button(() => `× ${copy.close}`, close);
   const label = document.createElement("label");
-  label.textContent = copy.quality;
+  const qualityText = document.createElement("span");
+  translations.push(() => {
+    qualityText.textContent = copy.quality;
+  });
+  label.append(qualityText);
   const select = document.createElement("select");
   for (const quality of ["low", "balanced", "high"] as const) {
     const option = document.createElement("option");
     option.value = quality;
-    option.textContent = copy[quality];
+    translations.push(() => {
+      option.textContent = copy[quality];
+    });
     select.append(option);
   }
   label.append(select);
@@ -55,26 +70,59 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     setWorldQuality(container, select.value as Quality);
   });
   container.addEventListener("tqa:world-state", syncQuality);
-  button(copy.returnToPath, () => {
+  button(() => copy.returnToPath, () => {
     returnToPath(container);
     close();
   });
   const quick = document.createElement("a");
-  quick.href = `/${locale}/quick/`;
-  quick.textContent = copy.quick;
+  translations.push(() => {
+    quick.href = `/${language}/quick/`;
+    quick.textContent = copy.quick;
+  });
   dialog.append(quick);
   const keys = document.createElement("details");
   const summary = document.createElement("summary");
-  summary.textContent = copy.keys;
+  translations.push(() => {
+    summary.textContent = copy.keys;
+  });
   keys.append(summary);
-  for (const text of [copy.move, copy.camera, copy.zoom, copy.escape]) {
+  for (const key of ["move", "camera", "zoom", "escape"] as const) {
     const line = document.createElement("p");
-    line.textContent = text;
+    translations.push(() => {
+      line.textContent = copy[key];
+    });
     keys.append(line);
   }
   dialog.append(keys);
-  button(copy.leave, leaveWorld);
-  button(copy.close, close);
+  button(() => copy.leave, leaveWorld);
+  button(() => copy.close, close);
+
+  const languages = document.createElement("fieldset");
+  const legend = document.createElement("legend");
+  translations.push(() => {
+    legend.textContent = language === "vi" ? "Ngôn ngữ" : "Language";
+  });
+  languages.append(legend);
+  for (const next of ["en", "vi"] as const) {
+    const choice = button(() => next === "vi" ? "Tiếng Việt" : "English", () => {
+      if (next === language) return;
+      language = next;
+      copy = worldMenuMessages[next];
+      replaceWorldLocale(next, history, document);
+      for (const translate of translations) translate();
+      onLocale(next, messages[next].world, {
+        sound: next === "vi" ? "Âm thanh" : "Sound",
+        actions: next === "vi" ? "Thao tác world" : "World actions",
+      });
+      removeContent.setLocale(next);
+    });
+    translations.push(() => {
+      choice.setAttribute("aria-pressed", String(language === next));
+    });
+    languages.append(choice);
+  }
+  dialog.append(languages);
+  for (const translate of translations) translate();
 
   function open(source: HTMLElement) {
     if (document.querySelector("dialog[open]")) return;

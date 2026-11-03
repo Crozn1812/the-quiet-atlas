@@ -48,3 +48,20 @@ it("Q15 recovers immediately on the container and removes its listener", () => {
   container.dispatchEvent(new Event("tqa:world-error"));
   expect(mode).toBe("welcome");
 });
+
+it("marks only projects referencing Lab evidence as demo in both CV locales", () => {
+  for (const locale of ["en", "vi"]) {
+    const data = structuredClone(content);
+    const project = data.projects.find(p => p.locale === locale)!;
+    const evidence = data.evidence[0]!;
+    evidence.level = "Lab";
+    project.evidence = [evidence.id];
+    data.projects = [project];
+    expect(cvHtml(data, locale)).toContain('Repository: ' + project.repoUrl + ' · demo</p>');
+    evidence.level = "Verified";
+    expect(cvHtml(data, locale)).not.toContain('· demo');
+    project.evidence = [];
+    evidence.level = "Lab";
+    expect(cvHtml(data, locale)).not.toContain('· demo');
+  }
+});

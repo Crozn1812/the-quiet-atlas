@@ -36,6 +36,6 @@ limited to these Chromium PDFs, rather than a general-purpose PDF reader.
 
 `manifest.json` is retained for verification only. Server-rendered Welcome/Quick links point to `/cv/`, whose HTML contains both PDF download links without JavaScript. Build and CV generation must use the same `CV_VERSION_DATE`; the tool rejects a mismatch against the built HTML.
 Do not deploy an export if either generator or a verification command fails.
-`preview.ps1` uses the built-in Windows PDF renderer to render every page into
+`preview.ps1` resolves paths from `$PSScriptRoot` and can run from any working directory. It uses the built-in Windows PDF renderer to render every page into
 `out/cv/previews/` for visual review, without installing anything. Automated text
 extraction does not replace this visual PDF layout review.

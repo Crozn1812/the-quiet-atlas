@@ -21,13 +21,21 @@ export type WorldCopy = {
   soundReason: string;
 };
 
-export function WorldEntry({ locale, copy, email, children, backdrop }: {
+export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, children, backdrop }: {
   locale: string;
   copy: WorldCopy;
   email: string;
   children: ReactNode;
   backdrop: ReactNode;
 }) {
+  const [locale, setLocale] = useState(initialLocale);
+  const [copy, setCopy] = useState(initialCopy);
+  const currentLocale = useRef(initialLocale);
+  const [announcement, setAnnouncement] = useState("");
+  const [hud, setHud] = useState({
+    sound: initialLocale === "vi" ? "Âm thanh" : "Sound",
+    actions: initialLocale === "vi" ? "Thao tác world" : "World actions",
+  });
   const [eligibility, setEligibility] = useState<ReturnType<typeof worldEligibility>>();
   const [appMode, setAppMode] = useState<"welcome" | "loading" | "world" | "recoverableError">("welcome");
   const [retried, setRetried] = useState(false);
@@ -78,6 +86,12 @@ export function WorldEntry({ locale, copy, email, children, backdrop }: {
     generation.current++;
     teardown.current?.();
     teardown.current = undefined;
+    if (currentLocale.current !== initialLocale) {
+      // End the session and render the server Welcome in the selected locale (Q21).
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      location.assign(`/${currentLocale.current}/`);
+      return;
+    }
     setAppMode("welcome");
     enter.current?.focus();
   }
@@ -102,7 +116,13 @@ export function WorldEntry({ locale, copy, email, children, backdrop }: {
       container.current.focus();
       const { mountWorldMenu } = await import("./WorldMenu");
       if (current !== generation.current || !container.current) return;
-      const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld);
+      const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld, (next, nextCopy, labels) => {
+        currentLocale.current = next;
+        setLocale(next);
+        setCopy(nextCopy);
+        setHud(labels);
+        setAnnouncement(next === "vi" ? "Ngôn ngữ: Tiếng Việt" : "Language: English");
+      });
       teardown.current = () => {
         removeMenu();
         unmount();
@@ -125,6 +145,12 @@ export function WorldEntry({ locale, copy, email, children, backdrop }: {
       className="world-entry"
       data-app-mode={fallback ? "editorial" : appMode}
     >
+      <span
+        className="visually-hidden"
+        aria-live="polite"
+      >
+        {announcement}
+      </span>
       {backdrop}
       <div
         ref={container}
@@ -163,7 +189,7 @@ export function WorldEntry({ locale, copy, email, children, backdrop }: {
         </div>
         <nav
           className="world-hud"
-          aria-label="World actions"
+          aria-label={hud.actions}
           data-compact={appMode === "world"}
         >
           <span
@@ -189,7 +215,7 @@ export function WorldEntry({ locale, copy, email, children, backdrop }: {
             aria-describedby="sound-reason"
           >
             <HudIcon kind="sound" />
-            <span>Sound</span>
+            <span>{hud.sound}</span>
           </button>
           <button
             ref={menu}

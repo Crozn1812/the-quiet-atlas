@@ -38,7 +38,7 @@ export function closeContent(target: EventTarget, zoneId: string) {
 }
 
 export function mountWorldContent(container: HTMLElement, language: string) {
-  const locale = language === "vi" ? "vi" : "en";
+  let locale: "en" | "vi" = language === "vi" ? "vi" : "en";
   const dialog = document.createElement("dialog");
   dialog.className = "world-content";
   dialog.setAttribute("aria-labelledby", "world-content-title");
@@ -46,6 +46,8 @@ export function mountWorldContent(container: HTMLElement, language: string) {
   dialog.append(host);
   container.parentElement?.append(dialog);
   const root = createRoot(host);
+  let request = 0;
+  let selectedSlug: string | undefined;
   let data: WorldContentData | undefined;
   let failed = false;
   let disposed = false;
@@ -62,6 +64,7 @@ export function mountWorldContent(container: HTMLElement, language: string) {
 
   function render(slug?: string) {
     if (!zoneId) return;
+    selectedSlug = slug;
     const project = data?.projects.find(p => p.slug === slug);
     const href = project ? `/${locale}/projects/${project.slug}/` : undefined;
     flushSync(() => root.render(
@@ -142,18 +145,30 @@ export function mountWorldContent(container: HTMLElement, language: string) {
     pauseWorld(container, true);
     dialog.showModal();
     render();
-    if (!data) {
-      void loadWorldContent(locale).then(result => {
-        if (disposed) return;
-        data = result;
-        failed = false;
-        render();
-      }).catch(() => {
-        if (disposed) return;
-        failed = true;
-        render();
-      });
-    }
+    if (!data) refresh();
+  }
+
+  function refresh() {
+    const current = ++request;
+    void loadWorldContent(locale).then(result => {
+      if (disposed || current !== request) return;
+      data = result;
+      failed = false;
+      render(selectedSlug);
+    }).catch(() => {
+      if (disposed || current !== request) return;
+      failed = true;
+      render(selectedSlug);
+    });
+  }
+
+  function setLocale(next: "en" | "vi") {
+    if (next === locale) return;
+    locale = next;
+    data = undefined;
+    failed = false;
+    render(selectedSlug);
+    refresh();
   }
 
   function onKey(event: KeyboardEvent) {
@@ -185,12 +200,12 @@ export function mountWorldContent(container: HTMLElement, language: string) {
   });
   document.addEventListener("keydown", onKey, true);
   container.addEventListener("tqa:open-content", open);
-  return () => {
+  return Object.assign(() => {
     disposed = true;
     close();
     container.removeEventListener("tqa:open-content", open);
     document.removeEventListener("keydown", onKey, true);
     root.unmount();
     dialog.remove();
-  };
+  }, { setLocale });
 }

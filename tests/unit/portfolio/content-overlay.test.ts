@@ -116,6 +116,12 @@ it("opens once, focuses the title, resumes before content-closed, and removes li
     const failed = renderToStaticMarkup(render.mock.lastCall![0]);
     expect(failed).toContain("Could not load content.");
     expect(failed).toContain('href="/en/quick/"');
+    dispose.setLocale("vi");
+    expect(renderToStaticMarkup(render.mock.lastCall![0])).toContain('href="/vi/quick/"');
+    expect(parent.children[0]!.open).toBe(true);
+    rejectFetch(new Error("Offline VI"));
+    await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(4));
+    expect(renderToStaticMarkup(render.mock.lastCall![0])).not.toContain("Could not load content.");
     const escape = new Event("keydown", { cancelable: true });
     Object.assign(escape, { key: "Escape" });
     doc.dispatchEvent(escape);
@@ -127,11 +133,13 @@ it("opens once, focuses the title, resumes before content-closed, and removes li
       ["tqa:content-closed", { zoneId: "workshop" }, false],
     ]);
     request("first-light");
+    rejectFetch(new Error("Offline again"));
+    await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(6));
     parent.children[0]!.dispatchEvent(new Event("cancel", { cancelable: true }));
     expect(events.at(-1)).toEqual(["tqa:content-closed", { zoneId: "first-light" }, false]);
     dispose();
     request("roots");
-    expect(render).toHaveBeenCalledTimes(3);
+    expect(render).toHaveBeenCalledTimes(6);
     expect(unmount).toHaveBeenCalledOnce();
   } finally {
     vi.unstubAllGlobals();

@@ -24,7 +24,7 @@ export function cvHtml(content, locale) {
       <p>${labels.role}: ${e(p.myRole)}</p>
       <p>${labels.contributions}: ${e(p.contributions)}</p>
       <p>${labels.results}: ${e(p.results)}</p>
-      <p>Repository: ${e(p.repoUrl)}</p>
+      <p>Repository: ${e(p.repoUrl)}${p.evidence.some(id => content.evidence.some(item => item.id === id && item.level === "Lab")) ? " · demo" : ""}</p>
     </article>`).join("")}
   `);
 }

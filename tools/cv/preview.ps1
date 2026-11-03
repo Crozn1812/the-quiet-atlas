@@ -14,10 +14,12 @@ function Await-Operation($Operation, $ResultType) {
   $task = $operationMethod.MakeGenericMethod($ResultType).Invoke($null, @($Operation))
   $task.GetAwaiter().GetResult()
 }
-$previewPath = Join-Path (Get-Location) 'out/cv/previews'
+$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$cvPath = Join-Path $repoRoot 'out/cv'
+$previewPath = Join-Path $cvPath 'previews'
 $null = New-Item -ItemType Directory -Force -Path $previewPath
 $folder = Await-Operation ([Windows.Storage.StorageFolder]::GetFolderFromPathAsync($previewPath)) ([Windows.Storage.StorageFolder])
-foreach ($pdfFile in Get-ChildItem -LiteralPath 'out/cv' -Filter '*.pdf') {
+foreach ($pdfFile in Get-ChildItem -LiteralPath $cvPath -Filter '*.pdf') {
   $file = Await-Operation ([Windows.Storage.StorageFile]::GetFileFromPathAsync($pdfFile.FullName)) ([Windows.Storage.StorageFile])
   $pdf = Await-Operation ([Windows.Data.Pdf.PdfDocument]::LoadFromFileAsync($file)) ([Windows.Data.Pdf.PdfDocument])
   for ($index = 0; $index -lt $pdf.PageCount; $index++) {
