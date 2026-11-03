@@ -1,0 +1,24 @@
+## TICKET L2-004 — P01-C: character controller, collision, slope, recovery point
+
+- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L2-004`, worktree `D:/tqa-worktrees/L2-004`
+- Lane / milestone: L2 / B1 (P01-C)
+- Mục tiêu (theo trải nghiệm người chơi): trong rừng thử, W/A/S/D đi theo hướng camera nhìn, giữ Shift để chạy; nhân vật có trọng lực, bám mặt đất khi xuống dốc, không đi xuyên thân cây, bị chặn ở dốc quá gắt; rơi khỏi thế giới hoặc kẹt thì tự về điểm an toàn gần nhất, không mất tiến trình.
+- Spec liên quan: §6.1 (`sessionProgress.lastSafePosition`), §6.2 mục 3, 6, 8; §7.4; §13 T03, T04; §16.1, §16.3 P01-C
+- Máy đo: ADR 0007.
+- Được sửa: `src/features/world/`, `src/features/interaction/`, `src/state/`, `tests/unit/world/`, `tests/unit/state/`, `tests/unit/interaction/`, `tools/benchmark-physics/`, `docs/adr/0002-physics.draft.md` (chỉ thêm mục P01-C: tham số đã chốt)
+- Không được sửa: mọi thứ khác; đặc biệt `src/app/`, `src/components/`, `package.json`, lockfile, config gốc. Không `pnpm add/install`. Không asset file.
+- Hợp đồng không đổi: `mountWorld(container, opts) => Promise<unmount>`, `WORLD_CHUNK_MARKER`. Thêm được (tùy chọn, không phá vỡ): world lắng nghe `CustomEvent("tqa:return-to-path")` trên `container` để UI của L1 sau này gắn nút "Return to path"; ghi vào README.
+- Ràng buộc:
+  - Hướng di chuyển tính theo yaw camera (camera hiện cố định offset — vẫn dùng yaw của camera để P01-D xoay camera không phải sửa locomotion). Hàm thuần `inputToMoveVector(keys, cameraYaw, running)` có unit test cho 4 góc camera 0/90/180/270° (T03 phần logic).
+  - Đi bộ / chạy: tốc độ là hằng số đặt tên, ghi vào ADR 0002 (đi bộ chuẩn dùng cho §7.1 đo nhịp bản đồ).
+  - Trọng lực, ground detection, snap-to-ground; slope limit chốt một giá trị (ví dụ 45°) và **ghi ADR** (T04 yêu cầu "dốc vượt giới hạn (chốt ADR) bị chặn"); autostep.
+  - Thêm vào cảnh thử một đoạn dốc vượt giới hạn để kiểm T04.
+  - Recovery: lưu `lastSafePosition` (memory, trong state session) khi đứng vững trên mặt đất hợp lệ; rơi dưới ngưỡng Y hoặc không tiến được trong N giây khi đang có input → đưa về `lastSafePosition`, xóa vận tốc, **không** xóa secret/zone đã ghé. Unit test reducer.
+  - Blur/hidden: dừng ≤ 100 ms (đã có pause; thêm test: sau blur vận tốc = 0 ở bước kế tiếp) — T03 phần logic.
+  - Timestep cố định, giới hạn bước bù giữ nguyên.
+  - Không lưu gì ngoài memory.
+- Điều kiện xong:
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle` exit 0
+  - Unit test: hướng di chuyển 4 góc; recovery về `lastSafePosition` khi rơi; dốc vượt giới hạn không leo được (test physics headless qua Rapier nếu khả thi, như test cũ của raycast/rapier)
+  - Không commit (sandbox chặn); Lead commit
+- Bàn giao: tóm tắt, tham số đã chốt, lệnh + exit code, việc chưa làm (video T03/T04: NOT RUN).
