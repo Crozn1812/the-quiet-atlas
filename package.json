@@ -18,7 +18,11 @@
     "serve:out": "node tools/serve-out/index.mjs out",
     "test:e2e": "playwright test",
     "test:perf": "playwright test -c tests/perf/playwright.perf.config.ts",
-    "perf:lhci": "lhci autorun"
+    "perf:lhci": "lhci autorun",
+    "build:cv": "node tools/cv/index.mjs",
+    "build:og": "node tools/og/index.mjs",
+    "build:artifacts": "pnpm build && pnpm build:cv && pnpm build:og",
+    "check:cv": "node tools/cv/verify.mjs && node tools/cv/check-output.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",
