@@ -1,6 +1,6 @@
 ## TICKET L1-003 — Trang case study + privacy + sitemap/robots + hiển thị link repo
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-003`, worktree `D:/tqa-worktrees/L1-003`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L1 / A1
 - Mục tiêu (theo trải nghiệm người dùng):
   - Mở `/{locale}/projects/{slug}/` (4 slug × en/vi) đọc được case study theo cấu trúc §4.5; mục chưa có dữ liệu hiện "TBD" + nhãn Draft; URL chia sẻ được, mở trực tiếp ra HTML.

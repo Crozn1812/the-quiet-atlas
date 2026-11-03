@@ -1,6 +1,6 @@
 ## TICKET L3-003 — Playwright T01/T02/T07 (HTML) + axe-core + chạy gitleaks thật
 
-- Trạng thái: **Assigned → subagent Claude** (2026-11-04), nhánh `lane/L3-003`, worktree `D:/tqa-worktrees/L3-003`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L3 / A1 + P01-A
 - Mục tiêu: các phép thử T01, T02 và phần HTML của T07/T11 chạy tự động bằng Playwright trên `out/`; gitleaks chạy thật ít nhất một lần.
 - Spec liên quan: §3.3, §3.4, §5, §9, §13 (T01, T02, T07, T11, Q18), §11.6

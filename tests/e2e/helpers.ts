@@ -58,7 +58,6 @@ export const KNOWN_ISSUES = {
   faviconMissing: /\/favicon\.ico$/,
   /** axe rule ids (critical/serious) currently failing on HTML pages (axe-core 4.x via @axe-core/playwright 4.14.0). */
   axeRules: {
-    "document-title": "Pages have no <title> (src/app layouts/metadata — L1)",
     "label-content-name-mismatch": "CV button aria-label does not contain its visible text 'CV · TBD' (Portfolio.tsx — L1)",
     "target-size": "Entry page / language links (stacked list items) are below 24×24 px target size, WCAG 2.5.8 (src/app/(entry) — L1)",
   } as Record<string, string>,

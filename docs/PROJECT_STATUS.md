@@ -57,11 +57,32 @@ Kiểm `main` sau đợt 2: lint, typecheck, test 86/86, build, `check:bundle`, 
 
 Lưu ý: kiểm năng lực đọc WebGL2 bằng cách tạo context tạm khi trang load (không tải chunk 3D). Chấp nhận được; xem lại nếu đo thấy tốn trên máy yếu.
 
+### Đợt 3 (2026-11-04)
+
+| Ticket | Trạng thái |
+|---|---|
+| L1-003 case study ×8, privacy, SEO, sitemap/robots, link repo + evidence | **Merged** (9661db1) sau 1 vòng sửa (title privacy hỏng ký tự, JSON-LD không escape, 404 thiếu title, định dạng) |
+| L2-003 P01-B terrain + heightfield, cây instancing, ánh sáng, fog | **Merged** (5658741). Lead xem trên trình duyệt: rừng render, nhân vật đi bằng W, 0 lỗi console. Draw call thực: NOT RUN |
+| L3-003 Playwright + axe + serve-out + gitleaks digest | **Merged** (78de9c1) + Lead bỏ known-issue `document-title` đã hết |
+
+Kiểm `main`: lint, typecheck, unit test, build, check:bundle/leaks/licenses exit 0; `pnpm test:e2e` 22/22.
+
+### Gate (chi tiết: `docs/evidence/A1/e2e-2026-11-04.md`)
+
+| Gate | Trạng thái |
+|---|---|
+| T01 | FAIL nhỏ — thiếu favicon gây lỗi console |
+| T02 | PASS (local, Edge, serve-out) |
+| T07 | PASS một phần (HTML Enter/Back); overlay NOT RUN |
+| T11 | FAIL — 2 vi phạm axe serious; kiểm bàn phím/screen reader NOT RUN |
+| Q12 | PASS local; CloudFront/tên miền NOT RUN |
+| gitleaks | BLOCKED — Docker Desktop không khởi động (WSL chưa cài). Image ghim digest `sha256:cdbb7c95…a854` (đọc từ registry, chưa pull) |
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L3-003: Playwright T01/T02/T07 (phần HTML), axe-core; chạy gitleaks thật (Docker local hoặc CI) và ghim image theo digest.
-- L1-003: trang case study `/{locale}/projects/{slug}/` + privacy + sitemap/robots (§4.5, §4.7, §5) — dữ liệu vẫn TBD.
-- L2-003: P01-C character controller (slope, recovery point) trên Rapier — chỉ bắt đầu sau khi chốt máy tham chiếu hoặc ghi ADR nhãn máy dev.
+- L1-004: sửa a11y (nút CV, target-size), favicon, prefetch 404 → T01/T11.
+- L2-004: P01-C character controller (slope limit, recovery point "Return to path") trên Rapier.
+- L3-004: Lighthouse CI + đo ngân sách tải cold-cache với mạng giả lập (Q18, §8).
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 
 Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.

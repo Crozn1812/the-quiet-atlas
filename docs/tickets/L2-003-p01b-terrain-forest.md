@@ -1,6 +1,6 @@
 ## TICKET L2-003 — P01-B: terrain + heightfield collider, cây instancing, ánh sáng bình minh, fog
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L2-003`, worktree `D:/tqa-worktrees/L2-003`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L2 / B1 (P01-B)
 - Mục tiêu: bấm Enter World thấy một vùng rừng thử ~60×60 m có địa hình phẳng + một đoạn dốc, cây dày/thưa, ánh sáng bình minh, sương; capsule đi được trên địa hình bằng Rapier KCC (ADR 0002 đề xuất A).
 - Spec liên quan: §7.1, §7.3 (pipeline, chỉ phần nguyên tắc), §7.4 (terrain collider từ cùng heightmap; bảng Low/Balanced/High), §8, §15, §16.1, §16.3 P01-B
