@@ -155,3 +155,33 @@ nhiều mount/unmount, draw calls. Không tuyên bố các mục này PASS.
   recovery rơi/kẹt và blur/hidden. Đây không thay thế video T03/T04,
   checklist 5 phút/20 thân cây hoặc đo độ trễ browser: **NOT RUN**.
   Không đo benchmark hiệu năng mới trong P01-C; nhãn máy theo ADR 0007.
+## P01-D: tham s? camera ? L2-005 (2026-11-04)
+
+- Yaw qu?n v? [0, 2?), orbit li?n t?c; ban ??u atan2(7, 9).
+  Ph?m tr?i/ph?i: 1,5 rad/s; k?o tr?i canvas v? wheel deltaX: 0,005 rad/pixel.
+  Ch? b?t ??u k?o tr?n terrain/v?ng tr?ng, kh?ng pointer lock; b? qua nh?n v?t,
+  c?y v? prop. Input camera d?ng khi pause ho?c focus ? nh?p/dialog.
+- Kho?ng c?ch y?u c?u: MIN_ZOOM = 4 m, MAX_ZOOM = 16 m,
+  INITIAL_ZOOM = 12 m. Pitch c? ??nh CAMERA_PITCH = ?/6 (30?).
+  Equal/Minus/NumpadAdd/NumpadSubtract: 0,75 m/l?n keydown.
+  Wheel deltaY: 0,01 m/pixel; ctrlKey (pinch): nh?n 2.
+  DeltaMode line quy ??i 16 pixel, page d?ng chi?u cao container.
+  Ch? listener canvas c? quy?n preventDefault wheel, khi input camera ho?t ??ng.
+- Spring arm raycast t? t?m capsule t?i camera qua terrain, d?c v? to?n b?
+  200 th?n c?y, b? qua t?n l?; c?c mesh raycast th?n c?y ??c l?p quality.
+  CAMERA_CLEARANCE = 0,25 m; r?t v?o ngay ?? kh?ng n?i suy xuy?n v?t c?n,
+  gi?n ra theo 1 ? exp(?CAMERA_DAMPING ? dt), CAMERA_DAMPING = 10 s??.
+  Kho?ng c?ch th?c c? th? nh? h?n MIN_ZOOM khi b? ch?n; min/max ?p d?ng zoom y?u c?u.
+  Camera Y ???c ch?n tr?n terrainHeight + clearance. Debug ??m v? assert
+  data-world-camera-below-terrain-frames = 0 (T05).
+- Ch?n t?n che b?ng h?m thu?n: sphere b?o th? b?n k?nh 2,1 m t?i t?m t?n,
+  x?t ba ?o?n nh?n t?i ch?n/th?n/??u capsule (offset Y ?0,65/0/+0,65 m).
+  Alpha-hash theo instance, alpha m?c ti?u 0,12 khi che, 1 khi kh?ng che;
+  fade theo 1 ? exp(?10 ? dt). Kh?ng thay collider.
+- Quality m?c ??nh balanced; opts nh?n c? t?n c? Low/Balanced/High v? t?n
+  lowercase theo ADR 0008. ??i m?t ?? b?ng c?p nh?t count/matrix tr?n c?ng
+  mesh/GPU buffer; ??i DPR/shadow t?i ch?, kh?ng t?i t?o controller/canvas.
+  Collider kh?ng ph? thu?c quality; kh?ng thay v? tr? ho?c session progress.
+  Pause overlay/error v? world-state/data attributes d?ng container theo ADR 0008.
+- Log T05/T06 tr?n tr?nh duy?t: **NOT RUN**. Unit test kh?ng thay th? ki?m tra
+  shader WebGL, ???ng ?i/g?c nh?n, visibility > 1 gi?y hay log debug th?c t?.

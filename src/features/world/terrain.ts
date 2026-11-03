@@ -52,17 +52,33 @@ export function createTrees(terrain: Terrain) {
 }
 export type Trees = ReturnType<typeof createTrees>;
 export function createForest(trees: Trees, quality: Quality) {
+  const trunks = new InstancedMesh(new CylinderGeometry(0.28, 0.28, 1, 6), new MeshStandardMaterial({ color: 0x655144, roughness: 1 }), trees.length);
+  const crowns = new InstancedMesh(new ConeGeometry(1.8, 4, 7), new MeshStandardMaterial({ color: 0x344e3d, roughness: 1 }), trees.length);
+  updateForest([trunks, crowns], trees, quality);
+  return [trunks, crowns] as const;
+}
+export function updateForest(forest: ReturnType<typeof createForest>, trees: Trees, quality: Quality) {
+  const [trunks, crowns] = forest;
   const count = Math.round(trees.length * PRESETS[quality].density);
-  const trunks = new InstancedMesh(new CylinderGeometry(0.28, 0.28, 1, 6), new MeshStandardMaterial({ color: 0x655144, roughness: 1 }), count);
-  const crowns = new InstancedMesh(new ConeGeometry(1.8, 4, 7), new MeshStandardMaterial({ color: 0x344e3d, roughness: 1 }), count);
+  trunks.count = count;
+  crowns.count = count;
   const transform = new Object3D();
   // Evenly select across both groves; collision always uses all trees.
   for (let i = 0; i < count; i++) {
     const tree = trees[Math.floor(i * trees.length / count)]!;
     transform.position.set(tree.x, tree.y + tree.height / 2, tree.z);
-    transform.scale.set(1, tree.height, 1); transform.updateMatrix(); trunks.setMatrixAt(i, transform.matrix);
-    transform.position.y = tree.y + tree.height; transform.scale.set(1, 1, 1); transform.updateMatrix(); crowns.setMatrixAt(i, transform.matrix);
+    transform.scale.set(1, tree.height, 1);
+    transform.updateMatrix();
+    trunks.setMatrixAt(i, transform.matrix);
+    transform.position.y = tree.y + tree.height;
+    transform.scale.set(1, 1, 1);
+    transform.updateMatrix();
+    crowns.setMatrixAt(i, transform.matrix);
   }
-  for (const mesh of [trunks, crowns]) { mesh.castShadow = true; mesh.receiveShadow = true; mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingSphere(); }
-  return [trunks, crowns];
+  for (const mesh of [trunks, crowns]) {
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }
 }
