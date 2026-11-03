@@ -1,0 +1,58 @@
+# L3-001 — CI PR tối thiểu (spec §11.6, §8, Q18).
+# lint → typecheck → unit test → build → kiểm bundle ("0 chunk 3D trước Enter World" + ngân sách tải).
+# Không secret, không quyền cloud, chỉ đọc repo.
+name: PR checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: lint · typecheck · test · build · check-bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.16.1
+
+      - name: Setup Node.js 24 LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build (static export)
+        run: pnpm build
+
+      - name: Check bundle (no 3D before Enter World, §8 budgets)
+        run: node tools/check-bundle/index.mjs out
