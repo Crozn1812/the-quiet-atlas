@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+*.log
+.env
+.env.*
+!.env.example
+
+# Terraform: state và biến riêng không vào repo (§11.5)
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+
+# Nội dung nháp/mật không vào repo (§4.1)
+content-private/
