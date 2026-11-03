@@ -25,3 +25,34 @@ nav[aria-label="Language"] ul {
   margin: 0;
   list-style: none;
 }
+.world-entry {
+  position: relative;
+}
+.world-menu {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.world-menu dialog {
+  width: min(28rem, calc(100vw - 4rem));
+  max-height: calc(100vh - 4rem);
+  overflow: auto;
+  padding: 1.5rem;
+  color: inherit;
+  background: #f7f3e8;
+  border: 1px solid #88968b;
+}
+.world-menu dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+.world-menu dialog > * {
+  display: block;
+  margin-block: 1rem;
+}
+.world-menu select {
+  display: block;
+  font: inherit;
+  margin-top: .5rem;
+}

@@ -79,8 +79,17 @@ export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }
       teardown.current = unmount;
       setAppMode("world");
       container.current.focus();
+      const { mountWorldMenu } = await import("./WorldMenu");
+      if (current !== generation.current || !container.current) return;
+      const removeMenu = mountWorldMenu(container.current, locale);
+      teardown.current = () => {
+        removeMenu();
+        unmount();
+      };
     } catch {
       if (current === generation.current) {
+        teardown.current?.();
+        teardown.current = undefined;
         setAppMode("recoverableError");
         enter.current?.focus();
       }
@@ -91,7 +100,10 @@ export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }
 
   const fallback = eligibility && eligibility !== "eligible" && appMode === "welcome";
   return (
-    <div data-app-mode={fallback ? "editorial" : appMode}>
+    <div
+      className="world-entry"
+      data-app-mode={fallback ? "editorial" : appMode}
+    >
       <nav aria-label="World">
         <button
           ref={enter}
