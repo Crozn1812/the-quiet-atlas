@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { readCapabilities, worldEligibility } from "./capabilities";
+import { listenWorldError } from "./worldError";
 
 export type WorldCopy = {
   unavailable: string;
@@ -26,6 +27,16 @@ export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }
   const teardown = useRef<(() => void) | undefined>(undefined);
   const generation = useRef(0);
   const busy = useRef(false);
+
+  useEffect(() => {
+    const target = container.current;
+    if (!target) return;
+    return listenWorldError(target, {
+      generation,
+      teardown,
+      recover: () => setAppMode("recoverableError"),
+    });
+  }, []);
 
   useEffect(() => {
     if (appMode === "recoverableError") enter.current?.focus();

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { pageMetadata } from "@/app/seo";
 import type { Metadata } from "next";
-export const metadata: Metadata = pageMetadata("en");
+export const metadata: Metadata = {
+  ...pageMetadata("en"),
+  openGraph: {
+    images: [{ url: "/og/entry.png", width: 1200, height: 630 }],
+  },
+};
 // Trang vào `/`: nhẹ, chạy khi tắt JS, không tự chuyển locale (spec §5).
 export default function RootEntryPage() {
   return (<main

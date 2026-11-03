@@ -1,3 +1,5 @@
+/* Static CV navigation is intentional: no client router or manifest request. */
+/* eslint-disable @next/next/no-html-link-for-pages */
 import { portfolioCopy } from "@/i18n/portfolio";
 import { ProfileContent, ProjectsContent } from "./ServerZoneContent";
 import { content } from "@/content";
@@ -57,7 +59,7 @@ export function Portfolio({ locale, quick = false }: {
       )}
       <nav aria-label="Portfolio">
         {quick && <a href={`/${locale}/`}>{t.home}</a>}
-        <a href="#cv">CV · TBD</a>
+        <a href="/cv/">CV</a>
       </nav>
       {quick && (
         <ProjectsContent locale={locale} />
@@ -68,13 +70,7 @@ export function Portfolio({ locale, quick = false }: {
         aria-labelledby="cv-title"
       >
         <h2 id="cv-title">CV</h2>
-        <p id="cv-pending">{t.cvPending}: TBD</p>
-        <button
-          disabled
-          aria-describedby="cv-pending"
-        >
-          CV · TBD
-        </button>
+        <a href="/cv/">CV</a>
       </section>
       <section aria-labelledby="contact">
         <h2 id="contact">{t.contact}</h2>
