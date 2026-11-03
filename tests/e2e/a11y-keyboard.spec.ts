@@ -267,14 +267,9 @@ for (const route of ALL_PAGES) {
   });
 }
 
-// Spec §13 T11 lists "Skip": a skip link as the first Tab stop, pointing at the main content.
-// PRODUCT DEFECT (owner L1): no page has one. src/components/portfolio/Portfolio.tsx, CaseStudy.tsx,
-// src/app/[locale]/privacy/page.tsx and src/app/global-not-found.tsx start <main> with the language <nav>;
-// the first Tab stop is the "English" link. WCAG 2.4.1 is arguably met by the <main> landmark, but T11 asks
-// for the skip link. Remove test.fail() once L1 adds e.g. <a href="#main" class="skip-link"> before the nav.
+// Spec §13 T11 lists "Skip": a skip link as the first Tab stop, pointing at the main content (added in L1-006).
 for (const route of ["/en/", "/en/quick/", "/en/projects/cms-devops-platform-aws-eks/"]) {
   test(`T11 skip link ${route}: first Tab stop skips to the main content`, async ({ page }) => {
-    test.fail(true, "Known product defect (L1): no skip link on HTML pages — see comment above (spec §13 T11 'Skip', WCAG 2.4.1)");
     await open(page, route);
     await page.keyboard.press("Tab");
     const first = await page.evaluate(() => {
