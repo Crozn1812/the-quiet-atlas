@@ -4,7 +4,7 @@
 // `ensureWindowFocus` emulates window focus first (annotated per test) so `data-world-paused` reflects
 // only the menu's `overlay` reason; run headed (`--headed`) to exercise real window focus.
 import { expect, test, type Page } from "@playwright/test";
-import { enterWorld, ensureWindowFocus, trackConsoleErrors } from "./helpers";
+import { enterWorld, ensureWindowFocus, MENU_TRIGGER, trackConsoleErrors } from "./helpers";
 
 test.use({ viewport: { width: 1366, height: 800 } });
 // Enter World with software WebGL takes ~15–20 s under parallel load; leave headroom over the 30 s default.
@@ -12,7 +12,7 @@ test.describe.configure({ timeout: 90_000 });
 
 const dialog = (page: Page) => page.locator(".world-menu dialog");
 const title = (page: Page) => page.locator("#world-menu-title");
-const trigger = (page: Page) => page.locator(".world-menu > button[aria-haspopup='dialog']");
+const trigger = (page: Page) => page.locator(MENU_TRIGGER);
 
 async function setup(page: Page) {
   const world = await enterWorld(page, "en");
@@ -36,7 +36,7 @@ test("T07 menu: Esc opens (paused, focus on title), Tab/Shift+Tab stay inside, E
   await expect(world).toHaveAttribute("data-world-paused", "true");
   await expect(title(page)).toBeFocused();
 
-  // 6 focusable items (× Close, select, Return to path, Quick link, summary, Close): go around twice.
+  // 7 focusable items (× Close, select, Return to path, Quick link, summary, Exit world, Close): go around twice.
   for (let i = 0; i < 14; i++) {
     await page.keyboard.press("Tab");
     expect(await focusIsInsideDialog(page), `Tab #${i + 1} left the dialog`).toBe(true);
@@ -87,6 +87,22 @@ test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-s
     { paused: true, quality: initial },
     ...sequence.map(quality => ({ paused: true, quality })),
   ]);
+  expect(errors, errors.join("\n")).toEqual([]);
+});
+
+test("ADR 0009 menu: 'Exit world' in the menu leaves the world (no canvas, Welcome card back, focus on Enter World)", async ({ page }) => {
+  const errors = trackConsoleErrors(page);
+  await setup(page);
+
+  await page.keyboard.press("Escape");
+  await expect(dialog(page)).toHaveAttribute("open", "");
+  await dialog(page).getByRole("button", { name: "Exit world", exact: true }).click();
+  await expect(page.locator("[data-app-mode='welcome']")).toHaveCount(1);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-world-chunk]")).toHaveCount(0);
+  await expect(page.locator(".world-menu")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Enter World" })).toBeFocused();
   expect(errors, errors.join("\n")).toEqual([]);
 });
 

@@ -1,4 +1,5 @@
 // T01 — Welcome (spec §13.1): name, role, Quick Portfolio link, Enter World, Sound, CV; 0 console errors.
+// Layout per ADR 0009: everything above sits in the bottom-left corner card (see full-viewport.spec.ts).
 import { expect, test } from "@playwright/test";
 import { hasWebGL2, LOCALES, settle, trackConsoleErrors } from "./helpers";
 
@@ -25,11 +26,14 @@ for (const profile of LOCALES) {
     await expect(enter).toBeEnabled();
 
     await expect(page.getByRole("button", { name: "Sound" })).toBeVisible();
-    // Since L1-007 the CV link appears in the Portfolio nav and in the CV section; both must point to /cv/.
+    // ADR 0009: the CV section (h2) moved to Quick Portfolio; Welcome keeps a CV link in the corner card.
+    // Every CV link must point to /cv/, and the card must show at least one.
     const cvLinks = page.getByRole("link", { name: /CV/ });
     await expect(cvLinks.first()).toBeVisible();
     for (const link of await cvLinks.all()) await expect(link).toHaveAttribute("href", "/cv/");
-    await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
+    await expect(page.locator(".corner-panel a[href='/cv/']").getByText("CV", { exact: true })).toBeVisible();
+    // Contact (e-mail) is part of the Welcome card (ADR 0009 §1).
+    await expect(page.locator(".corner-panel a[href^='mailto:']")).toBeVisible();
 
     await settle(page);
     expect(errors, errors.join("\n")).toEqual([]);

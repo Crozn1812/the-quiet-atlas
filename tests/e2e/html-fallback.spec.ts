@@ -13,11 +13,13 @@ test.describe("T02-a JavaScript disabled: content still readable", () => {
         expect(response?.status()).toBe(200);
         await expect(page.getByRole("heading", { level: 1 })).toHaveText(profile.name);
         await expect(page.getByText(profile.role, { exact: false }).first()).toBeVisible();
-        await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
         await expect(page.locator("main a[href^='mailto:']")).toBeVisible();
         if (route.endsWith("/quick/")) {
+          await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
           await expect(page.locator("main article h3").first()).toBeVisible();
         } else {
+          // ADR 0009: Welcome is one screen; the CV section moved to Quick, the corner card keeps a CV link.
+          await expect(page.locator("main a[href='/cv/']").first()).toBeVisible();
           await expect(page.getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", `/${locale}/quick/`);
         }
       });

@@ -9,10 +9,16 @@ export const OUT_DIR = path.resolve(process.cwd(), "out");
 
 // Expected public copy. Mirrors src/content/index.ts (profiles) and src/i18n/messages.ts (world copy):
 // the content module can't be imported here (Node ESM requires `with { type: "json" }` for evidence.json).
+// `leave`: ADR 0009 replaced "Back to Welcome" with "Exit world" (HUD button + world menu button).
 export const LOCALES = [
-  { locale: "en", name: "Nguyen Huu Bao Duy", role: "Cloud & DevOps Engineer", editorial: "View Editorial", leave: "Back to Welcome" },
-  { locale: "vi", name: "Nguyễn Hữu Bảo Duy", role: "Cloud & DevOps Engineer", editorial: "Xem bản Editorial", leave: "Về Welcome" },
+  { locale: "en", name: "Nguyen Huu Bao Duy", role: "Cloud & DevOps Engineer", editorial: "View Editorial", leave: "Exit world" },
+  { locale: "vi", name: "Nguyễn Hữu Bảo Duy", role: "Cloud & DevOps Engineer", editorial: "Xem bản Editorial", leave: "Thoát world" },
 ] as const;
+
+/** ADR 0009 corner HUD (bottom-left): Quick Portfolio, CV, email, Sound, Menu, Exit world. */
+export const HUD = ".world-hud";
+/** World menu trigger: lives in the HUD since ADR 0009 (was `.world-menu > button[aria-haspopup='dialog']`). */
+export const MENU_TRIGGER = ".world-hud button[aria-haspopup='dialog']";
 
 /** Records every request URL and every JS response body seen by a page. */
 export function trackNetwork(page: Page) {
@@ -135,8 +141,10 @@ export async function enterWorld(page: Page, locale = "en") {
   await expect(page.locator("[data-app-mode='world']")).toHaveCount(1, { timeout: 45_000 });
   await expect(world).toHaveAttribute("data-world-paused", /^(true|false)$/);
   // The menu chunk is imported after mount; with software WebGL rendering under parallel load the
-  // main thread is busy, so give the lazy import generous time.
-  await expect(page.locator(".world-menu > button[aria-haspopup='dialog']")).toBeAttached({ timeout: 30_000 });
+  // main thread is busy, so give the lazy import generous time. Since ADR 0009 the trigger button is
+  // server-rendered in the HUD (hidden until world mode), so the mounted menu <dialog> is the readiness signal.
+  await expect(page.locator(".world-menu dialog")).toBeAttached({ timeout: 30_000 });
+  await expect(page.locator(MENU_TRIGGER)).toBeVisible();
   return world;
 }
 

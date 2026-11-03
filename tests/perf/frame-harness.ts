@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { expect, type Browser, type Locator, type Page } from "@playwright/test";
+import { MENU_TRIGGER } from "../e2e/helpers";
 
 export const OUT_DIR = path.resolve(process.cwd(), "test-results", "frame-budget");
 export const MACHINE_LABEL = process.env.PERF_MACHINE_LABEL ?? "desktop dGPU RTX 3060";
@@ -49,7 +50,8 @@ export async function machineInfo(browser: Browser, page: Page) {
 
 /** Opens the world menu, selects `quality` in the <select> (manual choice disables adaptive quality), closes it. */
 export async function selectQuality(page: Page, world: Locator, quality: Quality) {
-  await page.locator(".world-menu > button[aria-haspopup='dialog']").click();
+  // ADR 0009: the menu trigger lives in the bottom-left HUD.
+  await page.locator(MENU_TRIGGER).click();
   const dialog = page.locator(".world-menu dialog");
   await expect(dialog).toHaveAttribute("open", "");
   await world.evaluate(element => {

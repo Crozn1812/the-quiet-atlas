@@ -141,8 +141,9 @@ async function tabToAndEnter(page: Page, selector: string) {
 }
 
 const ENTER_CASES = [
-  { from: "/en/", selector: "a[href='/en/quick/']:text-is('Quick Portfolio')", to: /\/en\/quick\/$/ },
-  { from: "/vi/", selector: "a[href='/vi/quick/']:text-is('Quick Portfolio')", to: /\/vi\/quick\/$/ },
+  // ADR 0009: the label is a <span> next to an icon inside the HUD link, so match the link by its child text.
+  { from: "/en/", selector: ".world-hud a[href='/en/quick/']:has(> span:text-is('Quick Portfolio'))", to: /\/en\/quick\/$/ },
+  { from: "/vi/", selector: ".world-hud a[href='/vi/quick/']:has(> span:text-is('Quick Portfolio'))", to: /\/vi\/quick\/$/ },
   { from: "/en/quick/", selector: "main article h3 a[href^='/en/projects/']", to: /\/en\/projects\/[^/]+\/$/ },
   { from: "/en/projects/cms-devops-platform-aws-eks/", selector: "a[href='/en/quick/']", to: /\/en\/quick\/$/ },
   { from: "/en/privacy/", selector: "a[href='/en/quick/']", to: /\/en\/quick\/$/ },
@@ -206,6 +207,8 @@ for (const route of ALL_PAGES) {
 }
 
 const PROFILE_PAGES = new Set(["/en/", "/vi/", "/en/quick/", "/vi/quick/"]);
+/** ADR 0009: Welcome has no CV section (moved to Quick); its corner card has a CV link instead. */
+const WELCOME_PAGES = new Set(["/en/", "/vi/"]);
 
 for (const width of [320, 640]) {
   for (const route of ALL_PAGES) {
@@ -232,7 +235,15 @@ for (const width of [320, 640]) {
       const h1 = await page.getByRole("heading", { level: 1 }).boundingBox();
       expect(h1 && h1.x >= 0 && h1.x + h1.width <= width + 1, `h1 inside the viewport on ${route}`).toBe(true);
       if (PROFILE_PAGES.has(route)) {
-        await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
+        if (WELCOME_PAGES.has(route)) {
+          const cv = page.locator("main a[href='/cv/']").first();
+          await cv.scrollIntoViewIfNeeded();
+          await expect(cv).toBeVisible();
+          const cvBox = await cv.boundingBox();
+          expect(cvBox && cvBox.x >= 0 && cvBox.x + cvBox.width <= width + 1, `CV link inside the viewport on ${route}`).toBe(true);
+        } else {
+          await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
+        }
         const mail = page.locator("main a[href^='mailto:']");
         await mail.scrollIntoViewIfNeeded();
         await expect(mail).toBeVisible();
@@ -280,5 +291,7 @@ for (const route of ["/en/", "/en/quick/", "/en/projects/cms-devops-platform-aws
     });
     expect(first.href, "first Tab stop is an in-page link").toMatch(/^#./);
     expect(first.targetIsMain, "it targets the main content").toBe(true);
+    // ADR 0009: on Welcome the skip link targets the corner card `#content` (which holds the h1).
+    if (route === "/en/") expect(first.href, "Welcome skip link target").toBe("#content");
   });
 }
