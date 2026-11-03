@@ -2,12 +2,12 @@ import { addTerrainColliders } from "./terrain-colliders";
 import type { Terrain, Trees } from "./terrain";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Vector3 } from "three";
-import { boxes, HALF_HEIGHT, HEIGHT, RADIUS, rotation, SLOPE_LIMIT, type Controller } from "./scene";
+import { boxes, steepRamp, HALF_HEIGHT, HEIGHT, RADIUS, rotation, SLOPE_LIMIT, type Controller } from "./scene";
 export async function createController(terrain?: Terrain, trees: Trees = []): Promise<Controller> {
   await RAPIER.init();
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   if (terrain) addTerrainColliders(world, terrain, trees);
-  for (const box of terrain ? [] : boxes) {
+  for (const box of terrain ? [steepRamp] : boxes) {
     world.createCollider(RAPIER.ColliderDesc.cuboid(box.size[0]! / 2, box.size[1]! / 2, box.size[2]! / 2)
       .setTranslation(box.position[0]!, box.position[1]!, box.position[2]!).setRotation(rotation(box.angle)));
   }
@@ -23,6 +23,19 @@ export async function createController(terrain?: Terrain, trees: Trees = []): Pr
   const position = new Vector3().copy(body.translation());
   return {
     position,
+    get grounded() {
+      return kcc.computedGrounded();
+    },
+    get verticalVelocity() {
+      return velocity;
+    },
+    teleport(target) {
+      body.setTranslation(target, true);
+      body.setNextKinematicTranslation(target);
+      position.copy(target);
+      velocity = 0;
+      world.step();
+    },
     step(x, z, dt) {
       world.timestep = dt;
       velocity = kcc.computedGrounded() ? -0.1 : velocity - 9.81 * dt;
@@ -33,7 +46,12 @@ export async function createController(terrain?: Terrain, trees: Trees = []): Pr
       world.step();
       position.copy(body.translation());
     },
-    resetVelocity() { velocity = 0; },
-    dispose() { world.removeCharacterController(kcc); world.free(); },
+    resetVelocity() {
+      velocity = 0;
+    },
+    dispose() {
+      world.removeCharacterController(kcc);
+      world.free();
+    },
   };
 }

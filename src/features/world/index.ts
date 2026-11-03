@@ -1,8 +1,9 @@
+import { createLocomotion } from "./locomotion";
 import { createTerrain, createTerrainMesh, createTrees, createForest, PRESETS, type Quality } from "./terrain";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
 import { ACESFilmicToneMapping, DirectionalLight, HemisphereLight, Fog, CapsuleGeometry, Color, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
-import { HALF_HEIGHT, RADIUS } from "./scene";
+import { createObstacles, steepRamp, HALF_HEIGHT, RADIUS } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions { collision?: "rapier" | "raycast"; quality?: Quality; debug?: boolean }
@@ -11,7 +12,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const terrain = createTerrain();
   const trees = createTrees(terrain);
   const forest = createForest(trees, quality);
-  const obstacles = [createTerrainMesh(terrain), ...forest];
+  const obstacles = [createTerrainMesh(terrain), ...forest, ...createObstacles([steepRamp])];
   let controller;
   let renderer: WebGLRenderer | undefined;
   try {
@@ -27,6 +28,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   const gpu = renderer;
   const physics = controller;
+  const locomotion = createLocomotion(physics);
   const scene = new Scene();
   scene.background = new Color(0xe4c8a5);
   scene.fog = new Fog(0xe4c8a5, 15, 65);
@@ -42,7 +44,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   scene.add(player);
   const camera = new PerspectiveCamera(55, 1, 0.1, 100);
   gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
-  gpu.domElement.setAttribute("aria-label", "P01-B placeholder dawn forest, terrain and capsule. WASD to move.");
+  gpu.domElement.setAttribute("aria-label", "P01-C placeholder forest. WASD to walk, Shift to run.");
   container.appendChild(gpu.domElement);
   const metrics = opts.debug ? document.createElement("output") : undefined;
   if (metrics) { metrics.dataset.worldDebug = "true"; container.appendChild(metrics); }
@@ -55,7 +57,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let last = 0;
   let frame = 0;
   let disposed = false;
-  function clear(action: InputAction = { type: "clear" }) { keys = inputReducer(keys, action); physics.resetVelocity(); accumulator = 0; last = 0; }
+  function clear(action: InputAction = { type: "clear" }) {
+    keys = inputReducer(keys, action);
+    locomotion.reset();
+    accumulator = 0;
+    last = 0;
+  }
   function pause(reason: "hiddenTab" | "windowBlur", paused: boolean) {
     state = sessionReducer(state, { type: "pause", reason, paused });
     metricStart = 0; metricFrames = 0;
@@ -73,6 +80,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (document.hidden) cancelAnimationFrame(frame);
     else if (!disposed) frame = requestAnimationFrame(tick);
   }
+  function returnToPath() {
+    state = locomotion.recover(state);
+    clear();
+  }
   function resize() {
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
@@ -85,9 +96,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (canSimulate(state)) {
       const plan = limitSteps(accumulator, last ? (now - last) / 1000 : 0);
       accumulator = plan.remainder;
-      const direction = new Vector3(Number(keys.has("KeyD")) - Number(keys.has("KeyA")), 0, Number(keys.has("KeyS")) - Number(keys.has("KeyW")));
-      if (direction.lengthSq()) direction.normalize().multiplyScalar(3);
-      for (let i = 0; i < plan.steps; i++) physics.step(direction.x, direction.z, FIXED_DT);
+      const forward = camera.getWorldDirection(new Vector3());
+      const yaw = Math.atan2(-forward.x, -forward.z);
+      for (let i = 0; i < plan.steps; i++) {
+        state = locomotion.step(state, keys, yaw, FIXED_DT);
+      }
     }
     last = now;
     player.position.copy(physics.position);
@@ -107,6 +120,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     }
     frame = requestAnimationFrame(tick);
   }
+  camera.position.copy(physics.position).add(new Vector3(7, 6, 9));
+  camera.lookAt(physics.position);
+  container.addEventListener("tqa:return-to-path", returnToPath);
   const observer = new ResizeObserver(resize);
   observer.observe(container);
   window.addEventListener("keydown", keydown);
@@ -124,6 +140,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     disposed = true;
     cancelAnimationFrame(frame);
     observer.disconnect();
+    container.removeEventListener("tqa:return-to-path", returnToPath);
     window.removeEventListener("keydown", keydown);
     window.removeEventListener("keyup", keyup);
     window.removeEventListener("blur", blur);

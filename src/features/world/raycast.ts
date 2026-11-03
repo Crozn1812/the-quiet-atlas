@@ -7,8 +7,20 @@ export async function createController(obstacles: Mesh[]): Promise<Controller> {
   const ray = new Raycaster();
   const down = new Vector3(0, -1, 0);
   let velocity = 0;
+  let grounded = false;
   return {
     position,
+    get grounded() {
+      return grounded;
+    },
+    get verticalVelocity() {
+      return velocity;
+    },
+    teleport(target) {
+      position.copy(target);
+      velocity = 0;
+      grounded = false;
+    },
     step(x, z, dt) {
       const delta = new Vector3(x * dt, 0, z * dt);
       const distance = delta.length();
@@ -29,6 +41,7 @@ export async function createController(obstacles: Mesh[]): Promise<Controller> {
         }
         position.addScaledVector(direction, travel);
       }
+      grounded = false;
       velocity -= 9.81 * dt;
       position.y += velocity * dt;
       let support = -Infinity;
@@ -38,9 +51,15 @@ export async function createController(obstacles: Mesh[]): Promise<Controller> {
         const hit = ray.intersectObjects(obstacles, false)[0];
         if (hit?.face && hit.face.normal.clone().transformDirection(hit.object.matrixWorld).y >= Math.cos(SLOPE_LIMIT)) support = Math.max(support, hit.point.y);
       }
-      if (velocity <= 0 && position.y - HEIGHT <= support + 0.25) { position.y = support + HEIGHT + 0.01; velocity = 0; }
+      if (velocity <= 0 && position.y - HEIGHT <= support + 0.25) {
+        position.y = support + HEIGHT + 0.01;
+        velocity = 0;
+        grounded = true;
+      }
     },
-    resetVelocity() { velocity = 0; },
+    resetVelocity() {
+      velocity = 0;
+    },
     dispose() {},
   };
 }

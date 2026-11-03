@@ -127,3 +127,31 @@ thực không đổi theo quality, KCC đứng và lên dốc. Lần test đầu
 trả null; đã đổi ray kiểm tra vào nội bộ ô (0,23; 0,31 m), vẫn kiểm height buffer
 ngay tại đỉnh. Chưa kiểm bằng browser: visual bốn hướng, Enter World, GPU leak qua
 nhiều mount/unmount, draw calls. Không tuyên bố các mục này PASS.
+
+## P01-C: tham số đã chốt — L2-004 (2026-11-04)
+
+- Controller mặc định: Rapier KCC; raycast vẫn chỉ là spike so sánh, chưa có
+  autostep tổng quát và không bảo đảm collider cây độc lập quality như Rapier.
+- `WALK_SPEED = 3 m/s`: tốc độ đi bộ chuẩn dùng đo nhịp bản đồ §7.1.
+  `RUN_SPEED = 5 m/s`, giữ Shift trái/phải; chuẩn hóa input chéo trước nhân tốc độ.
+  Yaw camera tính quanh +Y, yaw 0 nhìn -Z, yaw +90° nhìn -X.
+- Capsule giữ bán kính 0,35 m, nửa đoạn trụ 0,55 m; gravity -9,81 m/s²,
+  lực bám đất dùng vận tốc Y=-0,1 m/s khi grounded. Skin 0,01 m.
+- Slope climb/slide limit **45°**; snap-to-ground 0,25 m;
+  autostep cao tối đa 0,3 m, rộng tối thiểu 0,2 m, không step dynamic body.
+- Dốc kiểm vượt giới hạn **60°**: hộp 3×0,3×4 m, tâm (-4; 1,65; 0),
+  xoay quanh X; mesh và collider lấy chung `steepRamp`. Tiếp cận từ phía +Z.
+- Recovery tự động: Y < -10 m hoặc input di chuyển không đạt 0,1 m tiến bộ
+  theo XZ trong 3 giây simulation. Điểm an toàn được cập nhật sau 0,5 giây
+  grounded liên tục, đứng yên hoặc dịch chuyển ít nhất 0,01 m/bước khi có input;
+  không cập nhật khi input bị chặn. Điểm mặc định (0; 0,92; 4).
+  Recovery teleport về `sessionProgress.lastSafePosition`, xóa vận tốc/timer,
+  giữ secret/zone và pause reasons; chỉ memory, không persistence.
+- Fixed 60 Hz, tối đa 5 bước bù/frame giữ nguyên. Blur/hidden xóa input,
+  vận tốc và timer ngay trong handler; bước locomotion khi pause cũng reset.
+- UI có thể dispatch `CustomEvent("tqa:return-to-path")` trên container;
+  listener được gỡ khi unmount. Hợp đồng mount và marker giữ nguyên.
+- Headless unit test dùng Rapier thật cho dốc 60°, cột, snap xuống dốc,
+  recovery rơi/kẹt và blur/hidden. Đây không thay thế video T03/T04,
+  checklist 5 phút/20 thân cây hoặc đo độ trễ browser: **NOT RUN**.
+  Không đo benchmark hiệu năng mới trong P01-C; nhãn máy theo ADR 0007.

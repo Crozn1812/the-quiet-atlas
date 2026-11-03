@@ -103,3 +103,30 @@ counts and a Vite world library gzip breakdown, then CPU controller timings.
 These counts exclude capsule, camera culling and shadow passes; actual browser
 renderer draw calls and visual/lifecycle QA remain NOT RUN. Browser FPS is deferred
 to P01-F. Label machine **desktop dGPU RTX 3060**, per ADR 0007, never iGPU.
+
+## P01-C controller and recovery
+
+This section supersedes the P01-A world-axis movement description above.
+WASD follows the camera's horizontal world direction, including the initial
+fixed offset; hold either Shift to run. Speeds are 3 m/s walking and 5 m/s running.
+Diagonal input is normalized. Camera orbit remains P01-D work.
+Rapier uses a 45 degree slope limit, 0.3 m autostep (0.2 m minimum width),
+0.25 m ground snap and gravity -9.81 m/s². The shared 60 degree test ramp is
+at (-4, 1.65, 0), approached from +Z; it must block climbing.
+
+Session progress lives only in memory. A stable grounded point is promoted after
+0.5 simulation seconds. Falling below Y=-10 or failing to advance 0.1 m with
+movement input for 3 simulation seconds returns to the last safe point, clearing
+velocity without deleting secrets or visited zones. Pause resets recovery timers.
+
+L1 can attach a Return to path button without changing the mount API:
+
+```ts
+container.dispatchEvent(new CustomEvent("tqa:return-to-path"));
+```
+
+Dispatch on the exact container passed to `mountWorld`; no detail payload is needed.
+It also works while paused, preserving pause reasons and clearing held input.
+Unmount removes the listener. No browser storage, URL or backend writes occur.
+Headless logic checks do not certify browser T03 latency or the T04 five-minute
+20-trunk collision checklist. T03/T04 video: **NOT RUN**.
