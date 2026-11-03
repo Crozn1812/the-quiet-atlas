@@ -1,0 +1,12 @@
+html { color-scheme: light; background: #f7f3e8; color: #203e35; font-family: Georgia, "Times New Roman", serif; }
+body { margin: 0; }
+main { max-width: 64rem; margin: auto; padding: clamp(1.25rem, 5vw, 4rem); }
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.15; }
+p { line-height: 1.65; }
+nav { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+a { color: #245d52; text-underline-offset: .2em; overflow-wrap: anywhere; }
+button { font: inherit; padding: .6rem 1rem; }
+button:disabled { color: #535b55; background: #e6e3d8; border: 1px solid #777d72; }
+section { margin-block: 2rem; }
+article { border-top: 1px solid #88968b; padding-block: 1rem; }
+:focus-visible { outline: 3px solid #875017; outline-offset: 4px; }
