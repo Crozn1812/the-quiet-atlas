@@ -26,7 +26,7 @@ it("puts the localized skip link first in every HTML layout", async () => {
   }
 });
 
-it("makes all page main landmarks focusable skip targets", async () => {
+it("provides focusable skip targets, using the information card on Welcome", async () => {
   const pages: ReactElement[] = [createElement(Entry), createElement(NotFound), createElement(GlobalNotFound)];
   for (const locale of ["en", "vi"] as const) {
     pages.push(createElement(Portfolio, { locale }), createElement(Portfolio, { locale, quick: true }));
@@ -34,7 +34,11 @@ it("makes all page main landmarks focusable skip targets", async () => {
   }
   for (const project of content.projects) pages.push(createElement(CaseStudy, { project }));
   for (const page of pages) {
-    expect(renderToStaticMarkup(page)).toMatch(/<main id="content" tabindex="-1">/);
+    const html = renderToStaticMarkup(page);
+    expect(html).toMatch(/<(?:main|div) id="content"[^>]*tabindex="-1"/);
+    if (html.includes('class="welcome-shell"')) {
+      expect(html).toContain('<div id="content" tabindex="-1" class="welcome-card">');
+    }
   }
 });
 

@@ -21,7 +21,7 @@ export const messages: Record<Locale,Messages>={
       loading: "Loading the world…",
       error: "The world could not load. Retry once or open Quick Portfolio.",
       retry: "Try again",
-      leave: "Back to Welcome",
+      leave: "Exit world",
       scene: "Physics test scene — WASD to move",
       soundReason: "Sound is under construction"
     },
@@ -43,7 +43,7 @@ export const messages: Record<Locale,Messages>={
       loading: "Đang tải thế giới…",
       error: "Không tải được thế giới. Thử lại một lần hoặc mở Quick Portfolio.",
       retry: "Thử lại",
-      leave: "Về Welcome",
+      leave: "Thoát world",
       scene: "Cảnh thử physics — di chuyển bằng WASD",
       soundReason: "Âm thanh đang xây dựng"
     },

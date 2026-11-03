@@ -3,14 +3,11 @@ import { worldMenuMessages } from "@/i18n/world-menu";
 import { escapeAction, pauseWorld, returnToPath, setWorldQuality, trapFocus } from "./worldMenuControls";
 import type { Quality } from "./worldMenuControls";
 
-export function mountWorldMenu(container: HTMLElement, locale: string) {
+export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void) {
   const removeContent = mountWorldContent(container, locale);
   const copy = worldMenuMessages[locale === "vi" ? "vi" : "en"];
   const host = document.createElement("div");
   host.className = "world-menu";
-  const trigger = document.createElement("button");
-  trigger.textContent = copy.menu;
-  trigger.setAttribute("aria-haspopup", "dialog");
   const dialog = document.createElement("dialog");
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
@@ -76,6 +73,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string) {
     keys.append(line);
   }
   dialog.append(keys);
+  button(copy.leave, leaveWorld);
   button(copy.close, close);
 
   function open(source: HTMLElement) {
@@ -86,7 +84,8 @@ export function mountWorldMenu(container: HTMLElement, locale: string) {
     pauseWorld(container, true);
     title.focus();
   }
-  trigger.addEventListener("click", () => open(trigger));
+  const onMenu = () => open(trigger);
+  trigger.addEventListener("click", onMenu);
   dialog.addEventListener("cancel", (event) => {
     event.preventDefault();
     close();
@@ -113,7 +112,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string) {
     if (action === "close") close();
     else open(container);
   }
-  host.append(trigger, dialog);
+  host.append(dialog);
   container.parentElement?.append(host);
   document.addEventListener("keydown", onEscape, true);
   return () => {
@@ -121,6 +120,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string) {
     removeContent();
     document.removeEventListener("keydown", onEscape, true);
     container.removeEventListener("tqa:world-state", syncQuality);
+    trigger.removeEventListener("click", onMenu);
     host.remove();
   };
 }

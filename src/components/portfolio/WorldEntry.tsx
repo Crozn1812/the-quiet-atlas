@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+/* Static CV navigation avoids prefetching the client router. */
+/* eslint-disable @next/next/no-html-link-for-pages */
+
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { readCapabilities, worldEligibility } from "./capabilities";
 import { listenWorldError } from "./worldError";
 
@@ -18,12 +21,19 @@ export type WorldCopy = {
   soundReason: string;
 };
 
-export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }) {
+export function WorldEntry({ locale, copy, email, children, backdrop }: {
+  locale: string;
+  copy: WorldCopy;
+  email: string;
+  children: ReactNode;
+  backdrop: ReactNode;
+}) {
   const [eligibility, setEligibility] = useState<ReturnType<typeof worldEligibility>>();
   const [appMode, setAppMode] = useState<"welcome" | "loading" | "world" | "recoverableError">("welcome");
   const [retried, setRetried] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const enter = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLButtonElement>(null);
   const teardown = useRef<(() => void) | undefined>(undefined);
   const generation = useRef(0);
   const busy = useRef(false);
@@ -39,7 +49,7 @@ export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }
   }, []);
 
   useEffect(() => {
-    if (appMode === "recoverableError") enter.current?.focus();
+    if (appMode === "recoverableError" || appMode === "welcome") enter.current?.focus();
   }, [appMode]);
 
   useEffect(() => {
@@ -92,7 +102,7 @@ export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }
       container.current.focus();
       const { mountWorldMenu } = await import("./WorldMenu");
       if (current !== generation.current || !container.current) return;
-      const removeMenu = mountWorldMenu(container.current, locale);
+      const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld);
       teardown.current = () => {
         removeMenu();
         unmount();
@@ -115,35 +125,111 @@ export function WorldEntry({ locale, copy }: { locale: string; copy: WorldCopy }
       className="world-entry"
       data-app-mode={fallback ? "editorial" : appMode}
     >
-      <nav aria-label="World">
-        <button
-          ref={enter}
-          hidden={Boolean(fallback)}
-          disabled={!eligibility || appMode === "loading"}
-          aria-disabled={appMode === "recoverableError" && retried}
-          aria-describedby="world-reason"
-          onClick={onEnterWorld}
-        >
-          Enter World
-        </button>
-        {fallback && <a href={`/${locale}/quick/`}>{copy.editorial}</a>}
-        <a href={`/${locale}/quick/`}>Quick Portfolio</a>
-        <button disabled aria-describedby="sound-reason">Sound</button>
-      </nav>
-      <p id="world-reason" aria-live="polite">
-        {!eligibility ? copy.unavailable : appMode === "loading" ? copy.loading : appMode === "recoverableError" ? copy.error : fallback ? copy[eligibility] : ""}
-      </p>
-      <p id="sound-reason">{copy.soundReason}</p>
-      {appMode === "recoverableError" && !retried && <button onClick={onEnterWorld}>{copy.retry}</button>}
-      {appMode === "world" && <button onClick={leaveWorld}>{copy.leave}</button>}
+      {backdrop}
       <div
         ref={container}
         tabIndex={-1}
         role="region"
         aria-label={copy.scene}
         hidden={appMode !== "loading" && appMode !== "world"}
-        style={{ height: "60vh", minHeight: "20rem" }}
+        className="world-viewport"
       />
+
+      <div className="corner-panel">
+        <div
+          id="content"
+          tabIndex={-1}
+          className="welcome-card"
+          hidden={appMode === "world"}
+        >
+          {children}
+          <nav aria-label="World">
+            <button
+              ref={enter}
+              hidden={Boolean(fallback)}
+              disabled={!eligibility || appMode === "loading"}
+              aria-disabled={appMode === "recoverableError" && retried}
+              aria-describedby="world-reason"
+              onClick={onEnterWorld}
+            >
+              Enter World
+            </button>
+            {fallback && <a href={`/${locale}/quick/`}>{copy.editorial}</a>}
+          </nav>
+          <p id="world-reason" aria-live="polite">
+            {!eligibility ? copy.unavailable : appMode === "loading" ? copy.loading : appMode === "recoverableError" ? copy.error : fallback ? copy[eligibility] : ""}
+          </p>
+          {appMode === "recoverableError" && !retried && <button onClick={onEnterWorld}>{copy.retry}</button>}
+        </div>
+        <nav
+          className="world-hud"
+          aria-label="World actions"
+          data-compact={appMode === "world"}
+        >
+          <span
+            id="sound-reason"
+            className="visually-hidden"
+          >
+            {copy.soundReason}
+          </span>
+          <a href={`/${locale}/quick/`}>
+            <HudIcon kind="quick" />
+            <span>Quick Portfolio</span>
+          </a>
+          <a href="/cv/">
+            <HudIcon kind="cv" />
+            <span>CV</span>
+          </a>
+          <a href={`mailto:${email}`}>
+            <HudIcon kind="email" />
+            <span>{appMode === "world" ? "Email" : email}</span>
+          </a>
+          <button
+            disabled
+            aria-describedby="sound-reason"
+          >
+            <HudIcon kind="sound" />
+            <span>Sound</span>
+          </button>
+          <button
+            ref={menu}
+            hidden={appMode !== "world"}
+            aria-haspopup="dialog"
+          >
+            <HudIcon kind="menu" />
+            <span>Menu</span>
+          </button>
+          <button
+            hidden={appMode !== "world"}
+            onClick={leaveWorld}
+          >
+            <HudIcon kind="exit" />
+            <span>{copy.leave}</span>
+          </button>
+        </nav>
+      </div>
     </div>
+  );
+}
+
+function HudIcon({ kind }: { kind: string }) {
+  const paths: Record<string, string> = {
+    quick: "M3 3h7v18H3zM14 3h7v18h-7z",
+    cv: "M5 2h10l4 4v16H5zM8 10h8M8 14h8M8 18h5",
+    email: "M2 4h20v16H2zM2 4l10 9L22 4",
+    sound: "M3 9h4l5-5v16l-5-5H3zM16 8l5 8M21 8l-5 8",
+    menu: "M3 6h18M3 12h18M3 18h18",
+    exit: "M10 3H3v18h7M8 12h13M16 7l5 5-5 5",
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d={paths[kind]} />
+    </svg>
   );
 }

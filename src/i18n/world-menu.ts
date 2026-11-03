@@ -1,6 +1,7 @@
 export const worldMenuMessages = {
   en: {
-    menu: "World menu",
+    menu: "Menu",
+    leave: "Exit world",
     close: "Close",
     quality: "Quality",
     low: "Low",
@@ -15,7 +16,8 @@ export const worldMenuMessages = {
     escape: "Esc: Close UI / open menu",
   },
   vi: {
-    menu: "Menu thế giới",
+    menu: "Menu",
+    leave: "Thoát world",
     close: "Đóng",
     quality: "Chất lượng",
     low: "Thấp",
