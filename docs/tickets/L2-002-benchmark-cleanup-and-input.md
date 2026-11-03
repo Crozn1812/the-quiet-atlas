@@ -1,0 +1,21 @@
+## TICKET L2-002 — Dọn benchmark + tách input/pause thành module test được
+
+- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L2-002`, worktree `../tqa-L2`
+- Lane / milestone: L2 / B1 (P01-A → chuẩn bị P01-E)
+- Mục tiêu: benchmark physics nằm ở `tools/`, khai báo dependency đúng; logic input (phím đang giữ, blur, focus ô nhập) và pause tách khỏi `index.ts` để unit test không cần WebGL.
+- Spec liên quan: §6.1, §6.2 mục 2, 3, 8; §15 (quy tắc physics, vòng đời); Q13
+- Dependency: Lead đã thêm `vite` (devDependency, exact) trên nhánh. Không tự thêm/đổi.
+- Được sửa: `src/features/world/`, `src/features/interaction/`, `src/state/`, `tests/unit/world/`, `tests/unit/state/`, `tests/unit/interaction/` (mới), `tools/benchmark-physics/` (mới), `docs/adr/0002-physics.draft.md` (chỉ cập nhật đường dẫn lệnh tái lập)
+- Không được sửa: mọi thứ khác; đặc biệt `src/app/`, `src/components/`, `package.json`, `pnpm-lock.yaml`, config gốc. Không chạy `pnpm add/install`.
+- Hợp đồng không được đổi: chữ ký `mountWorld(container, opts) => Promise<unmount>` và hằng `WORLD_CHUNK_MARKER` trong `src/features/world/index.ts` (L1-002 đang nối vào cùng lúc).
+- Ràng buộc:
+  - Chuyển `src/features/world/benchmark.mjs` → `tools/benchmark-physics/index.mjs`; import `vite` trực tiếp (bỏ `createRequire` lấy qua vitest). Lệnh tái lập ghi trong ADR 0002 và README.
+  - Module input (`src/features/interaction/input.ts` hoặc tương đương): tập phím theo `KeyboardEvent.code`; bỏ qua khi target là input/textarea/select/contenteditable/dialog; `clear()` khi blur/hidden/focus vào ô nhập; không global handler nuốt phím gõ (§6.2.2). Hàm thuần nhận event-like object để test.
+  - `index.ts` dùng module mới; hành vi giữ nguyên.
+  - Unit test: gõ WASDE khi focus ô nhập không thêm phím (Q13 phần logic); giữ phím rồi blur → tập phím rỗng; pause nhiều lý do chỉ chạy lại khi hết lý do.
+  - Không lưu gì ngoài memory.
+- Điều kiện xong:
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle` exit 0
+  - `node tools/benchmark-physics/index.mjs` exit 0 (không cần lặp lại đủ 3 lượt; một lượt để chứng minh chạy được)
+  - Không commit (sandbox chặn); Lead commit
+- Bàn giao: tóm tắt, lệnh + exit code, việc chưa làm.

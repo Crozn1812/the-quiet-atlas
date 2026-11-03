@@ -1,0 +1,27 @@
+## TICKET L1-002 — Nối Enter World (lazy) + chọn trải nghiệm theo thiết bị + `lang` cho 404 + dọn code
+
+- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L1-002`, worktree `../tqa-L1`
+- Lane / milestone: L1 / A1 + P01-A
+- Mục tiêu (theo trải nghiệm người dùng):
+  - Trên desktop đủ điều kiện, bấm **Enter World** trên `/en/` hoặc `/vi/` → trong cùng trang (không điều hướng) tải chunk 3D và hiện cảnh thử physics. Có nút thoát về Welcome.
+  - Thiết bị không đủ điều kiện → nút đổi thành **"Xem bản Editorial" / "View Editorial"** dẫn tới `/{locale}/quick/`, kèm một dòng lý do.
+  - Tải 3D lỗi (WebGL không có, import lỗi, `mountWorld` reject) → thông báo ngắn + nút "Thử lại" (tối đa 1 lần thử lại, không vòng lặp) + link Quick Portfolio.
+  - Tắt JavaScript: trang vẫn đọc được, Enter World giữ trạng thái disabled kèm lý do như hiện nay.
+  - Trang 404 có `lang="en"`.
+- Spec liên quan (`docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`): §3.2, §3.3, §3.4, §5 (đoạn "Không tải 3D trước Enter World"), §6.1 (`appMode`), §8 (ngân sách Welcome)
+- Được sửa: `src/app/`, `src/components/portfolio/`, `src/content/`, `src/i18n/`, `tests/unit/content/`, `tests/unit/i18n/`, `tests/unit/portfolio/` (mới). Riêng `next.config.ts`: **chỉ** được thêm `experimental.globalNotFound: true` nếu cần cho 404 — ghi rõ trong bàn giao.
+- Không được sửa: mọi thứ khác; đặc biệt `src/features/`, `src/state/`, `package.json`, `pnpm-lock.yaml`, `eslint.config.mjs`, `docs/`, `.github/`, `tools/`. Không chạy `pnpm add/install`.
+- Hợp đồng với world (đã có trên `main`, không sửa): `src/features/world/index.ts` export `mountWorld(container, { collision: "rapier" | "raycast" }) => Promise<unmount>`. Loader mẫu: `src/features/world/README.md`.
+- Ràng buộc:
+  - Chỉ dùng `import("@/features/world")` **bên trong handler click Enter World**. Không import tĩnh, không `next/dynamic` có preload, không `<link rel="prefetch|modulepreload">` tới chunk world. Luật ESLint `no-restricted-imports` hiện có phải vẫn pass.
+  - Kiểm năng lực theo §3.4, **không dùng user-agent**: WebGL2 (`canvas.getContext("webgl2")` rồi giải phóng), `matchMedia("(pointer: fine)")`, `innerWidth >= 1024`. Tách thành hàm thuần nhận input (để unit test) + lớp mỏng đọc từ `window`.
+  - Ngân sách: JS ban đầu của `/en/`, `/vi/`, `/*/quick/` đang ≈ 135 KB / 150 KB gzip. Client component phải nhỏ (một island duy nhất cho khu nút Enter World/Sound); phần còn lại giữ Server Component. Không thêm thư viện.
+  - Trạng thái `loading` có thông báo `aria-live="polite"`; focus chuyển hợp lý (vào vùng world khi mount xong, về nút Enter World khi thoát/lỗi).
+  - Không lưu gì vào storage/cookie/URL.
+  - **Dọn code**: các file L1 hiện viết dồn trên một dòng (`src/content/schema.ts`, `src/content/index.ts`, `src/components/portfolio/Portfolio.tsx`, các layout/page) — định dạng lại mỗi câu lệnh/thuộc tính một dòng, thụt lề 2 space, không đổi hành vi.
+- Điều kiện xong (Codex tự chạy, dán kết quả):
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle` đều exit 0 (check:bundle là kiểm "0 chunk 3D trước Enter World" + ngân sách)
+  - Unit test cho hàm kiểm năng lực (đủ / thiếu WebGL2 / pointer coarse / width < 1024)
+  - `out/404.html` chứa `<html lang="en"`
+  - Không commit (sandbox chặn); Lead commit
+- Bàn giao: tóm tắt, bảng check:bundle, lệnh đã chạy + exit code, việc chưa làm (kiểm trên trình duyệt thật là NOT RUN nếu không chạy được).
