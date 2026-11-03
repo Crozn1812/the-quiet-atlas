@@ -35,6 +35,8 @@ Get-Content docs\tickets\<ID>.md -Raw | codex exec -s workspace-write -C ..\tqa-
 
 ## Quy ước
 
-- Mỗi ticket một worktree: `git worktree add ../tqa-L1 -b lane/L1-<ticket-id>`.
+- Mỗi ticket một worktree, **từ 2026-11-03 đặt dưới `D:/tqa-worktrees/<ticket-id>`**: `git worktree add D:/tqa-worktrees/L1-002 -b lane/L1-002`. Lý do: công cụ của Lead không được xóa thư mục ngay gốc ổ `D:\`, nên các worktree cũ `D:\tqa-L1..L3` để lại `node_modules` không dọn được (Duy tự xóa). Thư mục con trong `D:/tqa-worktrees/` dọn được sau khi merge.
+- Sau `git worktree remove`, kiểm tra thư mục đã mất hẳn; nếu còn `node_modules` thì xóa thư mục con đó.
+- Mọi lệnh chạy trong worktree dùng `pnpm --dir <path>` hoặc `git -C <path>`; không dựa vào `Push-Location` (nếu path sai, lệnh sẽ chạy nhầm trên `main`).
 - Prompt = ticket card trong `docs/tickets/` + đường dẫn các mục spec liên quan.
 - Lead tự chạy lint/typecheck/test/build và đọc diff trước khi merge; tối đa 3 vòng sửa.

@@ -39,11 +39,29 @@
 
 Kiểm tra `main` sau khi gộp cả ba (eb6439b): lint, typecheck, test 43/43, build, check:bundle đều exit 0. Chưa phải gate T/Q.
 
+### Đợt 2 (2026-11-03)
+
+| Ticket | Trạng thái |
+|---|---|
+| L1-002 Enter World lazy + §3.4 + 404 `lang` + dọn code | **Merged** (63a3dee) |
+| L2-002 benchmark → `tools/`, input reducer | **Merged** (19c9216); `vite` khai báo devDependency (e0a53f2) |
+| L3-002 scan-leaks §4.6, `.gitleaks.toml`, check-licenses | **Merged**; image `ghcr.io/gitleaks/gitleaks:v8.28.0` tồn tại (Lead kiểm `docker manifest inspect`), nhưng **gitleaks chưa chạy lần nào** → NOT RUN; regex RE2 chưa kiểm bằng gitleaks thật |
+
+Kiểm `main` sau đợt 2: lint, typecheck, test 86/86, build, `check:bundle`, `check:leaks`, `check:licenses` đều exit 0.
+
+**Lead kiểm thủ công trên trình duyệt** (built-in browser của Claude desktop, Chromium, server tĩnh local `127.0.0.1:4173` phục vụ `out/` của L1-002, máy dev): đây là bằng chứng sơ bộ, **chưa phải** gate T01/T02 (cần Playwright tự động):
+- `/en/` trước Enter World: 9 request (HTML, 1 CSS, 8 JS shell), 0 request GLB/WASM/chunk world.
+- Bấm Enter World ở viewport 1366×800: tải thêm 4 chunk JS, canvas hiện cảnh thử, `data-world-chunk` có marker, focus vào vùng world, URL không đổi. "Back to Welcome" gỡ canvas, focus về nút Enter World.
+- Viewport 800 px, `/vi/`: Enter World ẩn, hiện "Xem bản Editorial" → `/vi/quick/` + lý do tiếng Việt; `lang="vi"`.
+- URL không tồn tại → trang 404 `lang="en"`.
+
+Lưu ý: kiểm năng lực đọc WebGL2 bằng cách tạo context tạm khi trang load (không tải chunk 3D). Chấp nhận được; xem lại nếu đo thấy tốn trên máy yếu.
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L1-002: `lang` cho `404.html`; định dạng lại code L1 cho dễ đọc (hiện viết dồn một dòng); nối nút Enter World với `mountWorld` qua `import()` động + kiểm tra năng lực thiết bị §3.4.
-- L2-002: chuyển `benchmark.mjs` từ `src/features/world/` sang `tools/`; bỏ phụ thuộc ngầm vào Vite (đang lấy qua Vitest).
-- L3-002: gitleaks + luật §4.6, kiểm `LICENSES.csv`, Playwright T01/T02.
+- L3-003: Playwright T01/T02/T07 (phần HTML), axe-core; chạy gitleaks thật (Docker local hoặc CI) và ghim image theo digest.
+- L1-003: trang case study `/{locale}/projects/{slug}/` + privacy + sitemap/robots (§4.5, §4.7, §5) — dữ liệu vẫn TBD.
+- L2-003: P01-C character controller (slope, recovery point) trên Rapier — chỉ bắt đầu sau khi chốt máy tham chiếu hoặc ghi ADR nhãn máy dev.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 
 Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.

@@ -12,7 +12,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check:bundle": "node tools/check-bundle/index.mjs out"
+    "check:bundle": "node tools/check-bundle/index.mjs out",
+    "check:leaks": "node tools/scan-leaks/index.mjs src/content out",
+    "check:licenses": "node tools/check-licenses/index.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",

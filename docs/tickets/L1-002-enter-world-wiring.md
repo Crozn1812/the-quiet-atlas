@@ -1,6 +1,6 @@
 ## TICKET L1-002 — Nối Enter World (lazy) + chọn trải nghiệm theo thiết bị + `lang` cho 404 + dọn code
 
-- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L1-002`, worktree `../tqa-L1`
+- Trạng thái: **Done — merged vào main** (2026-11-03)
 - Lane / milestone: L1 / A1 + P01-A
 - Mục tiêu (theo trải nghiệm người dùng):
   - Trên desktop đủ điều kiện, bấm **Enter World** trên `/en/` hoặc `/vi/` → trong cùng trang (không điều hướng) tải chunk 3D và hiện cảnh thử physics. Có nút thoát về Welcome.

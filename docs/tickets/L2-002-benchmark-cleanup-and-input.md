@@ -1,6 +1,6 @@
 ## TICKET L2-002 — Dọn benchmark + tách input/pause thành module test được
 
-- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L2-002`, worktree `../tqa-L2`
+- Trạng thái: **Done — merged vào main** (2026-11-03)
 - Lane / milestone: L2 / B1 (P01-A → chuẩn bị P01-E)
 - Mục tiêu: benchmark physics nằm ở `tools/`, khai báo dependency đúng; logic input (phím đang giữ, blur, focus ô nhập) và pause tách khỏi `index.ts` để unit test không cần WebGL.
 - Spec liên quan: §6.1, §6.2 mục 2, 3, 8; §15 (quy tắc physics, vòng đời); Q13

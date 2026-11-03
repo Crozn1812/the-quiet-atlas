@@ -1,6 +1,6 @@
 ## TICKET L3-002 — Quét rò rỉ §4.6 + kiểm `LICENSES.csv`
 
-- Trạng thái: **Assigned → subagent Claude** (2026-11-03), nhánh `lane/L3-002`, worktree `../tqa-L3`
+- Trạng thái: **Done — merged vào main** (2026-11-03)
 - Lane / milestone: L3 / A1
 - Mục tiêu: PR fail khi `src/content/` hoặc artifact build (`out/`) chứa thông tin nhạy cảm theo §4.6, hoặc khi có file asset public không có dòng trong `assets/LICENSES.csv`.
 - Spec liên quan: §4.6, §7.3 (inventory asset), §11.6 (pipeline PR), Q17
