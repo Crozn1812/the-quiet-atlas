@@ -1,0 +1,79 @@
+﻿# Raw console output of the T08/T09 harness runs, 2026-11-04 (UTC+7), filtered of PowerShell/Node warnings.
+
+## T08 attempt 1 (9 tests, exit 1)
+Running 9 tests using 1 worker
+run 1 Low: frames 5999, FPS 100.0, p95 10.2 ms, >100 ms 0.00 %, >250 ms 0, max 10.5 ms → PASS
+  ok 1 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 1 — Low (1.5m)
+run 1 Balanced (tham khảo): frames 5999, FPS 100.0, p95 10.2 ms, >100 ms 0.00 %, >250 ms 0, max 10.5 ms → PASS
+  ok 2 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 1 — Balanced (tham khảo) (1.5m)
+run 1 Low + CPU 4× (mô phỏng máy yếu): frames 5999, FPS 100.0, p95 10.1 ms, >100 ms 0.00 %, >250 ms 0, max 10.3 ms → PASS
+  ok 3 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 1 — Low + CPU 4× (mô phỏng máy yếu) (1.5m)
+run 2 Low: frames 5999, FPS 100.0, p95 10.2 ms, >100 ms 0.00 %, >250 ms 0, max 10.5 ms → PASS
+  ok 4 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 2 — Low (1.5m)
+run 2 Balanced (tham khảo): frames 58, FPS 1.0, p95 1010.1 ms, >100 ms 100.00 %, >250 ms 58, max 1010.2 ms → FAIL
+  ok 5 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 2 — Balanced (tham khảo) (1.5m)
+run 2 Low + CPU 4× (mô phỏng máy yếu): frames 5999, FPS 100.0, p95 10.1 ms, >100 ms 0.00 %, >250 ms 0, max 10.4 ms → PASS
+  ok 6 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 2 — Low + CPU 4× (mô phỏng máy yếu) (1.5m)
+run 3 Low: frames 5999, FPS 100.0, p95 10.2 ms, >100 ms 0.00 %, >250 ms 0, max 10.7 ms → PASS
+  ok 7 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 3 — Low (1.5m)
+run 3 Balanced (tham khảo): frames 5999, FPS 100.0, p95 10.2 ms, >100 ms 0.00 %, >250 ms 0, max 10.5 ms → PASS
+  ok 8 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 3 — Balanced (tham khảo) (1.5m)
+  x  9 tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 3 — Low + CPU 4× (mô phỏng máy yếu) (5.0m)
+  1) tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 3 — Low + CPU 4× (mô phỏng máy yếu) ───────
+    Test timeout of 300000ms exceeded.
+    Error Context: test-results\frame-artifacts\t08-frame-budget.frame.ts--c50b9-ow-CPU-4×-mô-phỏng-máy-yếu-\error-context.md
+  Slow test file: tests\perf\t08-frame-budget.frame.ts (17.2m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    tests\perf\t08-frame-budget.frame.ts:30:5 › T08 run 3 — Low + CPU 4× (mô phỏng máy yếu) ────────
+  8 passed (17.2m)
+exit=1
+
+## T08 re-measure of run 2 Balanced + run 3 Low CPU 4x (exit 0)
+Running 2 tests using 1 worker
+run 2 Balanced (tham khảo): frames 5994, FPS 99.9, p95 10.2 ms, >100 ms 0.00 %, >250 ms 0, max 20.1 ms → PASS
+  ok 1 tests\perf\t08-frame-budget.frame.ts:31:5 › T08 run 2 — Balanced (tham khảo) (1.5m)
+run 3 Low + CPU 4× (mô phỏng máy yếu): frames 5953, FPS 99.2, p95 10.1 ms, >100 ms 0.00 %, >250 ms 0, max 20.1 ms → PASS
+  ok 2 tests\perf\t08-frame-budget.frame.ts:31:5 › T08 run 3 — Low + CPU 4× (mô phỏng máy yếu) (1.5m)
+  2 passed (3.1m)
+
+## T09 (PERF_LONG=1, exit 0)
+Running 1 test using 1 worker
+T09 cycle 1/20 at 16 s: overlay via dispatch (first-light); heap 11.7 MB, GL live 70, listeners 517
+T09 cycle 2/20 at 46 s: overlay via dispatch (workshop); heap 12.0 MB, GL live 70, listeners 517
+T09 cycle 3/20 at 76 s: overlay via dispatch (roots); heap 12.2 MB, GL live 70, listeners 517
+T09 cycle 4/20 at 106 s: overlay via dispatch (first-light); heap 12.0 MB, GL live 70, listeners 517
+T09 cycle 5/20 at 136 s: overlay via dispatch (workshop); heap 12.3 MB, GL live 70, listeners 517
+T09 cycle 6/20 at 166 s: overlay via dispatch (roots); heap 12.3 MB, GL live 70, listeners 517
+T09 cycle 7/20 at 196 s: overlay via dispatch (first-light); heap 12.3 MB, GL live 70, listeners 517
+T09 cycle 8/20 at 226 s: overlay via dispatch (workshop); heap 12.4 MB, GL live 70, listeners 517
+T09 cycle 9/20 at 256 s: overlay via dispatch (roots); heap 12.9 MB, GL live 70, listeners 517
+T09 cycle 10/20 at 286 s: overlay via dispatch (first-light); heap 12.5 MB, GL live 70, listeners 517
+T09 cycle 11/20 at 316 s: overlay via dispatch (workshop); heap 12.5 MB, GL live 70, listeners 517
+T09 cycle 12/20 at 346 s: overlay via dispatch (roots); heap 12.6 MB, GL live 70, listeners 517
+T09 cycle 13/20 at 376 s: overlay via dispatch (first-light); heap 13.0 MB, GL live 70, listeners 517
+T09 cycle 14/20 at 406 s: overlay via dispatch (workshop); heap 12.7 MB, GL live 70, listeners 517
+T09 cycle 15/20 at 436 s: overlay via dispatch (roots); heap 12.7 MB, GL live 70, listeners 517
+T09 cycle 16/20 at 466 s: overlay via E (workshop); heap 8.8 MB, GL live 70, listeners 517
+T09 cycle 17/20 at 496 s: overlay via dispatch (workshop); heap 7.9 MB, GL live 70, listeners 517
+T09 cycle 18/20 at 526 s: overlay via dispatch (roots); heap 8.6 MB, GL live 70, listeners 517
+T09 cycle 19/20 at 556 s: overlay via dispatch (first-light); heap 8.5 MB, GL live 70, listeners 517
+T09 cycle 20/20 at 586 s: overlay via E (first-light); heap 8.8 MB, GL live 70, listeners 517
+| Chỉ số | Mẫu sau warm-up | Đầu | Cuối | Min | Max | Độ dốc / phút | r² | Kết luận |
+|---|---|---|---|---|---|---|---|---|
+| JS heap (CDP JSHeapUsedSize, sau GC) | 16 | 12884628 | 9198516 | 8300856 | 13666904 | -650346.79 | 0.57 | ổn định |
+| JS heap (performance.memory, sau GC) | 16 | 18130817 | 14493537 | 13957239 | 19154397 | -669902.20 | 0.59 | ổn định |
+| DOM nodes | 16 | 250 | 225 | 219 | 252 | -0.45 | 0.01 | ổn định |
+| JS event listeners | 16 | 517 | 517 | 517 | 517 | 0.00 | 0.00 | ổn định |
+| Canvas | 16 | 1 | 1 | 1 | 1 | 0.00 | 0.00 | ổn định |
+| Dialog elements | 16 | 2 | 2 | 2 | 2 | 0.00 | 0.00 | ổn định |
+| WebGL objects live (tổng) | 16 | 70 | 70 | 70 | 70 | 0.00 | 0.00 | ổn định |
+| WebGL buffers live | 16 | 42 | 42 | 42 | 42 | 0.00 | 0.00 | ổn định |
+| WebGL textures live | 16 | 7 | 7 | 7 | 7 | 0.00 | 0.00 | ổn định |
+| WebGL programs live | 16 | 5 | 5 | 5 | 5 | 0.00 | 0.00 | ổn định |
+conclusion: ổn định; frames during the run: 59925 (FPS avg 99.9, p95 10.2 ms, max 480.0 ms); frames in 2 s after the run: 203
+  ok 1 tests\perf\t09-stability.frame.ts:107:1 › T09 stability: 10 min movement + 20 menu/overlay open-close cycles, resource counts after warm-up (10.1m)
+  Slow test file: tests\perf\t09-stability.frame.ts (10.1m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (10.1m)
+exit=0
