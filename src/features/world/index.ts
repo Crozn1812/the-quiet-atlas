@@ -1,3 +1,4 @@
+import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
 import { CapsuleGeometry, Color, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
 import { createObstacles, HALF_HEIGHT, RADIUS } from "./scene";
@@ -32,24 +33,21 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const previousMarker = container.dataset.worldChunk;
   container.dataset.worldChunk = WORLD_CHUNK_MARKER;
   let state = sessionReducer(initialSession(), { type: "mode", mode: "world" });
-  const keys = new Set<string>();
+  let keys: ReadonlySet<string> = new Set();
   let accumulator = 0;
   let last = 0;
   let frame = 0;
   let disposed = false;
-  function clear() { keys.clear(); physics.resetVelocity(); accumulator = 0; last = 0; }
+  function clear(action: InputAction = { type: "clear" }) { keys = inputReducer(keys, action); physics.resetVelocity(); accumulator = 0; last = 0; }
   function pause(reason: "hiddenTab" | "windowBlur", paused: boolean) {
     state = sessionReducer(state, { type: "pause", reason, paused });
-    clear();
-  }
-  function editable(target: EventTarget | null) {
-    return target instanceof HTMLElement && !!target.closest("input,textarea,select,[contenteditable],[role=dialog]");
+    clear({ type: reason === "windowBlur" ? "blur" : "hidden" });
   }
   function keydown(event: KeyboardEvent) {
-    if (canSimulate(state) && !editable(event.target)) keys.add(event.code);
+    keys = inputReducer(keys, { type: "keydown", event, enabled: canSimulate(state) });
   }
-  function keyup(event: KeyboardEvent) { keys.delete(event.code); }
-  function focusin(event: FocusEvent) { if (editable(event.target)) clear(); }
+  function keyup(event: KeyboardEvent) { keys = inputReducer(keys, { type: "keyup", event }); }
+  function focusin(event: FocusEvent) { if (isInputTarget(event.target)) clear({ type: "focusin", event }); }
   function blur() { pause("windowBlur", true); }
   function focus() { pause("windowBlur", false); }
   function visibility() {

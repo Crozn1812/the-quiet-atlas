@@ -7,7 +7,10 @@ it("requires world mode and every pause reason to clear", () => {
   const original = state;
   for (const reason of ["overlay", "hiddenTab", "windowBlur", "error"] as const) state = sessionReducer(state, { type: "pause", reason, paused: true });
   expect(original.pauseReasons.size).toBe(0);
-  for (const reason of ["overlay", "hiddenTab", "windowBlur"] as const) state = sessionReducer(state, { type: "pause", reason, paused: false });
+  for (const reason of ["overlay", "hiddenTab", "windowBlur"] as const) {
+    state = sessionReducer(state, { type: "pause", reason, paused: false });
+    expect(canSimulate(state)).toBe(false);
+  }
   expect(canSimulate(state)).toBe(false);
   state = sessionReducer(state, { type: "pause", reason: "error", paused: false });
   expect(canSimulate(state)).toBe(true);

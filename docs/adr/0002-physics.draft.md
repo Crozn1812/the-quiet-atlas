@@ -35,7 +35,7 @@ phép đo này. Truy vấn CIM xác minh CPU/GPU bị Access denied, không coi 
 độc lập. Browser/viewport/DPR/quality: N/A (không render). OS build, chế độ nguồn:
 TBD. Không suy ra FPS, time-to-playable hoặc T08 từ số liệu CPU này.
 
-Lệnh tái lập: `node src/features/world/benchmark.mjs`, chạy ba process mới.
+Lệnh tái lập: `node tools/benchmark-physics/index.mjs`, chạy ba process mới.
 Bundle ES browser riêng từng controller, Vite library build target es2022,
 minify=true, không external dependency, gzip Node mặc định trên `physics.js`.
 Đây là collision bundle gồm phần Three được giữ lại, **không phải toàn world**;

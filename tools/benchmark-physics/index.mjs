@@ -1,14 +1,10 @@
 // Offline reproducible spike: no WebGL, no network, generated files in OS temp.
-import { createRequire } from "node:module";
+import { build, createServer } from "vite";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import { pathToFileURL } from "node:url";
-const require = createRequire(import.meta.url);
-// Resolve the already installed Vite through Vitest, without changing dependencies.
-const vitestRequire = createRequire(require.resolve("vitest/package.json"));
-const { build, createServer } = await import(pathToFileURL(vitestRequire.resolve("vite")).href);
 const root = resolve("src/features/world");
 const temporary = await mkdtemp(join(tmpdir(), "tqa-physics-"));
 const server = await createServer({ configFile: false, server: { middlewareMode: true }, appType: "custom" });

@@ -51,11 +51,11 @@ Fixed 60 Hz, tối đa 5 bước/frame, bỏ backlog dư.
 ## Đo lại offline
 
 ```sh
-node src/features/world/benchmark.mjs
+node tools/benchmark-physics/index.mjs
 pnpm test
 ```
 
-Benchmark dùng Vite có sẵn qua Vitest, tạo bundle riêng trong OS temp và xóa sau
+Benchmark imports Vite directly from the pinned devDependency; tạo bundle riêng trong OS temp và xóa sau
 đo. Không cài dependency. Gzip từng bundle collision tự chứa; không tính renderer
 và shell, không phải số transfer toàn world của Next. Chạy ba process mới để đo
 init nguội ở mức process (không đảm bảo cache đĩa nguội).
