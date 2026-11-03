@@ -1,6 +1,6 @@
 ## TICKET L2-001 — Spike physics + lazy boundary + ADR 0002 nháp
 
-- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L2-001`, worktree `../tqa-L2`
+- Trạng thái: **Done — merged vào main** (2026-11-03)
 - Lane / milestone: L2 / B1 (P01-A)
 - Mục tiêu: có một module world nạp được bằng `import()` động; trong cảnh thử có capsule đi trên mặt phẳng + một dốc; so sánh hai phương án collision bằng số đo thật.
 - Spec liên quan (`docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`): §5 (không tải 3D trước Enter World), §6.1, §6.2 mục 3 và 8, §8, §15 (quy tắc physics), §16.3 P01-A

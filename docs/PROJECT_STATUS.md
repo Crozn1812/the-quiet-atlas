@@ -34,8 +34,16 @@
 
 | Ticket | Lane | Trạng thái |
 |---|---|---|
-| L1-001 schema + Welcome/Quick + `lang` | L1 Codex | Đang chạy |
-| L2-001 spike physics + ADR 0002 | L2 Codex | Đang chạy |
+| L1-001 schema + Welcome/Quick + `lang` | L1 Codex | **Merged** (2cb4065). Lead chạy lại: lint/typecheck/test/build exit 0; check:bundle PASS 6 trang (≤ 138 KB JS gzip); `/vi/` có `lang="vi"`. Lỗi còn: `404.html` thiếu `lang` |
+| L2-001 spike physics + ADR 0002 | L2 Codex | **Merged** (eb6439b). Lead chạy lại: lint/typecheck/test (10) /build exit 0; marker world không có trong `out/`. ADR 0002 **Proposed**: đề xuất Rapier KCC, collision bundle +1,65 MB gzip, đo CPU trên máy dev |
+
+Kiểm tra `main` sau khi gộp cả ba (eb6439b): lint, typecheck, test 43/43, build, check:bundle đều exit 0. Chưa phải gate T/Q.
+
+### Ticket tiếp theo (nháp, chưa giao)
+
+- L1-002: `lang` cho `404.html`; định dạng lại code L1 cho dễ đọc (hiện viết dồn một dòng); nối nút Enter World với `mountWorld` qua `import()` động + kiểm tra năng lực thiết bị §3.4.
+- L2-002: chuyển `benchmark.mjs` từ `src/features/world/` sang `tools/`; bỏ phụ thuộc ngầm vào Vite (đang lấy qua Vitest).
+- L3-002: gitleaks + luật §4.6, kiểm `LICENSES.csv`, Playwright T01/T02.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 
 Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.

@@ -1,6 +1,6 @@
 ## TICKET L1-001 — Schema nội dung + Welcome/Quick khung + `lang` theo locale
 
-- Trạng thái: **Assigned → Codex** (2026-11-03), nhánh `lane/L1-001`, worktree `../tqa-L1`
+- Trạng thái: **Done — merged vào main** (2026-11-03)
 - Lane / milestone: L1 / A0 → A1
 - Mục tiêu (theo trải nghiệm người dùng):
   - Mở `/en/` hoặc `/vi/` thấy tên, vai trò/cấp độ, một câu giới thiệu, link CV và ba nút Enter World / Quick Portfolio / Sound. Trang `/vi/` có `<html lang="vi">`.

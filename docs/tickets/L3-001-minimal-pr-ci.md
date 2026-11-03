@@ -1,6 +1,6 @@
 ## TICKET L3-001 — CI PR tối thiểu + kiểm "0 chunk 3D trước Enter World"
 
-- Trạng thái: **Assigned → subagent Claude** (2026-11-03), nhánh `lane/L3-001`, worktree `../tqa-L3`
+- Trạng thái: **Done — merged vào main** (2026-11-03)
 - Lane / milestone: L3 / A1 + P01-A
 - Mục tiêu: mỗi PR tự chạy lint, typecheck, unit test, build và kiểm bundle; dev chạy được cùng kiểm tra đó ở local.
 - Spec liên quan: §5, §8 (ngân sách tải), §11.6, Q18

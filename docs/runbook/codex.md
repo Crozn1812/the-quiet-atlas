@@ -27,9 +27,11 @@ Get-Content docs\tickets\<ID>.md -Raw | codex exec -s workspace-write -C ..\tqa-
 - `--add-dir` trỏ ra ngoài worktree của lane
 - `--worktree` (Lead tự tạo worktree bằng `git worktree add` để kiểm soát tên nhánh)
 
-## Còn phải kiểm
+## Đã quan sát (L1-001, L2-001 — 2026-11-03)
 
-- Chạy thử một ticket rỗng trong worktree tạm, xác nhận Codex không ghi ra ngoài worktree (NOT RUN).
+- Sandbox `workspace-write` **chặn** Codex ghi vào `D:/the-quiet-atlas/.git/worktrees/<lane>/` → Codex không `git add/commit` được. Giữ nguyên như vậy (Codex không cần quyền git): Lead review diff rồi tự commit trong worktree, sau đó squash merge vào `main`. Không thêm `--add-dir` cho `.git`.
+- Sandbox cũng chặn truy vấn phần cứng (CIM) — bình thường.
+- Cả hai lần Codex chỉ sửa trong phạm vi ticket (Lead đã kiểm `git status`).
 
 ## Quy ước
 
