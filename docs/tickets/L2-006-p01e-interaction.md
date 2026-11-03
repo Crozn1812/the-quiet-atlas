@@ -1,6 +1,6 @@
 ## TICKET L2-006 — P01-E: bảng chỉ đường + vùng tương tác E/click, gợi ý, phát `tqa:open-content`
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L2-006`, worktree `D:/tqa-worktrees/L2-006`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L2 / B1 (P01-E)
 - Mục tiêu (theo trải nghiệm người chơi): trong rừng thử có **một bảng chỉ đường** (placeholder hình học, ghi rõ "placeholder") và **một vật thể tương tác** (bàn làm việc của The Workshop). Đến gần trong bán kính → hiện gợi ý "E" (văn bản, có `aria-live`); nhấn E hoặc click vào vật thể → mở nội dung khu. Click xa ngoài bán kính không mở gì. Đóng nội dung → nhân vật đứng đúng chỗ cũ, hướng cũ.
 - Spec liên quan: §6.2 mục 1, 2, 5; §6.4 (E, click); §7.2 (bảng chỉ đường — ở ticket này chỉ là vật thể tương tác, chưa dịch chuyển); §13 T07; §16.1; ADR 0008 (phần "Mở rộng 2026-11-04")

@@ -1,6 +1,6 @@
 ## TICKET L1-006 — Skip link mọi trang + khung overlay nội dung trong world (ADR 0008 mở rộng)
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-006`, worktree `D:/tqa-worktrees/L1-006`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L1 / A1 + P01-E (phần UI)
 - Mục tiêu (theo trải nghiệm người dùng):
   - Mọi trang HTML: phím Tab đầu tiên hiện link "Skip to content" / "Bỏ qua đến nội dung" dẫn tới `<main id="content">` (T11, WCAG 2.4.1).

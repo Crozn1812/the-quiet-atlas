@@ -1,6 +1,6 @@
 ## TICKET L3-006 — e2e world: menu, pause, quality (ADR 0008), Q13, Q21 phần đổi trang
 
-- Trạng thái: **Assigned → subagent Claude** (2026-11-04), nhánh `lane/L3-006`, worktree `D:/tqa-worktrees/L3-006`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L3 / B1
 - Mục tiêu: các hành vi world đã merge (menu Esc, pause, quality, return to path, camera input bị chặn khi pause) có e2e tự động.
 - Spec liên quan: §6.2, §6.4, §13 T07 (phần menu), Q13, Q21; ADR 0008

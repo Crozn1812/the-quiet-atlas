@@ -33,6 +33,8 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
   await page.keyboard.press("Escape");
   await expect(dialog(page)).toHaveAttribute("open", "");
   await expect(world).toHaveAttribute("data-world-paused", "true");
+  // Adaptive quality (L2-007) may already have stepped down under load; the menu pauses it from here on.
+  const initial = (await world.getAttribute("data-world-quality")) ?? "";
   const select = dialog(page).getByRole("combobox", { name: "Quality" });
   await select.focus();
   await expect(select).toBeFocused();
@@ -43,8 +45,8 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
     await expect(world, `"${key}" changed paused`).toHaveAttribute("data-world-paused", "true");
   }
   await expect(select).toBeFocused();
-  await expect(select).toHaveValue("balanced");
-  await expect(world).toHaveAttribute("data-world-quality", "balanced");
+  await expect(select).toHaveValue(initial);
+  await expect(world).toHaveAttribute("data-world-quality", initial);
   expect(errors, errors.join("\n")).toEqual([]);
 });
 

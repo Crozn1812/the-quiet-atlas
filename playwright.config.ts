@@ -12,6 +12,8 @@ const channel = process.env.PLAYWRIGHT_CHANNEL || (isCI ? undefined : "msedge");
 
 export default defineConfig({
   testDir: "tests/e2e",
+  // Own subfolder: Playwright empties outputDir on every run, which wiped perf/frame evidence in test-results/.
+  outputDir: "test-results/e2e-artifacts",
   testMatch: "**/*.spec.ts",
   fullyParallel: true,
   forbidOnly: isCI,

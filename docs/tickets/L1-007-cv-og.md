@@ -1,6 +1,6 @@
 ## TICKET L1-007 — CV PDF hai ngôn ngữ + ảnh Open Graph sinh lúc build
 
-- Trạng thái: **Assigned → Codex** (đợt 7, 2026-11-04), nhánh `lane/L1-007`, worktree `D:/tqa-worktrees/L1-007`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L1 / A1
 - Mục tiêu: `/cv/` có link tới CV PDF EN và VI sinh từ `src/content` public, tên file có ngày phiên bản; mỗi trang có ảnh Open Graph riêng (Welcome/Quick/case study) để chia sẻ LinkedIn/Zalo/Slack.
 - Spec liên quan: §4.4 (CV từ content public, hai ngôn ngữ, tên file có ngày, xóa metadata), §4.7 (OG sinh lúc build), §5 (route `/cv/`)

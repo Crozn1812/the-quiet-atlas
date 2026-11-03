@@ -25,7 +25,10 @@ for (const profile of LOCALES) {
     await expect(enter).toBeEnabled();
 
     await expect(page.getByRole("button", { name: "Sound" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /CV/ })).toBeVisible();
+    // Since L1-007 the CV link appears in the Portfolio nav and in the CV section; both must point to /cv/.
+    const cvLinks = page.getByRole("link", { name: /CV/ });
+    await expect(cvLinks.first()).toBeVisible();
+    for (const link of await cvLinks.all()) await expect(link).toHaveAttribute("href", "/cv/");
     await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
 
     await settle(page);

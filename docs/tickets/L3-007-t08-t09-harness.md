@@ -1,6 +1,6 @@
 ## TICKET L3-007 — Harness T08 (frame time) và T09 (ổn định) + e2e overlay nội dung (P01-E)
 
-- Trạng thái: **Assigned → subagent Claude** (đợt 7, 2026-11-04), nhánh `lane/L3-007`, worktree `D:/tqa-worktrees/L3-007`
+- Trạng thái: **Done — merged vào main** (2026-11-04)
 - Lane / milestone: L3 / B1 (P01-F)
 - Mục tiêu: đo T08/T09 theo đúng phương pháp §8 trên máy tham chiếu ADR 0007 và có e2e cho interaction/overlay vừa merge ở đợt 6.
 - Spec liên quan: §8 (Low quality: FPS TB ≥ 30, p95 ≤ 50 ms, ≤ 1 % frame > 100 ms; không frame > 250 ms trong đoạn ổn định; warm-up 30 s, tuyến cố định 60 s, 3 lần, đánh giá từng lần; stability 10 phút + 20 vòng mở/đóng), §13 T07, T08, T09, Q15; ADR 0007, ADR 0008

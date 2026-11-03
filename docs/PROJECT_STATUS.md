@@ -124,11 +124,45 @@ Kiểm `main`: lint 0 warning, unit 130, build, check:bundle/leaks/licenses, e2e
 | T05/T06 | Logic có unit test (yaw, zoom kẹp, spring arm, tán lá); log trên trình duyệt NOT RUN |
 | T07 | Menu (overlay) mở/đóng, pause, focus trả lại: Lead kiểm tay PASS; e2e tự động NOT RUN |
 
+### Đợt 6 + 7 (2026-11-04, chạy liền theo yêu cầu của Duy)
+
+| Ticket | Trạng thái |
+|---|---|
+| L2-006 P01-E bảng chỉ đường + bàn Workshop, E/click ≤ 2,5 m, gợi ý | **Merged** (065ff13) |
+| L3-006 e2e menu/pause/quality, Q13, Q21 | **Merged** (576dbab) |
+| L1-006 skip link mọi trang; overlay nội dung lazy từ `world-content.json` | **Merged** (f5d09ef) sau 1 vòng sửa (Zod lọt vào chunk client 36,9 KB → 4,7 KB) |
+| L2-007 P01-F adaptive quality (chỉ giảm, hysteresis), `tqa:world-error`, perf hook debug | **Merged** (736411c) |
+| L1-007 CV PDF EN/VI + 16 ảnh OG lúc build, link `/cv/` tĩnh, xử lý Q15 ở UI | **Merged** (43c0fa6) sau 1 vòng sửa (client island +3,5 KB JS → link tĩnh +0,1 KB; tool phụ thuộc cwd) |
+| L3-007 harness T08/T09, e2e overlay, Q15 | **Merged** (dc58c7c); Lead sửa 2 spec L3-006 giả định quality ban đầu, bỏ `test.fail()` Q15, đổi `outputDir` e2e, sửa locator CV trong T01 |
+
+Kiểm `main`: lint 0 warning, typecheck, unit 166, `build:artifacts` (Next + CV + OG), `check:cv`, check:bundle/leaks/licenses, e2e 120 passed / 1 skipped (chạy 2 lần liên tiếp), test:perf EN+VI — đều exit 0.
+
+**Lead kiểm trên trình duyệt** (máy dev, Chromium built-in): Tab đầu tiên = "Skip to content"; Enter World → gần bảng chỉ đường `data-world-hint=first-light`, gợi ý "E — First Light signpost (placeholder)"; E mở overlay "The First Light", world pause, focus tiêu đề; Esc đóng, world chạy tiếp, focus về world. CV PDF tiếng Việt: dấu hiển thị đúng (ảnh render trang 1).
+
+### Gate cập nhật (máy dev ADR 0007, Edge 156, server local — không phải CDN)
+
+| Gate | Trạng thái | Bằng chứng |
+|---|---|---|
+| T08 (Low) | **PASS** 3/3 lần: FPS TB 100 (giới hạn bởi màn 100 Hz), p95 10,2 ms, 0 % > 100 ms, 0 frame > 250 ms. Desktop dGPU — **không** phải nghiệm thu iGPU | `docs/evidence/B1/t08-2026-11-04.md` (CSV gốc bị xóa do outputDir cũ; số liệu chép trước khi mất + log gốc đã commit) |
+| T09 | **PASS**: 10 phút + 20 vòng mở/đóng menu & overlay; heap giảm 12,9 → 9,2 MB, 70 đối tượng WebGL không đổi, 1 canvas | `docs/evidence/B1/t09-2026-11-04.md` |
+| T07 | Overlay mở bằng E, pause, focus, Esc trả focus: PASS (e2e). Độ trễ ≤ 300 ms trên máy tham chiếu: NOT RUN | `docs/evidence/B1/e2e-overlay-q15-2026-11-04.md` |
+| Q15 | PASS (local): mất context → về HTML ≤ 2 s; không WebGL → Editorial | e2e `q15-context-loss.spec.ts` |
+| T11 | Tự động: PASS (axe, bàn phím, focus, heading, reflow, reduced motion, **skip link**). Screen reader / zoom thật: NOT RUN → chưa PASS toàn phần | e2e a11y |
+| T01, T02, Q12, Q18 | PASS (local) | như các đợt trước |
+| T03, T04, T05, T06, T10 | Logic có unit test; video/checklist/log trình duyệt/chấm ảnh: NOT RUN | — |
+
+### Việc nhỏ tồn đọng
+
+- CV ghi link repo Partner Data Gateway nhưng thiếu chữ "demo" (web có).
+- `tools/cv/preview.ps1` còn phụ thuộc thư mục hiện hành.
+- Welcome đôi khi không hydrate trong lúc tải nặng (L3 thấy 2 lần) — theo dõi.
+- Renderer info (`__tqaPerf`) chưa đo được vì UI không bật `debug`.
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L1-006: skip link "Bỏ qua đến nội dung" trên mọi trang (T11).
-- L2-006: P01-E interaction: bảng chỉ đường + vùng tương tác E/click, overlay nội dung demo, giữ vị trí khi đóng.
-- L3-006: e2e world: menu/pause/quality theo ADR 0008, Q13 (gõ trong ô nhập không điều khiển), Q14 (Skip/overlay), T07.
+- L1-008: nhãn "demo" trong CV; `preview.ps1` theo vị trí file; đổi ngôn ngữ trong world (Q21, §6.3 `history.replaceState`, không remount).
+- L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; hoặc bắt đầu B2 khi A2 live (§12: B2 chỉ sau A2).
+- A2 (cloud): **chưa bắt đầu** — cần Duy: repo GitHub, ngày đăng ký AWS, Paid plan, tên miền.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 
 Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (không tính script `noModule` 38,6 KB chỉ trình duyệt cũ tải). L1 còn ~15 KB cho client component — ưu tiên Server Component, không thêm thư viện client.

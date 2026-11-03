@@ -2,9 +2,7 @@
 // Context loss is simulated with the WEBGL_lose_context extension on the world's own canvas.
 // Two layers (ADR 0008, P01-F extension):
 //   1. world contract (L2-007, merged): `tqa:world-error {kind:"context-lost"}` on the container, bubbles: false.
-//   2. UI handling (L1-007, in progress at the time of writing): the portfolio UI leaves world mode and brings the
-//      viewer back to HTML within 2 s. Until L1-007 lands this is a known product gap → `test.fail()`; once it lands
-//      the test passes unexpectedly and Playwright reports it, so the marker must be removed.
+//   2. UI handling (L1-007, merged): the portfolio UI leaves world mode and brings the viewer back to HTML within 2 s.
 // Load failure / no WebGL parts of Q15 are covered by html-fallback.spec.ts.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { enterWorld, ensureWindowFocus } from "./helpers";
@@ -49,7 +47,6 @@ test("Q15 world contract: losing the WebGL context emits tqa:world-error {kind:'
 });
 
 test("Q15 UI: after context loss the viewer is back on HTML within 2 s (world mode left, Quick Portfolio + CV reachable)", async ({ page }) => {
-  test.fail(true, "Known gap (L1-007 not merged on this branch): WorldEntry does not listen for tqa:world-error, so the page stays in world mode with a dead canvas. Remove this marker when L1-007 lands.");
   const world = await setup(page);
   const at = await loseContext(world);
   test.skip(at === null, "NOT RUN: WEBGL_lose_context unavailable");

@@ -57,7 +57,6 @@ test("T07 menu: Esc opens (paused, focus on title), Tab/Shift+Tab stay inside, E
 test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-state on the same canvas (no remount)", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await setup(page);
-  await expect(world).toHaveAttribute("data-world-quality", "balanced");
   const canvasBefore = await world.locator("canvas").elementHandle();
   await world.evaluate(element => {
     const log: unknown[] = [];
@@ -66,9 +65,14 @@ test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-s
   });
 
   await page.keyboard.press("Escape");
+  await expect(world).toHaveAttribute("data-world-paused", "true");
+  // Adaptive quality (L2-007) may already have stepped down under load, so start from whatever is current.
+  const initial = (await world.getAttribute("data-world-quality")) as "low" | "balanced" | "high";
+  expect(["low", "balanced", "high"]).toContain(initial);
   const select = dialog(page).getByRole("combobox", { name: "Quality" });
-  await expect(select).toHaveValue("balanced");
-  for (const quality of ["low", "high", "balanced"] as const) {
+  await expect(select).toHaveValue(initial);
+  const sequence = [...(["low", "high", "balanced"] as const).filter(quality => quality !== initial), initial];
+  for (const quality of sequence) {
     await select.selectOption(quality);
     await expect(world).toHaveAttribute("data-world-quality", quality);
   }
@@ -78,11 +82,10 @@ test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-s
   expect(await page.evaluate(([a, b]) => a === b, [canvasBefore, canvasAfter]), "canvas element was replaced").toBe(true);
   const states = await page.evaluate(() => (window as unknown as { __tqaStates: unknown[] }).__tqaStates);
   // Opening the menu (overlay pause), then one event per quality change; paused stays true throughout.
-  expect(states).toEqual([
-    { paused: true, quality: "balanced" },
-    { paused: true, quality: "low" },
-    { paused: true, quality: "high" },
-    { paused: true, quality: "balanced" },
+  // Earlier entries can be adaptive step-downs before the menu opened, so compare the tail.
+  expect(states.slice(-4)).toEqual([
+    { paused: true, quality: initial },
+    ...sequence.map(quality => ({ paused: true, quality })),
   ]);
   expect(errors, errors.join("\n")).toEqual([]);
 });
