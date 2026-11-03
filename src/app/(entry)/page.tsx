@@ -1,10 +1,7 @@
+import { pageMetadata } from "@/app/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
-export const metadata: Metadata={
-  alternates: {
-    canonical: "/en/"
-  },
-};
+export const metadata: Metadata = pageMetadata("en");
 // Trang vào `/`: nhẹ, chạy khi tắt JS, không tự chuyển locale (spec §5).
 export default function RootEntryPage() {
   return (<main>
@@ -15,7 +12,10 @@ export default function RootEntryPage() {
           <Link href="/en/">English</Link>
         </li>
         <li>
-          <Link href="/vi/" hrefLang="vi">
+          <Link
+            href="/vi/"
+            hrefLang="vi"
+          >
             Tiếng Việt
           </Link>
         </li>

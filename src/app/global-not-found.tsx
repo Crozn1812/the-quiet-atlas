@@ -1,5 +1,11 @@
 import "./portfolio.css";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Page not found · The Quiet Atlas",
+};
+
 export default function GlobalNotFound() {
   return (<html lang="en">
     <body>
