@@ -1,3 +1,4 @@
+| World ? UI | `tqa:world-error` (container, bubbles: false) | `{ kind: "context-lost" }` | GPU context lost: world stops permanently; UI returns to HTML; no renderer recovery promised |
 # ADR 0008 — Hợp đồng sự kiện giữa UI portfolio và world
 
 - Trạng thái: **Accepted** (Lead, 2026-11-04)

@@ -15,6 +15,7 @@ vi.mock("three", async importOriginal => {
     WebGLRenderer: class {
       domElement = harness.canvas;
       shadowMap = { enabled: false };
+      info = { render: { calls: 3, triangles: 42 }, memory: { geometries: 4, textures: 0 }, programs: [] };
       setPixelRatio(value: number) {
         harness.dpr = value;
       }
@@ -86,7 +87,7 @@ it("implements container pause/quality events in place and gates camera input", 
   const states: unknown[] = [];
   container.addEventListener("tqa:world-state", event => states.push((event as CustomEvent).detail));
   const { mountWorld } = await import("../../../src/features/world/index");
-  const unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast" });
+  const unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast", debug: true });
   try {
     const tick = (now: number) => harness.next!(now);
     tick(100);
@@ -142,11 +143,31 @@ it("implements container pause/quality events in place and gates camera input", 
     expect(wheel.defaultPrevented).toBe(true);
     tick(500);
     expect(camera.position.distanceTo(position)).toBeGreaterThan(1);
+    const perf = (container as unknown as HTMLElement).__tqaPerf!;
+    expect(perf.frames().length).toBeGreaterThan(0);
+    expect(perf.info()).toEqual({ drawCalls: 3, triangles: 42, geometries: 4, textures: 0, programs: 0 });
+    for (let now = 600; now < 30000; now += 100) tick(now);
+    expect(container.dataset.worldQuality).toBe("high");
+    const errors = vi.fn();
+    container.addEventListener("tqa:world-error", errors);
+    send(canvas, "webglcontextlost", {});
+    expect(errors).toHaveBeenCalledOnce();
+    expect(errors.mock.calls[0]![0].detail).toEqual({ kind: "context-lost" });
+    expect(errors.mock.calls[0]![0].bubbles).toBe(false);
+    expect(container.dataset.worldPaused).toBe("true");
+    const stopped = perf.frames().length;
+    send(document, "visibilitychange", {});
+    send(container, "tqa:pause", { detail: { reason: "error", paused: false } });
+    tick(31000);
+    send(canvas, "webglcontextlost", {});
+    expect(errors).toHaveBeenCalledOnce();
+    expect(perf.frames()).toHaveLength(stopped);
     const outsideWheel = send(container, "wheel", { deltaX: 100, deltaY: 100 });
     expect(outsideWheel.defaultPrevented).toBe(false);
   } finally {
     unmount();
   }
+  expect((container as unknown as HTMLElement).__tqaPerf).toBeUndefined();
   expect(container.dataset.worldPaused).toBeUndefined();
   const count = states.length;
   send(container, "tqa:set-quality", { detail: { quality: "low" } });

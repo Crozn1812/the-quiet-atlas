@@ -1,3 +1,4 @@
+import { initialAdaptive, sampleQuality, selectManualQuality } from "./adaptive-quality";
 import { createInteraction, type InteractionTarget } from "../interaction/targets";
 import { BoxGeometry } from "three";
 import { clampZoom, wrapYaw, springArm, selectOccludingCrowns, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
@@ -49,6 +50,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   const gpu = renderer;
   const physics = controller;
+  const perf = opts.debug === true ? (await import("./perf")).createPerf(gpu) : undefined;
+  if (perf) container.__tqaPerf = perf;
+  let adaptive = initialAdaptive();
+  let contextLost = false;
   const locomotion = createLocomotion(physics);
   const scene = new Scene();
   scene.background = new Color(0xe4c8a5);
@@ -144,6 +149,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     locomotion.reset();
     accumulator = 0;
     last = 0;
+    adaptive = { ...adaptive, frames: [], windowTime: 0 };
   }
   function pause(reason: "hiddenTab" | "windowBlur" | "overlay" | "error", paused: boolean) {
     state = sessionReducer(state, { type: "pause", reason, paused });
@@ -180,7 +186,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function visibility() {
     pause("hiddenTab", document.hidden);
     if (document.hidden) cancelAnimationFrame(frame);
-    else if (!disposed) frame = requestAnimationFrame(tick);
+    else if (!disposed && !contextLost) frame = requestAnimationFrame(tick);
   }
   function returnToPath() {
     state = locomotion.recover(state);
@@ -239,7 +245,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function setQuality(event: Event) {
     const detail = (event as CustomEvent).detail;
     if (!detail || !["low", "balanced", "high"].includes(detail.quality)) return;
-    quality = normalizeQuality(detail.quality);
+    adaptive = selectManualQuality(adaptive);
+    applyQuality(normalizeQuality(detail.quality));
+  }
+  function applyQuality(next: Quality) {
+    if (quality === next) return;
+    quality = next;
     updateForest(forest, trees, quality);
     gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     sun.castShadow = PRESETS[quality].shadow > 0;
@@ -279,8 +290,28 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   }
+  function loseContext() {
+    if (disposed || contextLost) return;
+    contextLost = true;
+    cancelAnimationFrame(frame);
+    state = sessionReducer(state, { type: "mode", mode: "recoverableError" });
+    clear();
+    publishState();
+    interaction.update();
+    container.dispatchEvent(new CustomEvent("tqa:world-error", {
+      bubbles: false,
+      detail: { kind: "context-lost" },
+    }));
+  }
   function tick(now: number) {
-    if (disposed || document.hidden) return;
+    if (disposed || contextLost || document.hidden) return;
+    if (last && canSimulate(state)) {
+      const ms = now - last;
+      perf?.record(ms);
+      const result = sampleQuality(adaptive, ms, quality);
+      adaptive = result.state;
+      applyQuality(result.quality);
+    }
     const dt = Math.min(0.1, last ? (now - last) / 1000 : FIXED_DT);
     if (cameraEnabled()) yaw = wrapYaw(yaw + (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) * KEY_YAW_SPEED * dt);
     if (canSimulate(state)) {
@@ -309,6 +340,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     }
     frame = requestAnimationFrame(tick);
   }
+  gpu.domElement.addEventListener("webglcontextlost", loseContext);
   updateCamera(FIXED_DT);
   container.addEventListener("tqa:return-to-path", returnToPath);
   container.addEventListener("tqa:pause", externalPause);
@@ -335,6 +367,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   return () => {
     if (disposed) return;
     disposed = true;
+    gpu.domElement.removeEventListener("webglcontextlost", loseContext);
+    if (perf && container.__tqaPerf === perf) delete container.__tqaPerf;
     cancelAnimationFrame(frame);
     observer.disconnect();
     container.removeEventListener("tqa:pause", externalPause);

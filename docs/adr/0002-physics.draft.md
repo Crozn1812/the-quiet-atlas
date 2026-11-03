@@ -189,3 +189,12 @@ nhiều mount/unmount, draw calls. Không tuyên bố các mục này PASS.
 ## P01-E: interaction radius — L2-006 (2026-11-04)
 
 - Chốt bán kính tương tác `INTERACTION_RADIUS = 2,5 m` (T07), khoảng cách Euclid 3D từ tâm capsule tới tâm mục tiêu, bao gồm biên.
+
+## P01-F ? L2-007 (2026-11-04)
+
+- Adaptive uses active RAF intervals (unclamped milliseconds), warm-up QUALITY_WARMUP_MS = 5000, non-overlapping QUALITY_WINDOW_MS = 3000 windows, nearest-rank p95 > QUALITY_P95_LIMIT_MS = 1000/30 ms. These are control parameters, not changes to ?8 acceptance thresholds.
+- Each decision lowers High ? Balanced ? Low by one level only. QUALITY_LOCK_MS = 10000 active ms after a reduction; collect a fresh full window after the lock. Pausing clears the partial window and excludes paused time. No automatic upgrade.
+- Valid tqa:set-quality marks the session manual even if the selected level is unchanged, disabling auto until reload/remount. Auto and menu both call applyQuality: existing forest buffers, DPR and shadows update without changing canvas/controller/colliders/progress.
+- webglcontextlost cancels RAF, clears input/velocity, enters recoverableError and emits the container event in ADR 0008 once. Visibility/resume cannot restart it. Init failures still reject mountWorld for the existing loading/error shell; HTML UI handling belongs to L1.
+- Only debug: true dynamically imports perf hooks. container.__tqaPerf.frames() returns a chronological copy of the last PERF_FRAME_CAPACITY = 36000 active frame intervals (ms); info() returns renderer drawCalls/triangles/geometries/textures/programs. First frame and pause gaps excluded. Poll/export during T08/T09 to avoid overwriting old samples; resource counts are not GPU memory bytes. Unmount removes hooks/listeners.
+- T08/T09 browser benchmark and Q15 HTML fallback timing: NOT RUN. Unit tests do not establish these gates; machine labels follow ADR 0007.
