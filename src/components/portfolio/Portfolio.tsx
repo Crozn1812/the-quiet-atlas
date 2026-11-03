@@ -82,10 +82,10 @@ export function Portfolio({ locale, quick = false }: {
         aria-labelledby="cv-title"
       >
         <h2 id="cv-title">CV</h2>
-        <p>{t.cvPending}: TBD</p>
+        <p id="cv-pending">{t.cvPending}: TBD</p>
         <button
           disabled
-          aria-label={t.cvPending}
+          aria-describedby="cv-pending"
         >
           CV · TBD
         </button>

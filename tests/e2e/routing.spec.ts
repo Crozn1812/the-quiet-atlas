@@ -45,11 +45,6 @@ test("Q12 unknown URL in the browser shows a way back to the portfolio", async (
   await expect(page.getByRole("link", { name: "Quick Portfolio" })).toBeVisible();
 });
 
-test("Known issue: /favicon.ico is missing (remove KNOWN_ISSUES.faviconMissing once a favicon ships)", async ({ request }) => {
-  const response = await request.get("/favicon.ico", { maxRedirects: 0 });
-  expect(response.status()).toBe(404);
-});
-
 test("Q12 reload of a direct deep URL keeps the page", async ({ page }) => {
   await page.goto("/vi/quick/");
   await page.reload();

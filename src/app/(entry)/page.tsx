@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { pageMetadata } from "@/app/seo";
 import type { Metadata } from "next";
-import Link from "next/link";
 export const metadata: Metadata = pageMetadata("en");
 // Trang vào `/`: nhẹ, chạy khi tắt JS, không tự chuyển locale (spec §5).
 export default function RootEntryPage() {
@@ -9,10 +9,16 @@ export default function RootEntryPage() {
     <nav aria-label="Language">
       <ul>
         <li>
-          <Link href="/en/">English</Link>
+          <Link
+            prefetch={false}
+            href="/en/"
+          >
+            English
+          </Link>
         </li>
         <li>
           <Link
+            prefetch={false}
             href="/vi/"
             hrefLang="vi"
           >

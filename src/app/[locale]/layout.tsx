@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { isLocale,locales } from "@/i18n/locales";
 import { content } from "@/content";
 import "../portfolio.css";
 export const dynamicParams=false;
+export const metadata: Metadata = {
+  icons: {
+    icon: {
+      url: "/favicon.svg",
+      type: "image/svg+xml",
+    },
+  },
+};
 // Import executes the content validator during static generation.
 export function generateStaticParams() {
   if(!content.profiles.length)

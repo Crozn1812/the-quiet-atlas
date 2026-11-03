@@ -10,3 +10,18 @@ button:disabled { color: #535b55; background: #e6e3d8; border: 1px solid #777d72
 section { margin-block: 2rem; }
 article { border-top: 1px solid #88968b; padding-block: 1rem; }
 :focus-visible { outline: 3px solid #875017; outline-offset: 4px; }
+nav a,
+main > a {
+  display: inline-flex;
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+}
+nav[aria-label="Language"] ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}

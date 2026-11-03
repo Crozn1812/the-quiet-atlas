@@ -54,13 +54,8 @@ function isScript(response: Response) {
  * tests fail when a listed issue no longer reproduces so this list cannot go stale.
  */
 export const KNOWN_ISSUES = {
-  /** No favicon in out/: the browser's automatic /favicon.ico request 404s and logs a console error. */
-  faviconMissing: /\/favicon\.ico$/,
   /** axe rule ids (critical/serious) currently failing on HTML pages (axe-core 4.x via @axe-core/playwright 4.14.0). */
-  axeRules: {
-    "label-content-name-mismatch": "CV button aria-label does not contain its visible text 'CV · TBD' (Portfolio.tsx — L1)",
-    "target-size": "Entry page / language links (stacked list items) are below 24×24 px target size, WCAG 2.5.8 (src/app/(entry) — L1)",
-  } as Record<string, string>,
+  axeRules: {} as Record<string, string>,
 };
 
 /** Collects console errors and uncaught page errors (T01: 0 console errors). */
@@ -69,16 +64,12 @@ export function trackConsoleErrors(page: Page) {
   page.on("console", message => {
     const url = message.location().url;
     if (message.type() !== "error") return;
-    if (KNOWN_ISSUES.faviconMissing.test(url)) {
-      test.info().annotations.push({ type: "known-issue", description: `favicon.ico 404 console error (${url})` });
-      return;
-    }
     errors.push(`console.error: ${message.text()} (${url || "no url"})`);
   });
   page.on("pageerror", error => errors.push(`pageerror: ${error.message}`));
   // Name the URL behind "Failed to load resource" console errors.
   page.on("response", response => {
-    if (response.status() >= 400 && !KNOWN_ISSUES.faviconMissing.test(response.url())) {
+    if (response.status() >= 400) {
       errors.push(`HTTP ${response.status()}: ${response.url()}`);
     }
   });
