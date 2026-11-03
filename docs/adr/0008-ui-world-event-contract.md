@@ -26,6 +26,16 @@ Kênh là `CustomEvent` dispatch trên **phần tử container** đã truyền v
 
 World phát `tqa:world-state` (bubbles: false) trên container mỗi khi `paused` hoặc `quality` đổi, `detail` = `{ paused, quality }`.
 
+## Mở rộng 2026-11-04 (P01-E: interaction + overlay nội dung)
+
+| Hướng | Event / attribute | `detail` / giá trị | Ý nghĩa |
+|---|---|---|---|
+| World → UI | `tqa:open-content` (trên container) | `{ zoneId: "first-light" \| "roots" \| "workshop" \| "milestones" \| "old-trail" \| "horizon" \| "quiet-shore" \| "last-postcard" }` | Người chơi tương tác (E/click) với vật thể của khu; UI mở overlay |
+| UI → world | `tqa:content-closed` | `{ zoneId }` | Overlay đã đóng; world ghi "đã ghé" khu này (memory) |
+| World → UI | `data-world-hint` | `zoneId` của mục tiêu tương tác đang được gợi ý, hoặc vắng mặt | Để UI/test biết gợi ý "E" đang hiện |
+
+World **không** tự mở overlay khi đang có lý do pause; UI chịu trách nhiệm pause/resume qua `tqa:pause` như menu.
+
 ## Hệ quả
 
 - `mountWorld(container, opts) => Promise<unmount>` giữ nguyên.

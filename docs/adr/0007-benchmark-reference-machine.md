@@ -12,7 +12,7 @@
 |---|---|
 | CPU | Intel Core i5-14400F (không có iGPU) |
 | GPU | NVIDIA RTX 3060 12 GB (GPU rời) |
-| RAM | 36 GB theo Duy; Windows báo 32 GB lắp đặt (L3-004, 2026-11-04) — **cần Duy xác nhận** |
+| RAM | 32 GB (Duy xác nhận 2026-11-04; khớp Windows) |
 | Lưu trữ | SSD 512 GB |
 | Màn hình, OS build, trình duyệt/phiên bản | TBD — ghi lúc đo |
 

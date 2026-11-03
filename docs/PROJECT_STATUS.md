@@ -183,6 +183,17 @@ Còn thiếu: tên + URL 2 repo dự án, trạng thái 2 dự án còn lại, s
 | CMS DevOps Platform AWS EKS | Chưa có thông tin | TBD |
 | Số điện thoại | Chưa có | TBD |
 
+### Bổ sung lần 2 — 2026-11-04
+
+| Mục | Trả lời của Duy | Ghi chú Lead |
+|---|---|---|
+| RAM máy tham chiếu | 32 GB | ADR 0007 đã sửa |
+| Repo Azure | Đúng là bản demo Partner Data Gateway; tài liệu đầy đủ gửi sau | Giả định cũ được xác nhận; evidence mức Lab giữ nguyên |
+| Kinh nghiệm | Thực tập từ 07/2026, dự kiến hoàn thành lộ trình 12/2026; mục tiêu Fresher/Junior khi apply | Hiện ghi **Intern**; không ghi "6 tháng" trước 12/2026. Đổi cấp độ chỉ khi Duy xác nhận hoàn thành. Có được nêu tên HPT công khai không: **vẫn TBD** |
+| CMS DevOps Platform AWS EKS | Bổ sung sau | TBD |
+| Repo GitHub cho The Quiet Atlas | "oke" — chưa có tên repo | Vẫn chờ |
+| Cách giao việc | Chạy đợt 6 xong nối luôn đợt 7 trong một lần | Áp dụng 2026-11-04 |
+
 ## Cloud, tên miền
 
 | Mục | Giá trị |
