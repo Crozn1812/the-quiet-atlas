@@ -1,0 +1,26 @@
+## TICKET L1-003 — Trang case study + privacy + sitemap/robots + hiển thị link repo
+
+- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-003`, worktree `D:/tqa-worktrees/L1-003`
+- Lane / milestone: L1 / A1
+- Mục tiêu (theo trải nghiệm người dùng):
+  - Mở `/{locale}/projects/{slug}/` (4 slug × en/vi) đọc được case study theo cấu trúc §4.5; mục chưa có dữ liệu hiện "TBD" + nhãn Draft; URL chia sẻ được, mở trực tiếp ra HTML.
+  - Quick Portfolio: mỗi dự án có link sang trang case study; dự án có `repoUrl` hiện link "Source code / Mã nguồn" tới GitHub. Liên hệ hiện link GitHub profile (`githubUrl`) thay cho chữ "TBD" cứng.
+  - Bằng chứng: cạnh mỗi dự án, hiện nhãn mức evidence (Verified / Internal / Lab / Estimate) kín đáo, dẫn tới `publicUrl` (§4.2). Evidence mức Lab của Partner Data Gateway phải hiện chữ "demo" rõ ràng.
+  - `/{locale}/privacy/` có nội dung khung: hiện không có analytics, không cookie, không lưu tiến trình; AI chưa bật; liên hệ qua email. Chỗ chưa chốt ghi TBD.
+  - `/sitemap.xml` và `/robots.txt` sinh lúc build; mỗi trang có `<title>`/description theo ngôn ngữ, canonical, `hreflang` en/vi (§4.7). URL gốc lấy từ biến môi trường `SITE_URL` (mặc định `http://localhost:3000` khi chưa đặt) — không hardcode tên miền.
+- Spec liên quan (`docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`): §3.1, §4.2, §4.3, §4.5, §4.7, §5, §11.3 mục 7
+- Được sửa: `src/app/`, `src/components/portfolio/`, `src/content/schema.ts` (chỉ khi cần thêm helper đọc, không đổi luật validator), `src/i18n/`, `tests/unit/content/`, `tests/unit/i18n/`, `tests/unit/portfolio/`
+- Không được sửa: mọi thứ khác; đặc biệt `src/content/index.ts`, `src/content/evidence.json`, `src/content/drafts.ts` (dữ liệu do Lead giữ), `src/features/`, `src/state/`, `package.json`, `pnpm-lock.yaml`, config gốc, `docs/`, `tools/`, `tests/e2e/`. Không chạy `pnpm add/install`.
+- Ràng buộc:
+  - Renderer dùng chung cho trang case study (sau này overlay tái sử dụng): đặt trong `src/components/portfolio/`, **không** import `features/world`.
+  - Không bịa: chỉ hiển thị dữ liệu có trong `src/content`. Không tự viết mô tả dự án từ tên repo.
+  - `src/content/drafts.ts` không được import vào bất kỳ page/component nào.
+  - Không thêm thư viện client; trang case study, privacy là Server Component. Ngân sách JS hiện ≈ 139/150 KB gzip.
+  - `generateStaticParams` + `dynamicParams = false` cho route project.
+  - JSON-LD `Person` + `ProfilePage` trên Welcome/Quick (chỉ trường đã có thật: tên, jobTitle, url GitHub, email).
+- Điều kiện xong (Codex tự chạy, dán kết quả):
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle`, `pnpm check:leaks` exit 0
+  - `out/en/projects/insighthub-rag/index.html`, `out/vi/privacy/index.html`, `out/sitemap.xml`, `out/robots.txt` tồn tại; sitemap có đủ route en/vi
+  - Unit test: mọi slug × locale có trang; link repo chỉ hiện khi `repoUrl` ≠ TBD
+  - Không commit (sandbox chặn); Lead commit
+- Bàn giao: tóm tắt, bảng check:bundle, lệnh + exit code, việc chưa làm.

@@ -1,0 +1,23 @@
+## TICKET L2-003 — P01-B: terrain + heightfield collider, cây instancing, ánh sáng bình minh, fog
+
+- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L2-003`, worktree `D:/tqa-worktrees/L2-003`
+- Lane / milestone: L2 / B1 (P01-B)
+- Mục tiêu: bấm Enter World thấy một vùng rừng thử ~60×60 m có địa hình phẳng + một đoạn dốc, cây dày/thưa, ánh sáng bình minh, sương; capsule đi được trên địa hình bằng Rapier KCC (ADR 0002 đề xuất A).
+- Spec liên quan: §7.1, §7.3 (pipeline, chỉ phần nguyên tắc), §7.4 (terrain collider từ cùng heightmap; bảng Low/Balanced/High), §8, §15, §16.1, §16.3 P01-B
+- Máy đo: ADR 0007 — desktop RTX 3060, luôn ghi nhãn; không gọi là máy iGPU.
+- Được sửa: `src/features/world/`, `src/state/`, `tests/unit/world/`, `tests/unit/state/`, `tools/benchmark-physics/`, `docs/adr/0002-physics.draft.md` (chỉ thêm mục số đo P01-B)
+- Không được sửa: mọi thứ khác; đặc biệt `src/app/`, `src/components/`, `package.json`, `pnpm-lock.yaml`, config gốc. Không chạy `pnpm add/install`. Không thêm asset file (GLB/texture/âm thanh) — chỉ hình học sinh bằng code (placeholder có nhãn rõ trong code/README).
+- Hợp đồng không đổi: `mountWorld(container, { collision }) => Promise<unmount>`, `WORLD_CHUNK_MARKER`.
+- Ràng buộc:
+  - Heightmap sinh tất định bằng code (seed cố định); mesh hiển thị và Rapier heightfield collider dùng **cùng** mảng độ cao. Unit test: độ cao mesh tại vài điểm = độ cao collider (sai số nhỏ, ghi rõ).
+  - Cây: `InstancedMesh`, mật độ theo quality (Low 40% / Balanced 70% / High 100% §7.4); collider cây là capsule/cylinder đơn giản, **không đổi theo quality**.
+  - Ánh sáng bình minh + fog thống nhất; không post-processing nặng ở mức này.
+  - Quality preset là tham số `mountWorld` opts tùy chọn (mặc định Balanced) — không đổi chữ ký bắt buộc.
+  - Debug metrics developer-only (FPS, frame time, draw calls, triangles, geometry/texture count) bật bằng opts `debug: true`; tắt mặc định.
+  - Dọn GPU/physics đầy đủ khi unmount (InstancedMesh, heightfield).
+  - Ghi vào ADR 0002: số draw call, tam giác, kích thước chunk world (gzip) sau P01-B; đo bằng `node tools/benchmark-physics/index.mjs` nếu áp dụng được hoặc từ output build. Không đo FPS trình duyệt (để P01-F).
+- Điều kiện xong:
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle` exit 0
+  - Unit test heightmap ↔ collider, mật độ cây theo quality, collider không đổi theo quality
+  - Không commit (sandbox chặn); Lead commit
+- Bàn giao: tóm tắt, số đo, lệnh + exit code, việc chưa làm.

@@ -1,0 +1,25 @@
+## TICKET L3-003 — Playwright T01/T02/T07 (HTML) + axe-core + chạy gitleaks thật
+
+- Trạng thái: **Assigned → subagent Claude** (2026-11-04), nhánh `lane/L3-003`, worktree `D:/tqa-worktrees/L3-003`
+- Lane / milestone: L3 / A1 + P01-A
+- Mục tiêu: các phép thử T01, T02 và phần HTML của T07/T11 chạy tự động bằng Playwright trên `out/`; gitleaks chạy thật ít nhất một lần.
+- Spec liên quan: §3.3, §3.4, §5, §9, §13 (T01, T02, T07, T11, Q18), §11.6
+- Dependency: Lead đã thêm `@playwright/test` và `@axe-core/playwright` (exact) trên `main`. Không tự thêm/đổi.
+- Được sửa: `tests/e2e/` (mới), `playwright.config.ts` (gốc, mới), `tools/serve-out/` (mới), `.github/workflows/pr.yml`, `.gitleaks.toml`
+- Không được sửa: mọi thứ khác; đặc biệt `package.json`, `pnpm-lock.yaml`, `src/`, `docs/`. Script cần thêm → ghi vào bàn giao.
+- Ràng buộc:
+  - `tools/serve-out/`: server tĩnh Node thuần phục vụ `out/` mô phỏng CloudFront (thư mục → `index.html`, URL thiếu slash → 301 thêm slash, không có file → `404.html` mã **404**, không bao giờ trả trang chủ 200 cho URL sai — §5).
+  - Playwright: local dùng `channel: "msedge"` (Edge đã cài, **không tải browser**); CI dùng Chromium cài bằng `pnpm exec playwright install --with-deps chromium`. Chọn qua biến môi trường.
+  - Test tối thiểu:
+    - **T01**: `/en/`, `/vi/` có tên, vai trò, link Quick, nút Enter World, Sound, CV; 0 lỗi console.
+    - **T02**: (a) JS tắt: nội dung đọc được; (b) trước Enter World: không có request `.glb/.gltf/.wasm/.ktx2/.basis` và không chunk nào chứa `__TQA_WORLD_CHUNK__` (đọc body response JS); (c) viewport < 1024 → link Editorial thay Enter World; (d) giả lập WebGL2 không có (override `HTMLCanvasElement.prototype.getContext` trước khi load) → không tải chunk 3D, có đường Quick.
+    - **Q12 (local)**: URL lạ → 404 có link về; `/vi/quick` (thiếu slash) → 301.
+    - **T11 (phần HTML)**: axe-core trên `/en/`, `/vi/`, `/en/quick/` (+ trang case study nếu có trong `out/`): 0 vi phạm critical/serious.
+    - Sau Enter World (viewport 1366×800, WebGL có): chunk world được tải, `data-world-chunk` xuất hiện, nút "Back to Welcome" gỡ canvas. Nếu WebGL không có trong môi trường headless → `test.skip` có lý do, ghi NOT RUN.
+  - gitleaks: được phép `docker pull` đúng image `ghcr.io/gitleaks/gitleaks:v8.28.0`, lấy digest, **ghim theo digest** trong workflow. Chạy local với `--network none`, mount read-only: `dir` trên `out/` và `src/content/`, và `git` trên toàn lịch sử repo. Sửa `.gitleaks.toml` nếu regex không biên dịch hoặc báo nhầm.
+- Điều kiện xong:
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` exit 0
+  - `pnpm exec playwright test` exit 0 (test skip phải có lý do)
+  - gitleaks local 3 lần chạy exit 0 (hoặc báo phát hiện thật cho Lead, không tự sửa nội dung)
+  - Một commit trên nhánh
+- Bàn giao: tóm tắt, output Playwright (số pass/skip), output gitleaks, digest image, script đề xuất, việc chưa làm.
