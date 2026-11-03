@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "ev-repo-aws-sales-data-pipeline",
+    "claim": "AWS Sales Data Pipeline có repository GitHub công khai do Duy sở hữu",
+    "level": "Verified",
+    "description": "Repository công khai; Lead xác nhận truy cập được ngày 2026-11-04 (git ls-remote, nhánh main). Chỉ chứng minh repo tồn tại, chưa chứng minh trạng thái hay kết quả dự án.",
+    "publicUrl": "https://github.com/Crozn1812/AWS-Sales-Data-Pipeline",
+    "originalLocation": "GitHub",
+    "date": "2026-11-04",
+    "scope": "Sự tồn tại của repository công khai",
+    "approvedBy": "Nguyễn Hữu Bảo Duy",
+    "approvedAt": "2026-11-04"
+  },
+  {
+    "id": "ev-repo-insighthub-rag",
+    "claim": "InsightHub RAG có repository GitHub công khai do Duy sở hữu",
+    "level": "Verified",
+    "description": "Repository công khai insighthub_devops; Lead xác nhận truy cập được ngày 2026-11-04 (git ls-remote, nhánh main). Chỉ chứng minh repo tồn tại, chưa chứng minh trạng thái hay kết quả dự án.",
+    "publicUrl": "https://github.com/Crozn1812/insighthub_devops",
+    "originalLocation": "GitHub",
+    "date": "2026-11-04",
+    "scope": "Sự tồn tại của repository công khai",
+    "approvedBy": "Nguyễn Hữu Bảo Duy",
+    "approvedAt": "2026-11-04"
+  },
+  {
+    "id": "ev-repo-partner-data-gateway-demo",
+    "claim": "Có bản demo công khai liên quan tới Partner Data Gateway Azure",
+    "level": "Lab",
+    "description": "Repository azure-api-gateway-dsr-ai là BẢN DEMO do Duy công bố, không phải hệ thống thật triển khai tại công ty. Lead xác nhận truy cập được ngày 2026-11-04. Bản chính thức: TBD (Duy sẽ gửi). Phạm vi được phép nhắc tới công việc thật: TBD.",
+    "publicUrl": "https://github.com/Crozn1812/azure-api-gateway-dsr-ai",
+    "originalLocation": "GitHub",
+    "date": "2026-11-04",
+    "scope": "Bản demo; không đại diện hệ thống production",
+    "approvedBy": "Nguyễn Hữu Bảo Duy",
+    "approvedAt": "2026-11-04"
+  }
+]

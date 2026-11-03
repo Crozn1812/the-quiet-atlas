@@ -87,7 +87,7 @@ Chưa có gate nào chạy. Mọi test T01–T11, Q12–Q26: **NOT RUN**.
 |---|---|
 | T01–T11 | NOT RUN |
 | Q12–Q26 | NOT RUN |
-| T08 (performance) | BLOCKED — chưa có máy tham chiếu |
+| T08 (performance) | NOT RUN — máy tham chiếu chốt ở ADR 0007 (desktop RTX 3060, có nhãn) |
 
 ## Quyết định của Duy (nhóm "Trước A1", §17) — trả lời 2026-11-03
 
@@ -102,6 +102,19 @@ Chưa có gate nào chạy. Mọi test T01–T11, Q12–Q26: **NOT RUN**.
 | 7 | Repo | Public | Không lưu nháp/mật trong repo (§4.1); nháp để ngoài repo hoặc `content-private/` (đã gitignore) |
 
 Còn thiếu: tên + URL 2 repo dự án, trạng thái 2 dự án còn lại, số điện thoại, OS/trình duyệt/màn hình máy dev, có laptop iGPU để làm máy tham chiếu không.
+
+### Bổ sung 2026-11-04
+
+| Mục | Trả lời của Duy | Ghi chú Lead |
+|---|---|---|
+| Repo AWS Sales Data Pipeline | `github.com/Crozn1812/AWS-Sales-Data-Pipeline` | Public, đã kiểm (ls-remote). Evidence `ev-repo-aws-sales-data-pipeline` (Verified — chỉ chứng minh repo tồn tại) |
+| Repo InsightHub RAG | `github.com/Crozn1812/insighthub_devops` | Public, đã kiểm. Evidence `ev-repo-insighthub-rag` |
+| Repo Azure | `github.com/Crozn1812/azure-api-gateway-dsr-ai` — **bản demo**, bản chính thức gửi sau | Lead **giả định** là Partner Data Gateway Azure (dự án Azure duy nhất trong §2.2) — cần Duy xác nhận. Evidence mức Lab, ghi rõ không phải hệ thống thật tại công ty |
+| Kinh nghiệm | Dự án Azure làm cho HPT từ đầu tháng 7 | **Chưa khớp**: nếu là 07/2026 thì tới 11/2026 ≈ 4 tháng, không phải 6. Cần năm bắt đầu + có được nêu tên HPT công khai không. Chưa đưa lên public |
+| Máy tham chiếu | Đồng ý dùng máy dev có nhãn | ADR 0007 Accepted. T08: BLOCKED → **NOT RUN** |
+| GitHub profile | Suy ra từ repo: `github.com/Crozn1812` | Đã điền `githubUrl` (nội dung vẫn draft) |
+| CMS DevOps Platform AWS EKS | Chưa có thông tin | TBD |
+| Số điện thoại | Chưa có | TBD |
 
 ## Cloud, tên miền
 

@@ -7,6 +7,21 @@ const titles=[
 const slugs=[
   "cms-devops-platform-aws-eks","partner-data-gateway-azure","insighthub-rag","aws-sales-data-pipeline"
 ];
+// Repo công khai Duy cung cấp ngày 2026-11-04; trạng thái dự án vẫn TBD.
+const repos: Record<string, { repoUrl: string; evidence: string[] }>={
+  "aws-sales-data-pipeline": {
+    repoUrl: "https://github.com/Crozn1812/AWS-Sales-Data-Pipeline",
+    evidence: ["ev-repo-aws-sales-data-pipeline"]
+  },
+  "insighthub-rag": {
+    repoUrl: "https://github.com/Crozn1812/insighthub_devops",
+    evidence: ["ev-repo-insighthub-rag"]
+  },
+  "partner-data-gateway-azure": {
+    repoUrl: "https://github.com/Crozn1812/azure-api-gateway-dsr-ai",
+    evidence: ["ev-repo-partner-data-gateway-demo"]
+  }
+};
 const review={
   reviewStatus: "draft",
   publicApproval: "TBD",
@@ -22,7 +37,7 @@ export const content=validateContent({
     email: "duybao09012004@gmail.com",
     phone: "TBD",
     cvUrl: "TBD",
-    githubUrl: "TBD",
+    githubUrl: "https://github.com/Crozn1812",
     linkedinUrl: "TBD",
     ...review
   })),
@@ -46,9 +61,9 @@ export const content=validateContent({
     validation: "TBD",
     results: "TBD",
     lessons: "TBD",
-    evidence: [],
+    evidence: repos[slugs[i]!]?.evidence ?? [],
     metrics: [],
-    repoUrl: "TBD",
+    repoUrl: repos[slugs[i]!]?.repoUrl ?? "TBD",
     ...review,
     translationStatus: "TBD",
     contentVersion: "TBD"
