@@ -1,6 +1,6 @@
 ## TICKET L3-008 — Cập nhật e2e/perf theo shell toàn màn hình + HUD (ADR 0009)
 
-- Trạng thái: **Assigned → subagent L3** (2026-11-04), nhánh `lane/L3-008`, worktree `D:/tqa-worktrees/L3-008`
+- Trạng thái: **Done — merged vào main** `48ac1a5` (2026-11-04)
 - Lane / milestone: L3 / A1 + B1
 - Đọc trước: `docs/adr/0009-full-viewport-shell-and-hud.md`, `docs/adr/0008-ui-world-event-contract.md`, `src/components/portfolio/{Portfolio.tsx,WorldEntry.tsx,WorldMenu.ts}` (đã merge ở `f54407e`).
 - Mục tiêu: toàn bộ e2e/perf phản ánh bố cục mới, không nới lỏng phép thử.

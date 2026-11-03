@@ -158,9 +158,19 @@ Kiểm `main`: lint 0 warning, typecheck, unit 166, `build:artifacts` (Next + CV
 - Welcome đôi khi không hydrate trong lúc tải nặng (L3 thấy 2 lần) — theo dõi.
 - Renderer info (`__tqaPerf`) chưa đo được vì UI không bật `debug`.
 
+### Đợt 8 — Shell toàn màn hình + HUD góc (ADR 0009, Duy chốt 2026-11-04)
+
+| Ticket | Người làm | Kết quả |
+|---|---|---|
+| L1-008 Shell toàn màn hình + HUD | Codex + Lead sửa font/canvas | **Merged** `f54407e`. Welcome = ảnh rừng 2D CSS/SVG toàn màn hình + thẻ góc dưới trái; Enter World phủ 3D toàn màn hình, HUD 6 nút (Quick, CV, Email, Sound, Menu, Thoát world). Duy duyệt qua ảnh chụp. Font đổi sang Times New Roman/Noto Serif/Liberation Serif (Georgia thiếu glyph tiếng Việt dựng sẵn) |
+| L3-008 e2e theo bố cục mới | L3 subagent | **Merged** `48ac1a5`. Sửa selector menu/Exit, CV/email ở thẻ góc; thêm `full-viewport.spec.ts`: không cuộn, thẻ ở góc dưới trái, canvas = viewport, HUD 6 nút ≥ 24 px, Thoát world trả focus Enter World, axe 0 vi phạm (mọi mức) |
+
+**Lead chạy lại trên main `48ac1a5`** (máy dev, Edge, server local): lint (0 warning), typecheck, unit 167, build:artifacts, check:cv/bundle/leaks/licenses exit 0; JS ban đầu `/en/` 140,4 KB gzip; e2e 128 passed / 1 skipped (Q21 đổi ngôn ngữ trong world — chưa có tính năng); test:perf EN+VI PASS (Welcome ~143 KB JS tối đa 3 lần lạnh, 0 request 3D trước Enter World, 3D → playable 1,71 MB / 2,07 s). Subagent chạy e2e 2 lần, không flaky. T08/T09 sau đổi bố cục: NOT RUN lại (chỉ helper đổi selector).
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L1-008: nhãn "demo" trong CV; `preview.ps1` theo vị trí file; đổi ngôn ngữ trong world (Q21, §6.3 `history.replaceState`, không remount).
+- Tự host font serif có giấy phép, đủ glyph tiếng Việt (§7.3) thay chuỗi font hệ thống.
+- L1-009: nhãn "demo" trong CV; `preview.ps1` theo vị trí file; đổi ngôn ngữ trong world (Q21, §6.3 `history.replaceState`, không remount).
 - L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; hoặc bắt đầu B2 khi A2 live (§12: B2 chỉ sau A2).
 - A2 (cloud): **chưa bắt đầu** — cần Duy: repo GitHub, ngày đăng ký AWS, Paid plan, tên miền.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
@@ -170,8 +180,6 @@ Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (khô
 ## Chưa có
 
 - Remote GitHub (repo public — Duy tạo hoặc giao Lead).
-- Worktree cho các lane; chưa giao ticket nào cho Codex.
-- `lang` theo locale cho `/vi/` (ADR 0001, việc còn mở).
 
 ## Blocker thật
 
@@ -182,13 +190,7 @@ Lưu ý ngân sách: scaffold rỗng đã dùng **135,3 / 150 KB** JS gzip (khô
 
 ## Gate
 
-Chưa có gate nào chạy. Mọi test T01–T11, Q12–Q26: **NOT RUN**.
-
-| Gate | Trạng thái |
-|---|---|
-| T01–T11 | NOT RUN |
-| Q12–Q26 | NOT RUN |
-| T08 (performance) | NOT RUN — máy tham chiếu chốt ở ADR 0007 (desktop RTX 3060, có nhãn) |
+Trạng thái gate mới nhất: xem bảng "Gate cập nhật" và "Đợt 8" ở mục Đã có. Gate không nêu ở đó: **NOT RUN**.
 
 ## Quyết định của Duy (nhóm "Trước A1", §17) — trả lời 2026-11-03
 
