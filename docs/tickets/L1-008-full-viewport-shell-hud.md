@@ -1,0 +1,25 @@
+## TICKET L1-008 — Shell toàn màn hình + HUD góc dưới trái (ADR 0009)
+
+- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-008`, worktree `D:/tqa-worktrees/L1-008`
+- Lane / milestone: L1 / A1 + B1 (UI)
+- Đọc trước: `docs/adr/0009-full-viewport-shell-and-hud.md` (quyết định của chủ dự án — làm đúng), `docs/adr/0008-ui-world-event-contract.md`.
+- Mục tiêu (theo trải nghiệm người dùng):
+  - Mở `/en/` hoặc `/vi/` trên desktop: toàn màn hình là ảnh rừng bình minh 2D (CSS/SVG inline), góc dưới trái có thẻ: tên, "Cloud & DevOps Engineer · Intern", một câu giới thiệu, nút Enter World, Quick Portfolio, CV, email, Sound. Không thanh cuộn.
+  - Bấm Enter World: 3D tải và hiện **toàn màn hình** đúng chỗ ảnh nền; thẻ thu thành thanh nút biểu tượng ở góc dưới trái: Quick Portfolio, CV, Email, Sound, Menu, Thoát world.
+  - Thoát world: gỡ 3D, trở về ảnh nền + thẻ đầy đủ, focus về nút Enter World.
+  - Màn hình < 1024 px / không WebGL / pointer coarse: cùng khung toàn màn hình + thẻ góc; nút là "Xem bản Editorial"/"View Editorial" → Quick.
+- Spec liên quan: §2, §3.1, §3.4, §5, §6.2 mục 1, §6.4, §8, §9; ADR 0008, ADR 0009
+- Được sửa: `src/app/` (layout/page/CSS cho Welcome), `src/components/portfolio/` (Portfolio, WorldEntry, WorldMenu, WorldContent nếu cần, HUD mới), `src/i18n/`, `tests/unit/portfolio/`, `tests/unit/i18n/`
+- Không được sửa: `src/features/`, `src/state/`, `src/content/*`, `tests/e2e/`, `tests/perf/`, `tools/`, `public/`, `package.json`, lockfile, config gốc, `docs/`. Không `pnpm add/install`. Không thêm file ảnh/font.
+- Ràng buộc:
+  - **Ngân sách**: JS ban đầu `/en/` hiện 139,9 KB gzip — không vượt 140,5 KB. Ảnh nền là CSS gradient + SVG inline nhỏ (tổng HTML+CSS tăng ≤ 15 KB gzip). Không tải gì 3D trước khi bấm (`pnpm check:bundle` phải PASS).
+  - **Không JS**: thẻ thông tin đọc được, Enter World disabled kèm lý do (giữ hành vi cũ), link Quick/CV/email hoạt động.
+  - Container world: `position: fixed; inset: 0` (hoặc tương đương 100dvw × 100dvh) phía sau HUD; `mountWorld` vẫn nhận container này (world tự resize qua ResizeObserver). Không đổi hợp đồng ADR 0008.
+  - Menu world: nút mở menu chuyển vào HUD (giữ `aria-haspopup="dialog"`, nhãn "Menu"); thêm mục "Exit world"/"Thoát world" trong menu; bỏ nút "Back to Welcome" nổi phía trên.
+  - HUD trong world: nút biểu tượng (SVG inline, `aria-hidden` cho icon) có tên truy cập là chữ hiển thị trong nhãn ẩn trực quan (không dùng `aria-label` khác chữ → tránh lỗi axe `label-content-name-mismatch`); vùng bấm ≥ 24×24 px; focus nhìn rõ (giữ outline hiện có); Tab đi được vào HUD từ canvas.
+  - Gợi ý "E" của world (phần tử `<p aria-live>` do world chèn trong container): style bằng CSS để nằm giữa dưới, không che HUD.
+  - Skip link: trên Welcome trỏ tới thẻ thông tin (`id="content"` trên vùng chính); các trang khác giữ nguyên.
+  - Nội dung dài trước đây ở Welcome (khối CV chi tiết, liên hệ chi tiết, dự án) bỏ khỏi Welcome — đã có ở Quick Portfolio. Không bịa nội dung.
+  - `prefers-reduced-motion`: không animation chuyển cảnh (chỉ đổi tức thì hoặc fade ≤ 150 ms).
+- Điều kiện xong: `pnpm lint` (0 warning), `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm check:bundle`, `pnpm check:leaks` exit 0; báo JS ban đầu và HTML/CSS gzip của `/en/` trước/sau. **Không** sửa `tests/e2e/` — các e2e có thể fail do đổi bố cục; liệt kê spec/selector bị ảnh hưởng trong bàn giao để L3 cập nhật. Không commit; Lead commit.
+- Bàn giao: tóm tắt, kích thước, lệnh + exit code, danh sách e2e bị ảnh hưởng, việc chưa làm.
