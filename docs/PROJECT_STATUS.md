@@ -232,6 +232,7 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 
 **Lighthouse sau L1-013 (Lead, máy dev)**: mặc định `/en/` TBT 44–58, LCP 2204–2213 ms; CPU×8 TBT 131–156, LCP 2285–2311 ms (không tệ hơn đợt 11).
 **Kiểm full (L4, main `af45a66`)**: 13/13 exit 0 — unit 227, e2e 142, test:perf 2, gitleaks 3/3 (89 commit), terraform 7/7, lhci worst `/en/` TBT 42 / LCP 2201 / CLS 0,012. Quick EN không còn câu tiếng Việt ở evidence; heading h1→h2→h3 hợp lệ.
+**CI GitHub run 41828064480 trên `dc8fc19`: FAIL ở Lighthouse** — `/en/` TBT 246/96/104 ms (`pessimistic` lấy 246 > 200). Lần chạy xấu có runner chậm bất thường (benchmarkIndex 1893, bootup 479 ms; hai lần kia ~2440, ~250 ms). Mọi bước khác và job terraform PASS. Cùng kiểu với đợt 11 (232 ms). Không nới ngưỡng; hướng xử lý: giảm hydrate của Welcome (ticket L1-014, chờ Duy duyệt).
 
 ### Ticket tiếp theo (nháp, chưa giao)
 
