@@ -201,9 +201,23 @@ Repo đã push: `github.com/Crozn1812/the-quiet-atlas` (public). Trước khi pu
 | Q21 | PASS phần tự động (đổi ngôn ngữ UI + world, cùng canvas, khung hình trùng) | e2e `world-input.spec.ts` |
 | T11 font | PASS phần tự động (Noto Serif tải từ `/fonts/`, không font ngoài) | e2e `fonts.spec.ts` |
 
+### Đợt 11 — Sửa lỗi: gitleaks CI, hồi quy Lighthouse, T09, kinh nghiệm/học vấn
+
+Duy cấp quyền bypass; Lead chọn model theo độ khó: Codex **gpt-6.1-sol high** (L1-011 chẩn đoán hiệu năng), subagent **sonnet** (L2-011, L5-011 việc rõ ràng), subagent **opus** (L4-011 e2e/harness khó).
+
+| Việc | Kết quả |
+|---|---|
+| Gitleaks CI (run #2–#3 đỏ) | Lead tải gitleaks v8.28.0 chính thức (SHA-256 khớp checksums release) → 20 dương tính giả: 19 là giá trị mẫu cố ý của bộ quét (allowlist theo đường dẫn), 1 là spec §4.6 mô tả tiền tố ARN (`.gitleaksignore` theo fingerprint). Local: 0 phát hiện. CI run #4: gitleaks, licenses, e2e, load budget **PASS** |
+| Lighthouse CI (run #4 đỏ: TBT `/en/` 461 ms) | Lead bisect → **L1-008 `f54407e`** gây hồi quy. **L1-011** (`c5c6951`) sửa: bỏ probe WebGL trên thiết bị Editorial, cache. TBT `/en/` 73 ms, mọi URL PASS. Quy trình: thêm `perf:lhci` + `check:gitleaks` vào kiểm full (`docs/runbook/full-check.md`, L5-011 `6719d7f`) |
+| Lỗi sản phẩm L4 tìm thấy | Retry thất bại đồng bộ → focus rơi về `<body>` (do L1-011 bỏ focus tường minh). Lead sửa (`6bbd19b`): bộ đếm lỗi trong deps effect focus; test (a) PASS |
+| T09 (FAIL đợt 10) | **PASS** với cờ chống Windows occlusion + log visibility (L4-011 `d910eda`); T08 Low xác nhận không đổi |
+| L2-011 (`3768275`) | Schema `experience[]`/`education[]` (ADR 0010), dữ liệu HPT (Intern 07/2026 – nay, mô tả TBD) + PTIT (2027), CV có mục Kinh nghiệm/Học vấn. Web chưa hiển thị (ticket L1 sau) |
+
+**Kiểm full (L4, main `33c27b5`)**: 12/12 bước exit 0 — unit 196, e2e 142 (gồm 5 test rủi ro L1-011), test:perf, gitleaks 3/3, lhci. Sau bản sửa focus, Lead chạy lại lint/typecheck/unit/build/check:bundle + e2e liên quan Enter World (110 passed). Bằng chứng: `docs/evidence/B1/t08-t09-lhci-2026-11-04-b11.md`.
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L2: hợp đồng schema `experience[]`/`education[]` (Lead duyệt) → L2 dữ liệu + L1 hiển thị + CV.
+- L1: hiển thị Kinh nghiệm/Học vấn ở Quick Portfolio (ADR 0010); hoãn probe WebGL trên desktop tới lúc rảnh.
 - L2: sửa nháp case study theo câu trả lời Q-12 → Q-18; Duy duyệt từng trang.
 - L3/L4: chạy lại T09 có người giữ cửa sổ Edge; nếu vẫn tụt 1 Hz thì điều tra (visibility, efficiency mode).
 - Chữ world tiếng Việt chưa được duyệt biên tập.
