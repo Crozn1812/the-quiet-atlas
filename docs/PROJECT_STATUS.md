@@ -236,9 +236,9 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 
 ### Đợt 12b — L1-014 (BLOCKED): sàn TBT là runtime Next/React
 
-- Subagent opus trace CPU×10: task lớn nhất là nạp/khởi tạo module framework (~22 ms thực ≈ 220 ms giả lập, ~54% là khởi tạo module react-dom/router), giống nhau ở ,  và  (0 client component). Hydrate  đã chia lát 5 ms, gần như không góp TBT. CPU×10:  180/216/184,  176/186/175 ms. Không sửa code (không có lợi ích đo được).
-- Lead thử : CPU×10 TBT 176–217 ms (không cải thiện), LCP ~2,19 s (tốt hơn ~150 ms). Không áp dụng.
-- Kết luận: CI đỏ khi runner chậm bất thường (benchmarkIndex ~1900) vì  lấy lần xấu nhất trong 3 lần. Không phải hồi quy. Cách xử lý thay đổi phương pháp đo → **Duy quyết (Q-24)**; Lead không tự đổi.
+- Subagent opus trace CPU×10: task lớn nhất là nạp/khởi tạo module framework (~22 ms thực ≈ 220 ms giả lập, ~54% là khởi tạo module react-dom/router), giống nhau ở `/en/`, `/en/quick/` và `/en/privacy/` (0 client component). Hydrate `WorldEntry` đã chia lát 5 ms, gần như không góp TBT. CPU×10: `/en/` 180/216/184, `/en/quick/` 176/186/175 ms. Không sửa code (không có lợi ích đo được).
+- Lead thử `next build --webpack`: CPU×10 TBT 176–217 ms (không cải thiện), LCP ~2,19 s (tốt hơn ~150 ms). Không áp dụng.
+- Kết luận: CI đỏ khi runner chậm bất thường (benchmarkIndex ~1900) vì `pessimistic` lấy lần xấu nhất trong 3 lần. Không phải hồi quy. Cách xử lý thay đổi phương pháp đo → **Duy quyết (Q-24)**; Lead không tự đổi.
 
 ### Ticket tiếp theo (nháp, chưa giao)
 
