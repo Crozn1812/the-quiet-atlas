@@ -72,6 +72,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// L4-010: per-test timeout (30 s). This test (formerly "implements container pause/quality events…") timed out at
+// the 5 s default on the GitHub runner (run #1). Harness limit only, not a performance gate.
 it.each([undefined, "vi"] as const)("implements container events in place with locale %s", async locale => {
   const canvas = new Element();
   harness.canvas = canvas;
@@ -199,4 +201,4 @@ it.each([undefined, "vi"] as const)("implements container events in place with l
   const count = states.length;
   send(container, "tqa:set-quality", { detail: { quality: "low" } });
   expect(states).toHaveLength(count);
-});
+}, 30_000);

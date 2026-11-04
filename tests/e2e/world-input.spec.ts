@@ -131,8 +131,13 @@ test.describe("Q21 language switch inside the world", () => {
   const world = (page: Page) => page.locator(`[data-world-chunk]`);
   const languages = (page: Page) => dialog(page).locator("fieldset");
   const overlay = (page: Page) => page.locator("dialog.world-content");
-  /** HUD/corner card text changes with the language; hide it so canvas pixels compare only the 3D scene. */
-  const SCENE_ONLY = ".corner-panel, .world-hud, .world-menu dialog, [aria-live] { visibility: hidden !important; }";
+  /**
+   * HUD/corner card text changes with the language; hide it so canvas pixels compare only the 3D scene.
+   * Since L3-010 (ADR 0008 đợt 10) the world's own visible prop label (`[data-world-chunk] > p` without aria-live,
+   * drawn over the canvas top-right) is localized too, so it is hidden as well (L4-010).
+   */
+  const SCENE_ONLY =
+    ".corner-panel, .world-hud, .world-menu dialog, [aria-live], [data-world-chunk] > p { visibility: hidden !important; }";
 
   async function sceneShot(page: Page) {
     await page.waitForTimeout(800);
@@ -348,6 +353,65 @@ test.describe("Q21 language switch inside the world", () => {
     await expect(page.locator("[data-world-chunk]")).toHaveCount(0);
     await expect(page.locator(".world-menu")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Enter World" })).toBeEnabled();
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
+
+// L4-010 — Q21 language inside the world (ADR 0008 "đợt 10", spec §6.3): the world's own copy follows the locale.
+// Contract: `data-world-locale` on the container, `canvas[aria-label]`, hint text "E — …" (src/features/world/copy.ts).
+// Expected strings mirror src/features/world/copy.ts (kept literal here so a copy regression is caught).
+test.describe("Q21 world copy follows the language (ADR 0008 đợt 10)", () => {
+  const CANVAS_LABEL = {
+    en: "P01-E placeholder forest. WASD to walk, Shift to run, arrows or drag to orbit, plus/minus or wheel to zoom. E or click nearby signpost or desk to open content.",
+    vi: "Rừng P01-E (tạm). WASD để đi bộ, Shift để chạy, phím mũi tên hoặc kéo để xoay camera, cộng/trừ hoặc con lăn để thu phóng. Nhấn E hoặc bấm biển chỉ đường hay bàn ở gần để mở nội dung.",
+  } as const;
+  const HINT = { en: "E — First Light signpost (placeholder)", vi: "E — Biển chỉ đường The First Light (tạm)" } as const;
+
+  test("Enter World on /vi/: data-world-locale=vi, Vietnamese canvas aria-label and spawn hint", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    const entered = await enterWorld(page, "vi");
+    test.skip(!entered, "NOT RUN: WebGL2 unavailable in this browser");
+    test.info().annotations.push({ type: "window-focus", description: await ensureWindowFocus(page) });
+    await expect(entered!).toHaveAttribute("data-world-paused", "false");
+    await expect(entered!).toHaveAttribute("data-world-locale", "vi");
+    await expect(entered!.locator("canvas")).toHaveAttribute("aria-label", CANVAS_LABEL.vi);
+    // Spawn (0, 4) is within reach of the First Light signpost (world-content.spec.ts T07).
+    await expect(entered!).toHaveAttribute("data-world-hint", "first-light");
+    await expect(entered!.getByText(HINT.vi, { exact: true })).toBeAttached();
+    await expect(entered!.getByText(HINT.en, { exact: true })).toHaveCount(0);
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+
+  test("/en/ → menu Tiếng Việt: data-world-locale and canvas aria-label switch on the same canvas; hint text in Vietnamese", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    const entered = await enterWorld(page, "en");
+    test.skip(!entered, "NOT RUN: WebGL2 unavailable in this browser");
+    test.info().annotations.push({ type: "window-focus", description: await ensureWindowFocus(page) });
+    await expect(entered!).toHaveAttribute("data-world-paused", "false");
+    await expect(entered!).toHaveAttribute("data-world-locale", "en");
+    const canvas = entered!.locator("canvas");
+    await expect(canvas).toHaveAttribute("aria-label", CANVAS_LABEL.en);
+    await expect(entered!).toHaveAttribute("data-world-hint", "first-light");
+    await expect(entered!.getByText(HINT.en, { exact: true })).toBeAttached();
+    await canvas.evaluate(element => void ((element as unknown as { __tqaTag: string }).__tqaTag = "L4-010"));
+
+    await page.locator(MENU_TRIGGER).click();
+    await expect(dialog(page)).toHaveAttribute("open", "");
+    await dialog(page).locator("fieldset").getByRole("button", { name: "Tiếng Việt" }).click();
+    await expect(page).toHaveURL(/\/vi\/$/);
+    await expect(entered!).toHaveAttribute("data-world-locale", "vi");
+    await expect(canvas).toHaveAttribute("aria-label", CANVAS_LABEL.vi);
+    await expect(page.locator("canvas")).toHaveCount(1);
+    expect(await canvas.evaluate(element => (element as unknown as { __tqaTag?: string }).__tqaTag), "canvas element was replaced (remount)").toBe("L4-010");
+
+    await dialog(page).getByRole("button", { name: "Đóng", exact: true }).click();
+    await expect(dialog(page)).not.toHaveAttribute("open", "");
+    await expect(entered!).toHaveAttribute("data-world-paused", "false");
+    // Position unchanged → the same First Light hint reappears once resumed, now in Vietnamese.
+    await expect(entered!).toHaveAttribute("data-world-hint", "first-light");
+    await expect(entered!.getByText(HINT.vi, { exact: true })).toBeAttached();
+    await expect(entered!.getByText(HINT.en, { exact: true })).toHaveCount(0);
+    await expect(entered!).toHaveAttribute("data-world-locale", "vi");
     expect(errors, errors.join("\n")).toEqual([]);
   });
 });
