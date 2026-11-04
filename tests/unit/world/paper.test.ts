@@ -57,6 +57,7 @@ describe("paper post pass", () => {
     scene.fog = fog;
     const camera = new PerspectiveCamera();
     pass.setMist({ bands: [18, 32, 50], height: 2, strength: 0.8 });
+    pass.setEdges({ bleed: 0.8, ink: true });
     pass.setSize(640, 360);
     pass.render(scene, camera);
     pass.dispose();
@@ -85,6 +86,10 @@ describe("paper post pass", () => {
     expect(material.uniforms.tColor!.value).toBe(target().texture);
     expect(material.uniforms.tDepth!.value).toBe(target().depthTexture);
     expect(material.uniforms.paperColor!.value).toEqual(new Color(PALETTE.paper));
+    expect(material.uniforms.inkColor!.value).toEqual(new Color(PALETTE.ink));
+    expect(material.uniforms.bleedStrength!.value).toBe(0.5);
+    expect(material.uniforms.inkEnabled!.value).toBe(quality === "High");
+    expect(material.uniforms.texelSize!.value).toEqual(new Vector2(1 / 400, 1 / 225));
     expect(material.uniforms.mistColor!.value).toEqual(new Color(PALETTE.mist));
     expect(material.uniforms.mistBands!.value.toArray()).toEqual([20, 35, 55]);
     expect(material.uniforms.mistBands!.value.toArray()).toEqual(DEFAULT_MIST_BANDS);
@@ -156,7 +161,7 @@ describe("paper post pass", () => {
     pass.dispose();
   });
 
-  it("High differs only by MIST_EDGE_NOISE and toggles it without allocating resources", () => {
+  it("High enables mist noise and ink defines without allocating new resources on quality changes", () => {
     const balanced = mockRenderer();
     const high = mockRenderer();
     const balancedPass = createPaperPass(balanced.gpu, { quality: "Balanced" });
@@ -166,12 +171,14 @@ describe("paper post pass", () => {
     const b = screenMaterial(balanced.renderer).material;
     const h = screenMaterial(high.renderer).material;
     expect(b.defines).toEqual({});
-    expect(h.defines).toEqual({ MIST_EDGE_NOISE: 1 });
+    expect(h.defines).toEqual({ MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 });
+    expect(b.uniforms.inkEnabled!.value).toBe(false);
+    expect(h.uniforms.inkEnabled!.value).toBe(true);
     expect(h.vertexShader).toBe(b.vertexShader);
     expect(h.fragmentShader).toBe(b.fragmentShader);
     expect(Object.keys(h.uniforms)).toEqual(Object.keys(b.uniforms));
     for (const key of Object.keys(h.uniforms)) {
-      if (key !== "tColor" && key !== "tDepth") expect(h.uniforms[key]).toEqual(b.uniforms[key]);
+      if (!["tColor", "tDepth", "inkEnabled"].includes(key)) expect(h.uniforms[key]).toEqual(b.uniforms[key]);
     }
     expect(h.fragmentShader).toContain("#ifdef MIST_EDGE_NOISE");
     expect(h.fragmentShader).toContain("fibers(worldPosition.xz * 0.12)");
@@ -179,13 +186,92 @@ describe("paper post pass", () => {
     const version = b.version;
     balancedPass.setQuality("High");
     expect(b.defines).toEqual(h.defines);
+    expect(b.uniforms.inkEnabled!.value).toBe(true);
     expect(b.version).toBe(version + 1);
     balancedPass.setQuality("Balanced");
     expect(b.defines).toEqual({});
+    expect(b.uniforms.inkEnabled!.value).toBe(false);
     expect(b.version).toBe(version + 2);
     expect(WebGLRenderTarget).toHaveBeenCalledTimes(2);
     balancedPass.dispose();
     highPass.dispose();
+  });
+
+  it("updates edge uniforms in place and remembers partial settings across quality changes and Low", () => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createPaperPass(gpu, { quality: "High" });
+    pass.render(new Scene(), new PerspectiveCamera());
+    const { material } = screenMaterial(renderer);
+    const version = material.version;
+    pass.setEdges({ bleed: 0.8, ink: false });
+    expect(material.uniforms.bleedStrength!.value).toBe(0.8);
+    expect(material.uniforms.inkEnabled!.value).toBe(false);
+    pass.setEdges({ bleed: 0 });
+    pass.setEdges({});
+    expect(material.uniforms.bleedStrength!.value).toBe(0);
+    expect(material.uniforms.inkEnabled!.value).toBe(false);
+    expect(material.version).toBe(version); // Uniform edits do not recompile the shader.
+    expect(material.defines.INK_OUTLINE).toBe(1);
+    pass.setQuality("Balanced");
+    pass.setEdges({ ink: true });
+    expect(material.uniforms.inkEnabled!.value).toBe(false);
+    expect(material.defines).not.toHaveProperty("INK_OUTLINE");
+    pass.setQuality("High");
+    expect(material.uniforms.inkEnabled!.value).toBe(true);
+    expect(WebGLRenderTarget).toHaveBeenCalledTimes(1);
+    pass.setQuality("Low");
+    pass.setEdges({ bleed: 1, ink: false });
+    expect(WebGLRenderTarget).toHaveBeenCalledTimes(1);
+    pass.setQuality("High");
+    pass.render(new Scene(), new PerspectiveCamera());
+    const restored = screenMaterial(renderer).material;
+    expect(restored.uniforms.bleedStrength!.value).toBe(1);
+    expect(restored.uniforms.inkEnabled!.value).toBe(false);
+    expect(restored.defines.INK_OUTLINE).toBe(1);
+    pass.dispose();
+  });
+
+  it("validates bleed atomically and remembers edge settings made before allocation", () => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createPaperPass(gpu, { quality: "Low" });
+    pass.setEdges({ bleed: 0.7, ink: true });
+    for (const bleed of [-0.1, 1.1, NaN, Infinity, -Infinity]) {
+      expect(() => pass.setEdges({ bleed, ink: false })).toThrow(RangeError);
+    }
+    expect(WebGLRenderTarget).not.toHaveBeenCalled();
+    pass.setQuality("High");
+    pass.render(new Scene(), new PerspectiveCamera());
+    const { material } = screenMaterial(renderer);
+    expect(material.uniforms.bleedStrength!.value).toBe(0.7);
+    expect(material.uniforms.inkEnabled!.value).toBe(true);
+    expect(() => pass.setEdges({ bleed: NaN, ink: false })).toThrow(RangeError);
+    expect(material.uniforms.bleedStrength!.value).toBe(0.7);
+    expect(material.uniforms.inkEnabled!.value).toBe(true);
+    pass.dispose();
+  });
+
+  it.each(["Balanced", "High"] as const)("%s limits depth reads to five with a physical one-pixel cross", quality => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createPaperPass(gpu, { quality });
+    pass.render(new Scene(), new PerspectiveCamera());
+    const shader = screenMaterial(renderer).material.fragmentShader;
+    expect(shader.match(/texture2D\(tDepth\b/g)).toHaveLength(5);
+    expect(shader).toContain("vUv + vec2(texelSize.x, 0.0)");
+    expect(shader).toContain("vUv - vec2(texelSize.x, 0.0)");
+    expect(shader).toContain("vUv + vec2(0.0, texelSize.y)");
+    expect(shader).toContain("vUv - vec2(0.0, texelSize.y)");
+    expect(shader).toContain("perspectiveDepthToViewZ(depth, cameraNear, cameraFar)");
+    expect(shader).toContain("orthographicDepthToViewZ(depth, cameraNear, cameraFar)");
+    expect(shader).toContain("(adjacent - vec4(viewDepth)) / max(viewDepth, 1.0)");
+    expect(shader).toContain("mix(0.012, 0.028, fiber)");
+    expect(shader).toContain("dot(other, luma) < dot(color, luma) ? other : color");
+    expect(shader).toContain("mix(color, paperColor, pooling * paperRim)");
+    expect(shader).toContain("#ifdef INK_OUTLINE");
+    expect(shader).toContain("inkEnabled && depth < 1.0");
+    expect(shader).toContain("1.0 - smoothstep(25.0, 40.0, distanceToCamera)");
+    expect(shader).toContain("inkEdge * inkFade * 0.35");
+    expect(shader).toContain("mix(color, inkColor, inkAlpha)");
+    pass.dispose();
   });
 
   it.each(["perspective", "orthographic"])("refreshes %s reconstruction matrices after the scene render", kind => {
@@ -240,17 +326,27 @@ describe("paper post pass", () => {
     const { renderer, gpu } = mockRenderer();
     const pass = createPaperPass(gpu, { quality: "Balanced" });
     expect([target().width, target().height]).toEqual([400, 225]);
+    pass.render(new Scene(), new PerspectiveCamera());
+    const { material } = screenMaterial(renderer);
+    const texelSize = material.uniforms.texelSize!.value as Vector2;
+    expect(texelSize.toArray()).toEqual([1 / 400, 1 / 225]);
     pass.setSize(801, 401);
     expect([target().width, target().height]).toEqual([1001, 501]);
+    expect(texelSize.toArray()).toEqual([1 / 1001, 1 / 501]);
     renderer.getPixelRatio.mockReturnValue(2);
     pass.setSize(801, 401);
     expect([target().width, target().height]).toEqual([1602, 802]);
+    expect(texelSize.toArray()).toEqual([1 / 1602, 1 / 802]);
     pass.setQuality("Low");
     pass.setSize(200, 100);
     pass.setQuality("High");
     expect([target().width, target().height]).toEqual([400, 200]);
+    pass.render(new Scene(), new PerspectiveCamera());
+    const restoredTexelSize = screenMaterial(renderer).material.uniforms.texelSize!.value as Vector2;
+    expect(restoredTexelSize.toArray()).toEqual([1 / 400, 1 / 200]);
     pass.setSize(0, 0);
     expect([target().width, target().height]).toEqual([1, 1]);
+    expect(restoredTexelSize.toArray()).toEqual([1, 1]);
     pass.dispose();
   });
 
@@ -284,6 +380,9 @@ describe("paper post pass", () => {
     pass.setQuality("Balanced");
     pass.setSize(800, 600);
     pass.setMist({ bands: [18, 32, 50], height: 2, strength: 0.8 });
+    pass.setEdges({ bleed: 0.2, ink: false });
+    expect(material.uniforms.bleedStrength!.value).toBe(0.5);
+    expect(material.uniforms.inkEnabled!.value).toBe(true);
     renderer.render.mockClear();
     pass.render(new Scene(), new PerspectiveCamera());
     expect(renderer.render).not.toHaveBeenCalled();

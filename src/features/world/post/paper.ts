@@ -23,6 +23,11 @@ type MistOptions = {
   strength?: number;
 };
 
+type EdgeOptions = {
+  bleed?: number;
+  ink?: boolean;
+};
+
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
   void main() {
@@ -35,6 +40,10 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D tColor;
   uniform sampler2D tDepth;
   uniform vec3 paperColor;
+  uniform vec3 inkColor;
+  uniform vec2 texelSize;
+  uniform float bleedStrength;
+  uniform bool inkEnabled;
   uniform vec3 mistColor;
   uniform vec3 mistBands;
   uniform float mistHeight;
@@ -63,6 +72,68 @@ const fragmentShader = /* glsl */ `
                mix(hash(cell + vec2(0.0, 1.0)), hash(cell + vec2(1.0)), f.x), f.y);
   }
 
+  float linearViewDepth(float depth) {
+    return perspective
+      ? -perspectiveDepthToViewZ(depth, cameraNear, cameraFar)
+      : -orthographicDepthToViewZ(depth, cameraNear, cameraFar);
+  }
+
+  vec3 paintEdges(vec3 color, float depth, float viewDepth, float distanceToCamera, float fiber) {
+    if (bleedStrength <= 0.0 && !inkEnabled) return color;
+    // Exactly four extra depth reads, one physical pixel away in a cross.
+    vec4 adjacent = vec4(
+      linearViewDepth(texture2D(tDepth, vUv + vec2(texelSize.x, 0.0)).x),
+      linearViewDepth(texture2D(tDepth, vUv - vec2(texelSize.x, 0.0)).x),
+      linearViewDepth(texture2D(tDepth, vUv + vec2(0.0, texelSize.y)).x),
+      linearViewDepth(texture2D(tDepth, vUv - vec2(0.0, texelSize.y)).x)
+    );
+    vec4 delta = (adjacent - vec4(viewDepth)) / max(viewDepth, 1.0);
+    vec4 contrast = abs(delta);
+    float strongest = contrast.x;
+    float signedEdge = delta.x;
+    vec2 offset = vec2(texelSize.x, 0.0);
+    if (contrast.y > strongest) {
+      strongest = contrast.y;
+      signedEdge = delta.y;
+      offset = vec2(-texelSize.x, 0.0);
+    }
+    if (contrast.z > strongest) {
+      strongest = contrast.z;
+      signedEdge = delta.z;
+      offset = vec2(0.0, texelSize.y);
+    }
+    if (contrast.w > strongest) {
+      strongest = contrast.w;
+      signedEdge = delta.w;
+      offset = vec2(0.0, -texelSize.y);
+    }
+    // Relative linear-viewZ threshold; static fibers break up the otherwise straight rim.
+    float threshold = mix(0.012, 0.028, fiber);
+    float edge = smoothstep(threshold, threshold * 2.0, strongest);
+    if (edge > 0.0 && bleedStrength > 0.0) {
+      // Only one extra color read: the other side of the strongest depth discontinuity.
+      vec3 other = texture2D(tColor, vUv + offset).rgb;
+      vec3 luma = vec3(0.2126, 0.7152, 0.0722);
+      vec3 darker = dot(other, luma) < dot(color, luma) ? other : color;
+      float pooling = edge * bleedStrength * mix(0.65, 1.0, fiber);
+      color = mix(color, darker * 0.97, pooling * 0.12);
+      // The rear side carries a fine paper-light band beside the pooled pigment.
+      float paperRim = signedEdge < 0.0 ? 0.07 : 0.02;
+      color = mix(color, paperColor, pooling * paperRim);
+    }
+    #ifdef INK_OUTLINE
+      if (inkEnabled && depth < 1.0) {
+        // Foreground side only: a one-texel footprint, never a two-sided outline or sky ink.
+        float foregroundEdge = max(max(delta.x, delta.y), max(delta.z, delta.w));
+        float inkEdge = smoothstep(threshold, threshold * 2.0, foregroundEdge);
+        float inkFade = 1.0 - smoothstep(25.0, 40.0, distanceToCamera);
+        float inkAlpha = inkEdge * inkFade * 0.35;
+        color = mix(color, inkColor, inkAlpha);
+      }
+    #endif
+    return color;
+  }
+
   void main() {
     vec4 color = texture2D(tColor, vUv);
     float depth = texture2D(tDepth, vUv).x;
@@ -70,9 +141,10 @@ const fragmentShader = /* glsl */ `
     viewPosition /= viewPosition.w;
     vec3 worldPosition = (cameraMatrixWorld * viewPosition).xyz;
     float distanceToCamera = length(viewPosition.xyz);
-    float viewDepth = perspective
-      ? -perspectiveDepthToViewZ(depth, cameraNear, cameraFar)
-      : -orthographicDepthToViewZ(depth, cameraNear, cameraFar);
+    float viewDepth = linearViewDepth(depth);
+    vec2 pixel = floor(gl_FragCoord.xy);
+    float fiber = fibers(pixel / vec2(48.0, 12.0));
+    color.rgb = paintEdges(color.rgb, depth, viewDepth, distanceToCamera, fiber);
     float edgeOffset = 0.0;
     #ifdef MIST_EDGE_NOISE
       // World-locked horizontal variation, at most +/-0.25 m; never animated.
@@ -93,9 +165,8 @@ const fragmentShader = /* glsl */ `
 
     // Pixel-locked, time-independent grain. Both noises are in [0, 1],
     // so their weighted sum gives at most +/-2% multiplicative variation.
-    vec2 pixel = floor(gl_FragCoord.xy);
     float grain = (hash(pixel) - 0.5) * 0.028
-                + (fibers(pixel / vec2(48.0, 12.0)) - 0.5) * 0.012;
+                + (fiber - 0.5) * 0.012;
     color.rgb *= 1.0 + grain;
     vec2 edge = vUv * 2.0 - 1.0;
     float vignette = smoothstep(0.3, 1.5, dot(edge, edge)) * 0.025;
@@ -112,6 +183,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
   const size = renderer.getSize(new Vector2());
   let disposed = false;
   let resources: ReturnType<typeof allocate> | undefined;
+  const edges: { bleed: number; ink?: boolean } = { bleed: 0.5 };
   const mist = {
     bands: new Vector3(...DEFAULT_MIST_BANDS),
     height: DEFAULT_MIST_HEIGHT,
@@ -134,11 +206,15 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     const material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
-      defines: quality === "High" ? { MIST_EDGE_NOISE: 1 } : {},
+      defines: quality === "High" ? { MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 } : {},
       uniforms: {
         tColor: { value: target.texture },
         tDepth: { value: depth },
         paperColor: { value: new Color(PALETTE.paper) },
+        inkColor: { value: new Color(PALETTE.ink) },
+        texelSize: { value: new Vector2(1 / width, 1 / height) },
+        bleedStrength: { value: edges.bleed },
+        inkEnabled: { value: quality === "High" && (edges.ink ?? true) },
         mistColor: { value: new Color(PALETTE.mist) },
         mistBands: { value: mist.bands },
         mistHeight: { value: mist.height },
@@ -206,7 +282,11 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     setSize(w: number, h: number): void {
       if (disposed) return;
       size.set(w, h);
-      if (resources) resources.target.setSize(...physicalSize());
+      if (resources) {
+        const [width, height] = physicalSize();
+        resources.target.setSize(width, height);
+        resources.material.uniforms.texelSize!.value.set(1 / width, 1 / height);
+      }
     },
     setQuality(q: Quality): void {
       if (disposed || quality === q) return;
@@ -214,9 +294,28 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       if (q === "Low") release();
       else if (!resources) resources = allocate();
       else {
-        if (q === "High") resources.material.defines.MIST_EDGE_NOISE = 1;
-        else delete resources.material.defines.MIST_EDGE_NOISE;
+        if (q === "High") {
+          resources.material.defines.MIST_EDGE_NOISE = 1;
+          resources.material.defines.INK_OUTLINE = 1;
+        } else {
+          delete resources.material.defines.MIST_EDGE_NOISE;
+          delete resources.material.defines.INK_OUTLINE;
+        }
+        resources.material.uniforms.inkEnabled!.value = q === "High" && (edges.ink ?? true);
         resources.material.needsUpdate = true;
+      }
+    },
+    /** Bleed in [0, 1]; ink defaults on in High only. Explicit settings survive quality changes. */
+    setEdges({ bleed, ink }: EdgeOptions): void {
+      if (disposed) return;
+      if (bleed !== undefined && (!Number.isFinite(bleed) || bleed < 0 || bleed > 1)) {
+        throw new RangeError("Edge bleed must be between 0 and 1");
+      }
+      if (bleed !== undefined) edges.bleed = bleed;
+      if (ink !== undefined) edges.ink = ink;
+      if (resources) {
+        resources.material.uniforms.bleedStrength!.value = edges.bleed;
+        resources.material.uniforms.inkEnabled!.value = quality === "High" && (edges.ink ?? true);
       }
     },
     /** Distances/heights are metres; strength in [0, 1] scales added mist, preserving depth fog. */
