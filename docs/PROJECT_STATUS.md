@@ -239,10 +239,15 @@ Còn thiếu: tên + URL 2 repo dự án, trạng thái 2 dự án còn lại, s
 | Repo GitHub cho The Quiet Atlas | "oke" — chưa có tên repo | Vẫn chờ |
 | Cách giao việc | Chạy đợt 6 xong nối luôn đợt 7 trong một lần | Áp dụng 2026-11-04 |
 
+### Bổ sung lần 3 — 2026-11-04 (trả lời danh sách câu hỏi)
+
+Chi tiết và việc còn chờ: `docs/DUY_QUEUE.md`. Tóm tắt: Lead soạn câu giới thiệu; được nêu tên HPT; Duy gửi tài liệu PDG, CMS, InsightHub và CV (lưu ngoài repo); nội dung dự án do L2 soạn nháp, Duy duyệt từng trang; điện thoại hiện cả web theo CV; LinkedIn **không có trong CV** → Q-01; repo `github.com/Crozn1812/the-quiet-atlas` (public) đã tạo; AWS: tài khoản mới, chờ credit; tên miền chưa mua; đồng ý font tự host + sự kiện ngôn ngữ world; định hướng hình ảnh: `docs/art/direction-notes.md`. Từ đợt 10: tổ chức 5 lane (CLAUDE.md §2–3).
+
 ## Cloud, tên miền
 
 | Mục | Giá trị |
 |---|---|
+| Tài khoản AWS | Tài khoản mới, đang chờ credit free (2026-11-04) |
 | Ngày đăng ký AWS | TBD |
 | Ngày hết hạn credits | TBD |
 | Paid plan | Chưa (chưa cần trước A2) |
