@@ -39,6 +39,8 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   const [eligibility, setEligibility] = useState<ReturnType<typeof worldEligibility>>();
   const [appMode, setAppMode] = useState<"welcome" | "loading" | "world" | "recoverableError">("welcome");
   const [retried, setRetried] = useState(false);
+  // Bumped on every failure: a synchronous failure batches "loading" → "recoverableError", so appMode alone may not change.
+  const [failures, setFailures] = useState(0);
   const container = useRef<HTMLDivElement>(null);
   const enter = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLButtonElement>(null);
@@ -59,7 +61,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   useEffect(() => {
     // Restore focus after React reveals the button on exit or recovery.
     if (appMode === "recoverableError" || appMode === "welcome") enter.current?.focus();
-  }, [appMode]);
+  }, [appMode, failures]);
 
   useEffect(() => {
     const lifecycle = generation;
@@ -130,6 +132,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
         teardown.current?.();
         teardown.current = undefined;
         setAppMode("recoverableError");
+        setFailures(count => count + 1);
       }
     } finally {
       busy.current = false;

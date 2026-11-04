@@ -53,12 +53,8 @@ test.describe("desktop (fine pointer)", () => {
 
   test("(a) Enter World fails → Retry → fails again: focus on Enter World, Retry gone, Enter World aria-disabled, 0 errors", async ({ page, browser }) => {
     test.skip(!(await browserHasWebGL2(browser)), "NOT RUN: WebGL2 unavailable in this browser");
-    // PRODUCT BUG (L4-011, reported to Lead; owner L1, src/components/portfolio/WorldEntry.tsx): when the second
-    // attempt fails synchronously (capability re-check throws before the first await), setAppMode("loading") and
-    // setAppMode("recoverableError") are batched into one render, so appMode never changes, the [appMode] focus effect
-    // does not re-run, and the focused Retry button is unmounted → focus falls to <body>. The async failure path (a2)
-    // is fine. Remove test.fail() once fixed.
-    test.fail(true, "L4-011 bug: focus lost to <body> after a synchronous second failure (Retry unmounted, effect not re-run)");
+    // Regression guard (L4-011 bug, fixed by Lead): a synchronous second failure batches "loading" → "recoverableError";
+    // the focus effect now also depends on a failure counter, so focus returns to Enter World.
     const errors = trackConsoleErrors(page);
     await page.addInitScript(COUNT_WEBGL);
     await page.goto("/en/");
