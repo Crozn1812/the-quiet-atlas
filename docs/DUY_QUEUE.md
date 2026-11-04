@@ -8,10 +8,6 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 |---|---|---|---|---|---|
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
-| Q-25 | **Ghi đông GD110**: theo ảnh thật (ghi đông thường) hay scrambler cao như spec? Trong lúc chờ: Lead làm theo ảnh thật | B2 (xe) | Không | Trước turnaround xe | Trả lời "ảnh thật" hoặc "scrambler" |
-| Q-26 | **Bản thu đàn**: có tự thu piano/guitar cho Forgotten Sound không? Nếu có thì khi nào? (Q-11 trước đây: không cần — Lead vẫn chừa slot) | B3 (audio) | Không | Khi tiện | "Không" / "Có, khoảng <ngày>" |
-| Q-27 | **Ảnh thật trên web**: ảnh nào được dùng (About, The Quiet Shore), ai chụp (để ghi credit)? Lead xóa EXIF/GPS khi xuất. Chưa trả lời → không ảnh thật nào lên web | B2 | Không | Khi tiện | Liệt kê tên file + người chụp |
-| Q-28 | **Lưu ảnh tham chiếu**: Lead không đọc được ảnh gửi trong chat Claude Windows. Lưu 6 ảnh cá nhân (có GD110) + bảng Pinterest vào `D:/the-quiet-atlas/docs/art-bible/refs/` (đã gitignore, không lên GitHub) | Art Director | Chặn turnaround nhân vật/xe | Sớm | Kéo thả file vào thư mục; đặt tên theo `refs/README.md` |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
 
 ## Câu trả lời ngày 2026-11-04 (lượt 2) — Lead đã ghi nhận
@@ -56,3 +52,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | D-15 | Email công khai giữ `duybao09012004@gmail.com` — Duy chủ ý, đã biết rủi ro spam | 2026-11-04 |
 | D-16 | Chức danh "CloudDevOps Engineer · Fresher" trên Welcome, Quick, CV, JSON-LD, EN/VI | 2026-11-04 |
 | D-17 | Hoãn A2, làm B2 + B3 local, Lead toàn quyền kỹ thuật/art (ADR 0012); taste brief + hướng art (ADR 0013); T08 chính thức trên laptop Iris Xe (ADR 0007) | 2026-11-04 |
+| D-18 | Q-25: ghi đông GD110 thật là **scrambler** → làm scrambler (khớp spec) | 2026-11-04 |
+| D-19 | Q-26: **không** thu được piano → chỉ dùng nhạc có giấy phép rõ ràng, bỏ slot bản thu | 2026-11-04 |
+| D-20 | Q-27: ảnh nào dùng cũng được. Ảnh **biết người chụp** → dùng ảnh thật kèm credit, xóa EXIF/GPS; ảnh **không rõ người chụp** → Lead tự thiết kế minh họa dựa trên ảnh gốc (không đăng ảnh gốc). Không logo Chiefs/Suzuki trên bất kỳ bản nào | 2026-11-04 |
+| D-21 | Q-28: Duy đã lưu 16 ảnh vào `docs/art-bible/refs/` (6 ảnh cá nhân + 10 ảnh tham chiếu; gitignore, không commit) | 2026-11-04 |

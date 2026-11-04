@@ -21,10 +21,17 @@
 
 ## Khác biệt so với `direction-notes.md`
 
-- Ghi đông GD110: nháp ghi "scrambler cao" (theo spec); ảnh thật trông như ghi đông thường → **tạm làm theo ảnh thật**, chờ Duy (Q-25).
+- Ghi đông GD110: **scrambler** (Duy xác nhận 2026-11-04, Q-25 — đúng như xe thật và spec).
 - Thêm khái niệm hai chất liệu (tranh/film), bảng màu hex, quy tắc UI im lặng, nhân vật chi tiết (kính vàng nhạt/bạc, tote, quần short đen, giày vải xanh lá).
 
 ## Hệ quả
 
 - Ảnh nền Welcome 2D (ADR 0009) sẽ được vẽ lại theo bảng màu khi art bible khóa — chỉ khi không làm đỏ gate Lighthouse/ngân sách JS.
 - Art Director (subagent) review mọi ảnh/video showcase theo `taste.md` + art bible.
+
+## Bổ sung 2026-11-04: câu trả lời Q-25…Q-28
+
+- **Xe**: ghi đông scrambler; theo ảnh: thân trắng, yên đen, vành nan, gương tròn, baga sau, mũ bảo hiểm có kính phi công đặt trên bình, túi tote treo ghi đông. Không chữ/huy hiệu.
+- **Âm thanh**: không có bản thu của Duy → chỉ nhạc CC0/giấy phép rõ ràng (piano chậm, chill).
+- **Ảnh thật trên web**: ảnh có credit rõ → dùng (khung ảnh film, xóa EXIF/GPS, che/loại logo); ảnh không rõ người chụp → minh họa màu nước do Lead vẽ dựa trên ảnh gốc. Mọi ảnh dùng trên web: ghi nguồn trong `assets/LICENSES.csv`.
+- **Ảnh tham chiếu đã có trên đĩa** (`refs/`, gitignore) — chỉ mục ở `refs/README.md`.

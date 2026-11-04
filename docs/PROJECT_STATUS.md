@@ -256,7 +256,7 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - **ADR 0013** (Accepted — hướng): "Thế giới là một bức tranh. Ký ức là những tấm ảnh film." Taste brief nguyên văn: `docs/art-bible/taste.md`. `docs/art/direction-notes.md` đã bị thay thế.
 - **ADR 0007** bổ sung: laptop ASUS Vivobook Flip i5-13500H Iris Xe là máy nghiệm thu chính thức T08/T09; desktop dGPU chỉ tham khảo; kiểm §3.4 ở chế độ laptop + tablet.
 - **Nội dung**: chức danh "CloudDevOps Engineer · Fresher" (Welcome, Quick, CV, OG, world-content, JSON-LD `jobTitle`); mục kinh nghiệm HPT vẫn ghi "Cloud & DevOps Intern" (đúng sự thật). Email công khai giữ `duybao09012004@gmail.com` (Duy chủ ý).
-- `docs/art-bible/refs/` đã gitignore. **Ảnh Duy gửi trong chat chưa có trên đĩa** — Lead không đọc được ảnh trong chat (Q-28).
+- `docs/art-bible/refs/` đã gitignore. Duy đã lưu 16 ảnh vào đây (Q-28). Q-25 ghi đông scrambler, Q-26 không có bản thu, Q-27 ảnh thật dùng được (không rõ người chụp → minh họa).
 
 ### Ticket tiếp theo
 
