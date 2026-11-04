@@ -46,3 +46,24 @@ education: z.array(z.object({
 ## Hệ quả
 
 Đổi tên/kiểu trường phải qua ADR mới.
+
+## Mở rộng 2026-11-04 (đợt 12): evidence song ngữ
+
+Bối cảnh: `claim`/`scope`/`description` trong `evidence.json` viết bằng tiếng Việt nên trang Quick EN hiện câu tiếng Việt.
+
+Quyết định (hợp đồng L2 ↔ L1):
+
+```ts
+// evidenceSchema — thêm 3 trường TÙY CHỌN; trường gốc giữ nguyên nghĩa là bản tiếng Việt
+claimEn: text.optional(),
+scopeEn: text.optional(),
+descriptionEn: text.optional(),
+```
+
+- L2: mọi evidence có `level` khác `TBD` phải có đủ `claimEn` và `scopeEn` (kiểm trong `superRefine`); `descriptionEn` khuyến khích.
+- L1: khi locale là `en`, hiển thị `claimEn ?? claim`, `scopeEn ?? scope`; `vi` dùng trường gốc.
+- Không đổi `id`, không đổi `level`.
+
+## Ghi công InsightHub (trả lời Q-17)
+
+Duy chọn trình bày bối cảnh bản triển khai từ repo của giảng viên, chỉ ghi "InsightHub", không nêu tên repo gốc. Vì vậy **không** thêm `upstreamUrl`/`attribution`.
