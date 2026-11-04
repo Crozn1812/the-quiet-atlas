@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-04 (đợt 14 — quyết định của Duy, ADR 0012/0013). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
+> Cập nhật lần cuối: 2026-11-05 (đợt 16: style frame A/B/C). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
 
 ## Milestone hiện tại
 
@@ -282,11 +282,43 @@ Kiểm trên main `2d75e5f` (máy dev, Edge): lint, typecheck, unit (tất cả 
 
 **Kiểm full gate A trên main `2fb77da`** (máy dev desktop dGPU RTX 3060, Edge 156 headless, server local): lint, typecheck, unit **465**, build:artifacts, check:cv/bundle/leaks/licenses/assets — **PASS**; e2e **142/142 PASS**; test:perf PASS 3/3 lần (Welcome JS 137,1/150 KB; 0 request 3D trước Enter World; 3D tới playable **1,73 MB** / 8 MB; time-to-playable xấu nhất **2,24 s** / 10 s); Lighthouse 15 lần đo, mọi assertion PASS. Lead xem world trên trình duyệt (High): render đúng, 0 lỗi console. **T08/T09: NOT RUN** (chưa đo FPS world mới; máy nghiệm thu là laptop Iris Xe). Chưa push.
 
+### Đợt 16 (2026-11-05): style frame A/B/C
+
+- **B2-031** (Lead + 1 vòng Art Director, `143bb8e`, `53913bc`):
+  - Paper pass tone map chỉ cảnh 3D. ACES từng làm xám màu giấy, sương và fog; nguyên nhân chính của màu "bạc".
+  - Fog và sương nhận màu qua API `setFog`/`setMist`. World bỏ đoạn vá shader bằng thay chuỗi của B2-050.
+  - Biển chuyển sang màu ngọc lam; xa tan về màu kem lạnh, không còn dải ô-liu.
+  - Không còn cây mọc dưới 0,8 m (biển, bãi).
+  - Thông 3 tầng, cây lá rộng dạng cụm.
+  - Đồi thung lũng cao 7–12 m (trước là 3–4 m; đổi test B2-011 và ghi lý do).
+  - Ánh sáng: giảm đèn bán cầu theo đề xuất Art Director.
+- **B2-037** (Codex, `7c370e8`): đường bờ cong, bãi cát, cửa suối mở ra biển.
+  - Lead giữ lại màu thung lũng mà Codex đã xóa.
+  - Lead cho lòng suối không bị nền khô Last Postcard chặn.
+- **Lỗi quy trình lặp lại:** `7c370e8` vào main khi 1 unit test bàn dựng đỏ, vì gate nối `| tail` nuốt mã thoát. Đã sửa ở `4bdc00c`. Từ nay gate luôn chạy không qua pipe.
+- **Showcase cho Duy chọn hướng:** `docs/showcase/16-styleframes/checklist.md`.
+  - 6 ảnh WebP.
+  - 6 video 18 s, chỉ ở local, không vào repo.
+  - Art Director đánh giá C gần taste brief nhất.
+
+**Gate A đầy đủ trên main `4bdc00c`** (máy dev RTX 3060, Edge headless):
+
+| Kiểm tra | Kết quả |
+|---|---|
+| lint, typecheck, unit (471), build:artifacts, check:cv/bundle/leaks/licenses/assets | **PASS** |
+| e2e | **142/142 PASS** |
+| test:perf (3/3 lần) | **PASS**: Welcome JS 137,1/150 KB; 0 request 3D trước Enter World; 3D tới playable 1,73 MB / 8 MB; thời gian tới playable tệ nhất 2,23 s / 10 s |
+| Lighthouse | **NOT RUN** đợt này |
+| T08/T09 | **NOT RUN** |
+
+Chưa push.
+
 ### Ticket tiếp theo
 
-1. Lead chỉnh màu style frame A/B/C tới khi đạt (Art Director subagent review) → ảnh + video 15–20 s → T08 Iris Xe → gửi Duy chọn hướng.
-2. Nối Journal (J), teleport, cinematic, xe vào world (`index.ts` — làm tuần tự, một worker).
-3. Theo kết quả Duy chấm turnaround: sửa nhân vật/xe → rig/animation.
+1. Duy chọn hướng A/B/C, rồi B2-038: áp hướng đó vào world (world vẫn dùng fog 15/65 m) và B2-039: cây vẽ tay.
+2. B2-034: đo T08 trên laptop Iris Xe, không chạy tác vụ nào khác cùng lúc.
+3. Nối Journal (J), teleport, cinematic, xe vào world (`index.ts`, làm tuần tự, một worker).
+4. Theo kết quả Duy chấm turnaround: sửa nhân vật/xe, rồi rig/animation.
 
 ### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 

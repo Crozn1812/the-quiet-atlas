@@ -38,16 +38,24 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-050 | Ghép world thật | merged `98e01a9` |
 | B2-060 | Cinematic mở đầu (model) | merged `2fb77da` (chưa nối) |
 
+## Đợt 16 (2026-11-05)
+
+| ID | Việc | Trạng thái |
+|---|---|---|
+| B2-031 | Chỉnh màu style frame (Lead + Art Director 1 vòng): tone map chỉ cảnh 3D, fog/sương theo chân trời, biển ngọc, tán nhiều tầng, đồi thung lũng | merged `143bb8e`, `53913bc` |
+| B2-037 | Bờ biển hữu cơ: đường bờ cong, bãi cát, cửa suối tan vào biển (Lead giữ lại màu thung lũng, mở lòng suối qua nền khô) | merged `7c370e8`, `4bdc00c` |
+| B2-033 | Showcase: 6 ảnh + 6 video 18 s + checklist (`docs/showcase/16-styleframes/`) | xong (video chỉ local) |
+
 ## Tiếp theo (todo)
 
 | ID | Việc | Phụ thuộc |
 |---|---|---|
-| B2-031 | Chỉnh màu style frame A/B/C tới khi đạt (Lead + Art Director) | B2-030 |
-| B2-033 | Showcase: 2 ảnh + video 15–20 s mỗi hướng + checklist cho Duy | B2-030, 031 |
 | B2-034 | T08 trên laptop Iris Xe cho 3 hướng (chạy một mình) | B2-030 |
 | B2-043 | Nối Journal (J), cinematic vào world | B2-040, B2-060 |
 | B2-041 | Nối teleport vào world (E tại bảng, sương) | B2-013, 016 |
 | B2-042 | Xe GD110 graybox nối collider + phím E/C | B2-015, 016 |
+| B2-038 | Áp hướng Duy chọn vào world: fog/sương cỡ thế giới (world vẫn dùng fog 15/65 m), màu tán/đất/trời theo preset | Duy chọn hướng |
+| B2-039 | Asset cây vẽ tay (Blender, 2–3 dáng thông + 2 cây lá rộng, ≤ 300 tam giác) thay khối hình học | Duy chọn hướng |
 
 ## Sau khi Duy chọn hướng
 
