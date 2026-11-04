@@ -1,7 +1,7 @@
 import { pageMetadata } from "@/app/seo";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
-import { Portfolio } from "@/components/portfolio/Portfolio";
+import { QuickPortfolio } from "@/components/portfolio/QuickPortfolio";
 export default async function Page({ params }: {
   params: Promise<{
     locale: string;
@@ -10,9 +10,8 @@ export default async function Page({ params }: {
   const { locale } = await params;
   if (!isLocale(locale))
     notFound();
-  return <Portfolio
+  return <QuickPortfolio
     locale={locale}
-    quick
   />;
 }
 
