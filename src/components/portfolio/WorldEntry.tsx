@@ -106,11 +106,10 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       if (worldEligibility(readCapabilities()) !== "eligible") throw new Error("World unavailable");
       const { mountWorld } = await import("@/features/world");
       if (current !== generation.current || !container.current) return;
-      // ADR 0008 đợt 10 — L3-010 thêm locale vào WorldOptions
       const unmount = await mountWorld(container.current, {
         collision: "rapier",
-        locale: currentLocale.current,
-      } as Parameters<typeof mountWorld>[1]);
+        locale: currentLocale.current === "vi" ? "vi" : "en",
+      });
       if (current !== generation.current) {
         unmount();
         return;
