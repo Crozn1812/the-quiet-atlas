@@ -1,6 +1,6 @@
 ## TICKET L1-009 — Đổi ngôn ngữ trong world (§6.3, Q21) + nhãn "demo" trong CV + preview.ps1
 
-- Trạng thái: **Assigned → Codex** (2026-11-04), nhánh `lane/L1-009`, worktree `D:/tqa-worktrees/L1-009`
+- Trạng thái: **Done — merged vào main** `f525a9f` (2026-11-04). Lead sửa câu thông báo screen reader theo ngôn ngữ. Kiểm trên trình duyệt (máy dev): đổi en→vi đổi URL/lang/title/HUD/menu/overlay, cùng canvas; Thoát world sau khi đổi → `/vi/`. e2e Q21 ở L3-009.
 - Lane / milestone: L1 / A1 + B1 (UI)
 - Đọc trước: spec §6.3 (dòng "Đổi ngôn ngữ trong thế giới"), Q21 (§13); `docs/adr/0008-ui-world-event-contract.md`, `docs/adr/0009-full-viewport-shell-and-hud.md`.
 
