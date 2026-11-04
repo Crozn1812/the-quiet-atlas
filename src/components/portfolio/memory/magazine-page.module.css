@@ -1,0 +1,78 @@
+.page {
+  /* Same paper/ink values as world/art/palette.ts, without importing world. */
+  --memory-paper: #EEE8D8;
+  --memory-ink: #2B2A26;
+  --page-gutter: clamp(1rem, 5vw, 5rem);
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  padding: var(--page-gutter);
+  color: var(--memory-ink);
+  background: var(--memory-paper);
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.header,
+.body {
+  max-inline-size: 38rem;
+  margin-inline: auto;
+}
+
+.kicker {
+  margin: 0 0 1.5rem;
+  font-size: .875rem;
+  letter-spacing: .08em;
+}
+
+.title {
+  margin: 0;
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: clamp(2rem, 1rem + 4vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.lead {
+  margin: 2rem 0 0;
+  font-size: clamp(1.125rem, 1rem + .5vw, 1.375rem);
+  line-height: 1.7;
+}
+
+.art {
+  min-inline-size: 0;
+  margin-block: clamp(2rem, 5vw, 5rem);
+  margin-inline: calc(-1 * var(--page-gutter));
+}
+
+.art img,
+.art svg,
+.art video,
+.body img,
+.body svg,
+.body video {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+.body {
+  margin-block-start: clamp(2rem, 5vw, 4rem);
+}
+
+.body > :first-child {
+  margin-block-start: 0;
+}
+
+.body > :last-child {
+  margin-block-end: 0;
+}
+
+.page a {
+  color: inherit;
+  text-underline-offset: .2em;
+}
