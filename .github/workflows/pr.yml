@@ -118,6 +118,24 @@ jobs:
       - name: Lighthouse CI (filesystem reports only)
         run: pnpm exec lhci autorun
 
+      # Đợt 11: log job cần đăng nhập — đưa từng assertion lỗi + số đo ra annotation (đọc công khai được).
+      - name: Lighthouse assertion summary (annotations)
+        if: ${{ failure() }}
+        run: |
+          node -e '
+          const fs = require("fs");
+          const p = ".lighthouseci/assertion-results.json";
+          if (!fs.existsSync(p)) { console.log("::warning title=lhci::no assertion-results.json"); process.exit(0); }
+          for (const a of JSON.parse(fs.readFileSync(p, "utf8"))) {
+            if (a.passed) continue;
+            const url = (a.url || "").replace(/^https?:\/\/[^/]+/, "");
+            console.log(`::error title=lhci ${a.auditId}::${url} ${a.auditProperty || ""} ${a.operator} ${a.expected}, found ${Math.round(a.actual * 1000) / 1000} (values ${(a.values || []).map(v => Math.round(v)).join("/")})`);
+          }
+          for (const f of fs.readdirSync(".lighthouseci").filter(f => f.startsWith("lhr-") && f.endsWith(".json"))) {
+            const r = JSON.parse(fs.readFileSync(".lighthouseci/" + f, "utf8")); const a = r.audits;
+            console.log(`::notice title=lhci run::${r.finalDisplayedUrl.replace(/^https?:\/\/[^/]+/, "")} TBT ${Math.round(a["total-blocking-time"].numericValue)} LCP ${Math.round(a["largest-contentful-paint"].numericValue)} CLS ${a["cumulative-layout-shift"].numericValue.toFixed(3)} bootup ${Math.round(a["bootup-time"].numericValue)} benchmarkIndex ${r.environment.benchmarkIndex}`);
+          }'
+
       - name: Upload perf reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v6
