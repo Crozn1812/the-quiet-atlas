@@ -30,8 +30,9 @@ jobs:
           # Toàn bộ lịch sử cho gitleaks git (L3-003).
           fetch-depth: 0
 
+      # L5-010: v6 chạy trên Node 24 (v4 chạy Node 20 → cảnh báo "Node.js 20 is deprecated" ở run #1).
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 12.16.1
 
@@ -89,6 +90,7 @@ jobs:
 
       # L3-003 — Playwright e2e trên out/ (T01, T02, Q12, T11 HTML + axe, Enter World).
       # CI dùng Chromium bundled (playwright.config.ts: CI=true → không đặt channel); local dùng msedge.
+      # GitHub Actions luôn đặt CI=true; không đặt PLAYWRIGHT_CHANNEL ở đây (ubuntu-24.04 không có Edge).
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -104,12 +106,21 @@ jobs:
       # L3-004 — Lighthouse CI (§8 Quick web UX, lab): LCP ≤ 2.5 s, CLS ≤ 0.1, TBT ≤ 200 ms as lab proxy for INP;
       # accessibility score recorded only. Uses the runner's preinstalled Chrome. Reports go to the
       # filesystem (test-results/lhci) and are uploaded as a workflow artifact only — no public storage.
+      # L5-010: chỉ rõ Chrome cài sẵn của runner cho lhci (chrome-launcher đọc CHROME_PATH); thiếu thì fail rõ ràng
+      # thay vì lỗi "No Chrome installations found" ở giữa lhci.
+      - name: Resolve runner Chrome for Lighthouse
+        run: |
+          chrome="$(command -v google-chrome-stable || command -v google-chrome || true)"
+          if [ -z "$chrome" ]; then echo "::error::Google Chrome not found on runner (needed by lhci)"; exit 1; fi
+          "$chrome" --version
+          echo "CHROME_PATH=$chrome" >> "$GITHUB_ENV"
+
       - name: Lighthouse CI (filesystem reports only)
         run: pnpm exec lhci autorun
 
       - name: Upload perf reports
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: perf-reports
           path: |
@@ -121,7 +132,7 @@ jobs:
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: |
