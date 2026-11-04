@@ -91,7 +91,8 @@ test("T07 First Light: hinted at spawn, E opens the overlay (paused, focus on ti
   await expect(world).toHaveAttribute("data-world-paused", "true");
   await expect(overlayTitle(page)).toHaveText("The First Light");
   await expect(overlayTitle(page)).toBeFocused();
-  await expect(overlay(page).getByRole("heading", { level: 1, name: "Nguyen Huu Bao Duy" })).toBeVisible();
+  // Content JSON is fetched under parallel SwiftShader load; same headroom as the other content checks here.
+  await expect(overlay(page).getByRole("heading", { level: 1, name: "Nguyen Huu Bao Duy" })).toBeVisible({ timeout: 10_000 });
 
   await closeWithEscape(page, world, "first-light");
   expect(errors, errors.join("\n")).toEqual([]);

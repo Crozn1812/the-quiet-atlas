@@ -10,9 +10,10 @@ export const OUT_DIR = path.resolve(process.cwd(), "out");
 // Expected public copy. Mirrors src/content/index.ts (profiles) and src/i18n/messages.ts (world copy):
 // the content module can't be imported here (Node ESM requires `with { type: "json" }` for evidence.json).
 // `leave`: ADR 0009 replaced "Back to Welcome" with "Exit world" (HUD button + world menu button).
+// `sound`: HUD Sound button label, localized since L1-009 (src/components/portfolio/WorldEntry.tsx).
 export const LOCALES = [
-  { locale: "en", name: "Nguyen Huu Bao Duy", role: "Cloud & DevOps Engineer", editorial: "View Editorial", leave: "Exit world" },
-  { locale: "vi", name: "Nguyễn Hữu Bảo Duy", role: "Cloud & DevOps Engineer", editorial: "Xem bản Editorial", leave: "Thoát world" },
+  { locale: "en", name: "Nguyen Huu Bao Duy", role: "Cloud & DevOps Engineer", editorial: "View Editorial", leave: "Exit world", sound: "Sound" },
+  { locale: "vi", name: "Nguyễn Hữu Bảo Duy", role: "Cloud & DevOps Engineer", editorial: "Xem bản Editorial", leave: "Thoát world", sound: "Âm thanh" },
 ] as const;
 
 /** ADR 0009 corner HUD (bottom-left): Quick Portfolio, CV, email, Sound, Menu, Exit world. */

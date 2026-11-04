@@ -25,7 +25,7 @@ for (const profile of LOCALES) {
     await expect(enter).toBeVisible();
     await expect(enter).toBeEnabled();
 
-    await expect(page.getByRole("button", { name: "Sound" })).toBeVisible();
+    await expect(page.getByRole("button", { name: profile.sound, exact: true })).toBeVisible();
     // ADR 0009: the CV section (h2) moved to Quick Portfolio; Welcome keeps a CV link in the corner card.
     // Every CV link must point to /cv/, and the card must show at least one.
     const cvLinks = page.getByRole("link", { name: /CV/ });

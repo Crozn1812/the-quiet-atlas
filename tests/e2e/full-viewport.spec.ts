@@ -48,7 +48,7 @@ async function axe(page: Page, where: string) {
   expect(other.map(describe), `moderate/minor axe violations ${where}`).toEqual([]);
 }
 
-for (const { locale } of LOCALES) {
+for (const { locale, sound } of LOCALES) {
   test(`L3-008 #1 /${locale}/ 1366×800: one screen (no vertical scroll), corner card inside the viewport, bottom-left half`, async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await openWelcome(page, locale);
@@ -95,7 +95,7 @@ for (const { locale } of LOCALES) {
       page.locator(`${HUD} a[href='/${locale}/quick/']`),
       page.locator(`${HUD} a[href='/cv/']`),
       page.locator(`${HUD} a[href^='mailto:']`),
-      page.locator(HUD).getByRole("button", { name: "Sound" }),
+      page.locator(HUD).getByRole("button", { name: sound, exact: true }),
     ]) {
       await expect(locator).toBeInViewport({ ratio: 1 });
     }
