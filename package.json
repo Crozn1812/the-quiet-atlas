@@ -24,7 +24,8 @@
     "build:cv": "node tools/cv/index.mjs",
     "build:og": "node tools/og/index.mjs",
     "build:artifacts": "pnpm build && pnpm build:cv && pnpm build:og",
-    "check:cv": "node tools/cv/verify.mjs && node tools/cv/check-output.mjs"
+    "check:cv": "node tools/cv/verify.mjs && node tools/cv/check-output.mjs",
+    "check:assets": "node tools/assets/check-budgets.mjs public/world"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",

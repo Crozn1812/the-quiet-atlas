@@ -1,0 +1,12 @@
+{
+  "note": "Starting values; Perf Watcher adjusts after measurement. KB = 1000 bytes; MB = 1000000 bytes.",
+  "types": {
+    "tree": { "triangles": 1500, "bytes": 60000 },
+    "rock": { "triangles": 400, "bytes": 20000 },
+    "prop": { "triangles": 2000, "bytes": 80000 },
+    "character": { "triangles": 12000, "bytes": 600000 },
+    "vehicle": { "triangles": 8000, "bytes": 400000 }
+  },
+  "worldBytes": 30000000,
+  "startBytes": 8000000
+}
