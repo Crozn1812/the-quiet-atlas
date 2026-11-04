@@ -40,6 +40,17 @@ World phát `tqa:world-state` (bubbles: false) trên container mỗi khi `paused
 |---|---|---|---|
 | World → UI | `tqa:world-error` (trên container, bubbles: false) | `{ kind: "context-lost" }` | Mất WebGL context: world dừng hẳn; UI đưa người xem về HTML (Q15); không hứa khôi phục renderer |
 
+## Mở rộng 2026-11-04 (đợt 10: ngôn ngữ trong world, §6.3 / Q21)
+
+| Hướng | Event / option | `detail` / giá trị | Ý nghĩa |
+|---|---|---|---|
+| UI → world | `mountWorld(container, { locale })` | `"en"` \| `"vi"` (mặc định `"en"`) | Ngôn ngữ ban đầu cho mọi chữ world tự hiển thị |
+| UI → world | `tqa:set-locale` (trên container) | `{ locale: "en" \| "vi" }` | Đổi chữ world tại chỗ: gợi ý "E — …", nhãn vật thể/placeholder, `aria-label` của canvas. **Không** remount canvas, **không** đổi vị trí/secret/quality/pause |
+| World → UI | `data-world-locale` | `"en"` \| `"vi"` | Ngôn ngữ world đang dùng (để UI/test xác nhận) |
+
+- Từ điển chữ của world nằm trong `src/features/world/` (L3 sở hữu), không import `src/i18n/` (giữ ranh giới bundle).
+- UI dispatch `tqa:set-locale` sau khi đổi URL/từ điển của mình (L1, `WorldMenu.ts`).
+
 World **không** tự mở overlay khi đang có lý do pause; UI chịu trách nhiệm pause/resume qua `tqa:pause` như menu.
 
 ## Hệ quả
