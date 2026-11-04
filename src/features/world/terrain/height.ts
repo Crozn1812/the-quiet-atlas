@@ -56,3 +56,9 @@ export function worldHeight(x: number, z: number): number {
   const pathBlend = 1 - smoothstep(PATH_WIDTH / 2, 4, path.distance);
   return land + (pathHeight - land) * pathBlend;
 }
+
+/** Water surface above the river centre: 0.35 m below the bank, easing to sea level (0) at the coast. */
+export function waterLevelAt(z: number): number {
+  if (!Number.isFinite(z)) throw new RangeError("Water level coordinate must be finite");
+  return riverLevel(z) - 0.35 * coastWeight(z);
+}
