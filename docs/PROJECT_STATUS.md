@@ -176,10 +176,35 @@ Kiểm `main`: lint 0 warning, typecheck, unit 166, `build:artifacts` (Next + CV
 
 Còn tiếng Anh trong world: nhãn "(placeholder)" và gợi ý "E — …" do `src/features/world` chèn (L2).
 
+### Đợt 10 — Tổ chức 5 lane (CLAUDE.md §2–3), push GitHub, font, ngôn ngữ world, nháp nội dung
+
+Repo đã push: `github.com/Crozn1812/the-quiet-atlas` (public). Trước khi push: quét lịch sử 55 commit theo mẫu secret phổ biến (không phải gitleaks) — 0 phát hiện; không có file nháp/mật.
+
+| Ticket | Lane | Kết quả |
+|---|---|---|
+| L2-010 | L2 Content (subagent) | **Merged** `e81071d`. Điện thoại theo CV lên web + CV; `drafts.ts` tên công ty HPT (chưa lên public — schema chưa có trường kinh nghiệm). Nháp 4 case study + 3 phương án giới thiệu ở `content-private/drafts/` (gitignore, chờ Duy duyệt). Đề xuất schema `experience[]`, `education[]` — **chờ Lead duyệt hợp đồng** |
+| L1-010 | L1 UI (Codex) | **Merged** `971ea57`. Noto Serif tự host (OFL, 4 file ~41 KB, preload 1 file), dòng `LICENSES.csv`; UI gửi `tqa:set-locale` + `locale` khi mount |
+| L3-010 | L3 World (Codex) | **Merged** `bd2ece7`. Chữ world EN/VI (`copy.ts`), `tqa:set-locale`, `data-world-locale`; chunk world +606 B gzip |
+| L5-010 | L5 Platform (subagent) | **Merged** `a8339f9`. 4 runbook cho Duy (`docs/runbook/aws-*.md`, `domain-and-acm.md`); workflow lên action Node 24, chỉ rõ Chrome cho lhci. Terraform: **BLOCKED** (máy chưa có terraform; `infra/` chưa có file `.tf`) |
+| L4-010 | L4 QA (subagent) | **Merged** `97cedf7`. Timeout 30 s cho contract test (CI chậm); e2e chữ world theo ngôn ngữ; T11 font tự host |
+
+**CI GitHub run #1** (commit `3e24151`): **FAIL** ở bước unit test — `contract.test.ts` timeout 5 s trên runner (local 2,4 s). Các bước sau chưa chạy trên CI → NOT RUN. Đã sửa ở L4-010; chờ run mới.
+
+**L4 full suite trên lane (= main `97cedf7` trừ docs)** — máy dev, Edge: lint 0, typecheck 0, unit 172/172, build:artifacts 0, **e2e 137 passed / 0 skipped** (lần 1 có 1 fail do test so khung hình chưa ẩn nhãn world đã dịch → sửa test, không phải lỗi sản phẩm), test:perf EN+VI PASS (Welcome 184,6/190,7 KB; JS 143,3 KB / 150 — còn ~6,7 KB; 0 request 3D trước Enter World; 1,71 MB / 2,07 s tới playable).
+
+| Gate | Trạng thái | Bằng chứng |
+|---|---|---|
+| T08 Low | **PASS** 3/3 (100 FPS vsync, p95 10,2 ms) — máy dev dGPU, không phải iGPU | `docs/evidence/B1/t08-t09-2026-11-04-b10.md` |
+| T09 | **FAIL** 2/2 — "world still rendering" trượt: rAF tụt đều ~1 Hz giữa chừng; heap/DOM/WebGL ổn định (không thấy rò rỉ). Nghi môi trường, **chưa chứng minh** | như trên |
+| Q21 | PASS phần tự động (đổi ngôn ngữ UI + world, cùng canvas, khung hình trùng) | e2e `world-input.spec.ts` |
+| T11 font | PASS phần tự động (Noto Serif tải từ `/fonts/`, không font ngoài) | e2e `fonts.spec.ts` |
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- Tự host font serif có giấy phép, đủ glyph tiếng Việt (§7.3) thay chuỗi font hệ thống.
-- L2: chữ trong world (gợi ý E, placeholder) nhận ngôn ngữ từ UI (cần mở rộng ADR 0008, ví dụ sự kiện `tqa:set-locale`).
+- L2: hợp đồng schema `experience[]`/`education[]` (Lead duyệt) → L2 dữ liệu + L1 hiển thị + CV.
+- L2: sửa nháp case study theo câu trả lời Q-12 → Q-18; Duy duyệt từng trang.
+- L3/L4: chạy lại T09 có người giữ cửa sổ Edge; nếu vẫn tụt 1 Hz thì điều tra (visibility, efficiency mode).
+- Chữ world tiếng Việt chưa được duyệt biên tập.
 - L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; hoặc bắt đầu B2 khi A2 live (§12: B2 chỉ sau A2).
 - A2 (cloud): **chưa bắt đầu** — cần Duy: repo GitHub, ngày đăng ký AWS, Paid plan, tên miền.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
