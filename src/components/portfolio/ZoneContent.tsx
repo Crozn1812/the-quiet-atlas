@@ -14,6 +14,7 @@ export function OverlayProject({ project, locale }: { project: WorldProject; loc
       <p>{project.summary}</p>
       <EvidenceView
         evidence={project.evidence}
+        locale={locale}
       />
       <SourceLinkView
         repoUrl={project.repoUrl}

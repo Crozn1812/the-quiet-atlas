@@ -8,6 +8,7 @@ import { content } from "@/content";
 import type { Locale } from "@/i18n/locales";
 import { messages } from "@/i18n/messages";
 import { ProfileJsonLd } from "./ProfileJsonLd";
+import { ProfileHistory } from "./ProfileHistory";
 
 export function QuickPortfolio({ locale }: { locale: Locale }) {
   const p = content.profiles.find(p => p.locale === locale)!;
@@ -39,6 +40,7 @@ export function QuickPortfolio({ locale }: { locale: Locale }) {
         <a href={`/${locale}/`}>{t.home}</a>
         <a href="/cv/">CV</a>
       </nav>
+      <ProfileHistory profile={p} locale={locale} />
       <ProjectsContent locale={locale} />
       <a href={`/${locale}/privacy/`}>{portfolioCopy[locale].privacy}</a>
       <section

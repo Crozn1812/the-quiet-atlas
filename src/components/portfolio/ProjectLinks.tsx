@@ -17,6 +17,7 @@ export function ProjectEvidence({ project }: { project: Project }) {
   return (
     <EvidenceView
       evidence={evidence}
+      locale={project.locale}
     />
   );
 }
