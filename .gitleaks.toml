@@ -56,5 +56,13 @@ secretGroup = 1
 
 # Fixture "bẩn" cố ý (giá trị giả) cho unit test của tools/scan-leaks — chỉ liên quan khi quét cả repo.
 [allowlist]
-description = "Intentional fake fixtures for scan-leaks unit tests"
-paths = ['''tests/unit/tools/fixtures/scan-leaks/''']
+description = "Intentional fake fixtures and rule docs for scan-leaks (not real values)"
+# Đợt 10 (CI run 2): quét `git` toàn lịch sử bắt các giá trị mẫu cố ý trong test/mã/tài liệu của chính
+# bộ quét (123456789012, 10.0.0.5, *.local mô tả luật). Chỉ allowlist đúng các file này, không nới luật.
+paths = [
+  '''tests/unit/tools/fixtures/scan-leaks/''',
+  '''tests/unit/tools/scan-leaks\.test\.ts''',
+  '''tools/scan-leaks/index\.mjs''',
+  '''docs/tickets/L3-002-leak-scan-and-licenses\.md''',
+  '''docs/evidence/A1/repo-scan-2026-11-04\.md''',
+]
