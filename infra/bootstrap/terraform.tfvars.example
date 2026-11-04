@@ -1,0 +1,15 @@
+# Mẫu — chép thành terraform.tfvars (đã nằm trong .gitignore) và điền giá trị thật NGOÀI repo.
+# Không ghi account ID, ARN, email hay bí mật vào file .example.
+
+region             = "ap-southeast-1"
+github_repository  = "Crozn1812/the-quiet-atlas"
+github_environment = "production"
+
+state_bucket_name = "<ten-bucket-state-duy-nhat>"
+state_key_prefix  = "prod/"
+
+# Phải trùng site_bucket_name của infra/envs/prod.
+site_bucket_name = "<ten-bucket-site-duy-nhat>"
+
+# Để rỗng ở lần chạy đầu; điền output distribution_id của envs/prod rồi chạy lại để tạo role site-deploy.
+site_distribution_id = ""

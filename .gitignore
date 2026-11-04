@@ -20,3 +20,9 @@ next-env.d.ts
 # Nội dung nháp/mật không vào repo (§4.1)
 content-private/
 .lighthouseci/
+
+# Terraform (L5-012)
+backend.hcl
+*.tfplan
+override.tf
+*_override.tf

@@ -1,0 +1,5 @@
+# Mẫu — chép thành backend.hcl (KHÔNG commit) rồi: terraform init -backend-config=backend.hcl
+# bucket = output state_bucket_name của infra/bootstrap.
+bucket = "<ten-bucket-state-duy-nhat>"
+key    = "prod/terraform.tfstate"
+region = "ap-southeast-1"

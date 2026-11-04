@@ -1,0 +1,17 @@
+# Mẫu — chép thành terraform.tfvars (đã nằm trong .gitignore). Không ghi giá trị thật vào file .example.
+
+region      = "ap-southeast-1"
+name_prefix = "tqa"
+
+# Trùng site_bucket_name của infra/bootstrap.
+site_bucket_name = "<ten-bucket-site-duy-nhat>"
+
+# Để rỗng tới khi Duy mua xong tên miền (DUY_QUEUE Q-09).
+domain_name = ""
+
+waf_rate_limit = 1000
+
+# Mặc định Budgets do Duy tạo tay trước (runbook aws-budgets.md). Chỉ đặt true khi đã quyết định chuyển sang Terraform.
+cost_guardrails_managed_by_terraform = false
+alert_email                          = ""
+monthly_budget_usd                   = 10
