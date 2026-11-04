@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bàn dựng style frame A / B / C</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; overflow: hidden; font: 13px/1.5 system-ui, sans-serif; background: var(--paper); color: var(--ink); }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      aside { position: fixed; top: 14px; left: 14px; max-width: 290px; padding: 12px; background: var(--paper); opacity: .94; border: 1px solid var(--ink); }
+      h1 { font: 18px/1.2 Georgia, serif; margin: 0 0 10px; }
+      label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 5px 0; }
+      select, button, input { font: inherit; color: inherit; background: transparent; border: 1px solid var(--ink); padding: 3px 5px; }
+      select { max-width: 185px; }
+      input { width: 185px; }
+      button { cursor: pointer; margin: 6px 4px 0 0; }
+      output, small { display: block; margin-top: 8px; }
+      [hidden] { display: none !important; }
+      #error { position: fixed; inset: 20px; padding: 20px; background: var(--paper); white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <canvas id="frame" aria-label="Khung cảnh duyệt hướng tranh"></canvas>
+    <aside id="overlay">
+      <h1>Style frame / A · B · C</h1>
+      <label>Hướng <select id="preset"><option value="A">A · Màu nước đầy</option><option value="B">B · Mực trên giấy</option><option value="C">C · Kết hợp</option></select></label>
+      <label>Cảnh <select id="shot"><option value="forest-dawn">Rừng bình minh</option><option value="coast-dusk">Biển hoàng hôn</option></select></label>
+      <label>Chất lượng <select id="quality"><option>Low</option><option>Balanced</option><option>High</option></select></label>
+      <label>Giây <input id="time" type="range" min="0" max="18" step="0.01" value="0" /></label>
+      <button id="play" type="button">Chạy 18 s</button><button id="reset" type="button">Về t = 0</button>
+      <output id="stats" aria-live="off">Đang dựng cảnh…</output>
+      <small>TODO Lead: thêm water/ cho suối và biển. Hiện chỉ có địa hình lòng suối / bờ biển.</small>
+      <small>Space: chạy/dừng · R: về 0 · H: ẩn bảng</small>
+    </aside>
+    <p id="error" role="alert" hidden></p>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>
