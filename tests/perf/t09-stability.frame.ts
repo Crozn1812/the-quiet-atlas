@@ -11,6 +11,7 @@
 //     counted by an init script around create*/delete*), draw calls per frame. Renderer `info()` (`__tqaPerf`) is NOT RUN.
 //   - Trend after a 120 s warm-up: tools/frame-budget classifyTrend (heap tolerance 10 %, counts 5 %).
 //   - Heap snapshots (CDP) after warm-up and at the end → test-results/frame-budget/ (not committed: large).
+//   - L4-011: visibilityState / hasFocus / rAF frames per 10 s logged every 10 s → t09-visibility.csv + t09.json (information only).
 // PASS = no crash/page error, world still running/unpaused and responsive at the end, every trend "ổn định".
 import { createWriteStream, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -126,6 +127,43 @@ test("T09 stability: 10 min movement + 20 menu/overlay open-close cycles, resour
   await startRecorder(page, world!);
   const t0 = await pageNow(page);
 
+  // L4-011: every 10 s (Node-side timer, not throttled with the page) log document.visibilityState, document.hasFocus()
+  // and the rAF frames recorded in the last ~10 s, to tell a hidden/unfocused/occluded window from a slow world.
+  type VisibilityEntry = { wallS: number; pageS: number | null; visibility: string; hasFocus: boolean | null; frames: number | null; framesLast10s: number | null; paused: string | null };
+  const visibilityLog: VisibilityEntry[] = [];
+  const wallStart = Date.now();
+  let lastFrames = 0;
+  const logVisibility = async () => {
+    try {
+      const v = await page.evaluate(() => ({
+        pageMs: performance.now(),
+        visibility: document.visibilityState,
+        hasFocus: document.hasFocus(),
+        frames: (window as unknown as { __tqaFrames?: { stamps: number[] } }).__tqaFrames?.stamps.length ?? null,
+        paused: document.querySelector("[data-world-chunk]")?.getAttribute("data-world-paused") ?? null,
+      }));
+      const entry: VisibilityEntry = {
+        wallS: Math.round((Date.now() - wallStart) / 1000),
+        pageS: Math.round((v.pageMs - t0) / 100) / 10,
+        visibility: v.visibility,
+        hasFocus: v.hasFocus,
+        frames: v.frames,
+        framesLast10s: v.frames === null ? null : v.frames - lastFrames,
+        paused: v.paused,
+      };
+      // The recorder restarts at the end (fresh stamps array): a negative delta is that restart, not a rAF count.
+      if (entry.framesLast10s !== null && entry.framesLast10s < 0) entry.framesLast10s = null;
+      lastFrames = v.frames ?? 0;
+      visibilityLog.push(entry);
+      console.log(`T09 vis t=${entry.wallS}s visibility=${entry.visibility} hasFocus=${entry.hasFocus} paused=${entry.paused} rAF/10s=${entry.framesLast10s}`);
+    } catch (error) {
+      visibilityLog.push({ wallS: Math.round((Date.now() - wallStart) / 1000), pageS: null, visibility: `error: ${(error as Error).message.split("\n")[0]}`, hasFocus: null, frames: null, framesLast10s: null, paused: null });
+    }
+  };
+  const visibilityTimer = setInterval(() => void logVisibility(), 10_000);
+  page.on("close", () => clearInterval(visibilityTimer));
+  await logVisibility();
+
   const samples: Sample[] = [await takeSample(page, cdp, world!, 0)];
   const cycles: { i: number; tMs: number; overlay: string }[] = [];
   let snapshotAfterWarmup = false;
@@ -147,6 +185,12 @@ test("T09 stability: 10 min movement + 20 menu/overlay open-close cycles, resour
   }
 
   // Responsiveness at the end: the world still renders frames, is unpaused, and the menu opens/closes.
+  clearInterval(visibilityTimer);
+  await logVisibility();
+  writeFileSync(
+    path.join(OUT_DIR, "t09-visibility.csv"),
+    ["wallS,pageS,visibility,hasFocus,paused,frames,framesLast10s", ...visibilityLog.map(e => [e.wallS, e.pageS, e.visibility, e.hasFocus, e.paused, e.frames, e.framesLast10s].join(","))].join("\n"),
+  );
   const whole = await stopRecorder(page);
   await startRecorder(page, world!);
   await page.waitForTimeout(2_000);
@@ -193,6 +237,13 @@ test("T09 stability: 10 min movement + 20 menu/overlay open-close cycles, resour
     recordingNote,
     frameStats: wholeStats,
     cycles,
+    visibilityLog,
+    visibilitySummary: {
+      entries: visibilityLog.length,
+      notVisible: visibilityLog.filter(e => e.visibility !== "visible").length,
+      notFocused: visibilityLog.filter(e => e.hasFocus === false).length,
+      lowRaf: visibilityLog.filter(e => e.framesLast10s !== null && e.framesLast10s < 100).map(e => e.wallS),
+    },
     samples,
     drawsPerFrame,
     trends,

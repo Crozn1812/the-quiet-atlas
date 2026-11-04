@@ -40,6 +40,8 @@ export default defineConfig({
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
         "--disable-background-timer-throttling",
+        // L4-011: Windows native occlusion detection can mark a visible window occluded and throttle rAF (T09 b10: ~1 Hz).
+        "--disable-features=CalculateNativeWinOcclusion",
         // T09: un-bucketed performance.memory values.
         "--enable-precise-memory-info",
       ],
