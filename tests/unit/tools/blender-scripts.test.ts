@@ -80,6 +80,6 @@ describe('character Blender authoring scripts (static Node checks)', () => {
     expect(source).toContain('scene.render.resolution_y = 1024');
     expect(source).toContain('scene.render.image_settings.file_format = "PNG"');
     expect(source).toContain('os.path.join(output_dir, f"character-duy-{name}.png")');
-    expect(source).toContain('scene.world.color = linear_color(PAPER)');
+    expect(source).toContain('background.inputs["Color"].default_value = (*linear_color(PAPER), 1)');
   });
 });
