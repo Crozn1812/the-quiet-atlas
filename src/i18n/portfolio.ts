@@ -19,7 +19,7 @@ export const portfolioCopy = {
     privacyText: [
       "There are currently no analytics or cookies. Exploration progress is not stored.",
       "AI is not enabled. No data is sent to an AI service.",
-      "Hosting logs, retention and future data handling: TBD.",
+      "After launch the site is served through Amazon CloudFront and S3, with CloudFront access logs turned off. Before aggregate view statistics or the AI assistant are switched on, this page will be updated to say what data is collected, who processes it and how long it is kept.",
       "For privacy questions, contact me by email."
     ]
   },
@@ -43,7 +43,7 @@ export const portfolioCopy = {
     privacyText: [
       "Hiện không có analytics hay cookie. Không lưu tiến trình khám phá.",
       "AI chưa bật. Không gửi dữ liệu tới dịch vụ AI.",
-      "Log hosting, thời gian lưu và cách xử lý dữ liệu trong tương lai: TBD.",
+      "Khi phát hành, site được phục vụ qua Amazon CloudFront và S3, không bật access log của CloudFront. Trước khi bật thống kê lượt xem tổng hợp hoặc trợ lý AI, trang này sẽ được cập nhật: dữ liệu nào được thu, ai xử lý, lưu bao lâu.",
       "Nếu có câu hỏi về quyền riêng tư, hãy liên hệ qua email."
     ]
   }

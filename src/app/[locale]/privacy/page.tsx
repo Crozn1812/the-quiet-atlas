@@ -39,7 +39,6 @@ export default async function Page({ params }: Props) {
         <a href={'/' + locale + '/quick/'}>Quick Portfolio</a>
       </nav>
       <h1>{t.privacy}</h1>
-      <p>Draft</p>
       {t.privacyText.map(v => <p key={v}>{v}</p>)}
       <a href={'mailto:' + p.email}>{p.email}</a>
     </main>
