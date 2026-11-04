@@ -119,8 +119,9 @@ jobs:
         run: pnpm exec lhci autorun
 
       # Đợt 11: log job cần đăng nhập — đưa từng assertion lỗi + số đo ra annotation (đọc công khai được).
+      # ADR 0011: gate theo trung vị 5 lần, nên bước này chạy MỌI lần để lần xấu nhất luôn hiện ra.
       - name: Lighthouse assertion summary (annotations)
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         run: |
           node -e '
           const fs = require("fs");
@@ -133,7 +134,10 @@ jobs:
           }
           for (const f of fs.readdirSync(".lighthouseci").filter(f => f.startsWith("lhr-") && f.endsWith(".json"))) {
             const r = JSON.parse(fs.readFileSync(".lighthouseci/" + f, "utf8")); const a = r.audits;
-            console.log(`::notice title=lhci run::${r.finalDisplayedUrl.replace(/^https?:\/\/[^/]+/, "")} TBT ${Math.round(a["total-blocking-time"].numericValue)} LCP ${Math.round(a["largest-contentful-paint"].numericValue)} CLS ${a["cumulative-layout-shift"].numericValue.toFixed(3)} bootup ${Math.round(a["bootup-time"].numericValue)} benchmarkIndex ${r.environment.benchmarkIndex}`);
+            const url = r.finalDisplayedUrl.replace(/^https?:\/\/[^/]+/, "");
+            const tbt = Math.round(a["total-blocking-time"].numericValue), lcp = Math.round(a["largest-contentful-paint"].numericValue), cls = a["cumulative-layout-shift"].numericValue;
+            const over = tbt > 200 || lcp > 2500 || cls > 0.1;
+            console.log(`::${over ? "warning" : "notice"} title=lhci run${over ? " (vượt ngưỡng ở lần này)" : ""}::${url} TBT ${tbt} LCP ${lcp} CLS ${cls.toFixed(3)} bootup ${Math.round(a["bootup-time"].numericValue)} benchmarkIndex ${r.environment.benchmarkIndex}`);
           }'
 
       - name: Upload perf reports

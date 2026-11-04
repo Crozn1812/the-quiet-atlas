@@ -239,6 +239,7 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - Subagent opus trace CPU×10: task lớn nhất là nạp/khởi tạo module framework (~22 ms thực ≈ 220 ms giả lập, ~54% là khởi tạo module react-dom/router), giống nhau ở `/en/`, `/en/quick/` và `/en/privacy/` (0 client component). Hydrate `WorldEntry` đã chia lát 5 ms, gần như không góp TBT. CPU×10: `/en/` 180/216/184, `/en/quick/` 176/186/175 ms. Không sửa code (không có lợi ích đo được).
 - Lead thử `next build --webpack`: CPU×10 TBT 176–217 ms (không cải thiện), LCP ~2,19 s (tốt hơn ~150 ms). Không áp dụng.
 - Kết luận: CI đỏ khi runner chậm bất thường (benchmarkIndex ~1900) vì `pessimistic` lấy lần xấu nhất trong 3 lần. Không phải hồi quy. Cách xử lý thay đổi phương pháp đo → **Duy quyết (Q-24)**; Lead không tự đổi.
+- **Duy chọn A (Q-24) → ADR 0011**: `lighthouserc.cjs` 5 lần, LCP/CLS/TBT gate theo `median-run`, ngưỡng giữ nguyên; bước annotation CI chạy mọi lần, lần vượt ngưỡng in `warning`. Local `pnpm perf:lhci` 15 lần đo: exit 0.
 
 ### Ticket tiếp theo (nháp, chưa giao)
 

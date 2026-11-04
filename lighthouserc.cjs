@@ -2,7 +2,8 @@
 // Pages: Welcome /en/, Quick /en/quick/, one case study. Served from out/ by tools/load-budget/serve-gzip.mjs
 // (serve-out routing + gzip like CloudFront). Prerequisite: `pnpm build`.
 // - Lighthouse default profile (mobile emulation, simulated slow 4G, 4× CPU) — stricter than desktop.
-// - 3 runs per URL, assertions on the WORST run (`pessimistic`), same rule as §8 "ba lần, xấu nhất".
+// - ADR 0011 (Duy, Q-24, 2026-11-04): 5 runs per URL, perf assertions on the MEDIAN run. Thresholds unchanged.
+//   The worst run is still reported on every CI run (workflow annotation step), never hidden.
 // - INP cannot be measured in a navigation lab run: Total Blocking Time is used as the LAB PROXY for INP
 //   (TBT ≤ 200 ms). Field INP p75 is reported separately after launch (§8 [S5]).
 // - Accessibility score is recorded (warn only); the accessibility gate is axe in tests/e2e (L3-003).
@@ -21,7 +22,7 @@ module.exports = {
       startServerReadyPattern: "serve-gzip: http",
       startServerReadyTimeout: 30000,
       url: [`${BASE}/en/`, `${BASE}/en/quick/`, `${BASE}${CASE_STUDY}`],
-      numberOfRuns: 3,
+      numberOfRuns: 5,
       settings: {
         chromeFlags: "--headless=new --no-first-run --no-default-browser-check",
         onlyCategories: ["performance", "accessibility"],
@@ -29,10 +30,10 @@ module.exports = {
     },
     assert: {
       assertions: {
-        "largest-contentful-paint": ["error", { maxNumericValue: 2500, aggregationMethod: "pessimistic" }],
-        "cumulative-layout-shift": ["error", { maxNumericValue: 0.1, aggregationMethod: "pessimistic" }],
+        "largest-contentful-paint": ["error", { maxNumericValue: 2500, aggregationMethod: "median-run" }],
+        "cumulative-layout-shift": ["error", { maxNumericValue: 0.1, aggregationMethod: "median-run" }],
         // Lab proxy for INP ≤ 200 ms (§8 "Lab trước launch").
-        "total-blocking-time": ["error", { maxNumericValue: 200, aggregationMethod: "pessimistic" }],
+        "total-blocking-time": ["error", { maxNumericValue: 200, aggregationMethod: "median-run" }],
         // Recorded, not a gate (axe in tests/e2e is the accessibility gate).
         "categories:accessibility": ["warn", { minScore: 0.9, aggregationMethod: "pessimistic" }],
       },
