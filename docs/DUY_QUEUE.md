@@ -6,6 +6,8 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
+| Q-29 | **Chọn hướng art A / B / C** từ 6 ảnh + 6 video, rồi chấm checklist giữ/sửa/bỏ. Art Director đề xuất C | L3 (B2-038, B2-039) | B2 (cảnh chuẩn T10) | Sớm nhất có thể | `docs/showcase/16-styleframes/checklist.md` |
+| Q-30 | **Chấm turnaround nhân vật + GD110** (giữ/sửa/bỏ) | L3 (rig/animation) | B2 | Cùng lúc Q-29 | `docs/showcase/15-turnaround/checklist.md` |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
