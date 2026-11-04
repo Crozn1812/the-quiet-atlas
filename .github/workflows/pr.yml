@@ -60,6 +60,10 @@ jobs:
       - name: Check bundle (no 3D before Enter World, §8 budgets)
         run: node tools/check-bundle/index.mjs out
 
+      # B2-022 — §7.3/§8: ngân sách từng asset world + tổng ≤ 30 MB, nhóm start ≤ 8 MB (public/world rỗng → PASS kèm ghi chú).
+      - name: Check world asset budgets
+        run: pnpm check:assets
+
       # L3-002 — §4.6 quét rò rỉ (luật riêng R1–R6) trên nội dung nguồn + artifact build.
       # R5 (denylist) bỏ qua kèm cảnh báo vì CI không có TQA_DENYLIST_FILE (danh sách thật không nằm trong repo public).
       - name: Scan leaks (§4.6 custom rules)
