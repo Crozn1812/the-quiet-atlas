@@ -167,7 +167,7 @@ test("L3-008 #3 Exit world (HUD): no canvas, the full card is back, focus on Ent
   // Full card again: name, role, intro, Enter World, Quick Portfolio, CV, e-mail address, Sound.
   await expect(page.locator("#content")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
-  await expect(page.locator("#content").getByText(role, { exact: false })).toBeVisible();
+  await expect(page.locator("#content").getByText(role, { exact: false }).first()).toBeVisible();
   await expect(enter).toBeEnabled();
   const hud = page.locator(HUD);
   await expect(hud).toHaveAttribute("data-compact", "false");
