@@ -87,10 +87,11 @@ describe("profile experience and education (ADR 0010)", () => {
 });
 
 describe("L2-012 content from Duy's answers", () => {
-  it("ships the LinkedIn URL, a Cloud DevOps Engineer intro of at most 25 words, and the HPT services", () => {
+  it("ships the LinkedIn URL, a CloudDevOps Engineer intro of at most 25 words, and the HPT services", () => {
     for (const p of content.profiles) {
       expect(p.linkedinUrl).toBe("https://www.linkedin.com/in/nguyenhuubaoduy");
-      expect(p.introduction).toContain("Cloud DevOps Engineer");
+      expect(p.introduction).toContain("CloudDevOps Engineer");
+      expect(p.role).toBe("CloudDevOps Engineer");
       expect(p.introduction.split(/s+/).length).toBeLessThanOrEqual(25);
       expect(p.level).toBe("Intern");
       expect(p.reviewStatus).toBe("draft");
@@ -112,10 +113,27 @@ describe("L2-012 content from Duy's answers", () => {
     const text = JSON.stringify(content);
     expect(text).not.toMatch(/DO2603|congdinh2008|Shopmart/i);
   });
-  it("describes the AWS pipeline trigger as EventBridge on fictional sample data (Q-16)", () => {
+  it("describes the AWS pipeline trigger as an S3 event source on fictional sample data, without EventBridge (L2-013)", () => {
     for (const p of content.projects.filter(p => p.slug === "aws-sales-data-pipeline")) {
-      expect(p.architecture).toContain("EventBridge");
+      expect(JSON.stringify(p)).not.toMatch(/EventBridge/i);
+      expect(p.architecture).toMatch(/S3/);
       expect(p.context).toMatch(p.locale === "vi" ? /dữ liệu mẫu giả lập/ : /fictional sample data/);
+    }
+  });
+  it("keeps the InsightHub acceptance detail 69/70 out of every public field (L2-013)", () => {
+    for (const p of content.projects.filter(p => p.slug === "insighthub-rag")) {
+      expect(JSON.stringify(p)).not.toMatch(/69|70|1 fail/i);
+    }
+  });
+  it("mentions no SharePoint in any PDG field, only the two cloud and on-premises flows (L2-013)", () => {
+    for (const p of content.projects.filter(p => p.slug === "partner-data-gateway-azure")) {
+      expect(JSON.stringify(p)).not.toMatch(/SharePoint/i);
+      expect(p.architecture).toMatch(/on-prem/i);
+    }
+  });
+  it("drops the low-evidence sentence from the CMS summary (L2-013)", () => {
+    for (const p of content.projects.filter(p => p.slug === "cms-devops-platform-aws-eks")) {
+      expect(p.summary).not.toMatch(/Mức bằng chứng thấp|Evidence level is low/);
     }
   });
   it("describes CMS with its low evidence level and no repository", () => {

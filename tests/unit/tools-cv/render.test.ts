@@ -23,7 +23,7 @@ it("renders the CV phone and Intern level from public content in both locales", 
     expect(profile.phone).toBe("083 418 4916");
     const html = cvHtml(content, locale);
     expect(html).toContain("<p>083 418 4916</p>");
-    expect(html).toContain("Cloud &amp; DevOps Engineer · Intern");
+    expect(html).toContain("CloudDevOps Engineer · Intern");
   }
 });
 
