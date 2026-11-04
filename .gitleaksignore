@@ -1,0 +1,3 @@
+# Dương tính giả đã xác minh (Lead, 2026-11-04). Mỗi dòng là fingerprint chính xác của một phát hiện.
+# Spec §4.6 mô tả luật quét ARN bằng chính tiền tố ARN (không phải ARN thật).
+5c8d1d672b9e3704fe8e816ae2677275921790ce:docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md:tqa-aws-arn:211
