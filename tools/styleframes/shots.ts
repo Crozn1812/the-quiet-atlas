@@ -18,8 +18,10 @@ const forestT = (zone("first-light").t + zone("workshop").t) / 2;
 // The river mouth (Last Postcard) has an open view to the sea; Quiet Shore is screened by hills.
 const coastT = zone("last-postcard").t;
 export const SHOTS = {
-  "forest-dawn": { label: "Rừng bình minh", pathT: forestT, timeOfDay: 0, fov: 48 },
-  "coast-dusk": { label: "Biển hoàng hôn", pathT: coastT, timeOfDay: 1, fov: 48 },
+  // fogHorizon: share of the sky horizon in distance fog (rest is paper). Gold fog over jade sea mixes to olive,
+  // so the sea dissolves into cool paper and the gold stays in the sky band above the horizon (B2-031).
+  "forest-dawn": { label: "Rừng bình minh", pathT: forestT, timeOfDay: 0, fov: 48, fogHorizon: 1, seaSky: 1 },
+  "coast-dusk": { label: "Biển hoàng hôn", pathT: coastT, timeOfDay: 1, fov: 48, fogHorizon: 0.25, seaSky: 0.35 },
 } as const;
 
 /** Fixed camera at t=0; the same 18 s dolly for every direction and quality. */

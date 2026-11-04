@@ -11,13 +11,14 @@ function tint(key: keyof typeof PALETTE, amount: number) {
 }
 
 describe("position-driven sky grade", () => {
+    // B2-031 Art Director r2: dawn sun 2 -> 2.3, hemisphere fill 1.5 -> 1.0 (dawn) and 1.4 -> 0.95 (dusk).
   it.each([
-    { tod: 0, sun: 0.24, intensity: 2, direction: [-0.9, 0.2, 0.4], hemi: 0.25,
-      ground: 0.28, ambient: 1.5, fog: tint("dusk", 0.1), top: 0.32, shadow: 0.32 },
+    { tod: 0, sun: 0.24, intensity: 2.3, direction: [-0.9, 0.2, 0.4], hemi: 0.25,
+      ground: 0.28, ambient: 1.0, fog: tint("dusk", 0.1), top: 0.32, shadow: 0.32 },
     { tod: 0.5, sun: 0.08, intensity: 2.8, direction: [0, 0.94, 0.34], hemi: 0.4,
       ground: 0.22, ambient: 2, fog: tint("mist", 0.12), top: 0.55, shadow: 0.26 },
     { tod: 1, sun: 0.4, intensity: 1.7, direction: [0.9, 0.16, 0.4], hemi: 0.24,
-      ground: 0.32, ambient: 1.4, fog: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
+      ground: 0.32, ambient: 0.95, fog: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
       top: 0.36, shadow: 0.36 },
   ])("matches the complete keyframe at $tod", spec => {
     const grade = lightingAt(spec.tod);
@@ -81,7 +82,7 @@ describe("grade follower", () => {
     const dusk = lightingAt(1);
     expect(follower.update(dusk, 0)).toEqual(dawn);
     const first = follower.update(dusk, 0.1);
-    expect(first.sunIntensity).toBeCloseTo(2 + (1.7 - 2) * (1 - Math.exp(-0.3)), 12);
+    expect(first.sunIntensity).toBeCloseTo(2.3 + (1.7 - 2.3) * (1 - Math.exp(-0.3)), 12);
     expect(first.sunDirection.length()).toBeCloseTo(1);
     for (let i = 0; i < 120; i++) follower.update(dusk, 1 / 30);
     expect(follower.update(dusk, 0).skyTop.r).toBeCloseTo(dusk.skyTop.r, 5);

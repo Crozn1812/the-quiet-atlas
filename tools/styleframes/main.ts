@@ -84,6 +84,7 @@ async function start() {
     for (const surface of waters) surface.dispose();
     waters = [createRiverRibbon(options.quality), createSea(options.quality)];
     for (const surface of waters) { surface.setTime(options.t); scene.add(surface.mesh); }
+    waters[1]!.setSkyMix(SHOTS[options.shot].seaSky); // sea only; the river keeps its paper reflection
   }
   let foliage: ReturnType<typeof createFoliage> | undefined;
   let candidates: FoliageTree[] = [];
@@ -144,11 +145,13 @@ async function start() {
     hemi.intensity = grade.hemiIntensity;
     paper.setEdges(preset.background.edges);
     // Distance dissolves into the painted horizon, so land, sea and sky meet without a paper seam.
-    paper.setFog({ ...preset.background.fog, color: grade.skyHorizon });
-    if (scene.fog instanceof Fog) scene.fog.color.copy(grade.skyHorizon);
+    const fogColor = new Color(PALETTE.paper).lerp(grade.skyHorizon, SHOTS[options.shot].fogHorizon);
+    paper.setFog({ ...preset.background.fog, color: fogColor });
+    if (scene.fog instanceof Fog) scene.fog.color.copy(fogColor);
+    waters[1]?.setSkyMix(SHOTS[options.shot].seaSky); // sea only; the river keeps its paper reflection
     if (scene.fog instanceof Fog) { scene.fog.near = preset.background.fog.near; scene.fog.far = preset.background.fog.far; }
     const { warmth, ...mist } = preset.background.mist;
-    const mistColor = new Color(PALETTE.mist).lerp(grade.skyHorizon, warmth);
+    const mistColor = new Color(PALETTE.mist).lerp(fogColor, warmth);
     paper.setMist({ ...mist, color: mistColor, height: setCamera().mistHeight });
     invalidate();
   }

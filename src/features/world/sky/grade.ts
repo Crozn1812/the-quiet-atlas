@@ -26,9 +26,10 @@ function tint(key: keyof typeof PALETTE, amount: number): Color {
 // Private snapshots: callers can freely mutate returned grades without changing keyframes.
 const KEYFRAMES: readonly LightingGrade[] = [
   {
-    sunColor: tint("dusk", 0.24), sunIntensity: 2,
+    // B2-031 (Art Director r2): less hemisphere fill so soft shade and dark trunks return.
+    sunColor: tint("dusk", 0.24), sunIntensity: 2.3,
     sunDirection: new Vector3(-0.9, 0.2, 0.4).normalize(),
-    hemiSky: tint("mist", 0.25), hemiGround: tint("indigo", 0.28), hemiIntensity: 1.5,
+    hemiSky: tint("mist", 0.25), hemiGround: tint("indigo", 0.28), hemiIntensity: 1.0,
     fogColor: tint("dusk", 0.1), skyTop: tint("mist", 0.32),
     skyHorizon: tint("dusk", 0.1), shadowTint: tint("indigo", 0.32),
   },
@@ -42,7 +43,7 @@ const KEYFRAMES: readonly LightingGrade[] = [
   {
     sunColor: tint("dusk", 0.4), sunIntensity: 1.7,
     sunDirection: new Vector3(0.9, 0.16, 0.4).normalize(),
-    hemiSky: tint("mist", 0.24), hemiGround: tint("indigo", 0.32), hemiIntensity: 1.4,
+    hemiSky: tint("mist", 0.24), hemiGround: tint("indigo", 0.32), hemiIntensity: 0.95,
     fogColor: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
     skyTop: tint("mist", 0.36),
     skyHorizon: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
