@@ -8,7 +8,7 @@ export const publicUrlSchema=text.refine(value => {
     if(u.protocol==="mailto:")
       return /^[^\s@?]+@[^\s@?]+\.[^\s@?]+$/.test(u.pathname)&&!u.search&&!u.hash;
     return u.protocol==="https:"&&[
-      "github.com","linkedin.com"
+      "github.com","linkedin.com","www.linkedin.com"
     ].includes(u.hostname)&&!u.username&&!u.password&&!u.port;
   }
   catch {
@@ -68,6 +68,10 @@ export const evidenceSchema=z.object({
     "Verified","Internal","Lab","Estimate","TBD"
   ]),
   description: text,
+  // Bản tiếng Anh (ADR 0010, đợt 12); trường gốc là tiếng Việt.
+  claimEn: text.optional(),
+  scopeEn: text.optional(),
+  descriptionEn: text.optional(),
   publicUrl: publicUrlSchema,
   originalLocation: text,
   date: text,
@@ -145,6 +149,9 @@ export const contentSchema=z.object({
     if(new Set(projects.map(p => p.id)).size!==projects.length)
       issue("Duplicate project ID");
   }
+  for(const e of data.evidence)
+    if(e.level!=="TBD"&&(e.claimEn===undefined||e.scopeEn===undefined))
+      issue("Evidence needs claimEn and scopeEn");
   for(const profile of data.profiles)
     for(const item of profile.experience) {
       if(item.end!=="present"&&item.end!=="TBD"&&item.end<item.start)

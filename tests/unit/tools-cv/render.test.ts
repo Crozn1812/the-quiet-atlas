@@ -76,6 +76,17 @@ it("marks only projects referencing Lab evidence as demo in both CV locales", ()
   }
 });
 
+it("renders LinkedIn, the new PDG title, the HPT summary and no course code in both CV locales", () => {
+  for (const locale of ["en", "vi"]) {
+    const html = cvHtml(content, locale);
+    expect(html).toContain("LinkedIn: https://www.linkedin.com/in/nguyenhuubaoduy");
+    expect(html).toContain("Secure Partner Data Sharing Portal");
+    expect(html).not.toContain("Partner Data Gateway Azure");
+    expect(html).not.toContain("DO2603");
+    expect(html).toContain("Microsoft Fabric");
+  }
+});
+
 it("renders experience and education with the period in both CV locales", () => {
   const en = cvHtml(content, "en");
   expect(en).toContain("<h2>Experience</h2>");
