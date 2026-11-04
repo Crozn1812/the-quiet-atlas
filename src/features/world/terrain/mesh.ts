@@ -6,7 +6,7 @@ import type { TerrainTile } from "./tiles";
 
 const forestDeep = new Color(hex("forestDeep"));
 const forestLight = new Color(hex("forestLight"));
-const sand = new Color(hex("paper")).lerp(new Color(hex("dusk")), 0.18);
+const sand = new Color(hex("paper")).lerp(new Color(hex("dusk")), 0.22);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 /** Local XZ coordinates start at the tile's minimum corner; Y comes from its heightmap. */
@@ -33,23 +33,24 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   for (let x = 0; x <= cells; x++) for (let z = 0; z <= cells; z++) {
     const vertex = z + x * stride;
     const offset = vertex * 3;
+    const height = heights[vertex]!;
     const wx = origin.x + x * step;
     const wz = origin.z + z * step;
-    const height = heights[vertex]!;
     positions.set([x * step, height, z * step], offset);
     const dx = (heightAt(x + 1, z) - heightAt(x - 1, z)) / (2 * step);
     const dz = (heightAt(x, z + 1) - heightAt(x, z - 1)) / (2 * step);
     const length = Math.hypot(dx, 1, dz);
     normals.set([-dx / length, 1 / length, -dz / length], offset);
 
+    // Valley wash: deeper green by the river, lighter on hills (near-white multiplier keeps the material dominant).
     const bankHeight = Math.max(0, wz + 900) * 0.008;
     const hill = clamp((height - bankHeight) / 4 + Math.hypot(dx, dz) * 0.4);
     const river = 1 - clamp(nearestRiver(wx, wz).distance / 24);
-    const coastT = clamp((-wz - 760) / 140);
-    const coast = coastT * coastT * (3 - 2 * coastT);
-    tint.copy(forestLight).lerp(forestDeep, river * (1 - hill)).lerp(sand, coast);
-    // Near-white linear multipliers keep the caller's shared material colour dominant.
+    tint.copy(forestLight).lerp(forestDeep, river * (1 - hill));
     color.setRGB(1, 1, 1).lerp(tint, 0.22);
+    // B2-037: height-based beach sand below 0.9 m, fading into the valley wash by 1.6 m.
+    const beachT = clamp((height - 0.9) / 0.7);
+    color.lerp(sand, 1 - beachT * beachT * (3 - 2 * beachT));
     colors.set([color.r, color.g, color.b], offset);
 
     if (x < cells && z < cells) {

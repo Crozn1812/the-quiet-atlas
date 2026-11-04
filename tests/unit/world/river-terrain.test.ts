@@ -3,6 +3,7 @@ import { pathLength, pathPointAt, PATH_BRIDGES } from "../../../src/features/wor
 import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { worldHeight } from "../../../src/features/world/terrain/height";
+import { nearestRiver } from "../../../src/features/world/terrain/samples";
 import { tilesToLoad, tilesToUnload } from "../../../src/features/world/terrain/streaming";
 import {
   buildTile, TILE_CELLS, TILE_HEIGHT_BYTES, TILE_SIZE, TILE_STRIDE,
@@ -103,16 +104,17 @@ describe("river terrain heightmap", () => {
     }
   });
 
-  it("lowers the whole Last Postcard area to the beach and reaches sea level", () => {
+  it("keeps Last Postcard on a dry beach above a submerged coastal shelf", () => {
     const zone = ZONES.find(zone => zone.id === "last-postcard")!;
     for (let i = 0; i < 24; i++) {
       const angle = i * Math.PI / 12;
       const x = zone.position.x + Math.cos(angle) * zone.radius;
       const z = zone.position.z + Math.sin(angle) * zone.radius;
-      expect(Math.abs(worldHeight(x, z))).toBeLessThan(0.25);
+      // The open river channel (< 14 m from the centreline) is exempt from the dry terrace (Lead B2-037 review).
+      if (nearestRiver(x, z).distance < 14) continue;
+      expect(worldHeight(x, z)).toBeGreaterThanOrEqual(0.4);
     }
-    expect(Math.abs(worldHeight(zone.position.x, zone.position.z))).toBeLessThan(0.01);
-    expect(worldHeight(0, -920)).toBe(0);
+    expect(worldHeight(0, -960)).toBeLessThan(-2);
     expect(worldHeight(0, -300)).toBeGreaterThan(worldHeight(0, -850));
   });
 

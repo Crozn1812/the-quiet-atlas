@@ -1,4 +1,5 @@
 import { PATH_BRIDGES, pathLength } from "../layout/path";
+import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "./samples";
 
 export const TERRAIN_SEED = 73021;
@@ -34,6 +35,15 @@ function riverLevel(z: number): number {
   return Math.max(0, z + 900) * 0.008;
 }
 
+/** Seeded 90 m coastal undulations, independent of query order and tile boundaries. */
+function shoreHeight(x: number, z: number): number {
+  const shoreZ = -880 + 30 * noise(x / 90, 0);
+  const inland = z - shoreZ;
+  // Match slopes at the waterline; flatten smoothly at -2.5 m, 32 m offshore.
+  const sea = Math.min(1, Math.max(0, -inland / 32));
+  return inland >= 0 ? inland * 2.5 / 32 : -2.5 * (sea + sea * sea - sea ** 3);
+}
+
 /** Pure metres above sea level. No quality setting, random state, or tile-local coordinates. */
 export function worldHeight(x: number, z: number): number {
   if (!Number.isFinite(x) || !Number.isFinite(z)) throw new RangeError("Terrain coordinates must be finite");
@@ -44,7 +54,12 @@ export function worldHeight(x: number, z: number): number {
   const channel = -1.1 + 1.2 * smoothstep(0, 6, river.distance);
   // B2-031: a readable valley (taste §5.2) — hills rise to ~7–12 m beyond the bank instead of 3–4 m.
   const hills = smoothstep(14, 75, river.distance) * (7 + 5 * noise(x / 38, z / 38));
-  const land = riverLevel(z) + coastal * (channel + hills);
+  const valley = riverLevel(z) + coastal * (channel + hills);
+  const shore = shoreHeight(x, z);
+  // Continue the channel through the beach instead of damming it with the shelf.
+  const estuary = shore - Math.max(0, shore - (waterLevelAt(z) - 0.65))
+    * (1 - smoothstep(0, 24, river.distance));
+  const land = valley + (estuary - valley) * smoothstep(760, 840, -z);
 
   // The heightfield follows a shallow ford under each future bridge. These
   // 36 m approaches keep the analytic path grade below 13%, including descent.
@@ -52,10 +67,18 @@ export function worldHeight(x: number, z: number): number {
   for (const bridge of PATH_BRIDGES) {
     pathOffset -= 1.2 * (1 - smoothstep(0, 18, Math.abs(path.t - bridge.t) * routeLength));
   }
-  const pathHeight = riverLevel(path.z) + coastWeight(path.z) * pathOffset;
-  // The inner 3 m is flat across the route; another 2.5 m blends into the banks.
-  const pathBlend = 1 - smoothstep(PATH_WIDTH / 2, 4, path.distance);
-  return land + (pathHeight - land) * pathBlend;
+  const pathHeight = Math.max(0.4, riverLevel(path.z) + coastWeight(path.z) * pathOffset);
+  // Keep the 3 m walking strip flat, with broader, gentle beach approaches.
+  const pathBlend = 1 - smoothstep(PATH_WIDTH / 2, 4 + 12 * (1 - coastal), path.distance);
+  let height = pathBlend === 1 ? pathHeight : land + (pathHeight - land) * pathBlend;
+  for (const zone of ZONES) {
+    const distance = Math.hypot(x - zone.position.x, z - zone.position.z);
+    // Lead (B2-037 review): the dry terrace never dams the river channel; the estuary stays open to the sea.
+    const protection = (1 - smoothstep(zone.radius, zone.radius + 16, distance)) * smoothstep(6, 14, river.distance);
+    height = protection === 1 ? Math.max(0.4, height)
+      : height + Math.max(0, 0.4 - height) * protection;
+  }
+  return height;
 }
 
 /** Water surface above the river centre: 0.35 m below the bank, easing to sea level (0) at the coast. */

@@ -7,7 +7,7 @@ import { createWaterMaterial, WATER_FLOW_SPEED } from "../../../src/features/wor
 import {
   createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
 } from "../../../src/features/world/water/ribbon";
-import { createSea, SEA_SIZE } from "../../../src/features/world/water/sea";
+import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
 
 describe("river ribbon", () => {
   it("follows the arc-length spline within 5 cm at 50 samples, including between rows", () => {
@@ -31,7 +31,7 @@ describe("river ribbon", () => {
     geometry.dispose();
   });
 
-  it("widens monotonically from 4 to 10 metres, follows the river water level and maps length in metres", () => {
+  it("widens from 4 to 10 metres then flares to 60 m and sinks into the sea", () => {
     const geometry = createRibbonGeometry();
     const positions = geometry.getAttribute("position");
     const uv = geometry.getAttribute("uv");
@@ -44,7 +44,10 @@ describe("river ribbon", () => {
       expect(width).toBeGreaterThanOrEqual(previousWidth);
       expect(width).toBeCloseTo(riverWidthAt(i / RIBBON_SEGMENTS), 3);
       for (const vertex of [i * 2, i * 2 + 1]) {
-        expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(i / RIBBON_SEGMENTS).z), 5);
+        const t = i / RIBBON_SEGMENTS;
+        const blend = Math.max(0, (t - 0.96) / 0.04);
+        const sink = 0.05 * blend * blend * (3 - 2 * blend);
+        expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
         expect(normals.getY(vertex)).toBe(1);
         expect(uv.getY(vertex)).toBeCloseTo(i / RIBBON_SEGMENTS * riverLength(), 3);
       }
@@ -53,10 +56,16 @@ describe("river ribbon", () => {
       previousWidth = width;
     }
     expect(riverWidthAt(0)).toBe(4);
-    expect(riverWidthAt(1)).toBe(10);
+    expect(riverWidthAt(0.96)).toBeCloseTo(9.76);
+    expect(riverWidthAt(0.98)).toBeCloseTo(34.88);
+    expect(riverWidthAt(1)).toBeCloseTo(60);
     expect(riverWidthAt(-1)).toBe(4);
-    expect(riverWidthAt(2)).toBe(10);
-    expect(WATER_LEVEL).toBe(worldHeight(0, -920));
+    expect(riverWidthAt(2)).toBeCloseTo(60);
+    expect(positions.getY(RIBBON_SEGMENTS * 2)).toBeCloseTo(WATER_LEVEL - 0.05);
+    for (const vertex of [RIBBON_SEGMENTS * 2, RIBBON_SEGMENTS * 2 + 1]) {
+      expect(worldHeight(positions.getX(vertex), positions.getZ(vertex))).toBeLessThan(positions.getY(vertex));
+    }
+    expect(worldHeight(0, -960)).toBeLessThan(WATER_LEVEL);
     geometry.dispose();
   });
 
@@ -174,17 +183,19 @@ describe("painted water material", () => {
 });
 
 describe("sea and water lifecycle", () => {
-  it("joins the mouth at the sea datum, covers 800 m offshore and uses jade-teal water with a dusk edge", () => {
+  it("overlaps 80 m inland at sea level, covers 800 m offshore and keeps one quad", () => {
     const sea = createSea("Balanced");
     const mouth = riverPointAt(1);
     const bounds = sea.mesh.geometry.boundingBox!;
     expect(bounds.min.y).toBe(WATER_LEVEL);
     expect(bounds.max.y).toBe(WATER_LEVEL);
-    expect(bounds.max.z).toBe(mouth.z);
+    expect(bounds.max.z).toBe(mouth.z + SEA_INLAND_OVERLAP);
     expect(bounds.min.z).toBe(mouth.z - SEA_SIZE);
     expect(bounds.min.x).toBe(mouth.x - SEA_SIZE / 2);
     expect(bounds.max.x).toBe(mouth.x + SEA_SIZE / 2);
-    expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength(), 3);
+    expect(sea.mesh.geometry.getAttribute("position").count).toBe(4);
+    expect(sea.mesh.geometry.index!.count).toBe(6);
+    expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength() - SEA_INLAND_OVERLAP, 3);
     const material = sea.mesh.material;
     expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.mist), 0.18));
     expect(material.defines.SKY_REFLECTION).toBe(0.5);
@@ -222,11 +233,12 @@ describe("sea and water lifecycle", () => {
 import { waterLevelAt } from "../../../src/features/world/terrain/height";
 
 describe("water level follows the river bed (Lead fix)", () => {
-  it("sits above the channel centre and below the banks along the whole river", () => {
+  it("covers the channel centre except inside the mandatory dry zone footprints", () => {
     for (let i = 0; i <= 100; i++) {
       const p = riverPointAt(i / 100);
       const level = waterLevelAt(p.z);
-      expect(level, `t=${i / 100}`).toBeGreaterThan(worldHeight(p.x, p.z) - 1e-6);
+      // Last Postcard includes the mouth: its required dry 0.4 m terrace takes priority.
+      expect(Math.max(level, 0.4), `t=${i / 100}`).toBeGreaterThan(worldHeight(p.x, p.z) - 1e-6);
     }
   });
   it("reaches sea level at the mouth", () => {

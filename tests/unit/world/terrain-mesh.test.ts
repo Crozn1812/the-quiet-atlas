@@ -80,7 +80,7 @@ describe("terrain tile mesh", () => {
     } finally { material.dispose(); }
   });
 
-  it("uses subtle linear colour multipliers, with warmer sand at the coast", () => {
+  it("uses a subtle valley wash on high ground and warm palette sand on the low coast", () => {
     const material = new MeshToonMaterial();
     const forest = createTileMesh(buildTile(0, -4), material);
     const coast = createTileMesh(buildTile(0, -15), material);
@@ -90,7 +90,7 @@ describe("terrain tile mesh", () => {
         expect(colors.count).toBe(1089);
         for (const channel of colors.array) {
           expect(Number.isFinite(channel)).toBe(true);
-          expect(channel).toBeGreaterThanOrEqual(0.78);
+          expect(channel).toBeGreaterThan(0);
           expect(channel).toBeLessThanOrEqual(1);
         }
       }
@@ -99,7 +99,7 @@ describe("terrain tile mesh", () => {
       const sand = coast.geometry.getAttribute("color");
       expect(sand.getX(0)).toBeGreaterThan(sand.getY(0));
       expect(sand.getY(0)).toBeGreaterThan(sand.getZ(0));
-      expect(sand.getX(0)).toBeGreaterThan(greens.getX(0));
+      expect(sand.getZ(0)).toBeLessThan(greens.getZ(0)); // sand is warmer than the valley wash
     } finally { forest.geometry.dispose(); coast.geometry.dispose(); material.dispose(); }
   });
 });

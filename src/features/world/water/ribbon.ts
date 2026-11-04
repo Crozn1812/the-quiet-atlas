@@ -5,14 +5,18 @@ import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
 import { createWaterSurface, type WaterSurface } from "./surface";
 
-/** Sea datum in terrain/height.ts. Its upstream bed still needs Lead alignment:
- * that file currently adds a sloping riverLevel(z), rather than a constant level.
- */
+/** Sea datum shared with terrain/height.ts. */
 export const WATER_LEVEL = 0;
 export const RIBBON_SEGMENTS = 1024;
 
+function mouthBlend(t: number): number {
+  const progress = Math.max(0, (t - 0.96) / 0.04);
+  return progress * progress * (3 - 2 * progress);
+}
+
 export function riverWidthAt(t: number): number {
-  return 4 + 6 * clampProgress(t);
+  const progress = clampProgress(t);
+  return 4 + 6 * progress + 50 * mouthBlend(progress);
 }
 
 /** Two vertices per row, UV.x across the ribbon, UV.y downstream in metres. */
@@ -30,8 +34,9 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
     const centre = riverPointAt(t);
     const tangent = riverTangentAt(t);
     const halfWidth = riverWidthAt(t) / 2;
+    const level = waterLevelAt(centre.z) - 0.05 * mouthBlend(t);
     for (const side of [-1, 1]) {
-      positions.push(centre.x - tangent.z * halfWidth * side, waterLevelAt(centre.z),
+      positions.push(centre.x - tangent.z * halfWidth * side, level,
         centre.z + tangent.x * halfWidth * side);
       normals.push(0, 1, 0);
       uvs.push((side + 1) / 2, t * length);
