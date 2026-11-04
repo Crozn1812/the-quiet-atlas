@@ -66,10 +66,10 @@ describe("B2-030 style-frame directions", () => {
 });
 
 describe("layout-derived, deterministic shots", () => {
-  it("anchors the two views to First Light/Workshop and Quiet Shore", () => {
+  it("anchors the two views to First Light/Workshop and the river mouth (Last Postcard)", () => {
     const first = ZONES.find(zone => zone.id === "first-light")!;
     const workshop = ZONES.find(zone => zone.id === "workshop")!;
-    const shore = ZONES.find(zone => zone.id === "quiet-shore")!;
+    const shore = ZONES.find(zone => zone.id === "last-postcard")!;
     expect(SHOTS["forest-dawn"].pathT).toBe((first.t + workshop.t) / 2);
     expect(SHOTS["coast-dusk"].pathT).toBe(shore.t);
     expect(VIDEO_SECONDS).toBeGreaterThanOrEqual(15);

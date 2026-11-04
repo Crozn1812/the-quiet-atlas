@@ -25,5 +25,5 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   worldBoundary,
-  globalIgnores([".next/**", "out/**", "node_modules/**", "next-env.d.ts", "coverage/**"]),
+  globalIgnores([".next/**", "out/**", "node_modules/**", "next-env.d.ts", "coverage/**", "tools/styleframes/.vite/**", "tools/styleframes/.verify-dist/**"]),
 ]);
