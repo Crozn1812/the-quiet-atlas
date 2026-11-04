@@ -153,8 +153,6 @@ Kiểm `main`: lint 0 warning, typecheck, unit 166, `build:artifacts` (Next + CV
 
 ### Việc nhỏ tồn đọng
 
-- CV ghi link repo Partner Data Gateway nhưng thiếu chữ "demo" (web có).
-- `tools/cv/preview.ps1` còn phụ thuộc thư mục hiện hành.
 - Welcome đôi khi không hydrate trong lúc tải nặng (L3 thấy 2 lần) — theo dõi.
 - Renderer info (`__tqaPerf`) chưa đo được vì UI không bật `debug`.
 
@@ -167,10 +165,21 @@ Kiểm `main`: lint 0 warning, typecheck, unit 166, `build:artifacts` (Next + CV
 
 **Lead chạy lại trên main `48ac1a5`** (máy dev, Edge, server local): lint (0 warning), typecheck, unit 167, build:artifacts, check:cv/bundle/leaks/licenses exit 0; JS ban đầu `/en/` 140,4 KB gzip; e2e 128 passed / 1 skipped (Q21 đổi ngôn ngữ trong world — chưa có tính năng); test:perf EN+VI PASS (Welcome ~143 KB JS tối đa 3 lần lạnh, 0 request 3D trước Enter World, 3D → playable 1,71 MB / 2,07 s). Subagent chạy e2e 2 lần, không flaky. T08/T09 sau đổi bố cục: NOT RUN lại (chỉ helper đổi selector).
 
+### Đợt 9 — Đổi ngôn ngữ trong world (§6.3, Q21) + dọn việc nhỏ
+
+| Ticket | Người làm | Kết quả |
+|---|---|---|
+| L1-009 | Codex + Lead sửa câu aria-live theo ngôn ngữ | **Merged** `f525a9f`. Menu world có English/Tiếng Việt (`aria-pressed`); đổi tại chỗ HUD, menu, overlay, `replaceState` URL, `lang`, title; không remount canvas; Thoát world sau khi đổi → điều hướng `/<locale mới>/`. CV: "· demo" cạnh repo có evidence Lab. `preview.ps1` theo `$PSScriptRoot`. JS ban đầu `/en/` 140,6 KB |
+| L3-009 | L3 subagent + Lead tăng timeout T07 | **Merged** `4f0c749`. 5 e2e Q21: en→vi, vi→en, giữ vị trí (khung hình đóng băng trùng byte, không tạo WebGL context mới), overlay đổi ngôn ngữ, thoát về `/vi/`; axe menu vi 0 critical/serious |
+
+**Lead chạy lại trên main `4f0c749`** (máy dev, Edge, server local): lint/typecheck/unit 169/build:artifacts/check:cv/bundle/leaks/licenses exit 0; **e2e 133 passed, 0 skipped**; test:perf EN+VI PASS. Q21 (local): **PASS** phần quan sát được; "secret" chưa có trong world → NOT RUN. Lead cũng tự kiểm trên trình duyệt built-in.
+
+Còn tiếng Anh trong world: nhãn "(placeholder)" và gợi ý "E — …" do `src/features/world` chèn (L2).
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
 - Tự host font serif có giấy phép, đủ glyph tiếng Việt (§7.3) thay chuỗi font hệ thống.
-- L1-009: nhãn "demo" trong CV; `preview.ps1` theo vị trí file; đổi ngôn ngữ trong world (Q21, §6.3 `history.replaceState`, không remount).
+- L2: chữ trong world (gợi ý E, placeholder) nhận ngôn ngữ từ UI (cần mở rộng ADR 0008, ví dụ sự kiện `tqa:set-locale`).
 - L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; hoặc bắt đầu B2 khi A2 live (§12: B2 chỉ sau A2).
 - A2 (cloud): **chưa bắt đầu** — cần Duy: repo GitHub, ngày đăng ký AWS, Paid plan, tên miền.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
