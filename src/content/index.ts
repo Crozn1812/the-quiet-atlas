@@ -40,6 +40,26 @@ export const content=validateContent({
     cvUrl: "TBD",
     githubUrl: "https://github.com/Crozn1812",
     linkedinUrl: "TBD",
+    // Duy cho phép nêu tên HPT (2026-11-04); mô tả chờ Duy duyệt. Không ghi thời lượng.
+    experience: [
+      {
+        employer: "HPT",
+        title: "Cloud & DevOps Intern",
+        start: "2026-07",
+        end: "present",
+        summary: "TBD",
+        evidence: []
+      }
+    ],
+    // Theo CV của Duy. Bản dịch tiếng Việt của program cần Duy xác nhận.
+    education: [
+      {
+        institution: "Posts and Telecommunications Institute of Technology (PTIT)",
+        program: locale==="vi"? "Kỹ sư Mạng và Hệ thống":"Network and Systems Engineer",
+        expectedGraduation: "2027",
+        status: "in-progress"
+      }
+    ],
     ...review
   })),
   projects: locales.flatMap(locale => titles.map((title,i) => ({

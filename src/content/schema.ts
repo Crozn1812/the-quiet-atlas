@@ -27,6 +27,25 @@ const review={
   ]),
   lastReviewedAt: text
 };
+const month=z.string().regex(/^\d{4}-(?:0[1-9]|1[0-2])$/);
+export const experienceSchema=z.object({
+  employer: text,
+  title: text,
+  start: month,
+  end: z.union([
+    z.literal("present"),month,z.literal("TBD")
+  ]),
+  summary: text,
+  evidence: z.array(text)
+});
+export const educationSchema=z.object({
+  institution: text,
+  program: text,
+  expectedGraduation: z.string().regex(/^\d{4}$/),
+  status: z.enum([
+    "in-progress","graduated"
+  ])
+});
 export const profileSchema=z.object({
   locale,
   name: text,
@@ -38,6 +57,8 @@ export const profileSchema=z.object({
   cvUrl: publicUrlSchema,
   githubUrl: publicUrlSchema,
   linkedinUrl: publicUrlSchema,
+  experience: z.array(experienceSchema).default([]),
+  education: z.array(educationSchema).default([]),
   ...review
 });
 export const evidenceSchema=z.object({
@@ -124,6 +145,14 @@ export const contentSchema=z.object({
     if(new Set(projects.map(p => p.id)).size!==projects.length)
       issue("Duplicate project ID");
   }
+  for(const profile of data.profiles)
+    for(const item of profile.experience) {
+      if(item.end!=="present"&&item.end!=="TBD"&&item.end<item.start)
+        issue("Experience ends before it starts");
+      for(const id of item.evidence)
+        if(!ids.has(id))
+          issue("Unknown evidence ID");
+    }
   for(const p of data.projects) {
     for(const lang of [
       "en","vi"

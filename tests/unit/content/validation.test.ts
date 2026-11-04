@@ -47,3 +47,40 @@ describe("content build contract", () => {
     expect(() => validateContent(data)).toThrow();
   });
 });
+
+describe("profile experience and education (ADR 0010)", () => {
+  it("ships HPT and PTIT in both locales", () => {
+    for (const p of content.profiles) {
+      expect(p.experience).toEqual([expect.objectContaining({ employer: "HPT", start: "2026-07", end: "present", summary: "TBD", evidence: [] })]);
+      expect(p.education).toEqual([expect.objectContaining({ expectedGraduation: "2027", status: "in-progress" })]);
+    }
+  });
+  it.each(["2026-7", "2026/07", "2026-13", "2026-00", "07/2026", ""])("rejects start %s", start => {
+    const data = structuredClone(content); data.profiles[0]!.experience[0]!.start = start;
+    expect(() => validateContent(data)).toThrow();
+  });
+  it.each(["now", "Present", "2026", "2026-1"])("rejects end %s", end => {
+    const data = structuredClone(content); Reflect.set(data.profiles[0]!.experience[0]!, "end", end);
+    expect(() => validateContent(data)).toThrow();
+  });
+  it.each(["present", "TBD", "2026-12"])("accepts end %s", end => {
+    const data = structuredClone(content); Reflect.set(data.profiles[0]!.experience[0]!, "end", end);
+    expect(() => validateContent(data)).not.toThrow();
+  });
+  it("rejects end before start and unknown evidence", () => {
+    const data = structuredClone(content); Reflect.set(data.profiles[0]!.experience[0]!, "end", "2026-01");
+    expect(() => validateContent(data)).toThrow("ends before");
+    const other = structuredClone(content); other.profiles[0]!.experience[0]!.evidence = ["missing"];
+    expect(() => validateContent(other)).toThrow("Unknown evidence ID");
+  });
+  it("rejects bad graduation year and status, defaults missing arrays", () => {
+    const data = structuredClone(content); data.profiles[0]!.education[0]!.expectedGraduation = "27";
+    expect(() => validateContent(data)).toThrow();
+    const status = structuredClone(content); Reflect.set(status.profiles[0]!.education[0]!, "status", "dropped");
+    expect(() => validateContent(status)).toThrow();
+    const bare = structuredClone(content); Reflect.deleteProperty(bare.profiles[0]!, "experience"); Reflect.deleteProperty(bare.profiles[0]!, "education");
+    const parsed = validateContent(bare);
+    expect(parsed.profiles[0]!.experience).toEqual([]);
+    expect(parsed.profiles[0]!.education).toEqual([]);
+  });
+});

@@ -75,3 +75,31 @@ it("marks only projects referencing Lab evidence as demo in both CV locales", ()
     expect(cvHtml(data, locale)).not.toContain('· demo');
   }
 });
+
+it("renders experience and education with the period in both CV locales", () => {
+  const en = cvHtml(content, "en");
+  expect(en).toContain("<h2>Experience</h2>");
+  expect(en).toContain("Cloud &amp; DevOps Intern · HPT");
+  expect(en).toContain("<p>07/2026 – present</p>");
+  expect(en).toContain("<h2>Education</h2>");
+  expect(en).toContain("Posts and Telecommunications Institute of Technology (PTIT)");
+  expect(en).toContain("Network and Systems Engineer");
+  expect(en).toContain("Expected graduation: 2027 · in progress");
+  const vi = cvHtml(content, "vi");
+  expect(vi).toContain("<h2>Kinh nghiệm</h2>");
+  expect(vi).toContain("<p>07/2026 – nay</p>");
+  expect(vi).toContain("<h2>Học vấn</h2>");
+  expect(vi).toContain("Kỹ sư Mạng và Hệ thống");
+  expect(vi).toContain("Dự kiến tốt nghiệp: 2027 · đang học");
+  expect(vi).not.toMatch(/6 tháng|6 months/);
+});
+
+it("omits experience and education sections when empty and escapes values", () => {
+  const data = structuredClone(content);
+  data.profiles[0]!.experience = [];
+  data.profiles[0]!.education = [];
+  const locale = data.profiles[0]!.locale;
+  expect(cvHtml(data, locale)).not.toMatch(/<h2>(Experience|Kinh nghiệm|Education|Học vấn)<\/h2>/);
+  data.profiles[0]!.education = [{ institution: "<i>", program: "p", expectedGraduation: "2027", status: "graduated" }];
+  expect(cvHtml(data, locale)).toContain("&lt;i&gt;");
+});
