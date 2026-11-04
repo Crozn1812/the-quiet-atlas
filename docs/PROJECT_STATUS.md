@@ -220,13 +220,27 @@ Duy cấp quyền bypass; Lead chọn model theo độ khó: Codex **gpt-6.1-sol
 **L4 kiểm full trên `b75b568`**: 12/12 exit 0 (unit 200, e2e 142, gitleaks 81 commit, lhci worst TBT 73 / LCP 2217 ms).
 **CI GitHub run 41776742732 trên `b75b568`: SUCCESS — CI xanh lần đầu** (lint → gitleaks → e2e → perf → Lighthouse).
 
+### Đợt 12 — Nội dung thật từ câu trả lời của Duy, Quick hiện Kinh nghiệm/Học vấn, Terraform nháp
+
+Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình duyệt); L2-012 subagent **sonnet**; L5-012 subagent **opus** (IAM/bảo mật); L4-012 subagent **sonnet**. Lead đo Lighthouse sau merge L1.
+
+| Commit | Việc |
+|---|---|
+| `0b86afe` L2-012 | Profile (LinkedIn, câu giới thiệu A "Cloud DevOps Engineer", summary HPT), 4 case study EN+VI `status: completed`, `reviewStatus: draft`; PDG = "Secure Partner Data Sharing Portal" (slug giữ); evidence song ngữ `claimEn/scopeEn/descriptionEn` (ADR 0010 mở rộng); grep 27 từ khóa nội bộ PDG: chỉ trùng tên repo demo (Duy chọn không đổi, Q-15c). AWS pipeline theo README (Q-16 chưa trả lời) |
+| `b768e82` L1-013 | Quick: mục Experience/Kinh nghiệm + Education/Học vấn (Server Component); evidence theo locale; tên Welcome đậm lại (Q-22, font 700 không preload) |
+| `af45a66` L5-012 | Terraform nháp: bootstrap (state, OIDC, 3 role), module static-site/dns/monitoring, envs/prod; `check:terraform` (fmt/init -backend=false/validate) + job CI. **Không plan/apply.** DEFERRED: tflint, Checkov/Trivy, plan, Free plan subscription (thủ công) |
+
+**Lighthouse sau L1-013 (Lead, máy dev)**: mặc định `/en/` TBT 44–58, LCP 2204–2213 ms; CPU×8 TBT 131–156, LCP 2285–2311 ms (không tệ hơn đợt 11).
+**Kiểm full (L4, main `af45a66`)**: 13/13 exit 0 — unit 227, e2e 142, test:perf 2, gitleaks 3/3 (89 commit), terraform 7/7, lhci worst `/en/` TBT 42 / LCP 2201 / CLS 0,012. Quick EN không còn câu tiếng Việt ở evidence; heading h1→h2→h3 hợp lệ.
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
-- L1: hiển thị Kinh nghiệm/Học vấn ở Quick Portfolio (ADR 0010); hoãn probe WebGL trên desktop tới lúc rảnh.
+- Duy: duyệt từng trang (Q-04) — Lead gửi link xem thử local; còn Q-16 (AWS pipeline), Q-10 (mã CPU laptop).
+- L3 (B2, sau A2): chọn nhạc CC0/giấy phép rõ ràng theo art direction (Q-11).
+- L5: tflint + Checkov/Trivy (ghim phiên bản/SHA) trước A2 apply.
+- L1: hoãn probe WebGL trên desktop tới lúc rảnh.
 - Lead: dư địa TBT ở CPU chậm nằm ở runtime Next/React — cân nhắc cấu hình Next (ADR mới) nếu CI chập chờn lại.
-- L2: Quick `/en/` có câu evidence tiếng Việt ("Có bản demo công khai…") — cần bản EN.
 - Quy trình: việc cần mở trình duyệt để đo (Lighthouse/trace) giao subagent, không giao Codex (sandbox chặn Edge).
-- L2: sửa nháp case study theo câu trả lời Q-12 → Q-18; Duy duyệt từng trang.
 - L3/L4: chạy lại T09 có người giữ cửa sổ Edge; nếu vẫn tụt 1 Hz thì điều tra (visibility, efficiency mode).
 - Chữ world tiếng Việt chưa được duyệt biên tập.
 - L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; hoặc bắt đầu B2 khi A2 live (§12: B2 chỉ sau A2).
