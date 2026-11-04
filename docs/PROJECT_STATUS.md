@@ -242,6 +242,12 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - **Duy chọn A (Q-24) → ADR 0011**: `lighthouserc.cjs` 5 lần, LCP/CLS/TBT gate theo `median-run`, ngưỡng giữ nguyên; bước annotation CI chạy mọi lần, lần vượt ngưỡng in `warning`. Local `pnpm perf:lhci` 15 lần đo: exit 0.
 - **CI GitHub run 41834317599 trên `a93b92a`: SUCCESS** (cả job terraform). Lần này runner nhanh (benchmarkIndex ~3400–3500, một lần 2438): `/en/` TBT 44–63, LCP 2199–2270 ms. Chưa gặp lại runner chậm (~1900) để kiểm phương pháp mới trong trường hợp xấu.
 
+### Đợt 13 — Duyệt trang lượt 1 (Q-04)
+
+- Duy trả lời Q-16 (lúc đầu EventBridge, sau chốt "theo repo GitHub": code dùng S3EventSource → S3 gọi Lambda trực tiếp; dữ liệu giả lập), Q-10 (laptop i5-13500H Iris Xe → ADR 0007).
+- L2-013 (subagent sonnet, aed8327): chức danh chốt "CloudDevOps Engineer"; AWS trigger theo repo; InsightHub bỏ chi tiết nghiệm thu; CMS viết theo slide (bỏ câu mức bằng chứng ở summary); PDG chỉ nói hai luồng dữ liệu cloud và on-premises, không nêu nguồn dữ liệu. Unit 231 PASS, check:cv/leaks PASS. Lead sửa test có ký tự điều khiển (fbf7a4d).
+- Bản xem thử local: localhost:4180 (out/ build mới). Nhãn Draft giữ tới khi Duy duyệt OK từng trang.
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
 - Duy: duyệt từng trang (Q-04) — Lead gửi link xem thử local; còn Q-16 (AWS pipeline), Q-10 (mã CPU laptop).
