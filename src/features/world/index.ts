@@ -2,18 +2,21 @@ import { WORLD_COPY, isWorldLocale, type WorldLocale } from "./copy";
 import { initialAdaptive, sampleQuality, selectManualQuality } from "./adaptive-quality";
 import { createInteraction, type InteractionTarget } from "../interaction/targets";
 import { BoxGeometry } from "three";
-import { clampZoom, wrapYaw, springArm, selectOccludingCrowns, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
-import { createCrownFade } from "./crown-fade";
+import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { createLocomotion } from "./locomotion";
-import { createTerrain, createTerrainMesh, createTrees, createForest, updateForest, terrainHeight, PRESETS, type Quality } from "./terrain";
+import { PRESETS, type Quality } from "./terrain";
+import { createWorldScene, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
+import { createMeshPhysics } from "./scene/mesh-physics";
+import { ZONES } from "./layout/zones";
+import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
-import { ACESFilmicToneMapping, DirectionalLight, HemisphereLight, Fog, CapsuleGeometry, Color, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, CapsuleGeometry, Color, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
-import { createObstacles, steepRamp, HALF_HEIGHT, RADIUS } from "./scene";
+import { HALF_HEIGHT, RADIUS } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
 import { PALETTE } from "./art/palette";
 import { disposeRampGradients } from "./materials/ramp";
-import { createPaperPass } from "./post/paper";
+import { createGradedPaperPass } from "./scene/paper";
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
   locale?: WorldLocale;
@@ -24,36 +27,39 @@ export interface WorldOptions {
 export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}): Promise<() => void> {
   let locale = opts.locale ?? "en";
   let quality = normalizeQuality(opts.quality ?? "balanced");
-  const terrain = createTerrain();
-  const trees = createTrees(terrain);
-  const forest = createForest(trees, quality);
-  const cameraForest = createForest(trees, "High");
-  const fadeCrowns = createCrownFade(forest[1], trees.length);
-  const obstacles = [createTerrainMesh(terrain), ...forest, ...createObstacles([steepRamp])];
-  let controller;
+  const scene = new Scene();
+  scene.background = new Color(PALETTE.paper);
+  let controller: Controller | undefined;
+  let composition: ReturnType<typeof createWorldScene> | undefined;
+  let paperPass: ReturnType<typeof createGradedPaperPass> | undefined;
   let renderer: WebGLRenderer | undefined;
   try {
-    controller = opts.collision === "raycast"
-      ? await (await import("./raycast")).createController([obstacles[0]!, cameraForest[0], ...obstacles.slice(3)])
-      : await (await import("./rapier")).createController(terrain, trees);
+    const physicsBackend = opts.collision === "raycast"
+      ? createMeshPhysics()
+      : await (await import("./rapier")).createController(undefined, [], { streamed: true });
+    if ("step" in physicsBackend) controller = physicsBackend;
     renderer = new WebGLRenderer({ antialias: true });
+    renderer.toneMapping = ACESFilmicToneMapping;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
+    paperPass = createGradedPaperPass(renderer, quality);
+    composition = createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass });
+    if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
+    controller.teleport(worldSpawn());
   } catch (error) {
+    composition?.dispose();
     controller?.dispose();
-    for (const mesh of obstacles) {
-      mesh.geometry.dispose();
-      mesh.material.dispose();
-    }
-    for (const mesh of forest) mesh.dispose();
-    disposeCameraForest();
+    paperPass?.dispose();
+    disposeRampGradients();
+    renderer?.dispose();
+    renderer?.forceContextLoss();
     throw error;
   }
-  function disposeCameraForest() {
-    for (const mesh of cameraForest) {
-      mesh.geometry.dispose();
-      mesh.material.dispose();
-      mesh.dispose();
-    }
-  }
+  const composed = composition;
+  const paper = paperPass;
+  const motionPreference = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  function updateMotionPreference() { composed.setReducedMotion(motionPreference?.matches ?? false); }
+  updateMotionPreference();
+  motionPreference?.addEventListener("change", updateMotionPreference);
   const gpu = renderer;
   const physics = controller;
   const perf = opts.debug === true ? (await import("./perf")).createPerf(gpu) : undefined;
@@ -61,34 +67,23 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let adaptive = initialAdaptive();
   let contextLost = false;
   const locomotion = createLocomotion(physics);
-  const scene = new Scene();
-  // ADR 0013: paper sky and fog; Balanced/High add the paper pass, Low relies on scene fog only.
-  scene.background = new Color(PALETTE.paper);
-  scene.fog = new Fog(PALETTE.paper, 15, 65);
-  scene.add(new HemisphereLight(0xffe2bb, 0x43574a, 2));
-  const sun = new DirectionalLight(0xffce91, 3);
-  sun.position.set(-20, 12, 15);
-  sun.castShadow = PRESETS[quality].shadow > 0;
-  sun.shadow.mapSize.setScalar(PRESETS[quality].shadow || 512);
-  Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 0.5, far: 80 });
-  sun.shadow.bias = -0.001;
-  scene.add(sun, sun.target);
+  const sun = composed.sun;
   gpu.shadowMap.enabled = sun.castShadow;
-  gpu.toneMapping = ACESFilmicToneMapping;
-  const paper = createPaperPass(gpu, { quality });
-  scene.add(...obstacles);
   const player = new Mesh(new CapsuleGeometry(RADIUS, HALF_HEIGHT * 2), new MeshBasicMaterial({ color: 0xcc754e }));
   scene.add(player);
   const supports: Mesh<BoxGeometry, MeshBasicMaterial>[] = [];
   const props = [
-    { id: "signpost", zoneId: "first-light" as const, x: 1.8, z: 4, size: [1.2, 0.7, 0.18] },
-    { id: "desk", zoneId: "workshop" as const, x: 2, z: -3, size: [1.8, 0.25, 0.9] },
+    { id: "signpost", zoneId: "first-light" as const, offset: 1.8, size: [1.2, 0.7, 0.18] },
+    { id: "desk", zoneId: "workshop" as const, offset: 2, size: [1.8, 0.25, 0.9] },
   ].map(spec => {
     const mesh = new Mesh(
       new BoxGeometry(...spec.size as [number, number, number]),
       new MeshBasicMaterial({ color: spec.id === "desk" ? 0x8b6040 : 0xd9bd7b }),
     );
-    mesh.position.set(spec.x, terrainHeight(terrain, spec.x, spec.z) + 1, spec.z);
+    const zone = ZONES.find(zone => zone.id === spec.zoneId)!;
+    const x = zone.position.x + spec.offset;
+    const z = zone.position.z;
+    mesh.position.set(x, surfaceHeight(x, z) + 1, z);
     mesh.name = WORLD_COPY[locale][spec.id === "desk" ? "desk" : "signpost"];
     const feet = spec.id === "desk" ? [-0.65, 0.65] : [0];
     for (const x of feet) {
@@ -122,13 +117,14 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const previousMarker = container.dataset.worldChunk;
   container.dataset.worldChunk = WORLD_CHUNK_MARKER;
   let state = sessionReducer(initialSession(), { type: "mode", mode: "world" });
+  state = { ...state, position: { ...physics.position }, sessionProgress: { ...state.sessionProgress, lastSafePosition: { ...physics.position } } };
   let yaw = Math.atan2(7, 9);
   let zoom = INITIAL_ZOOM;
   let arm = INITIAL_ZOOM;
   let belowTerrainFrames = 0;
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
-  const cameraObstacles = [obstacles[0]!, cameraForest[0], ...obstacles.slice(3), ...props.map(prop => prop.mesh)];
+  const cameraObstacles = () => [...composed.collisionMeshes, ...props.map(prop => prop.mesh)];
   const sightRay = new Raycaster();
   const interaction = createInteraction({
     container,
@@ -140,7 +136,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       const direction = new Vector3().copy(target.position).sub(physics.position);
       sightRay.set(physics.position, direction.clone().normalize());
       sightRay.far = Math.max(0, direction.length() - 0.01);
-      const blockers = cameraObstacles.filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh));
+      const blockers = cameraObstacles().filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh));
       return sightRay.intersectObjects(blockers).length === 0;
     },
     visit(zoneId) {
@@ -199,6 +195,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     else if (!disposed && !contextLost) frame = requestAnimationFrame(tick);
   }
   function returnToPath() {
+    const safe = nearestSafePath(physics.position);
+    composed.update(safe, 0);
+    state = sessionReducer(state, { type: "safePosition", position: safe });
     state = locomotion.recover(state);
     clear();
   }
@@ -210,7 +209,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       (event.clientX - rect.left) / rect.width * 2 - 1,
       -(event.clientY - rect.top) / rect.height * 2 + 1,
     ), camera);
-    const hit = raycaster.intersectObjects([...obstacles, player, ...props.map(prop => prop.mesh)])[0];
+    const hit = raycaster.intersectObjects([...composed.visibleMeshes, player, ...props.map(prop => prop.mesh)])[0];
     const target = props.find(prop => prop.mesh === hit?.object || prop.mesh === hit?.object.parent);
     if (target) interaction.click(target.id);
   }
@@ -220,7 +219,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     raycaster.far = Infinity;
     raycaster.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
     // Terrain is empty space; visible character, trees and props retain click ownership.
-    if (raycaster.intersectObjects([...forest, player, ...obstacles.slice(3), ...props.map(prop => prop.mesh)]).length) return;
+    if (raycaster.intersectObjects([...composed.foliageMeshes, player, ...props.map(prop => prop.mesh)]).length) return;
     drag = { id: event.pointerId, x: event.clientX };
     gpu.domElement.setPointerCapture(event.pointerId);
   }
@@ -274,14 +273,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function applyQuality(next: Quality) {
     if (quality === next) return;
     quality = next;
-    updateForest(forest, trees, quality);
+    composed.setQuality(quality);
     gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paper.setQuality(quality);
-    sun.castShadow = PRESETS[quality].shadow > 0;
     gpu.shadowMap.enabled = sun.castShadow;
-    sun.shadow.mapSize.setScalar(PRESETS[quality].shadow || 512);
-    sun.shadow.map?.dispose();
-    sun.shadow.map = null;
     resize();
     publishState();
   }
@@ -290,19 +285,14 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const direction = new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH));
     raycaster.set(target, direction);
     raycaster.far = zoom;
-    const hit = raycaster.intersectObjects(cameraObstacles)[0];
+    const hit = raycaster.intersectObjects(cameraObstacles())[0];
     arm = springArm(arm, zoom, hit?.distance, dt);
     camera.position.copy(target).addScaledVector(direction, arm);
-    camera.position.y = Math.max(camera.position.y, terrainHeight(terrain, camera.position.x, camera.position.z) + CAMERA_CLEARANCE);
+    camera.position.y = Math.max(camera.position.y, surfaceHeight(camera.position.x, camera.position.z) + CAMERA_CLEARANCE);
     camera.lookAt(target);
-    const blocked = new Set(selectOccludingCrowns(trees, camera.position, target));
-    const instances = new Set<number>();
-    for (let i = 0; i < forest[1].count; i++) {
-      if (blocked.has(Math.floor(i * trees.length / forest[1].count))) instances.add(i);
-    }
-    fadeCrowns(instances, dt);
+    composed.fadeCrowns(camera.position, target, dt);
     if (opts.debug) {
-      if (camera.position.y < terrainHeight(terrain, camera.position.x, camera.position.z)) belowTerrainFrames++;
+      if (camera.position.y < surfaceHeight(camera.position.x, camera.position.z)) belowTerrainFrames++;
       console.assert(belowTerrainFrames === 0, "T05: camera below terrain", belowTerrainFrames);
       container.dataset.worldCameraBelowTerrainFrames = String(belowTerrainFrames);
     }
@@ -343,15 +333,16 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       const plan = limitSteps(accumulator, last ? (now - last) / 1000 : 0);
       accumulator = plan.remainder;
       for (let i = 0; i < plan.steps; i++) {
+        composed.update(physics.position, FIXED_DT);
         state = locomotion.step(state, keys, yaw, FIXED_DT);
+        if (!composed.contains(physics.position)) returnToPath();
       }
     }
     last = now;
     player.position.copy(physics.position);
     updateCamera(dt);
     interaction.update();
-    sun.target.position.copy(physics.position);
-    sun.position.copy(physics.position).add(new Vector3(-20, 12, 15));
+    composed.update(physics.position, 0);
     paper.render(scene, camera);
     if (metrics) {
       if (!metricStart) metricStart = now;
@@ -422,16 +413,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     document.removeEventListener("visibilitychange", visibility);
     document.removeEventListener("focusin", focusin);
     clear();
+    motionPreference?.removeEventListener("change", updateMotionPreference);
+    composed.dispose();
     physics.dispose();
-    for (const mesh of [...obstacles, player, ...props.map(prop => prop.mesh), ...supports]) {
+    for (const mesh of [player, ...props.map(prop => prop.mesh), ...supports]) {
       mesh.geometry.dispose();
       mesh.material.dispose();
     }
-    for (const mesh of forest) mesh.dispose();
-    disposeCameraForest();
     paper.dispose();
     disposeRampGradients();
-    sun.shadow.dispose();
     metrics?.remove();
     gpu.dispose();
     gpu.forceContextLoss();

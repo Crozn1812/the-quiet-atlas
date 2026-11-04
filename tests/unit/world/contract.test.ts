@@ -91,7 +91,12 @@ afterEach(() => {
 
 // L4-010: per-test timeout (30 s). This test (formerly "implements container pause/quality events…") timed out at
 // the 5 s default on the GitHub runner (run #1). Harness limit only, not a performance gate.
-it.each([undefined, "vi"] as const)("implements container events in place with locale %s", async locale => {
+it.each([
+  { locale: undefined, collision: "raycast" },
+  { locale: "vi", collision: "raycast" },
+  { locale: undefined, collision: "rapier" },
+  { locale: "vi", collision: "rapier" },
+] as const)("implements container events in place with $locale / $collision", async ({ locale, collision }) => {
   const canvas = new Element();
   harness.canvas = canvas;
   const document = Object.assign(new EventTarget(), {
@@ -100,7 +105,7 @@ it.each([undefined, "vi"] as const)("implements container events in place with l
     hasFocus: () => true,
     createElement: () => new Element(),
   });
-  const window = Object.assign(new EventTarget(), { devicePixelRatio: 2 });
+  const window = Object.assign(new EventTarget(), { devicePixelRatio: 2, performance });
   vi.stubGlobal("document", document);
   vi.stubGlobal("window", window);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
@@ -113,7 +118,7 @@ it.each([undefined, "vi"] as const)("implements container events in place with l
   const states: unknown[] = [];
   container.addEventListener("tqa:world-state", event => states.push((event as CustomEvent).detail));
   const { mountWorld } = await import("../../../src/features/world/index");
-  const unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast", debug: true, locale });
+  const unmount = await mountWorld(container as unknown as HTMLElement, { collision, debug: true, locale });
   try {
     const tick = (now: number) => harness.next!(now);
     tick(100);
@@ -160,6 +165,9 @@ it.each([undefined, "vi"] as const)("implements container events in place with l
     expect(container.dataset.worldHint).toBeUndefined();
     clickObject(sign);
     expect(opened).toHaveBeenCalledOnce();
+    expect(container.dataset.worldPaused).toBe("true");
+    // Return uses the nearest safe route point while preserving the overlay pause.
+    send(container, "tqa:return-to-path", {});
     expect(container.dataset.worldPaused).toBe("true");
     send(container, "tqa:set-locale", { detail: { locale: "en" } });
     expect(container.dataset.worldPaused).toBe("true");
@@ -209,6 +217,7 @@ it.each([undefined, "vi"] as const)("implements container events in place with l
     const outsideWheel = send(container, "wheel", { deltaX: 100, deltaY: 100 });
     expect(outsideWheel.defaultPrevented).toBe(false);
   } finally {
+    unmount();
     unmount();
   }
   expect((container as unknown as HTMLElement).__tqaPerf).toBeUndefined();

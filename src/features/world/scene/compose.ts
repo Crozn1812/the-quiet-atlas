@@ -1,0 +1,247 @@
+import { CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, MeshBasicMaterial, Scene, Vector3, type MeshToonMaterial } from "three";
+import type RAPIER from "@dimforge/rapier3d-compat";
+import { PALETTE } from "../art/palette";
+import { createFoliage } from "../foliage/instances";
+import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
+import { scatterTile, type FoliageTree } from "../foliage/scatter";
+import { createCrownFade } from "../crown-fade";
+import { selectOccludingCrowns } from "../camera";
+import { timeOfDayAt } from "../layout/lighting";
+import { pathLength } from "../layout/path";
+import { ZONES } from "../layout/zones";
+import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createSkyDome } from "../sky/dome";
+import { lightingAt, type LightingGrade } from "../sky/grade";
+import { createGradeFollower } from "../sky/smoothing";
+import { PRESETS, type Quality } from "../terrain";
+import type { TilePhysicsWorld, TileRapier } from "../terrain/collider";
+import { createTilePool } from "../terrain/pool";
+import { nearestPath } from "../terrain/samples";
+import { TILE_SIZE, tileKey } from "../terrain/tiles";
+import { HEIGHT } from "../scene";
+import { waterLevelAt, worldHeight } from "../terrain/height";
+import { createRiverRibbon } from "../water/ribbon";
+import { createSea } from "../water/sea";
+import { createWaterMaterial } from "../water/material";
+
+/** Height on the rendered/Rapier triangles, including their diagonal and Float32 rounding. */
+export function surfaceHeight(x: number, z: number): number {
+  const step = 2;
+  const x0 = Math.floor(x / step) * step;
+  const z0 = Math.floor(z / step) * step;
+  const u = (x - x0) / step;
+  const v = (z - z0) / step;
+  const a = Math.fround(worldHeight(x0, z0));
+  const b = Math.fround(worldHeight(x0 + step, z0));
+  const c = Math.fround(worldHeight(x0, z0 + step));
+  const d = Math.fround(worldHeight(x0 + step, z0 + step));
+  return u + v <= 1 ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
+}
+export function nearestSafePath(position: { x: number; z: number }): Vector3 {
+  const path = nearestPath(position.x, position.z);
+  return new Vector3(path.x, surfaceHeight(path.x, path.z) + HEIGHT + 0.02, path.z);
+}
+
+export const worldSpawn = () => nearestSafePath(ZONES.find(zone => zone.id === "first-light")!.position);
+
+export function createWorldScene({ RAPIER, world, scene, quality: initialQuality, paper }: {
+  RAPIER: TileRapier;
+  world: TilePhysicsWorld;
+  scene: Scene;
+  quality: Quality;
+  paper?: { setGrade(grade: LightingGrade): void; setMist(options: { height: number }): void };
+}) {
+  let quality = initialQuality;
+  let disposed = false;
+  let elapsed = 0;
+  let reducedMotion = false;
+  let lastT = -Infinity;
+  let previousPosition: Vector3 | undefined;
+  const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain);
+  const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
+  const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
+  const trunkMaterial = new MeshBasicMaterial();
+  const follower = createGradeFollower(2);
+  const sky = createSkyDome();
+  const sun = new DirectionalLight();
+  const hemisphere = new HemisphereLight();
+  const previousFog = scene.fog;
+  const fog = new Fog(PALETTE.paper, 15, 65);
+  scene.fog = fog;
+  Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 0.5, far: 120 });
+  sun.shadow.bias = -0.001;
+  const water = [createRiverRibbon(quality), createSea(quality)];
+  const cells = new Map<string, ReturnType<typeof createCell>>();
+  // Stable array identity lets the experimental raycast controller follow streaming.
+  const collisionMeshes: Mesh[] = [];
+  const visibleMeshes: Mesh[] = [];
+  const foliageMeshes: Mesh[] = [];
+  let streamingError: unknown;
+
+  function createCell(trees: FoliageTree[]) {
+    const foliage = createFoliage(trees.length);
+    // The two species share their initial crown material. Give each its own fade hook.
+    const pine = foliage.species.pine.crowns;
+    const broadleaf = foliage.species.broadleaf.crowns;
+    broadleaf.material = (pine.material as MeshToonMaterial).clone();
+    broadleaf.material.onBeforeCompile = pine.material.onBeforeCompile;
+    broadleaf.material.customProgramCacheKey = pine.material.customProgramCacheKey;
+    const fades = [createCrownFade(pine, trees.length), createCrownFade(broadleaf, trees.length)];
+    const colliders: RAPIER.Collider[] = [];
+    const trunks: Mesh[] = [];
+    let visibleTrees: ReturnType<typeof crownTrees>[] = [];
+    function crownTrees(kind: FoliageTree["kind"], selected: FoliageTree[]) {
+      return selected.filter(tree => tree.kind === kind).map(tree => ({ ...tree, height: TRUNK_HEIGHT * tree.scale, radius: 0.28 }));
+    }
+    function setCellQuality(next: Quality) {
+      foliage.setQuality(next);
+      const count = Math.round(trees.length * PRESETS[next].density);
+      const selected = Array.from({ length: count }, (_, i) => trees[Math.floor((i + 0.5) * trees.length / count)]!);
+      visibleTrees = [crownTrees("pine", selected), crownTrees("broadleaf", selected)];
+    }
+    try {
+      for (const trunk of createFoliageColliders(trees)) {
+        colliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(trunk.halfHeight, trunk.radius)
+          .setTranslation(trunk.x, trunk.y, trunk.z).setRotation(trunk.rotation)));
+        const mesh = new Mesh(trunkGeometry, trunkMaterial);
+        mesh.position.set(trunk.x, trunk.y, trunk.z);
+        mesh.quaternion.copy(trunk.rotation);
+        mesh.scale.set(trunk.radius, trunk.halfHeight, trunk.radius);
+        mesh.updateMatrixWorld(true);
+        trunks.push(mesh);
+      }
+      foliage.setTiles(trees);
+      setCellQuality(quality);
+      scene.add(foliage.group);
+    } catch (error) {
+      for (const collider of colliders) world.removeCollider(collider, true);
+      foliage.dispose();
+      broadleaf.material.dispose();
+      throw error;
+    }
+    return {
+      trunks, foliage, setQuality: setCellQuality,
+      fade(camera: Vector3, player: Vector3, dt: number) {
+        for (const [index, visible] of visibleTrees.entries()) {
+          // The spring arm is <=16 m. Only nearby crowns can cover its sight lines.
+          const nearby = visible.map((tree, id) => ({ tree, id }))
+            .filter(({ tree }) => Math.hypot(tree.x - camera.x, tree.z - camera.z) <= 24);
+          const blocked = selectOccludingCrowns(nearby.map(({ tree }) => tree), camera, player);
+          fades[index]!(new Set(blocked.map(id => nearby[id]!.id)), dt);
+        }
+      },
+      dispose() {
+        for (const collider of colliders) world.removeCollider(collider, true);
+        foliage.dispose();
+        broadleaf.material.dispose();
+      },
+    };
+  }
+
+  function syncMeshes() {
+    collisionMeshes.length = visibleMeshes.length = foliageMeshes.length = 0;
+    for (const tile of pool.tiles.values()) {
+      collisionMeshes.push(tile.mesh);
+      visibleMeshes.push(tile.mesh);
+    }
+    for (const cell of cells.values()) {
+      collisionMeshes.push(...cell.trunks);
+      for (const species of Object.values(cell.foliage.species)) foliageMeshes.push(species.trunks, species.crowns);
+    }
+    visibleMeshes.push(...foliageMeshes);
+  }
+
+  function setQuality(next: Quality) {
+    if (disposed) return;
+    quality = next;
+    for (const cell of cells.values()) cell.setQuality(next);
+    for (const surface of water) {
+      if (surface.mesh.material.quality === next) continue;
+      const previous = surface.mesh.material;
+      const material = createWaterMaterial(next, { surface: surface === water[1] ? "sea" : "river" });
+      material.setTime(elapsed);
+      material.uniforms.uTime!.value = previous.uniforms.uTime!.value;
+      material.setReducedMotion(reducedMotion);
+      // WaterSurface owns its original material; dispose replacements explicitly below.
+      surface.mesh.material = material;
+      previous.dispose();
+    }
+    sun.castShadow = PRESETS[next].shadow > 0;
+    sun.shadow.mapSize.setScalar(PRESETS[next].shadow || 512);
+    sun.shadow.map?.dispose();
+    sun.shadow.map = null;
+  }
+
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    for (const cell of cells.values()) cell.dispose();
+    cells.clear();
+    pool.dispose();
+    terrainMaterial.dispose();
+    trunkGeometry.dispose();
+    trunkMaterial.dispose();
+    for (const surface of water) { surface.mesh.material.dispose(); surface.dispose(); }
+    sky.dispose();
+    sun.shadow.dispose();
+    sun.removeFromParent();
+    sun.target.removeFromParent();
+    hemisphere.removeFromParent();
+    if (scene.fog === fog) scene.fog = previousFog;
+    collisionMeshes.length = visibleMeshes.length = foliageMeshes.length = 0;
+  }
+
+  function update(player: Vector3, dt: number) {
+    if (disposed) return;
+    const { t } = nearestPath(player.x, player.z);
+    if (Math.abs(t - lastT) * pathLength() >= 8) {
+      try {
+        pool.update(t);
+        for (const [key, resident] of pool.tiles) if (!cells.has(key)) cells.set(key, createCell(scatterTile(resident.tile)));
+        for (const [key, cell] of cells) if (!pool.tiles.has(key)) { cell.dispose(); cells.delete(key); }
+        lastT = t;
+        streamingError = undefined;
+      } catch (error) {
+        streamingError = error;
+        // Pool loads first and retains the preceding walking surface on failure.
+        if (!Number.isFinite(lastT)) throw error;
+      } finally { syncMeshes(); }
+    }
+    const target = lightingAt(timeOfDayAt(t));
+    const teleport = !previousPosition || previousPosition.distanceTo(player) > 24;
+    const grade = teleport ? follower.snap(target) : follower.update(target, dt);
+    previousPosition = player.clone();
+    sun.color.copy(grade.sunColor);
+    sun.intensity = grade.sunIntensity;
+    sun.target.position.copy(player);
+    sun.position.copy(player).addScaledVector(grade.sunDirection, 50);
+    hemisphere.color.copy(grade.hemiSky);
+    hemisphere.groundColor.copy(grade.hemiGround);
+    hemisphere.intensity = grade.hemiIntensity;
+    fog.color.copy(grade.fogColor);
+    sky.update(grade);
+    paper?.setGrade(grade);
+    paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });
+    elapsed += dt;
+    for (const surface of water) {
+      surface.mesh.material.setTime(elapsed);
+      surface.mesh.material.setSkyMix(timeOfDayAt(t));
+    }
+  }
+
+  scene.add(pool.group, sky.mesh, sun, sun.target, hemisphere, ...water.map(surface => surface.mesh));
+  try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
+  return {
+    update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,
+    setReducedMotion(reduced: boolean) {
+      if (disposed) return;
+      reducedMotion = reduced;
+      for (const surface of water) surface.mesh.material.setReducedMotion(reduced);
+    },
+    get streamingError() { return streamingError; },
+    contains(position: { x: number; z: number }) { return pool.tiles.has(tileKey(Math.floor(position.x / TILE_SIZE), Math.floor(position.z / TILE_SIZE))); },
+    fadeCrowns(camera: Vector3, player: Vector3, dt: number) {
+      for (const cell of cells.values()) cell.fade(camera, player, dt);
+    },
+  };
+}
