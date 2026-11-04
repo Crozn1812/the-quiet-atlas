@@ -33,6 +33,11 @@ education: z.array(z.object({
 - Mỗi mục vẫn chịu `reviewStatus` của profile (draft không lên production như "completed").
 - **Không** thêm `upstreamUrl`/`attribution` cho project ở ADR này — chờ Duy trả lời Q-17.
 
+### Bổ sung khi triển khai (L2-011, Lead chấp nhận)
+
+- Tháng chặt hơn: `^\d{4}-(0[1-9]|1[0-2])$`.
+- `superRefine`: `end` không trước `start`; id trong `evidence` phải có trong ledger.
+
 ## Người làm
 
 - L2: schema + dữ liệu + validator + CV (`tools/cv/`).

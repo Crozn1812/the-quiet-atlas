@@ -15,6 +15,7 @@
     "check:bundle": "node tools/check-bundle/index.mjs out",
     "check:leaks": "node tools/scan-leaks/index.mjs src/content out",
     "check:licenses": "node tools/check-licenses/index.mjs",
+    "check:gitleaks": "node tools/checks/gitleaks.mjs",
     "serve:out": "node tools/serve-out/index.mjs out",
     "test:e2e": "playwright test",
     "test:perf": "playwright test -c tests/perf/playwright.perf.config.ts",
