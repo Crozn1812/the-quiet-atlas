@@ -11,6 +11,9 @@ import { ACESFilmicToneMapping, DirectionalLight, HemisphereLight, Fog, CapsuleG
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
 import { createObstacles, steepRamp, HALF_HEIGHT, RADIUS } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
+import { PALETTE } from "./art/palette";
+import { disposeRampGradients } from "./materials/ramp";
+import { createPaperPass } from "./post/paper";
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
   locale?: WorldLocale;
@@ -59,8 +62,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let contextLost = false;
   const locomotion = createLocomotion(physics);
   const scene = new Scene();
-  scene.background = new Color(0xe4c8a5);
-  scene.fog = new Fog(0xe4c8a5, 15, 65);
+  // ADR 0013: paper sky and fog; Balanced/High add the paper pass, Low relies on scene fog only.
+  scene.background = new Color(PALETTE.paper);
+  scene.fog = new Fog(PALETTE.paper, 15, 65);
   scene.add(new HemisphereLight(0xffe2bb, 0x43574a, 2));
   const sun = new DirectionalLight(0xffce91, 3);
   sun.position.set(-20, 12, 15);
@@ -71,6 +75,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   scene.add(sun, sun.target);
   gpu.shadowMap.enabled = sun.castShadow;
   gpu.toneMapping = ACESFilmicToneMapping;
+  const paper = createPaperPass(gpu, { quality });
   scene.add(...obstacles);
   const player = new Mesh(new CapsuleGeometry(RADIUS, HALF_HEIGHT * 2), new MeshBasicMaterial({ color: 0xcc754e }));
   scene.add(player);
@@ -271,6 +276,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     quality = next;
     updateForest(forest, trees, quality);
     gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
+    paper.setQuality(quality);
     sun.castShadow = PRESETS[quality].shadow > 0;
     gpu.shadowMap.enabled = sun.castShadow;
     sun.shadow.mapSize.setScalar(PRESETS[quality].shadow || 512);
@@ -305,6 +311,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
     gpu.setSize(width, height);
+    paper.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   }
@@ -345,7 +352,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     interaction.update();
     sun.target.position.copy(physics.position);
     sun.position.copy(physics.position).add(new Vector3(-20, 12, 15));
-    gpu.render(scene, camera);
+    paper.render(scene, camera);
     if (metrics) {
       if (!metricStart) metricStart = now;
       metricFrames++;
@@ -422,6 +429,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     }
     for (const mesh of forest) mesh.dispose();
     disposeCameraForest();
+    paper.dispose();
+    disposeRampGradients();
     sun.shadow.dispose();
     metrics?.remove();
     gpu.dispose();

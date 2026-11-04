@@ -20,8 +20,25 @@ vi.mock("three", async importOriginal => {
       setPixelRatio(value: number) {
         harness.dpr = value;
       }
+      autoClear = true;
+      target: unknown = null;
       setSize() {}
+      getSize(out: import("three").Vector2) {
+        return out.set(1000, 800);
+      }
+      getPixelRatio() {
+        return harness.dpr || 1;
+      }
+      getRenderTarget() {
+        return this.target;
+      }
+      setRenderTarget(target: unknown) {
+        this.target = target;
+      }
+      clear() {}
       render(scene: import("three").Scene, camera: import("three").Camera) {
+        // The paper post pass draws a full-screen triangle with an orthographic camera; record only the world render.
+        if ((camera as { isOrthographicCamera?: boolean }).isOrthographicCamera) return;
         scene.updateMatrixWorld(true);
         camera.updateMatrixWorld(true);
         harness.camera = camera;

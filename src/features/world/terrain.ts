@@ -1,4 +1,5 @@
-import { BufferGeometry, Float32BufferAttribute, Mesh, MeshStandardMaterial, CylinderGeometry, ConeGeometry, InstancedMesh, Object3D } from "three";
+import { BufferGeometry, Float32BufferAttribute, Mesh, CylinderGeometry, ConeGeometry, InstancedMesh, Object3D } from "three";
+import { createRampMaterial, RAMP_PRESETS } from "./materials/ramp";
 export type Quality = "Low" | "Balanced" | "High";
 export const PRESETS = { Low: { density: 0.4, dpr: 1, shadow: 0 }, Balanced: { density: 0.7, dpr: 1.25, shadow: 1024 }, High: { density: 1, dpr: 2, shadow: 2048 } } as const;
 export const SIZE = 60;
@@ -35,7 +36,7 @@ export function createTerrainMesh(terrain: Terrain) {
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(vertices, 3));
   geometry.setIndex(indices); geometry.computeVertexNormals();
-  const mesh = new Mesh(geometry, new MeshStandardMaterial({ color: 0x657552, roughness: 1 }));
+  const mesh = new Mesh(geometry, createRampMaterial(RAMP_PRESETS.terrain));
   mesh.receiveShadow = true; mesh.updateMatrixWorld(true);
   return mesh;
 }
@@ -52,8 +53,8 @@ export function createTrees(terrain: Terrain) {
 }
 export type Trees = ReturnType<typeof createTrees>;
 export function createForest(trees: Trees, quality: Quality) {
-  const trunks = new InstancedMesh(new CylinderGeometry(0.28, 0.28, 1, 6), new MeshStandardMaterial({ color: 0x655144, roughness: 1 }), trees.length);
-  const crowns = new InstancedMesh(new ConeGeometry(1.8, 4, 7), new MeshStandardMaterial({ color: 0x344e3d, roughness: 1 }), trees.length);
+  const trunks = new InstancedMesh(new CylinderGeometry(0.28, 0.28, 1, 6), createRampMaterial(RAMP_PRESETS.trunk), trees.length);
+  const crowns = new InstancedMesh(new ConeGeometry(1.8, 4, 7), createRampMaterial(RAMP_PRESETS.crown), trees.length);
   updateForest([trunks, crowns], trees, quality);
   return [trunks, crowns] as const;
 }

@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "serve-out", "runtimeExecutable": "node", "runtimeArgs": ["tools/serve-out/index.mjs", "out"], "port": 4173 }
+  ]
+}
