@@ -4,7 +4,7 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { readCapabilities, worldEligibility } from "./capabilities";
+import { createCapabilityReader, worldEligibility } from "./capabilities";
 import { listenWorldError } from "./worldError";
 
 export type WorldCopy = {
@@ -32,10 +32,10 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   const [copy, setCopy] = useState(initialCopy);
   const currentLocale = useRef(initialLocale);
   const [announcement, setAnnouncement] = useState("");
-  const [hud, setHud] = useState({
-    sound: initialLocale === "vi" ? "Âm thanh" : "Sound",
-    actions: initialLocale === "vi" ? "Thao tác world" : "World actions",
-  });
+  const hud = {
+    sound: locale === "vi" ? "Âm thanh" : "Sound",
+    actions: locale === "vi" ? "Thao tác world" : "World actions",
+  };
   const [eligibility, setEligibility] = useState<ReturnType<typeof worldEligibility>>();
   const [appMode, setAppMode] = useState<"welcome" | "loading" | "world" | "recoverableError">("welcome");
   const [retried, setRetried] = useState(false);
@@ -57,18 +57,15 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   }, []);
 
   useEffect(() => {
+    // Restore focus after React reveals the button on exit or recovery.
     if (appMode === "recoverableError" || appMode === "welcome") enter.current?.focus();
   }, [appMode]);
 
   useEffect(() => {
     const lifecycle = generation;
-    const webgl2 = readCapabilities().webgl2;
+    const read = createCapabilityReader();
     function update() {
-      setEligibility(worldEligibility({
-        webgl2,
-        finePointer: window.matchMedia("(pointer: fine)").matches,
-        width: window.innerWidth,
-      }));
+      setEligibility(worldEligibility(read()));
     }
     update();
     const pointer = window.matchMedia("(pointer: fine)");
@@ -93,7 +90,6 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       return;
     }
     setAppMode("welcome");
-    enter.current?.focus();
   }
 
   async function onEnterWorld() {
@@ -103,7 +99,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
     const current = ++generation.current;
     setAppMode("loading");
     try {
-      if (worldEligibility(readCapabilities()) !== "eligible") throw new Error("World unavailable");
+      if (worldEligibility(createCapabilityReader()()) !== "eligible") throw new Error();
       const { mountWorld } = await import("@/features/world");
       if (current !== generation.current || !container.current) return;
       const unmount = await mountWorld(container.current, {
@@ -119,11 +115,10 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       container.current.focus();
       const { mountWorldMenu } = await import("./WorldMenu");
       if (current !== generation.current || !container.current) return;
-      const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld, (next, nextCopy, labels) => {
+      const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld, (next, nextCopy) => {
         currentLocale.current = next;
         setLocale(next);
         setCopy(nextCopy);
-        setHud(labels);
         setAnnouncement(next === "vi" ? "Ngôn ngữ: Tiếng Việt" : "Language: English");
       });
       teardown.current = () => {
@@ -135,7 +130,6 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
         teardown.current?.();
         teardown.current = undefined;
         setAppMode("recoverableError");
-        enter.current?.focus();
       }
     } finally {
       busy.current = false;
