@@ -232,7 +232,13 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 
 **Lighthouse sau L1-013 (Lead, máy dev)**: mặc định `/en/` TBT 44–58, LCP 2204–2213 ms; CPU×8 TBT 131–156, LCP 2285–2311 ms (không tệ hơn đợt 11).
 **Kiểm full (L4, main `af45a66`)**: 13/13 exit 0 — unit 227, e2e 142, test:perf 2, gitleaks 3/3 (89 commit), terraform 7/7, lhci worst `/en/` TBT 42 / LCP 2201 / CLS 0,012. Quick EN không còn câu tiếng Việt ở evidence; heading h1→h2→h3 hợp lệ.
-**CI GitHub run 41828064480 trên `dc8fc19`: FAIL ở Lighthouse** — `/en/` TBT 246/96/104 ms (`pessimistic` lấy 246 > 200). Lần chạy xấu có runner chậm bất thường (benchmarkIndex 1893, bootup 479 ms; hai lần kia ~2440, ~250 ms). Mọi bước khác và job terraform PASS. Cùng kiểu với đợt 11 (232 ms). Không nới ngưỡng; hướng xử lý: giảm hydrate của Welcome (ticket L1-014, chờ Duy duyệt).
+**CI GitHub run 41828064480 trên `dc8fc19`: FAIL ở Lighthouse** — `/en/` TBT 246/96/104 ms (`pessimistic` lấy 246 > 200). Lần chạy xấu có runner chậm bất thường (benchmarkIndex 1893, bootup 479 ms; hai lần kia ~2440, ~250 ms). Mọi bước khác và job terraform PASS. Cùng kiểu với đợt 11 (232 ms). Không nới ngưỡng; hướng xử lý: giảm hydrate của Welcome (ticket L1-014).
+
+### Đợt 12b — L1-014 (BLOCKED): sàn TBT là runtime Next/React
+
+- Subagent opus trace CPU×10: task lớn nhất là nạp/khởi tạo module framework (~22 ms thực ≈ 220 ms giả lập, ~54% là khởi tạo module react-dom/router), giống nhau ở ,  và  (0 client component). Hydrate  đã chia lát 5 ms, gần như không góp TBT. CPU×10:  180/216/184,  176/186/175 ms. Không sửa code (không có lợi ích đo được).
+- Lead thử : CPU×10 TBT 176–217 ms (không cải thiện), LCP ~2,19 s (tốt hơn ~150 ms). Không áp dụng.
+- Kết luận: CI đỏ khi runner chậm bất thường (benchmarkIndex ~1900) vì  lấy lần xấu nhất trong 3 lần. Không phải hồi quy. Cách xử lý thay đổi phương pháp đo → **Duy quyết (Q-24)**; Lead không tự đổi.
 
 ### Ticket tiếp theo (nháp, chưa giao)
 

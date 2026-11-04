@@ -1,6 +1,6 @@
 ## TICKET L1-014 — Giảm việc main-thread lúc tải Welcome để Lighthouse CI ổn định trên runner chậm
 
-- Trạng thái: **Assigned → subagent L1 (opus)** (2026-11-04, đợt 12b), nhánh `lane/L1-014`, worktree `D:/tqa-worktrees/L1-014`. Không giao Codex: cần đo bằng trình duyệt (sandbox Codex chặn Edge).
+- Trạng thái: **BLOCKED — đóng** (sàn runtime Next/React; xem PROJECT_STATUS đợt 12b). Trước đó: Assigned → subagent L1 (opus) (2026-11-04, đợt 12b), nhánh `lane/L1-014`, worktree `D:/tqa-worktrees/L1-014`. Không giao Codex: cần đo bằng trình duyệt (sandbox Codex chặn Edge).
 - Lane / milestone: L1 Portfolio UI / A1 — **chặn CI xanh**
 - Spec: §8 (LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms proxy INP); ADR 0009; `lighthouserc.cjs` (**không sửa**, không nới ngưỡng, không đổi số lần chạy/aggregation)
 - Bằng chứng CI (run 41828064480, `dc8fc19`, ubuntu, mobile mặc định, 3 lần, `pessimistic`):

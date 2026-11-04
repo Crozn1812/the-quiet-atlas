@@ -6,6 +6,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
+| Q-24 | **CI Lighthouse chập chờn** do runner GitHub chậm bất thường (TBT sàn của Next/React ~170–200 ms khi CPU rất chậm; trang không có JS riêng cũng vậy). Chọn: (A, Lead đề xuất) giữ ngưỡng 200 ms, đo **5 lần lấy trung vị** thay vì 3 lần lấy lần xấu nhất, vẫn in lần xấu nhất ra annotation; (B) giữ nguyên, khi đỏ do runner chậm thì Lead chạy lại CI và ghi lại; (C) giữ nguyên và chấp nhận CI đỏ | Lead / L5 | Không chặn A1 trên máy local; ảnh hưởng CI xanh | Đợt 13 | Trả lời A, B hoặc C |
 | Q-16 | **AWS Sales Pipeline** (chưa trả lời ngày 2026-11-04): CV ghi EventBridge kích hoạt xử lý, README ghi S3 kích hoạt Lambda — cái nào đúng? "Shopmart" là dữ liệu giả hay doanh nghiệp thật? | L2 | A1 (case study AWS) | Đợt 12 | Trả lời 2 ý |
 | Q-10 | **Xác nhận CPU laptop iGPU**: Duy ghi "Asus Vivobook Flip 15, 13400F". Mã "13400F" là CPU desktop không có iGPU (đuôi F) → cần mã đúng (vd. i5-1340P / i7-1360P), xem ở Settings → System → About | L3 | B1 — không chặn | Khi tiện | Gửi dòng "Processor" và tên GPU trong Task Manager → Performance |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
