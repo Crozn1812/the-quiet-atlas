@@ -246,7 +246,9 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 
 - Duy trả lời Q-16 (lúc đầu EventBridge, sau chốt "theo repo GitHub": code dùng S3EventSource → S3 gọi Lambda trực tiếp; dữ liệu giả lập), Q-10 (laptop i5-13500H Iris Xe → ADR 0007).
 - L2-013 (subagent sonnet, aed8327): chức danh chốt "CloudDevOps Engineer"; AWS trigger theo repo; InsightHub bỏ chi tiết nghiệm thu; CMS viết theo slide (bỏ câu mức bằng chứng ở summary); PDG chỉ nói hai luồng dữ liệu cloud và on-premises, không nêu nguồn dữ liệu. Unit 231 PASS, check:cv/leaks PASS. Lead sửa test có ký tự điều khiển (fbf7a4d).
-- Bản xem thử local: localhost:4180 (out/ build mới). Nhãn Draft giữ tới khi Duy duyệt OK từng trang.
+- Bản xem thử local: localhost:4180 (out/ build mới).
+- **Duy duyệt OK, gỡ Draft (89cb527)**: profile + 4 case study `reviewStatus: approved`, `publicApproval: true`, `lastReviewedAt 2026-11-04`. Trang privacy vẫn Draft (chưa nằm trong danh sách duyệt).
+- **Kiểm full (L4, `89cb527`)**: 13/13 exit 0 — unit 231, e2e 142 (sửa 2 test kỳ vọng chức danh cũ, b2d802c), gitleaks 3/3 (104 commit), terraform 7/7, lhci 5 lần: `/en/` TBT median 42 / worst 50, LCP 2194 / 2203 ms. Không còn "Draft"/"SharePoint" trên các trang đã duyệt.
 
 ### Ticket tiếp theo (nháp, chưa giao)
 

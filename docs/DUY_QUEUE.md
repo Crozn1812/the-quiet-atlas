@@ -9,7 +9,6 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
-| Q-04 | **Duyệt từng trang** (Welcome, Quick EN/VI, 4 case study, CV) trước khi gỡ nhãn Draft | L2 | A1 → A3 | Sau đợt 12 | Lead gửi link xem thử local + danh sách chỗ cần xác nhận |
 
 ## Câu trả lời ngày 2026-11-04 (lượt 2) — Lead đã ghi nhận
 
@@ -49,3 +48,4 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | D-11 | Q-24: Lighthouse CI đo 5 lần, gate theo trung vị, ngưỡng giữ nguyên, lần xấu nhất vẫn in ra (ADR 0011) | 2026-11-04 |
 | D-12 | Q-16: AWS Sales Pipeline dùng **EventBridge** kích hoạt xử lý; "Shopmart" là dữ liệu giả → case study cập nhật | 2026-11-04 |
 | D-13 | Q-10: laptop iGPU Asus Vivobook Flip 15, i5-13500H (Iris Xe), 16 GB, OLED → ADR 0007 bổ sung; T08 iGPU chờ Duy chạy theo runbook | 2026-11-04 |
+| D-14 | Q-04: Duy duyệt từng trang (lượt 1: chức danh CloudDevOps Engineer, AWS theo repo, bỏ 69/70, CMS theo slide, PDG chỉ nêu 2 luồng cloud/on-prem) → gỡ Draft | 2026-11-04 |
