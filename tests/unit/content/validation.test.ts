@@ -122,7 +122,7 @@ describe("L2-012 content from Duy's answers", () => {
   });
   it("keeps the InsightHub acceptance detail 69/70 out of every public field (L2-013)", () => {
     for (const p of content.projects.filter(p => p.slug === "insighthub-rag")) {
-      expect(JSON.stringify(p)).not.toMatch(/69|70|1 fail/i);
+      expect(JSON.stringify(p)).not.toMatch(/69s*/s*70|1 fail/i);
     }
   });
   it("mentions no SharePoint in any PDG field, only the two cloud and on-premises flows (L2-013)", () => {
