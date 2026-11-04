@@ -77,7 +77,8 @@ describe("layout-derived, deterministic shots", () => {
     for (const shot of SHOT_IDS) {
       const river = riverPointAt(pathRiverTAt(SHOTS[shot].pathT));
       const { position, target } = cameraAt(shot);
-      expect(Math.hypot(position.x - river.x, position.z - river.z)).toBeLessThan(20);
+      // Coast stands back on the dune behind the beach (B2-037), still within ~80 m of the mouth.
+      expect(Math.hypot(position.x - river.x, position.z - river.z)).toBeLessThan(shot === "coast-dusk" ? 80 : 20);
       expect(target.z).toBeLessThan(position.z);
     }
   });
