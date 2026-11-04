@@ -215,9 +215,17 @@ Duy cấp quyền bypass; Lead chọn model theo độ khó: Codex **gpt-6.1-sol
 
 **Kiểm full (L4, main `33c27b5`)**: 12/12 bước exit 0 — unit 196, e2e 142 (gồm 5 test rủi ro L1-011), test:perf, gitleaks 3/3, lhci. Sau bản sửa focus, Lead chạy lại lint/typecheck/unit/build/check:bundle + e2e liên quan Enter World (110 passed). Bằng chứng: `docs/evidence/B1/t08-t09-lhci-2026-11-04-b11.md`.
 
+**Lighthouse trên CI (run cho `b38289c`)**: vẫn FAIL ở `/en/` lần chạy chậm nhất (TBT 232 ms, LCP 2565 ms; runner benchmarkIndex ~2000–2450, máy dev ~3500). Thêm bước workflow in assertion ra annotation công khai (`b38289c`).
+**L1-012** (Codex BLOCKED: sandbox không mở được Edge → chuyển subagent opus; `b75b568`): LCP Welcome do task hydrate của chunk framework; sửa: tiêu đề Welcome weight 400 (không tải font 700 ở trang đầu), `not-found` dùng `<a>` thay `next/link` (bớt ~6 KB JS mọi trang), Quick không còn import `WorldEntry`. JS ban đầu `/en/` 140,9 → 134,6 KB. CPU×8: LCP Welcome 2143–2213 ms; TBT 139–201 ms — **chưa đạt mục tiêu nội bộ 150 ms**, sàn do Next/React (trang privacy không có client component cũng 130–195 ms).
+**L4 kiểm full trên `b75b568`**: 12/12 exit 0 (unit 200, e2e 142, gitleaks 81 commit, lhci worst TBT 73 / LCP 2217 ms).
+**CI GitHub run 41776742732 trên `b75b568`: SUCCESS — CI xanh lần đầu** (lint → gitleaks → e2e → perf → Lighthouse).
+
 ### Ticket tiếp theo (nháp, chưa giao)
 
 - L1: hiển thị Kinh nghiệm/Học vấn ở Quick Portfolio (ADR 0010); hoãn probe WebGL trên desktop tới lúc rảnh.
+- Lead: dư địa TBT ở CPU chậm nằm ở runtime Next/React — cân nhắc cấu hình Next (ADR mới) nếu CI chập chờn lại.
+- L2: Quick `/en/` có câu evidence tiếng Việt ("Có bản demo công khai…") — cần bản EN.
+- Quy trình: việc cần mở trình duyệt để đo (Lighthouse/trace) giao subagent, không giao Codex (sandbox chặn Edge).
 - L2: sửa nháp case study theo câu trả lời Q-12 → Q-18; Duy duyệt từng trang.
 - L3/L4: chạy lại T09 có người giữ cửa sổ Edge; nếu vẫn tụt 1 Hz thì điều tra (visibility, efficiency mode).
 - Chữ world tiếng Việt chưa được duyệt biên tập.

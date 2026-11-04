@@ -7,6 +7,8 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
 | Q-21 | **Xem log gitleaks trên CI** (cần đăng nhập GitHub): mở run mới nhất ở `github.com/Crozn1812/the-quiet-atlas/actions` → job → bước "Gitleaks…", copy các dòng `RuleID`, `File`, `Commit` (giá trị đã bị che `REDACTED`) gửi Lead. **Hoặc** cho phép Lead tải gitleaks v8.28.0 bản chính thức từ GitHub Releases để chạy local | L5 | Không chặn A1 trên máy local; chặn CI xanh | Đợt 11 | Chọn 1 trong 2 cách |
+| Q-22 | **Tên trên thẻ Welcome giờ là chữ thường (không đậm)** để trang đầu nhẹ hơn (bớt 15–21 KB font). Giữ vậy hay muốn đậm lại? | L1 | Không | Khi tiện | Trả lời "giữ" hoặc "đậm lại" |
+| Q-23 | **Dịch "Network and Systems Engineer"** = "Kỹ sư Mạng và Hệ thống"? Và mô tả công việc ở HPT (đang TBD) | L2 | A1 | Đợt 12 | Xác nhận/sửa chữ |
 | Q-01 | **LinkedIn URL**: CV gửi ngày 2026-11-04 không có LinkedIn. Gửi URL, hoặc trả lời "không dùng" | L2 | A1 (mục liên hệ) — không chặn cứng, đang để TBD | Đợt 11 | Copy URL hồ sơ LinkedIn công khai |
 | Q-02 | **CMS DevOps Platform (DO2603)**: có repo GitHub/demo công khai không? "DO2603" là mã khóa học/chương trình nào, làm một mình hay nhóm, thời gian? | L2 | A1 (case study CMS) | Đợt 11 | Trả lời 3 ý; không có repo thì ghi "không có" — case study sẽ để mức bằng chứng thấp hơn |
 | Q-03 | **Duyệt câu giới thiệu**: 3 phương án A/B/C (EN + VI) ở `content-private/drafts/intro.md`; L2 đề xuất A. Ghi "sinh viên Mạng" hay "Network and Systems Engineer"? | L2 → L1 | A1 | Đợt 11 | Chọn A/B/C hoặc sửa chữ |
