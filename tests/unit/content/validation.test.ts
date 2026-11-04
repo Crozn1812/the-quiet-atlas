@@ -108,9 +108,15 @@ describe("L2-012 content from Duy's answers", () => {
     const pdg = content.projects.filter(p => p.slug === "partner-data-gateway-azure");
     expect(pdg.map(p => p.title)).toEqual(["Secure Partner Data Sharing Portal", "Secure Partner Data Sharing Portal"]);
   });
-  it("never mentions the course code, the upstream repo, EventBridge or Shopmart", () => {
+  it("never mentions the course code, the upstream repo or the fictional dataset name", () => {
     const text = JSON.stringify(content);
-    expect(text).not.toMatch(/DO2603|congdinh2008|EventBridge|Shopmart/i);
+    expect(text).not.toMatch(/DO2603|congdinh2008|Shopmart/i);
+  });
+  it("describes the AWS pipeline trigger as EventBridge on fictional sample data (Q-16)", () => {
+    for (const p of content.projects.filter(p => p.slug === "aws-sales-data-pipeline")) {
+      expect(p.architecture).toContain("EventBridge");
+      expect(p.context).toMatch(p.locale === "vi" ? /dữ liệu mẫu giả lập/ : /fictional sample data/);
+    }
   });
   it("describes CMS with its low evidence level and no repository", () => {
     for (const p of content.projects.filter(p => p.slug === "cms-devops-platform-aws-eks")) {

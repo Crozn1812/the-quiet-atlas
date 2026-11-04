@@ -6,8 +6,6 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
-| Q-16 | **AWS Sales Pipeline** (chưa trả lời ngày 2026-11-04): CV ghi EventBridge kích hoạt xử lý, README ghi S3 kích hoạt Lambda — cái nào đúng? "Shopmart" là dữ liệu giả hay doanh nghiệp thật? | L2 | A1 (case study AWS) | Đợt 12 | Trả lời 2 ý |
-| Q-10 | **Xác nhận CPU laptop iGPU**: Duy ghi "Asus Vivobook Flip 15, 13400F". Mã "13400F" là CPU desktop không có iGPU (đuôi F) → cần mã đúng (vd. i5-1340P / i7-1360P), xem ở Settings → System → About | L3 | B1 — không chặn | Khi tiện | Gửi dòng "Processor" và tên GPU trong Task Manager → Performance |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
@@ -49,3 +47,5 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | D-09 | Q-21 gitleaks: Lead tải bản chính thức v8.28.0, CI xanh | 2026-11-04 |
 | D-10 | Q-01, Q-02, Q-03, Q-05, Q-06, Q-07, Q-11, Q-12, Q-13, Q-14, Q-15, Q-17, Q-18, Q-19, Q-22, Q-23 — xem bảng "Câu trả lời ngày 2026-11-04 (lượt 2)" | 2026-11-04 |
 | D-11 | Q-24: Lighthouse CI đo 5 lần, gate theo trung vị, ngưỡng giữ nguyên, lần xấu nhất vẫn in ra (ADR 0011) | 2026-11-04 |
+| D-12 | Q-16: AWS Sales Pipeline dùng **EventBridge** kích hoạt xử lý; "Shopmart" là dữ liệu giả → case study cập nhật | 2026-11-04 |
+| D-13 | Q-10: laptop iGPU Asus Vivobook Flip 15, i5-13500H (Iris Xe), 16 GB, OLED → ADR 0007 bổ sung; T08 iGPU chờ Duy chạy theo runbook | 2026-11-04 |

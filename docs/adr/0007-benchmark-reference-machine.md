@@ -35,3 +35,17 @@
 
 - Có laptop iGPU để mượn/thuê đo — khi đó chạy thêm T08 trên máy đó và báo song song.
 - Người thử (Q22) báo giật trên laptop thật.
+
+## Bổ sung 2026-11-04: Duy có laptop iGPU (Q-10)
+
+| Thành phần | Giá trị (Duy cung cấp) |
+|---|---|
+| Máy | Asus Vivobook Flip 15 |
+| CPU | Intel Core i5-13500H (iGPU Intel Iris Xe) |
+| RAM | 16 GB |
+| Màn hình | OLED (độ phân giải, DPR: TBD — ghi lúc đo) |
+| OS / trình duyệt | Windows; phiên bản TBD — ghi lúc đo |
+
+- Laptop này là **máy kiểm iGPU** cho T08: kết quả gắn nhãn "laptop iGPU i5-13500H". Máy desktop dGPU vẫn là máy đo hằng ngày của đội (Lead/L4 chạy được).
+- Laptop không phải máy Lead điều khiển: Duy chạy T08 trên laptop theo runbook (ticket sau), cắm sạc, tắt tiết kiệm pin. Chưa đo → T08 iGPU **NOT RUN**.
+- Ngưỡng §8 giữ nguyên.
