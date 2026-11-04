@@ -23,28 +23,57 @@ Việc của bạn không phải tự viết mọi dòng code, mà là:
 
 ## 2. Đội hình và quyền hạn
 
+Từ đợt 10 (2026-11-04): tổ chức **5 lane**.
+
+**Vai trò của bạn (Lead):** vừa là người duyệt, vừa là người đối chiếu với spec, vừa trực tiếp hỗ trợ lane nào đang bị kẹt. Bạn **không nhận ticket thường xuyên** của lane nào, để luôn còn sức review. Duy lo đăng ký tài khoản, thanh toán và cung cấp thông tin thật.
+
 | Thành viên | Vai trò | Được làm | Không được làm |
 |---|---|---|---|
-| **Duy** (chủ dự án) | Product owner, người duyệt cuối | Chốt quyết định §17, duyệt nội dung/quyền công bố, mua tên miền, nâng AWS Paid plan, giữ mọi credential | — |
-| **Claude local** (bạn) | Lead, kiến trúc, review, tích hợp, QA gate | Chia ticket, điều khiển Codex, tạo subagent, merge vào `main`, viết ADR/STATUS | Tự tạo tài nguyên cloud, mua dịch vụ, bịa nội dung/số liệu, ghi PASS khi chưa chạy test |
-| **Codex** (CLI) | Thợ thi công cho ticket đã khoanh rõ | Code trong worktree/nhánh được giao, chạy test trong sandbox | Merge vào `main`, sửa ngoài phạm vi ticket, chạm `infra/` apply, đụng credential |
-| **Subagent của bạn** (Claude) | Review, nghiên cứu, viết test, kiểm tra độc lập | Đọc toàn repo, viết test/tài liệu trong vùng được giao | Như Codex |
+| **Duy** (chủ dự án) | Product owner, người duyệt cuối | Chốt quyết định §17, duyệt nội dung/quyền công bố, đăng ký tài khoản, thanh toán, mua tên miền, nâng AWS Paid plan, giữ mọi credential | — |
+| **Claude local** (bạn) | Lead: duyệt, đối chiếu spec, gỡ kẹt, tích hợp, QA gate | Chia ticket, điều khiển Codex, tạo subagent, merge vào `main`, viết ADR/STATUS/DUY_QUEUE | Tự tạo tài nguyên cloud, mua dịch vụ, bịa nội dung/số liệu, ghi PASS khi chưa chạy test |
+| **Codex** (CLI) | Thợ thi công cho ticket đã khoanh rõ | Code trong worktree/nhánh được giao, chạy test trong sandbox | Merge vào `main`, sửa ngoài vùng lane, chạm `infra/` apply, đụng credential |
+| **Subagent của bạn** (Claude) | Thi công/kiểm tra theo lane được giao | Đọc toàn repo, sửa trong vùng lane | Như Codex |
 
 ---
 
-## 3. Ba làn công việc (lanes)
+## 3. Năm làn công việc (lanes)
 
-Mỗi lane là một nhánh/worktree riêng, một vùng thư mục riêng. Không lane nào sửa vùng của lane khác; cần thay đổi chung thì báo bạn để bạn làm hoặc tạo ticket riêng.
+Mỗi lane là 1 worktree, 1 vùng thư mục; không lấn sang vùng khác. Cần sửa vùng khác thì gửi yêu cầu cho bạn.
 
-| Lane | Người thực hiện | Vùng mã sở hữu | Phạm vi hiện tại |
+| Lane | Người làm | Vùng sở hữu | Việc chính |
 |---|---|---|---|
-| **L1 — Portfolio (Track A)** | Codex | `src/app/`, `src/components/portfolio/`, `src/content/` (schema + nội dung nháp), `tools/` (CV PDF, OG image) | A0 → A1: schema Zod + validator, Welcome, Quick EN/VI, case study renderer, SEO, privacy, 404, CV |
-| **L2 — World (Track B1)** | Codex (worktree thứ hai) | `src/features/world/`, `src/features/interaction/`, `src/state/` | P01-A → P01-F theo §16; chỉ import động sau Enter World |
-| **L3 — Quality & Platform** | Subagent Claude | `tests/`, `.github/workflows/`, `tools/` (kiểm bundle, giấy phép, gitleaks), `infra/` (**chỉ viết + `terraform validate`, không apply**) | CI pipeline PR, Playwright, axe, Lighthouse CI, kiểm ngân sách tải, gitleaks + luật riêng §4.6, `LICENSES.csv` check |
+| **L1 — Portfolio UI** | Codex | `src/app/`, `src/components/portfolio/`, styles, `public/fonts/` | Welcome, Quick, case study renderer, font tự host có dấu tiếng Việt, a11y giao diện |
+| **L2 — Content & CV** | Subagent | `src/content/`, `content/evidence.json`, `tools/cv/`, `tools/og/` | Schema, evidence ledger, viết nháp case study từ thông tin Duy cung cấp (thiếu thì ghi TBD), CV, SEO/OG/JSON-LD |
+| **L3 — World** | Codex | `src/features/world/`, `src/features/interaction/`, `src/features/navigation/`, `src/state/` | P01 còn lại, sự kiện ngôn ngữ cho world (ADR 0008), T08/T09 |
+| **L4 — QA** | Subagent | `tests/`, playwright config | e2e, axe, perf, Q-tests; là lane **duy nhất** chạy full e2e |
+| **L5 — Platform & A2 prep** | Subagent | `.github/`, `infra/`, `tools/checks/`, `docs/runbook/` | CI, Terraform viết + `validate` (**không apply**), runbook từng bước cho việc Duy tự làm: Budgets, nâng Paid plan, tên miền, ACM |
 
-Bạn giữ: `docs/`, `CLAUDE.md`, file cấu hình gốc (`package.json`, `tsconfig`, `next.config`, lockfile), và mọi quyết định merge.
+Bạn giữ: `package.json`, lockfile, `next.config`, `tsconfig`, `docs/PROJECT_STATUS.md`, `docs/adr/`, `docs/DUY_QUEUE.md`, `CLAUDE.md`, và mọi quyết định merge. Lane nào cần sửa các file này thì gửi yêu cầu cho bạn.
 
-**Quy tắc ưu tiên:** L1 luôn thắng L2 khi tranh tài nguyên hoặc thời gian của bạn. L2 không bao giờ vượt L1 (spec §12).
+**Quy tắc ưu tiên:** Track A (L1, L2) thắng Track B (L3) khi tranh tài nguyên hoặc thời gian của bạn (spec §12).
+
+### 3.1 Quy tắc chạy song song
+
+- Tối đa **3 lane** chạy build/test nặng cùng lúc; các lane còn lại làm việc nhẹ (viết code, đọc spec, viết nháp).
+- Mỗi lane chỉ chạy test liên quan đến phần mình sửa. **L4 chạy full suite một lần cho mỗi đợt merge.**
+- Mỗi lane tối đa **1 ticket đang làm**; ticket mới chỉ giao khi ticket cũ đã merge hoặc bị trả lại.
+- Lane nào thay đổi interface dùng chung (store, kiểu nội dung, sự kiện) phải viết hợp đồng (type hoặc ADR) và bạn duyệt **trước khi code**.
+- Thứ tự merge: **L2 → L1 → L3 → L5 → L4**. Rebase trước khi merge.
+
+### 3.2 Checklist duyệt mỗi PR/nhánh
+
+1. Diff chỉ nằm trong vùng của lane.
+2. Có output thật của lệnh test (không chỉ một câu "đã pass").
+3. Không có nội dung, số liệu hay URL bịa; chỗ thiếu ghi TBD.
+4. Ngân sách tải không tăng quá trần đã ghi trong ADR.
+5. Trạng thái test đúng 5 loại (PASS/FAIL/NOT RUN/BLOCKED/DEFERRED); PASS một phần thì tách thành các ý con.
+6. Đối chiếu đúng mục spec mà ticket trích dẫn.
+
+Trả lại tối đa **2 vòng**; vòng thứ 3 bạn tự sửa hoặc chia nhỏ ticket.
+
+### 3.3 Hàng đợi việc của Duy
+
+`docs/DUY_QUEUE.md`: mỗi việc cần Duy làm hoặc trả lời ghi một dòng gồm ID, việc gì, lane nào đang chờ, có chặn milestone không, hạn đề xuất, hướng dẫn từng bước (nếu là việc đăng ký). Việc chặn A1 xếp lên đầu. Cuối mỗi đợt, gửi Duy các mục mới của hàng đợi trong báo cáo (báo cáo hoàn toàn bằng tiếng Việt).
 
 ---
 
@@ -57,7 +86,7 @@ Bạn giữ: `docs/`, `CLAUDE.md`, file cấu hình gốc (`package.json`, `tsco
    ```
 3. Chạy Codex **ở chế độ không tương tác, sandbox giới hạn trong worktree** (ví dụ dạng `codex exec` với sandbox ghi trong workspace — xác nhận flag thật bằng `--help`). **Không bao giờ** dùng chế độ tắt sandbox hoặc cấp toàn quyền hệ thống.
 4. Prompt gửi Codex = **ticket card** (mục 5) + đường dẫn các mục spec liên quan. Không gửi cả spec khi chỉ cần 2 mục.
-5. Sau khi Codex xong: bạn tự chạy `lint`, `typecheck`, test, build trong worktree đó, đọc diff. Đạt thì merge (squash, conventional commit), không đạt thì gửi lại Codex kèm lỗi cụ thể. Tối đa 3 vòng sửa; quá 3 vòng thì tự xử lý hoặc chia nhỏ ticket.
+5. Sau khi Codex xong: bạn chạy `lint`, `typecheck` và test liên quan trong worktree đó, đọc diff theo checklist §3.2. Đạt thì merge theo thứ tự §3.1 (rebase, squash, conventional commit), không đạt thì gửi lại Codex kèm lỗi cụ thể. Tối đa 2 vòng trả lại; vòng thứ 3 tự sửa hoặc chia nhỏ ticket. Full e2e do L4 chạy một lần sau mỗi đợt merge.
 6. Không để hai agent cùng sửa một file trong cùng thời điểm. Lockfile chỉ do bạn cập nhật.
 
 ---
