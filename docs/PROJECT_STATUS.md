@@ -270,9 +270,23 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 
 Kiểm trên main `2d75e5f` (máy dev, Edge): lint, typecheck, unit (tất cả world 72 test sau B2-003; toàn bộ 285+ trước khi merge B2-011/013), build, check:bundle PASS. E2E world (world-input, full-viewport, q15, overlay): 19 passed / 1 failed khi 5 worker đang chạy; test fail (Q21 thoát sau đổi ngôn ngữ) chạy lại riêng **3/3 PASS** → chập chờn do tải máy, theo dõi. **Full e2e, perf, Lighthouse: NOT RUN** cho đợt này. Lead xem trên trình duyệt: Low và High render đúng, 0 lỗi console; ảnh còn bạc màu — chỉnh ở vòng style frame. T08: NOT RUN.
 
+### Đợt 15b + 15c (2026-11-05)
+
+12 ticket nữa merged (chi tiết: `docs/tickets/queue.md`):
+
+- **World thật thay cảnh thử 60 m** (B2-050, `98e01a9`): terrain theo suối streaming theo ô + collider heightfield, cây theo biome (collider thân cây 100 % ở mọi quality), suối dải lụa + biển (B2-017; **Lead sửa** mặt nước theo `waterLevelAt` vì nước y = 0 bị lòng suối thượng nguồn che), trời + ánh sáng bình minh → hoàng hôn theo vị trí, loang màu nước + nét mực High (B2-005). Spawn tại First Light.
+- **Bàn dựng style frame** (B2-030, `tools/styleframes`, Vite riêng, không vào web): preset A/B/C × 2 cảnh, `t` tất định. Lead thêm nước, `paper.setFog`, loại trời khỏi fog (trời luôn bị phủ giấy), fog theo tỷ lệ thế giới 900 m (15/65 m của cảnh thử nuốt cả cảnh), dời cảnh biển ra cửa sông. **Màu chưa đạt** (sương còn bạc, biển xám) → chưa gửi Duy chọn.
+- **Phác thảo nhân vật + GD110** (B2-035/036): script bpy trong repo, turnaround 3 góc; nhân vật trả lại 1 vòng (Art Director: ma-nơ-canh, thiếu mái, áo xám); Lead đổi turnaround sang Cycles + nền giấy cho hai bộ ảnh nhất quán. **Showcase cho Duy chấm: `docs/showcase/15-turnaround/checklist.md`.**
+- Atlas Journal dialog (B2-040, chưa nối), cinematic mở đầu 22 s (B2-060, chưa nối), `check:assets` vào CI (B2-022).
+- Lỗi quy trình của Lead: 2 commit (`d3f679c`, `7a8bea9`) vào main khi lint/test đang đỏ vì pipe/`;` nuốt mã thoát; sửa ngay ở `f20ce47`, `edccdd6`. Từ đó dùng script gate `set -e` trước mọi commit merge.
+
+**Kiểm full gate A trên main `2fb77da`** (máy dev desktop dGPU RTX 3060, Edge 156 headless, server local): lint, typecheck, unit **465**, build:artifacts, check:cv/bundle/leaks/licenses/assets — **PASS**; e2e **142/142 PASS**; test:perf PASS 3/3 lần (Welcome JS 137,1/150 KB; 0 request 3D trước Enter World; 3D tới playable **1,73 MB** / 8 MB; time-to-playable xấu nhất **2,24 s** / 10 s); Lighthouse 15 lần đo, mọi assertion PASS. Lead xem world trên trình duyệt (High): render đúng, 0 lỗi console. **T08/T09: NOT RUN** (chưa đo FPS world mới; máy nghiệm thu là laptop Iris Xe). Chưa push.
+
 ### Ticket tiếp theo
 
-Xem `docs/tickets/queue.md`: đợt 15b (terrain mesh, nước, cây, bầu trời, loang màu nước) → Lead dựng style frame A/B/C → showcase + T08 Iris Xe → Duy chọn hướng.
+1. Lead chỉnh màu style frame A/B/C tới khi đạt (Art Director subagent review) → ảnh + video 15–20 s → T08 Iris Xe → gửi Duy chọn hướng.
+2. Nối Journal (J), teleport, cinematic, xe vào world (`index.ts` — làm tuần tự, một worker).
+3. Theo kết quả Duy chấm turnaround: sửa nhân vật/xe → rig/animation.
 
 ### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 

@@ -21,26 +21,31 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-032 | Khung ảnh film + trang tạp chí (server component) | `src/components/portfolio/memory/` | merged `e8aac68` |
 | — | Lead: nối palette + ramp + paper pass vào world; sửa xung đột crown-fade | `src/features/world/index.ts`, `terrain.ts`, `crown-fade.ts` | merged `9e9867d` |
 
-## Đợt 15b — mảnh cho cảnh style frame (đang chạy)
+## Đợt 15b + 15c (2026-11-05)
 
-| ID | Việc | Vùng file | Trạng thái |
-|---|---|---|---|
-| B2-005 | Loang mép màu nước + nét mực High (gộp B2-006) | `post/paper.ts` | doing |
-| B2-016 | Mesh + collider ô terrain, pool | `src/features/world/terrain/{mesh,collider,pool}.ts` | doing |
-| B2-017 | Mặt nước suối dải lụa + biển | `src/features/world/water/` | doing |
-| B2-018 | Rải cây theo ô/biome, collider 100 % | `src/features/world/foliage/` | doing |
-| B2-019 | Bầu trời + ánh sáng bình minh → hoàng hôn | `src/features/world/sky/` | doing |
+| ID | Việc | Trạng thái |
+|---|---|---|
+| B2-005 | Loang mép màu nước + nét mực High (gộp B2-006) | merged  |
+| B2-016 | Mesh + collider ô terrain, pool | merged  |
+| B2-017 | Suối dải lụa + biển (Lead sửa mực nước) | merged  |
+| B2-018 | Rải cây theo ô/biome | merged  |
+| B2-019 | Trời + ánh sáng theo vị trí | merged  |
+| B2-022 | check:assets vào CI (Lead) | merged  |
+| B2-030 | Bàn dựng style frame (Lead thêm nước, fog, cảnh biển) | merged , ,  |
+| B2-035 | Phác thảo nhân vật bpy (trả lại 1 vòng) | merged ,  |
+| B2-036 | Phác thảo GD110 bpy | merged  |
+| B2-040 | Atlas Journal dialog | merged  (chưa nối) |
+| B2-050 | Ghép world thật | merged  |
+| B2-060 | Cinematic mở đầu (model) | merged  (chưa nối) |
 
 ## Tiếp theo (todo)
 
 | ID | Việc | Phụ thuộc |
 |---|---|---|
-| B2-022 | Nối `check:assets` vào CI | — |
-| B2-030 | Style frame cảnh 1: rừng bình minh có suối — preset A / B / C (Lead tích hợp) | 15b |
-| B2-031 | Style frame cảnh 2: biển hoàng hôn — preset A / B / C | B2-030 |
+| B2-031 | Chỉnh màu style frame A/B/C tới khi đạt (Lead + Art Director) | B2-030 |
 | B2-033 | Showcase: 2 ảnh + video 15–20 s mỗi hướng + checklist cho Duy | B2-030, 031 |
 | B2-034 | T08 trên laptop Iris Xe cho 3 hướng (chạy một mình) | B2-030 |
-| B2-040 | Atlas Journal UI (J) + đóng dấu mộc | B2-014 |
+| B2-043 | Nối Journal (J), cinematic vào world | B2-040, B2-060 |
 | B2-041 | Nối teleport vào world (E tại bảng, sương) | B2-013, 016 |
 | B2-042 | Xe GD110 graybox nối collider + phím E/C | B2-015, 016 |
 
