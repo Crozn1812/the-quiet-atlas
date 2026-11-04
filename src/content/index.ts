@@ -35,7 +35,8 @@ export const content=validateContent({
     level: "Intern",
     introduction: "TBD",
     email: "duybao09012004@gmail.com",
-    phone: "TBD",
+    // Số theo CV PDF Duy gửi; Duy chọn hiện cả trên web (L2-010, 2026-11-04).
+    phone: "083 418 4916",
     cvUrl: "TBD",
     githubUrl: "https://github.com/Crozn1812",
     linkedinUrl: "TBD",

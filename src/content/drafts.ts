@@ -5,7 +5,10 @@ export const experienceDraft = {
   claim: "Thực tập 07/2026 – dự kiến 12/2026",
   source: "Duy, chat 2026-11-04",
   evidence: "TBD",
-  publicEmployerName: "TBD",
+  // Duy cho phép nêu tên công ty HPT (L2-010). Đang làm từ 07/2026; không ghi "6 tháng".
+  // Schema chưa có trường kinh nghiệm/học vấn nên chưa đưa vào profile public — chờ Lead duyệt đề xuất hợp đồng.
+  publicEmployerName: "HPT",
+  publicClaim: "Intern tại HPT từ 07/2026 (đang làm)",
   levelNow: "Intern",
   levelTargetAfterInternship: "Fresher/Junior (chỉ đổi khi Duy xác nhận đã hoàn thành)",
   reviewStatus: "draft",

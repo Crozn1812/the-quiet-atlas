@@ -17,6 +17,16 @@ it("renders public bilingual drafts, escapes text, and omits TBD phone", () => {
   expect(cvHtml(data, "en")).toContain("&lt;phone&gt;");
 });
 
+it("renders the CV phone and Intern level from public content in both locales", () => {
+  for (const locale of ["en", "vi"]) {
+    const profile = content.profiles.find(p => p.locale === locale)!;
+    expect(profile.phone).toBe("083 418 4916");
+    const html = cvHtml(content, locale);
+    expect(html).toContain("<p>083 418 4916</p>");
+    expect(html).toContain("Cloud &amp; DevOps Engineer · Intern");
+  }
+});
+
 it("clears metadata without changing PDF offsets", () => {
   const input = Buffer.from("/Title (CV) /Author (machine) /Creator (path) /Producer (browser) /CreationDate (date)");
   const result = cleanMetadata(input);
