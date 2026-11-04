@@ -240,6 +240,7 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - Lead thử `next build --webpack`: CPU×10 TBT 176–217 ms (không cải thiện), LCP ~2,19 s (tốt hơn ~150 ms). Không áp dụng.
 - Kết luận: CI đỏ khi runner chậm bất thường (benchmarkIndex ~1900) vì `pessimistic` lấy lần xấu nhất trong 3 lần. Không phải hồi quy. Cách xử lý thay đổi phương pháp đo → **Duy quyết (Q-24)**; Lead không tự đổi.
 - **Duy chọn A (Q-24) → ADR 0011**: `lighthouserc.cjs` 5 lần, LCP/CLS/TBT gate theo `median-run`, ngưỡng giữ nguyên; bước annotation CI chạy mọi lần, lần vượt ngưỡng in `warning`. Local `pnpm perf:lhci` 15 lần đo: exit 0.
+- **CI GitHub run 41834317599 trên `a93b92a`: SUCCESS** (cả job terraform). Lần này runner nhanh (benchmarkIndex ~3400–3500, một lần 2438): `/en/` TBT 44–63, LCP 2199–2270 ms. Chưa gặp lại runner chậm (~1900) để kiểm phương pháp mới trong trường hợp xấu.
 
 ### Ticket tiếp theo (nháp, chưa giao)
 
