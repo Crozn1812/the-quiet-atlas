@@ -58,3 +58,14 @@ World **không** tự mở overlay khi đang có lý do pause; UI chịu trách 
 - `mountWorld(container, opts) => Promise<unmount>` giữ nguyên.
 - Tên event/attribute là hợp đồng: đổi phải qua ADR mới.
 - L3 kiểm hợp đồng qua attribute, không cần đọc state nội bộ.
+
+## Bổ sung 2026-11-05 (B2-013): biển chỉ đường dịch chuyển
+
+World → UI, phát trên container của `mountWorld`, `bubbles: false` (hằng và kiểu ở `src/features/navigation/events.ts`):
+
+| Sự kiện | detail | Khi nào |
+|---|---|---|
+| `tqa:teleport-start` | `{ from: ZoneId, to: ZoneId }` | Người xem chọn khu đích tại một bảng; UI có thể ẩn gợi ý |
+| `tqa:teleport-end` | `{ to: ZoneId }` | Nhân vật đã đứng cạnh bảng khu đích, input mở lại |
+
+Không có sự kiện UI → world mới; chọn khu đi qua tương tác E tại bảng trong world. Secrets không bao giờ là đích. Reduced motion: fade 0,15 s thay cho sương 0,6 s.
