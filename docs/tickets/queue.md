@@ -1,35 +1,51 @@
 # Hàng đợi ticket B2/B3 (ADR 0012)
 
-Mỗi ticket 30–90 phút, 1 vùng file. Trạng thái: `todo` / `doing` / `review` / `merged` / `returned`. Worker lấy ticket `todo` đầu tiên **không trùng vùng file** với ticket `doing`. Ticket lớn hơn 90 phút → Lead chia nhỏ trước khi giao.
+Mỗi ticket 30–90 phút, 1 vùng file. Trạng thái: `todo` / `doing` / `review` / `merged` / `returned`. Worker lấy ticket `todo` đầu tiên **không trùng vùng file** với ticket `doing`. Ticket lớn hơn 90 phút → Lead chia nhỏ trước khi giao. Thẻ chi tiết: `docs/tickets/B2-*.md`; quy tắc chung: `_common-b2.md`.
 
 Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), ADR 0013, `docs/art-bible/taste.md`.
 
-## Đợt 15 — Vòng duyệt gu + graybox (ADR 0013 mục 4a, 4d)
+## Đợt 15 — nền tảng (2026-11-05)
 
-| ID | Việc | Vùng file | Phụ thuộc | Trạng thái |
-|---|---|---|---|---|
-| B2-001 | Bảng màu taste brief thành token TS (10 màu, vai trò) + unit test giá trị hex | `src/features/world/art/palette.ts`, test | — | todo |
-| B2-002 | Hậu kỳ "giấy" rẻ: 1 pass gộp fog màu giấy + paper grain tile 256 px (Low) — có cờ bật/tắt | `src/features/world/post/paper/` | B2-001 | todo |
-| B2-003 | Sương phân lớp theo độ sâu (3 dải, nhạt dần về giấy) cho Balanced/High | `src/features/world/post/mist/` | B2-001 | todo |
-| B2-004 | Toon ramp mềm 3–4 bậc + bóng màu xanh/tím nhạt (thay material chuẩn của terrain/cây) | `src/features/world/materials/ramp/` | B2-001 | todo |
-| B2-005 | Loang mép màu nước (edge bleed) — chỉ Balanced/High, đo chi phí | `src/features/world/post/watercolor/` | B2-002 | todo |
-| B2-006 | Outline mực (Balanced/High, tắt mặc định tới khi Perf Watcher đo) | `src/features/world/post/ink/` | B2-002 | todo |
-| B2-010 | Graybox layout 8 khu dọc suối chữ S: spline suối + 8 điểm neo khu (dữ liệu, không art) | `src/features/world/layout/` | — | todo |
-| B2-011 | Terrain graybox theo spline (lòng suối thấp, đồi hai bên) | `src/features/world/terrain/` | B2-010 | todo |
-| B2-012 | Đo tuyến 5–7 phút: script đi theo spline với tốc độ đi bộ/xe, in thời gian | `tools/world/route-time.mjs` | B2-010 | todo |
-| B2-013 | Biển chỉ đường dịch chuyển giữa khu (graybox) + sự kiện ADR 0008 | `src/features/navigation/` | B2-010 | todo |
-| B2-014 | Atlas Journal (J) §7.2 graybox: danh sách khu đã ghé, chỉ trong memory | `src/features/journal/` (mới) | B2-010 | todo |
-| B2-015 | Xe GD110 graybox (khối hộp + 2 bánh), lên/xuống xe, manual | `src/features/vehicle/` (mới) | B2-011 | todo |
-| B2-020 | Pipeline asset: Blender headless bpy → glTF → gltf-transform meshopt + KTX2; script + báo cáo byte | `tools/assets/` | — (Lead cài Blender/KTX) | todo |
-| B2-021 | Kiểm ngân sách world: tổng byte `public/world/**` ≤ 30 MB, phần bắt đầu chơi ≤ 8 MB — thêm vào CI | `tools/checks/world-budget.mjs`, `.github/` | B2-020 | todo |
-| B2-030 | Style frame cảnh 1: góc rừng bình minh có suối (dùng B2-002…006) — preset A / B / C | `src/features/world/styleframes/` | B2-002, 003, 004 | todo |
-| B2-031 | Style frame cảnh 2: góc biển hoàng hôn — preset A / B / C | `src/features/world/styleframes/` | B2-030 | todo |
-| B2-032 | Mẫu overlay tạp chí (1 trang) + mẫu "ảnh film" ký ức (viền, hạt, ngày tháng cam) — HTML/CSS, không ảnh thật | `src/components/portfolio/memory/` | B2-001 | todo |
-| B2-033 | Quay showcase: 2 ảnh + video 15–20 s mỗi hướng (ffmpeg) + checklist cho Duy | `docs/showcase/15-style-frames/` | B2-030, 031 | todo |
-| B2-034 | T08 trên laptop Iris Xe cho 3 hướng (chạy một mình; runbook cho Duy nếu Lead không điều khiển được laptop) | `docs/runbook/t08-iris-xe.md`, `docs/evidence/` | B2-030 | todo |
+| ID | Việc | Vùng file | Trạng thái |
+|---|---|---|---|
+| B2-001 | Token bảng màu taste brief | `src/features/world/art/` | merged `ce5f1ef` (Lead) |
+| B2-002 | Paper post pass (fog giấy, grain, vignette) | `src/features/world/post/paper.ts` | merged `b1f3827` |
+| B2-003 | Sương phân lớp 3 dải + sương thấp | `post/paper.ts` | merged `2d75e5f` |
+| B2-004 | Vật liệu toon ramp, bóng xanh/tím | `src/features/world/materials/` | merged `a05f5bd` |
+| B2-010 | Suối chữ S, 8 khu, tuyến 370 s, ánh sáng theo vị trí (gộp B2-012) | `src/features/world/layout/`, `tools/world/` | merged `efecd51` |
+| B2-011 | Heightfield theo suối, ô 64 m, streaming | `src/features/world/terrain/` | merged `74724b0` |
+| B2-013 | Biển chỉ đường dịch chuyển + sự kiện ADR 0008 | `src/features/navigation/` | merged `0af8151` |
+| B2-014 | Atlas Journal mô hình memory | `src/features/journal/` | merged `c0b303d` |
+| B2-015 | Xe GD110 mô hình arcade | `src/features/vehicle/` | merged `906cac4` |
+| B2-020 | Pipeline asset + kiểm ngân sách (gộp B2-021, `pnpm check:assets`) | `tools/assets/` | merged `a467dd0`; **CI chưa nối** |
+| B2-032 | Khung ảnh film + trang tạp chí (server component) | `src/components/portfolio/memory/` | merged `e8aac68` |
+| — | Lead: nối palette + ramp + paper pass vào world; sửa xung đột crown-fade | `src/features/world/index.ts`, `terrain.ts`, `crown-fade.ts` | merged `9e9867d` |
 
-## Sau khi Duy chọn hướng (chưa mở)
+## Đợt 15b — mảnh cho cảnh style frame (đang chạy)
+
+| ID | Việc | Vùng file | Trạng thái |
+|---|---|---|---|
+| B2-005 | Loang mép màu nước + nét mực High (gộp B2-006) | `post/paper.ts` | doing |
+| B2-016 | Mesh + collider ô terrain, pool | `src/features/world/terrain/{mesh,collider,pool}.ts` | doing |
+| B2-017 | Mặt nước suối dải lụa + biển | `src/features/world/water/` | doing |
+| B2-018 | Rải cây theo ô/biome, collider 100 % | `src/features/world/foliage/` | doing |
+| B2-019 | Bầu trời + ánh sáng bình minh → hoàng hôn | `src/features/world/sky/` | doing |
+
+## Tiếp theo (todo)
+
+| ID | Việc | Phụ thuộc |
+|---|---|---|
+| B2-022 | Nối `check:assets` vào CI | — |
+| B2-030 | Style frame cảnh 1: rừng bình minh có suối — preset A / B / C (Lead tích hợp) | 15b |
+| B2-031 | Style frame cảnh 2: biển hoàng hôn — preset A / B / C | B2-030 |
+| B2-033 | Showcase: 2 ảnh + video 15–20 s mỗi hướng + checklist cho Duy | B2-030, 031 |
+| B2-034 | T08 trên laptop Iris Xe cho 3 hướng (chạy một mình) | B2-030 |
+| B2-040 | Atlas Journal UI (J) + đóng dấu mộc | B2-014 |
+| B2-041 | Nối teleport vào world (E tại bảng, sương) | B2-013, 016 |
+| B2-042 | Xe GD110 graybox nối collider + phím E/C | B2-015, 016 |
+
+## Sau khi Duy chọn hướng
 
 - T10 cảnh chuẩn 4 hướng → Duy duyệt.
-- Turnaround nhân vật + GD110 (3 góc) — cần Q-28 (ảnh tham chiếu trên đĩa), Q-25 (ghi đông).
-- Foliage/water/sky, intro (từ trên cao xuống suối) / ending, 4 secrets, mascot, audio (chừa slot Q-26).
+- Turnaround nhân vật + GD110 (3 góc; ghi đông scrambler, Q-25).
+- Intro (từ trên cao xuống suối) / ending, 4 secrets, mascot, audio (chỉ nhạc có giấy phép, Q-26).

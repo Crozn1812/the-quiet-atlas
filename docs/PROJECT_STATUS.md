@@ -258,9 +258,21 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - **Nội dung**: chức danh "CloudDevOps Engineer · Fresher" (Welcome, Quick, CV, OG, world-content, JSON-LD `jobTitle`); mục kinh nghiệm HPT vẫn ghi "Cloud & DevOps Intern" (đúng sự thật). Email công khai giữ `duybao09012004@gmail.com` (Duy chủ ý).
 - `docs/art-bible/refs/` đã gitignore. Duy đã lưu 16 ảnh vào đây (Q-28). Q-25 ghi đông scrambler, Q-26 không có bản thu, Q-27 ảnh thật dùng được (không rõ người chụp → minh họa).
 
+### Đợt 15 — B2 nền tảng (2026-11-05)
+
+5 Codex worker song song (gpt-6.1-sol; high cho shader/hình học, medium cho phần còn lại). 11 ticket merged trong một lượt — chi tiết từng commit: `docs/tickets/queue.md`.
+
+- **Đồ họa**: bảng màu token; vật liệu toon ramp (bóng xanh/tím, không đen); paper pass (fog về màu giấy, hạt giấy tĩnh, vignette giấy) + sương phân lớp 3 dải và sương thung lũng. Low = render thẳng, 0 pass phụ. **Lead nối vào world** (`9e9867d`), sửa xung đột `crown-fade` ghi đè hook shader (có thể dùng nhầm shader cache).
+- **Thế giới (logic/dữ liệu)**: suối chữ S 900 m, 8 khu, tuyến 1 109 m / **370 s** (Workshop 52 s, Roots 70 s, Milestones 87 s — đạt §7.1 ở mức thiết kế); heightfield theo suối 45 ô, 0 byte tải; biển chỉ đường dịch chuyển (ADR 0008 bổ sung `tqa:teleport-start/end`); Atlas Journal memory; xe GD110 arcade. **Chưa render** terrain/nước/cây mới — đợt 15b.
+- **Ký ức**: khung ảnh film + trang tạp chí (server component, 0 JS client, chưa nối).
+- **Pipeline asset**: Blender 5.2.3, KTX-Software 4.4.2 (chữ ký Khronos hợp lệ), FFmpeg 9.0.2, gltf-transform 4.5.1 (`docs/runbook/asset-tools.md`). Lead chạy thật: cây thông bpy 7,8 KB → meshopt 6,1 KB, 56 tam giác, `check:assets` PASS. `check:assets` **chưa nối CI**.
+- Vitest giờ chạy cả `*.test.tsx`.
+
+Kiểm trên main `2d75e5f` (máy dev, Edge): lint, typecheck, unit (tất cả world 72 test sau B2-003; toàn bộ 285+ trước khi merge B2-011/013), build, check:bundle PASS. E2E world (world-input, full-viewport, q15, overlay): 19 passed / 1 failed khi 5 worker đang chạy; test fail (Q21 thoát sau đổi ngôn ngữ) chạy lại riêng **3/3 PASS** → chập chờn do tải máy, theo dõi. **Full e2e, perf, Lighthouse: NOT RUN** cho đợt này. Lead xem trên trình duyệt: Low và High render đúng, 0 lỗi console; ảnh còn bạc màu — chỉnh ở vòng style frame. T08: NOT RUN.
+
 ### Ticket tiếp theo
 
-Xem `docs/tickets/queue.md`. Song song: style frame A/B/C (ADR 0013 mục 4) ∥ graybox 8 khu theo trục suối chữ S ∥ pipeline asset ∥ hậu kỳ tranh rẻ cho Low. T08 trên Iris Xe chạy một mình.
+Xem `docs/tickets/queue.md`: đợt 15b (terrain mesh, nước, cây, bầu trời, loang màu nước) → Lead dựng style frame A/B/C → showcase + T08 Iris Xe → Duy chọn hướng.
 
 ### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 
