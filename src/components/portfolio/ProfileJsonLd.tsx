@@ -13,7 +13,7 @@ export function ProfileJsonLd({ locale }: { locale: Locale }) {
           mainEntity: {
             "@type": "Person",
             name: p.name,
-            jobTitle: p.role,
+            jobTitle: `${p.role} · ${p.level}`,
             email: p.email,
             ...(p.githubUrl !== "TBD" ? { url: p.githubUrl } : {}),
           },

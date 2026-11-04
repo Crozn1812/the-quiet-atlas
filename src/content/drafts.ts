@@ -6,7 +6,7 @@ export const experienceDraft = {
   source: "Duy, chat 2026-11-04",
   evidence: "TBD",
   // HPT và PTIT đã chuyển sang profile.experience / profile.education (ADR 0010); không ghi "6 tháng".
-  levelNow: "Intern",
-  levelTargetAfterInternship: "Fresher/Junior (chỉ đổi khi Duy xác nhận đã hoàn thành)",
+  levelNow: "Fresher",
+  levelTargetAfterInternship: "Fresher (Duy chốt hiển thị 2026-11-04)",
   reviewStatus: "draft",
 } as const;

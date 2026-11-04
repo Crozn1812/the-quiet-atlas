@@ -23,20 +23,30 @@ Việc của bạn không phải tự viết mọi dòng code, mà là:
 
 ## 2. Đội hình và quyền hạn
 
-Từ đợt 10 (2026-11-04): tổ chức **5 lane**.
+> **Từ 2026-11-04 (ADR 0012): giai đoạn B2 + B3 local trước A2.** A2 hoãn tới khi AWS duyệt credit; Track A đóng băng, CI vẫn chạy đủ gate A trên mọi PR. Mô hình làm việc là **hàng đợi ticket + Codex worker song song** (§3.0); 5 lane ở §3 chỉ còn dùng làm **bản đồ vùng file**.
+> Lead có **toàn quyền** về công cụ, thư viện, cài đặt (Blender, gltf-transform, KTX-Software, ffmpeg…), cấu trúc thư mục, chia việc, quyết định kỹ thuật/art trong khung spec §2 + `docs/art-bible/taste.md`. Không hỏi Duy những việc này; quyết định lớn ghi ADR.
 
-**Vai trò của bạn (Lead):** vừa là người duyệt, vừa là người đối chiếu với spec, vừa trực tiếp hỗ trợ lane nào đang bị kẹt. Bạn **không nhận ticket thường xuyên** của lane nào, để luôn còn sức review. Duy lo đăng ký tài khoản, thanh toán và cung cấp thông tin thật.
+**Vai trò của bạn (Lead):** review, tích hợp, đối chiếu spec/taste brief, gỡ kẹt; **tự nhận ticket khi hàng đợi review trống**. Không để worker nào ngồi chờ. Duy lo đăng ký tài khoản, thanh toán và cung cấp thông tin thật.
 
 | Thành viên | Vai trò | Được làm | Không được làm |
 |---|---|---|---|
 | **Duy** (chủ dự án) | Product owner, người duyệt cuối | Chốt quyết định §17, duyệt nội dung/quyền công bố, đăng ký tài khoản, thanh toán, mua tên miền, nâng AWS Paid plan, giữ mọi credential | — |
 | **Claude local** (bạn) | Lead: duyệt, đối chiếu spec, gỡ kẹt, tích hợp, QA gate | Chia ticket, điều khiển Codex, tạo subagent, merge vào `main`, viết ADR/STATUS/DUY_QUEUE | Tự tạo tài nguyên cloud, mua dịch vụ, bịa nội dung/số liệu, ghi PASS khi chưa chạy test |
 | **Codex** (CLI) | Thợ thi công cho ticket đã khoanh rõ | Code trong worktree/nhánh được giao, chạy test trong sandbox | Merge vào `main`, sửa ngoài vùng lane, chạm `infra/` apply, đụng credential |
-| **Subagent của bạn** (Claude) | Thi công/kiểm tra theo lane được giao | Đọc toàn repo, sửa trong vùng lane | Như Codex |
+| **Subagent của bạn** (Claude) | Chỉ 3 vai (ADR 0012): **Art Director** (review hình ảnh theo art bible + taste brief), **Perf Watcher** (đo ngân sách tải/FPS), **QA/spec cross-check** | Đọc toàn repo, chạy đo/test, viết báo cáo; sửa test khi là vai QA | Thi công tính năng (việc của Codex); như Codex |
 
 ---
 
-## 3. Năm làn công việc (lanes)
+## 3.0 Hàng đợi ticket và Codex worker (từ 2026-11-04)
+
+- Ticket rất nhỏ: **30–90 phút, 1 vùng file**, ghi trong `docs/tickets/queue.md` (trạng thái: todo / doing / review / merged / returned).
+- **Codex worker song song**, mỗi worker 1 worktree `D:/tqa-worktrees/<ticket-id>`. Số worker hiện tại và lý do: `docs/runbook/codex-workers.md` (bắt đầu 5; tăng/giảm theo CPU/RAM/GPU và giới hạn lượt Codex).
+- Hai ticket đang chạy không được chạm cùng file. Lockfile, `package.json`, `docs/adr/`, STATUS, DUY_QUEUE, CLAUDE.md: chỉ Lead.
+- **Benchmark GPU (T08/T09) chạy một mình** — dừng mọi worker trước khi đo.
+- Mỗi đợt: showcase ảnh + video 30–60 s ở `docs/showcase/<đợt>/` + checklist để Duy chấm (giữ/sửa/bỏ). Báo cáo tiếng Việt, mở đầu bằng link showcase.
+- Trước sản xuất asset hàng loạt: vòng duyệt gu (ADR 0013 mục 4).
+
+## 3. Bản đồ vùng file (trước đây: năm lane)
 
 Mỗi lane là 1 worktree, 1 vùng thư mục; không lấn sang vùng khác. Cần sửa vùng khác thì gửi yêu cầu cho bạn.
 
@@ -50,11 +60,13 @@ Mỗi lane là 1 worktree, 1 vùng thư mục; không lấn sang vùng khác. C�
 
 Bạn giữ: `package.json`, lockfile, `next.config`, `tsconfig`, `docs/PROJECT_STATUS.md`, `docs/adr/`, `docs/DUY_QUEUE.md`, `CLAUDE.md`, và mọi quyết định merge. Lane nào cần sửa các file này thì gửi yêu cầu cho bạn.
 
-**Quy tắc ưu tiên:** Track A (L1, L2) thắng Track B (L3) khi tranh tài nguyên hoặc thời gian của bạn (spec §12).
+**Quy tắc ưu tiên:** Track A không bị làm hỏng: PR nào làm đỏ gate A thì không merge. Khi credit AWS được duyệt, A2 quay lại ưu tiên hơn ticket B mới (ADR 0012 thay quy tắc §12 "B2 chỉ sau A2").
+
+Vùng B2/B3 mới: `src/features/world/` (render, shader, hậu kỳ, vehicle, secrets, cinematic, mascot, audio), `tools/assets/` (pipeline Blender → glTF → meshopt/KTX2), `assets/` (nguồn được phép commit + `LICENSES.csv`), `public/world/` (asset đã tối ưu), `docs/art-bible/`, `docs/showcase/`.
 
 ### 3.1 Quy tắc chạy song song
 
-- Tối đa **3 lane** chạy build/test nặng cùng lúc; các lane còn lại làm việc nhẹ (viết code, đọc spec, viết nháp).
+- Tối đa **3 worker** chạy build/test nặng (build, e2e, Blender render) cùng lúc; các worker còn lại làm việc nhẹ.
 - Mỗi lane chỉ chạy test liên quan đến phần mình sửa. **L4 chạy full suite một lần cho mỗi đợt merge.**
 - Mỗi lane tối đa **1 ticket đang làm**; ticket mới chỉ giao khi ticket cũ đã merge hoặc bị trả lại.
 - Lane nào thay đổi interface dùng chung (store, kiểu nội dung, sự kiện) phải viết hợp đồng (type hoặc ADR) và bạn duyệt **trước khi code**.
@@ -121,7 +133,10 @@ Ticket tốt: làm xong trong 1–3 giờ, có phép thử chạy được, khô
 - **Không import `features/world`** từ layout, shared barrel hay content renderer.
 - **Asset:** chỉ tải asset/font/âm thanh có giấy phép rõ ràng; mỗi file public phải có dòng trong `assets/LICENSES.csv`. Font phải đủ glyph tiếng Việt.
 - **Không tự đổi concept** cho dễ code; không thêm CMS, tài khoản người xem, multiplayer.
-- **Không nâng ngưỡng hiệu năng** sau khi đo thất bại.
+- **Không nâng ngưỡng hiệu năng** sau khi đo thất bại. Ngân sách §8 (≤ 8 MB bắt đầu chơi, ≤ 30 MB cả world, FPS trên laptop Iris Xe — ADR 0007) là gate của B2/B3.
+- **Asset AI** chỉ từ công cụ có điều khoản cho phép dùng thương mại. Repo public: kiểm quyền phân phối file nguồn (vd. Mixamo: dùng trong sản phẩm, **không commit file gốc**).
+- **Tham chiếu** (Ghibli, Pinterest, ảnh cá nhân, nhạc Minh Tốc & Lam) chỉ để lấy cảm hứng: không chép khung hình, bố cục cụ thể, nhân vật, chữ, giai điệu; không dùng pixel nào. Ảnh tham chiếu ở `docs/art-bible/refs/` (gitignore), không vào `public/`.
+- **Không logo/thương hiệu**: áo trơn (không logo Chiefs), xe GD110 không huy hiệu, không chữ Suzuki.
 
 ---
 

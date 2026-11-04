@@ -93,7 +93,7 @@ describe("L2-012 content from Duy's answers", () => {
       expect(p.introduction).toContain("CloudDevOps Engineer");
       expect(p.role).toBe("CloudDevOps Engineer");
       expect(p.introduction.split(/\s+/).length).toBeLessThanOrEqual(25);
-      expect(p.level).toBe("Intern");
+      expect(p.level).toBe("Fresher");
       // Q-04: Duy approved every page on 2026-11-04.
       expect(p.reviewStatus).toBe("approved");
       expect(p.publicApproval).toBe(true);

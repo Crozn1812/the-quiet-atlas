@@ -1,13 +1,13 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-03 (phiên 1). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
+> Cập nhật lần cuối: 2026-11-04 (đợt 14 — quyết định của Duy, ADR 0012/0013). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
 
 ## Milestone hiện tại
 
 | Track | Mốc | Trạng thái |
 |---|---|---|
-| A — Portfolio | **A0** — Nội dung và hợp đồng | Đang làm |
-| B — World | B1 / P01-A | Chưa bắt đầu (chờ công cụ) |
+| A — Portfolio | **A1** xong ở local (nội dung đã duyệt, CI xanh) — **đóng băng**; **A2 hoãn** tới khi AWS duyệt credit (Q-08) | Đóng băng; CI vẫn chạy đủ gate A trên mọi PR (ADR 0012) |
+| B — World | B1 (P01-A…F) xong ở local; **B2 + B3 làm ở local trước A2** (ADR 0012) | Đang làm: vòng duyệt gu (ADR 0013) + graybox 8 khu |
 
 ## Đã có
 
@@ -250,7 +250,19 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - **Duy duyệt OK, gỡ Draft (89cb527)**: profile + 4 case study `reviewStatus: approved`, `publicApproval: true`, `lastReviewedAt 2026-11-04`. Trang privacy: Duy duyệt câu đề xuất về hosting (CloudFront + S3, không access log; cập nhật trang trước khi bật thống kê/AI) → gỡ Draft (204cb57). Lint/typecheck/unit 231/build/bundle/leaks PASS; e2e a11y + a11y-keyboard + html-fallback 97 passed.
 - **Kiểm full (L4, `89cb527`)**: 13/13 exit 0 — unit 231, e2e 142 (sửa 2 test kỳ vọng chức danh cũ, b2d802c), gitleaks 3/3 (104 commit), terraform 7/7, lhci 5 lần: `/en/` TBT median 42 / worst 50, LCP 2194 / 2203 ms. Không còn "Draft"/"SharePoint" trên các trang đã duyệt.
 
-### Ticket tiếp theo (nháp, chưa giao)
+### Đợt 14 — Quyết định của Duy 2026-11-04: B2/B3 trước A2, taste brief, Fresher
+
+- **ADR 0012** (Accepted): hoãn A2 tới khi có credit; làm B2 + B3 ở local; Track A đóng băng, gate A chạy trên mọi PR; Lead toàn quyền kỹ thuật/art; hàng đợi ticket + 5 Codex worker (`docs/tickets/queue.md`, `docs/runbook/codex-workers.md`); subagent chỉ 3 vai (Art Director, Perf Watcher, QA/spec).
+- **ADR 0013** (Accepted — hướng): "Thế giới là một bức tranh. Ký ức là những tấm ảnh film." Taste brief nguyên văn: `docs/art-bible/taste.md`. `docs/art/direction-notes.md` đã bị thay thế.
+- **ADR 0007** bổ sung: laptop ASUS Vivobook Flip i5-13500H Iris Xe là máy nghiệm thu chính thức T08/T09; desktop dGPU chỉ tham khảo; kiểm §3.4 ở chế độ laptop + tablet.
+- **Nội dung**: chức danh "CloudDevOps Engineer · Fresher" (Welcome, Quick, CV, OG, world-content, JSON-LD `jobTitle`); mục kinh nghiệm HPT vẫn ghi "Cloud & DevOps Intern" (đúng sự thật). Email công khai giữ `duybao09012004@gmail.com` (Duy chủ ý).
+- `docs/art-bible/refs/` đã gitignore. **Ảnh Duy gửi trong chat chưa có trên đĩa** — Lead không đọc được ảnh trong chat (Q-28).
+
+### Ticket tiếp theo
+
+Xem `docs/tickets/queue.md`. Song song: style frame A/B/C (ADR 0013 mục 4) ∥ graybox 8 khu theo trục suối chữ S ∥ pipeline asset ∥ hậu kỳ tranh rẻ cho Low. T08 trên Iris Xe chạy một mình.
+
+### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 
 - Duy: duyệt từng trang (Q-04) — Lead gửi link xem thử local; còn Q-16 (AWS pipeline), Q-10 (mã CPU laptop).
 - L3 (B2, sau A2): chọn nhạc CC0/giấy phép rõ ràng theo art direction (Q-11).
@@ -260,7 +272,7 @@ Model: L1-013 Codex **gpt-6.1-sol medium** (UI rõ ràng, không cần trình du
 - Quy trình: việc cần mở trình duyệt để đo (Lighthouse/trace) giao subagent, không giao Codex (sandbox chặn Edge).
 - L3/L4: chạy lại T09 có người giữ cửa sổ Edge; nếu vẫn tụt 1 Hz thì điều tra (visibility, efficiency mode).
 - Chữ world tiếng Việt chưa được duyệt biên tập.
-- L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; hoặc bắt đầu B2 khi A2 live (§12: B2 chỉ sau A2).
+- L2-008: Atlas Journal (J) §7.2 — chỉ cần sau khi có thêm khu; nay thuộc B2 local (ADR 0012).
 - A2 (cloud): **chưa bắt đầu** — cần Duy: repo GitHub, ngày đăng ký AWS, Paid plan, tên miền.
 | L3-001 CI PR + check-bundle | L3 subagent | **Merged** (341c93f). Lead chạy lại: lint/typecheck/test/build exit 0; `pnpm check:bundle` PASS trên scaffold; fixture rò marker → exit 1. Workflow GitHub: NOT RUN (chưa có remote) |
 

@@ -17,13 +17,13 @@ it("renders the approved bilingual CV without Draft labels, escapes text, and om
   expect(cvHtml(data, "en")).toContain("&lt;phone&gt;");
 });
 
-it("renders the CV phone and Intern level from public content in both locales", () => {
+it("renders the CV phone and Fresher level from public content in both locales", () => {
   for (const locale of ["en", "vi"]) {
     const profile = content.profiles.find(p => p.locale === locale)!;
     expect(profile.phone).toBe("083 418 4916");
     const html = cvHtml(content, locale);
     expect(html).toContain("<p>083 418 4916</p>");
-    expect(html).toContain("CloudDevOps Engineer · Intern");
+    expect(html).toContain("CloudDevOps Engineer · Fresher");
   }
 });
 

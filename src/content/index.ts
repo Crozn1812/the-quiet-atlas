@@ -209,7 +209,7 @@ export const content=validateContent({
     locale,
     name: locale==="vi"? "Nguyễn Hữu Bảo Duy":"Nguyen Huu Bao Duy",
     role: "CloudDevOps Engineer",
-    level: "Intern",
+    level: "Fresher",
     introduction: introduction[locale],
     email: "duybao09012004@gmail.com",
     // Số theo CV PDF Duy gửi; Duy chọn hiện cả trên web (L2-010, 2026-11-04).

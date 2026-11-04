@@ -26,3 +26,10 @@ backend.hcl
 *.tfplan
 override.tf
 *_override.tf
+
+# Ảnh tham chiếu nội bộ (ảnh cá nhân của Duy + Pinterest) — không commit, repo public (ADR 0013)
+docs/art-bible/refs/*
+!docs/art-bible/refs/README.md
+# Video showcase lớn lưu ngoài repo
+docs/showcase/**/*.mp4
+docs/showcase/**/*.webm

@@ -49,3 +49,20 @@
 - Laptop này là **máy kiểm iGPU** cho T08: kết quả gắn nhãn "laptop iGPU i5-13500H". Máy desktop dGPU vẫn là máy đo hằng ngày của đội (Lead/L4 chạy được).
 - Laptop không phải máy Lead điều khiển: Duy chạy T08 trên laptop theo runbook (ticket sau), cắm sạc, tắt tiết kiệm pin. Chưa đo → T08 iGPU **NOT RUN**.
 - Ngưỡng §8 giữ nguyên.
+
+## Bổ sung 2026-11-04 (lần 2): laptop Iris Xe là máy nghiệm thu chính thức T08/T09 (ADR 0012)
+
+Duy quyết (quyết định 2026-11-04 mục 4) — **thay** quyết định 1 ở trên:
+
+| Thành phần | Giá trị |
+|---|---|
+| Máy | ASUS Vivobook Flip (2-trong-1, màn cảm ứng) |
+| CPU / GPU | Intel Core i5-13500H / iGPU Intel Iris Xe |
+| RAM | 16 GB |
+| Độ phân giải, tần số quét, DPR, OS build, trình duyệt + version | TBD — Lead ghi ở lần đo đầu (`docs/runbook/t08-iris-xe.md`) |
+
+1. **T08/T09 chính thức đo trên laptop này**: cắm sạc, chế độ hiệu năng chuẩn (Windows "Balanced"/"Cân bằng" của ASUS, không Turbo), tắt tiết kiệm pin. Nhãn: "laptop iGPU i5-13500H Iris Xe".
+2. Desktop dGPU RTX 3060 = **chỉ tham khảo** (nhãn "desktop dGPU, tham khảo"), dùng để phát hiện hồi quy sớm hằng ngày.
+3. Máy 2-trong-1: kiểm thêm phát hiện năng lực §3.4 ở **chế độ laptop** và **chế độ tablet (gập)** — màn cảm ứng có thể làm `pointer: coarse` → Editorial; ghi kết quả cả hai chế độ.
+4. Benchmark GPU chạy **một mình**, không có worker khác chạy cùng (ADR 0012).
+5. Ngưỡng §8 giữ nguyên; không nâng sau khi đo thất bại.

@@ -1,6 +1,6 @@
 # Ghi chú định hướng hình ảnh (nháp, trước art bible B2)
 
-- Trạng thái: **Nháp** — Duy cung cấp 2026-11-04. Chưa phải art bible; B2 chỉ bắt đầu sau A2 (§12).
+- Trạng thái: **Đã thay thế** bởi `docs/art-bible/taste.md` + ADR 0013 (2026-11-04). Giữ lại để tra lịch sử. Ghi đông "scrambler cao" ở dưới: tạm theo ảnh thật, chờ Q-25.
 - Ảnh Duy gửi (ảnh cá nhân và ảnh tham khảo từ Pinterest) **không lưu trong repo**. Ảnh tham khảo chỉ dùng để rút ra cảm giác; không sao chép, đồ lại hay dùng làm asset (không có giấy phép).
 
 ## Cảm giác Duy muốn
