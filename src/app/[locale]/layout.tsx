@@ -32,6 +32,15 @@ export default async function Layout({ children,params }: {
   if(!isLocale(locale))
     notFound();
   return <html lang={locale}>
+    <head>
+      <link
+        rel="preload"
+        href="/fonts/noto-serif-latin-400-normal.woff2"
+        as="font"
+        type="font/woff2"
+        crossOrigin="anonymous"
+      />
+    </head>
     <body>
       <SkipLink locale={locale} />
       {children}

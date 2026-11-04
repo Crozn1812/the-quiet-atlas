@@ -109,6 +109,9 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
       language = next;
       copy = worldMenuMessages[next];
       replaceWorldLocale(next, history, document);
+      container.dispatchEvent(new CustomEvent("tqa:set-locale", {
+        detail: { locale: next },
+      }));
       for (const translate of translations) translate();
       onLocale(next, messages[next].world, {
         sound: next === "vi" ? "Âm thanh" : "Sound",
