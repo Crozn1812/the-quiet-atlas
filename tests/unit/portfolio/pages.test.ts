@@ -34,7 +34,7 @@ it("renders every slug in both locales and lists each URL in the sitemap", async
     expect(generateStaticParams()).toContainEqual({ locale: p.locale, slug: p.slug });
     const html = renderToStaticMarkup(await Page({ params: Promise.resolve(p) }));
     expect(html).toContain(p.title);
-    expect(html).toContain("Draft");
+    expect(html).not.toContain("Draft");
     expect(html).toContain("TBD");
     expect(html.match(/<h2/g)).toHaveLength(11);
     expect(publicPaths()).toContain(`/${p.locale}/projects/${p.slug}/`);

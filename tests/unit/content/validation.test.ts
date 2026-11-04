@@ -92,19 +92,22 @@ describe("L2-012 content from Duy's answers", () => {
       expect(p.linkedinUrl).toBe("https://www.linkedin.com/in/nguyenhuubaoduy");
       expect(p.introduction).toContain("CloudDevOps Engineer");
       expect(p.role).toBe("CloudDevOps Engineer");
-      expect(p.introduction.split(/s+/).length).toBeLessThanOrEqual(25);
+      expect(p.introduction.split(/\s+/).length).toBeLessThanOrEqual(25);
       expect(p.level).toBe("Intern");
-      expect(p.reviewStatus).toBe("draft");
+      // Q-04: Duy approved every page on 2026-11-04.
+      expect(p.reviewStatus).toBe("approved");
+      expect(p.publicApproval).toBe(true);
       expect(p.experience[0]!.summary).toMatch(/API Management/);
       expect(p.experience[0]!.summary).toMatch(/Microsoft Fabric/);
       expect(p.experience[0]!.summary).toMatch(/Power Automate/);
     }
   });
-  it("marks every project completed but still draft, and renames only the PDG title", () => {
+  it("marks every project completed and approved (Q-04), and renames only the PDG title", () => {
     expect(content.projects).toHaveLength(8);
     for (const p of content.projects) {
       expect(p.status).toBe("completed");
-      expect(p.reviewStatus).toBe("draft");
+      expect(p.reviewStatus).toBe("approved");
+      expect(projectStatusLabel(p)).toBe("completed");
     }
     const pdg = content.projects.filter(p => p.slug === "partner-data-gateway-azure");
     expect(pdg.map(p => p.title)).toEqual(["Secure Partner Data Sharing Portal", "Secure Partner Data Sharing Portal"]);

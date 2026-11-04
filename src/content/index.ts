@@ -189,12 +189,12 @@ const repos: Record<string, { repoUrl: string; evidence: string[] }>={
     evidence: ["ev-repo-partner-data-gateway-demo"]
   }
 };
-// Duy duyệt từng trang (Q-04) trước khi gỡ nhãn Draft.
+// Q-04: Duy đã duyệt từng trang (Welcome, Quick EN/VI, 4 case study, CV) và cho gỡ nhãn Draft ngày 2026-11-04.
 const review={
-  reviewStatus: "draft",
-  publicApproval: "TBD",
-  lastReviewedAt: "TBD"
-};
+  reviewStatus: "approved",
+  publicApproval: true,
+  lastReviewedAt: "2026-11-04"
+} as const;
 const introduction: Record<Locale, string>={
   en: "Fourth-year Network and Systems student at PTIT and CloudDevOps Engineer (Intern) at HPT, building automated, traceable infrastructure on AWS and Azure.",
   vi: "Sinh viên năm tư PTIT, CloudDevOps Engineer (thực tập) tại HPT, xây dựng hạ tầng tự động trên AWS và Azure."
@@ -244,14 +244,14 @@ export const content=validateContent({
     slug,
     locale,
     ...copy[slug]![locale],
-    // Q-12: tất cả dự án đã hoàn thành (reviewStatus vẫn draft nên web vẫn hiện nhãn Draft).
+    // Q-12: tất cả dự án đã hoàn thành.
     status: "completed",
     evidence: repos[slug]!.evidence,
     metrics: [],
     repoUrl: repos[slug]!.repoUrl,
     ...review,
-    translationStatus: "TBD",
-    contentVersion: "TBD"
+    translationStatus: "approved",
+    contentVersion: "2026-11-04"
   }))),
   evidence,
 });

@@ -4,10 +4,10 @@ import { content } from "@/content";
 import { cvHtml, cleanMetadata } from "../../../tools/cv/render.mjs";
 import { listenWorldError } from "@/components/portfolio/worldError";
 
-it("renders public bilingual drafts, escapes text, and omits TBD phone", () => {
+it("renders the approved bilingual CV without Draft labels, escapes text, and omits TBD phone", () => {
   for (const locale of ["en", "vi"]) {
     const html = cvHtml(content, locale);
-    expect(html).toContain("Draft");
+    expect(html).not.toContain("Draft");
     expect(html).toContain("TBD");
     expect(html).not.toContain("<p>TBD</p>\n    <p>GitHub");
     expect(html).toContain(content.profiles.find(p => p.locale === locale)!.name);
