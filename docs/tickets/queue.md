@@ -17,7 +17,7 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-013 | Biển chỉ đường dịch chuyển + sự kiện ADR 0008 | `src/features/navigation/` | merged `0af8151` |
 | B2-014 | Atlas Journal mô hình memory | `src/features/journal/` | merged `c0b303d` |
 | B2-015 | Xe GD110 mô hình arcade | `src/features/vehicle/` | merged `906cac4` |
-| B2-020 | Pipeline asset + kiểm ngân sách (gộp B2-021, `pnpm check:assets`) | `tools/assets/` | merged `a467dd0`; **CI chưa nối** |
+| B2-020 | Pipeline asset + kiểm ngân sách (gộp B2-021, `pnpm check:assets`) | `tools/assets/` | merged `a467dd0` (CI nối ở B2-022) |
 | B2-032 | Khung ảnh film + trang tạp chí (server component) | `src/components/portfolio/memory/` | merged `e8aac68` |
 | — | Lead: nối palette + ramp + paper pass vào world; sửa xung đột crown-fade | `src/features/world/index.ts`, `terrain.ts`, `crown-fade.ts` | merged `9e9867d` |
 
@@ -25,18 +25,18 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 
 | ID | Việc | Trạng thái |
 |---|---|---|
-| B2-005 | Loang mép màu nước + nét mực High (gộp B2-006) | merged  |
-| B2-016 | Mesh + collider ô terrain, pool | merged  |
-| B2-017 | Suối dải lụa + biển (Lead sửa mực nước) | merged  |
-| B2-018 | Rải cây theo ô/biome | merged  |
-| B2-019 | Trời + ánh sáng theo vị trí | merged  |
-| B2-022 | check:assets vào CI (Lead) | merged  |
-| B2-030 | Bàn dựng style frame (Lead thêm nước, fog, cảnh biển) | merged , ,  |
-| B2-035 | Phác thảo nhân vật bpy (trả lại 1 vòng) | merged ,  |
-| B2-036 | Phác thảo GD110 bpy | merged  |
-| B2-040 | Atlas Journal dialog | merged  (chưa nối) |
-| B2-050 | Ghép world thật | merged  |
-| B2-060 | Cinematic mở đầu (model) | merged  (chưa nối) |
+| B2-005 | Loang mép màu nước + nét mực High (gộp B2-006) | merged `f3115ba` |
+| B2-016 | Mesh + collider ô terrain, pool | merged `f6e0f8b` |
+| B2-017 | Suối dải lụa + biển (Lead sửa mực nước) | merged `1297c71` |
+| B2-018 | Rải cây theo ô/biome | merged `30249b5` |
+| B2-019 | Trời + ánh sáng theo vị trí | merged `783a745` |
+| B2-022 | check:assets vào CI (Lead) | merged `593fd11` |
+| B2-030 | Bàn dựng style frame (Lead thêm nước, fog, cảnh biển) | merged `45abd0b`, `d3f679c`, `f20ce47` |
+| B2-035 | Phác thảo nhân vật bpy (trả lại 1 vòng) | merged `7a8bea9`, `edccdd6` |
+| B2-036 | Phác thảo GD110 bpy | merged `6b20929` |
+| B2-040 | Atlas Journal dialog | merged `4270d1d` (chưa nối) |
+| B2-050 | Ghép world thật | merged `98e01a9` |
+| B2-060 | Cinematic mở đầu (model) | merged `2fb77da` (chưa nối) |
 
 ## Tiếp theo (todo)
 
