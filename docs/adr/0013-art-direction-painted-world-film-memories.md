@@ -17,7 +17,7 @@
    - Hậu kỳ một pass gộp: paper grain (texture tile nhỏ) + loang mép màu nước + sương theo độ sâu. Outline mực chỉ ở Balanced/High nếu đo đủ ngân sách. Low: chỉ fog màu giấy + grain tĩnh.
    - Pipeline asset: Blender headless (bpy) → glTF → gltf-transform (meshopt + KTX2). Ngân sách từng asset ghi trong art bible.
 6. **Bối cảnh Việt Nam**, không đình chùa/mái cong/chữ Hán. Cảnh lấy từ ảnh của Duy: rừng thông Đà Lạt, đồi cỏ, hàng rào gỗ hoa leo, nhà cũ dây leo, biển, tuabin gió.
-7. **Pháp lý tham chiếu:** ảnh Pinterest (nhiều ảnh có dấu AI hoặc ký hiệu tác giả ©DNA2725, SashaArt) và ảnh cá nhân **không** dùng pixel nào; lưu ở `docs/art-bible/refs/` đã gitignore. Không logo Chiefs, không logo/chữ Suzuki.
+7. **Pháp lý tham chiếu:** ảnh Pinterest (nhiều ảnh có dấu AI hoặc ký hiệu tác giả ©DNA2725, SashaArt) **không** dùng pixel nào; ảnh cá nhân chỉ lên web theo quy tắc Q-27 (mục Bổ sung); lưu ở `docs/art-bible/refs/` đã gitignore. Không logo Chiefs, không logo/chữ Suzuki.
 
 ## Khác biệt so với `direction-notes.md`
 
