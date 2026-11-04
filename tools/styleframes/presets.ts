@@ -32,6 +32,8 @@ export interface StylePreset {
   background: {
     terrain: PaletteRecipe;
     ramp: { steps: number; soft: boolean };
+    /** World-scale linear fog to paper (m); the 15/65 m prototype values swallow a 900 m world. */
+    fog: { near: number; far: number };
     mist: { bands: [number, number, number]; strength: number };
     edges: { ink: boolean; bleed: number };
     sky: Record<"dawn" | "dusk", { top: PaletteRecipe; horizon: PaletteRecipe }>;
@@ -52,7 +54,8 @@ const A: StylePreset = {
     // §5.4: four softly filtered levels keep light transitions gentle.
     ramp: { steps: 4, soft: true },
     // §5.2: distant forest layers stay visible through lighter mist.
-    mist: { bands: [24, 42, 64], strength: 0.42 },
+    fog: { near: 60, far: 340 },
+    mist: { bands: [70, 130, 220], strength: 0.32 },
     // Watercolour edges, without the ink contour of direction B.
     edges: { ink: false, bleed: 0.32 },
     sky: {
@@ -79,7 +82,8 @@ const B: StylePreset = {
     // Three broad, soft washes suggest ink painting rather than hard cel shading.
     ramp: { steps: 3, soft: true },
     // Closer, stronger depth layers dissolve distance into paper (§5.4).
-    mist: { bands: [18, 32, 51], strength: 0.78 },
+    fog: { near: 40, far: 260 },
+    mist: { bands: [45, 90, 160], strength: 0.6 },
     // Diluted ink contour plus stronger pigment pooling; High enables ink.
     edges: { ink: true, bleed: 0.65 },
     sky: {

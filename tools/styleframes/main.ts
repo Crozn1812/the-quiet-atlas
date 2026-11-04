@@ -14,6 +14,9 @@ import { PRESETS as QUALITY } from "../../src/features/world/terrain";
 import { createTileMesh } from "../../src/features/world/terrain/mesh";
 import { createTilePool } from "../../src/features/world/terrain/pool";
 import { buildTile, TILE_SIZE, tileKey } from "../../src/features/world/terrain/tiles";
+import { createRiverRibbon } from "../../src/features/world/water/ribbon";
+import { createSea } from "../../src/features/world/water/sea";
+import type { WaterSurface } from "../../src/features/world/water/surface";
 import { paletteColor, STYLE_PRESETS, type PaletteRecipe, type StylePreset } from "./presets";
 import { parseQuery } from "./query";
 import { cameraAt, SHOTS, VIDEO_SECONDS } from "./shots";
@@ -76,6 +79,12 @@ async function start() {
   const pool = createTilePool({ RAPIER, world: physics, material: terrainMaterial });
   scene.add(pool.group);
   const scenery: Mesh[] = [];
+  let waters: WaterSurface[] = [];
+  function water() {
+    for (const surface of waters) surface.dispose();
+    waters = [createRiverRibbon(options.quality), createSea(options.quality)];
+    for (const surface of waters) { surface.setTime(options.t); scene.add(surface.mesh); }
+  }
   let foliage: ReturnType<typeof createFoliage> | undefined;
   let candidates: FoliageTree[] = [];
   let frames = 0;
@@ -99,6 +108,7 @@ async function start() {
 
   function setCamera() {
     const frame = cameraAt(options.shot, options.t);
+    for (const surface of waters) surface.setTime(options.t); // deterministic flow per frame time
     camera.position.copy(frame.position);
     camera.lookAt(frame.target);
     return frame;
@@ -133,6 +143,8 @@ async function start() {
     hemi.groundColor.copy(grade.hemiGround);
     hemi.intensity = grade.hemiIntensity;
     paper.setEdges(preset.background.edges);
+    paper.setFog(preset.background.fog);
+    if (scene.fog instanceof Fog) { scene.fog.near = preset.background.fog.near; scene.fog.far = preset.background.fog.far; }
     paper.setMist({ ...preset.background.mist, height: setCamera().mistHeight });
     invalidate();
   }
@@ -170,8 +182,7 @@ async function start() {
     camera.fov = SHOTS[options.shot].fov;
     camera.updateProjectionMatrix();
     style();
-    // TODO B2-030 / Lead: src/features/world/water/ is absent. Add river and sea
-    // factories here once integrated, with fixed seed/time and matching dispose ownership.
+    water();
   }
 
   function resize() {
@@ -193,6 +204,7 @@ async function start() {
     sun.shadow.map = null;
     paper.setQuality(options.quality);
     foliage?.setQuality(options.quality);
+    water(); // quality changes the water shader defines
     resize();
   }
 
@@ -283,6 +295,7 @@ async function start() {
     window.removeEventListener("keydown", keydown);
     window.removeEventListener("resize", resize);
     foliage?.dispose();
+    for (const surface of waters) surface.dispose();
     pool.dispose();
     for (const mesh of scenery) mesh.geometry.dispose();
     terrainMaterial.dispose();

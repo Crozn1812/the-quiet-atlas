@@ -157,7 +157,9 @@ const fragmentShader = /* glsl */ `
     // Each narrow transition adds a shelf; density increases at every band.
     float layeredMist = 1.0 - (1.0 - bands.x * 0.18) * (1.0 - bands.y * 0.26)
                             * (1.0 - bands.z * 0.42) * (1.0 - lowMist * 0.18);
-    float nearVisibility = smoothstep(${MIST_CLEAR_DISTANCE}.0, ${MIST_FADE_DISTANCE}.0, distanceToCamera);
+    // Sky pixels (cleared depth) keep the sky dome's own dawn/dusk wash; fog/mist apply to geometry only.
+    float geometry = 1.0 - step(0.99999, depth);
+    float nearVisibility = smoothstep(${MIST_CLEAR_DISTANCE}.0, ${MIST_FADE_DISTANCE}.0, distanceToCamera) * geometry;
     vec3 mistTint = mix(mistColor, paperColor, bands.z * 0.75);
     color.rgb = mix(color.rgb, mistTint, layeredMist * mistStrength * nearVisibility);
     // Preserve the original depth fog and its final fade to paper, with the same near guard.
@@ -184,6 +186,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
   let disposed = false;
   let resources: ReturnType<typeof allocate> | undefined;
   const edges: { bleed: number; ink?: boolean } = { bleed: 0.5 };
+  const fog = { near: 15, far: 65 };
   const mist = {
     bands: new Vector3(...DEFAULT_MIST_BANDS),
     height: DEFAULT_MIST_HEIGHT,
@@ -224,8 +227,8 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         cameraNear: { value: 0.1 },
         cameraFar: { value: 100 },
         perspective: { value: true },
-        fogNear: { value: 15 },
-        fogFar: { value: 65 },
+        fogNear: { value: fog.near },
+        fogFar: { value: fog.far },
       },
       depthTest: false,
       depthWrite: false,
@@ -303,6 +306,19 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         }
         resources.material.uniforms.inkEnabled!.value = q === "High" && (edges.ink ?? true);
         resources.material.needsUpdate = true;
+      }
+    },
+    /** Linear depth fog to paper, metres; survives quality changes (Low uses scene.fog instead). */
+    setFog({ near, far }: { near: number; far: number }): void {
+      if (disposed) return;
+      if (!Number.isFinite(near) || !Number.isFinite(far) || near < 0 || far <= near) {
+        throw new RangeError("Fog needs 0 <= near < far");
+      }
+      fog.near = near;
+      fog.far = far;
+      if (resources) {
+        resources.material.uniforms.fogNear!.value = near;
+        resources.material.uniforms.fogFar!.value = far;
       }
     },
     /** Bleed in [0, 1]; ink defaults on in High only. Explicit settings survive quality changes. */

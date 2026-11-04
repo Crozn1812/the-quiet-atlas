@@ -15,7 +15,8 @@ function zone(id: typeof ZONES[number]["id"]) {
 }
 
 const forestT = (zone("first-light").t + zone("workshop").t) / 2;
-const coastT = zone("quiet-shore").t;
+// The river mouth (Last Postcard) has an open view to the sea; Quiet Shore is screened by hills.
+const coastT = zone("last-postcard").t;
 export const SHOTS = {
   "forest-dawn": { label: "Rừng bình minh", pathT: forestT, timeOfDay: 0, fov: 48 },
   "coast-dusk": { label: "Biển hoàng hôn", pathT: coastT, timeOfDay: 1, fov: 48 },
@@ -29,13 +30,13 @@ export function cameraAt(shot: ShotId, seconds = 0) {
   const river = riverPointAt(riverT);
   const tangent = riverTangentAt(riverT);
   const bank = new Vector3(-tangent.z, 0, tangent.x);
-  const position = river.clone().addScaledVector(bank, shot === "forest-dawn" ? 11 - 2 * u : 17 - 3 * u)
+  const position = river.clone().addScaledVector(bank, shot === "forest-dawn" ? 11 - 2 * u : 6 - 2 * u)
     .addScaledVector(tangent, 6 * u);
-  position.y = worldHeight(position.x, position.z) + (shot === "forest-dawn" ? 3.4 : 4.2);
+  position.y = worldHeight(position.x, position.z) + (shot === "forest-dawn" ? 3.4 : 7);
   const target = shot === "forest-dawn"
     ? riverPointAt(Math.min(1, riverT + 0.055 + 0.004 * u))
-    : riverPointAt(1).add(new Vector3(0, 0, -70));
-  target.y = shot === "forest-dawn" ? worldHeight(target.x, target.z) + 2.8 : 2;
+    : riverPointAt(1).add(new Vector3(0, 0, -220));
+  target.y = shot === "forest-dawn" ? worldHeight(target.x, target.z) + 2.8 : 1.5;
   return {
     position, target,
     // The channel is 1.1 m below river level; mist rests 1.2 m above that level.
