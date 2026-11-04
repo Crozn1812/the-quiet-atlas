@@ -1,3 +1,4 @@
+import { interactionHint, type WorldLocale } from "../world/copy";
 import { isInputTarget, type KeyEventLike } from "./input";
 import type { Position } from "../../state/session";
 
@@ -37,6 +38,7 @@ export function createInteraction(options: {
   player: () => Position;
   enabled: () => boolean;
   lineOfSight?: (target: InteractionTarget) => boolean;
+  locale?: () => WorldLocale;
   visit: (zoneId: ZoneId) => void;
 }) {
   const { container } = options;
@@ -53,7 +55,7 @@ export function createInteraction(options: {
     const target = select();
     if (target) container.dataset.worldHint = target.zoneId;
     else delete container.dataset.worldHint;
-    const text = target ? `E — ${target.zoneId === "workshop" ? "The Workshop desk" : "First Light signpost"} (placeholder)` : "";
+    const text = target ? interactionHint(options.locale?.() ?? "en", target.zoneId) : "";
     if (hint.textContent !== text) hint.textContent = text;
   }
   function open(target: InteractionTarget | null) {

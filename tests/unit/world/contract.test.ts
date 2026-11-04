@@ -1,3 +1,4 @@
+import { WORLD_COPY } from "../../../src/features/world/copy";
 import { afterEach, expect, it, vi } from "vitest";
 
 const harness = vi.hoisted(() => ({
@@ -38,9 +39,15 @@ class Element extends EventTarget {
   clientHeight = 800;
   textContent = "";
   captures = new Set<number>();
-  appendChild() {}
+  children: Element[] = [];
+  attributes: Record<string, string> = {};
+  appendChild(child: Element) {
+    this.children.push(child);
+  }
   remove() {}
-  setAttribute() {}
+  setAttribute(name: string, value: string) {
+    this.attributes[name] = value;
+  }
   getBoundingClientRect() { return { left: 0, top: 0, width: 1000, height: 800 }; }
   setPointerCapture(id: number) {
     this.captures.add(id);
@@ -65,7 +72,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it("implements container pause/quality events in place and gates camera input", async () => {
+it.each([undefined, "vi"] as const)("implements container events in place with locale %s", async locale => {
   const canvas = new Element();
   harness.canvas = canvas;
   const document = Object.assign(new EventTarget(), {
@@ -87,7 +94,7 @@ it("implements container pause/quality events in place and gates camera input", 
   const states: unknown[] = [];
   container.addEventListener("tqa:world-state", event => states.push((event as CustomEvent).detail));
   const { mountWorld } = await import("../../../src/features/world/index");
-  const unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast", debug: true });
+  const unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast", debug: true, locale });
   try {
     const tick = (now: number) => harness.next!(now);
     tick(100);
@@ -95,8 +102,8 @@ it("implements container pause/quality events in place and gates camera input", 
     const scene = harness.scene as import("three").Scene;
     const opened = vi.fn();
     container.addEventListener("tqa:open-content", opened);
-    const sign = scene.getObjectByName("signpost (placeholder)")!;
-    const desk = scene.getObjectByName("desk (placeholder)")!;
+    const sign = scene.getObjectByName(WORLD_COPY[locale ?? "en"].signpost)!;
+    const desk = scene.getObjectByName(WORLD_COPY[locale ?? "en"].desk)!;
     const clickObject = (object: import("three").Object3D) => {
       const point = object.position.clone().project(camera);
       send(canvas, "click", {
@@ -113,11 +120,29 @@ it("implements container pause/quality events in place and gates camera input", 
     expect(opened.mock.calls[0]![0].detail).toEqual({ zoneId: "first-light" });
     const position = camera.position.clone();
     const stateCount = states.length;
+    expect(container.dataset.worldLocale).toBe(locale ?? "en");
+    for (const next of ["vi", "en", "vi"] as const) {
+      send(container, "tqa:set-locale", { detail: { locale: next } });
+      expect(container.dataset.worldLocale).toBe(next);
+      expect(canvas.attributes["aria-label"]).toBe(WORLD_COPY[next].canvas);
+      expect(container.children[0]!.textContent).toBe(WORLD_COPY[next].signpost + " · " + WORLD_COPY[next].desk);
+      expect(container.children[3]!.textContent).toBe("E — " + WORLD_COPY[next].signpost);
+      expect(scene.getObjectByName(WORLD_COPY[next].signpost)).toBe(sign);
+      expect(container.children[1]).toBe(canvas);
+      expect(camera.position.distanceTo(position)).toBe(0);
+      expect(states).toHaveLength(stateCount);
+    }
+    for (const detail of [undefined, null, {}, { locale: "fr" }, { locale: 1 }]) {
+      send(container, "tqa:set-locale", { detail });
+      expect(container.dataset.worldLocale).toBe("vi");
+    }
     send(container, "tqa:pause", { detail: { reason: "overlay", paused: true } });
     send(container, "tqa:content-closed", { detail: { zoneId: "first-light" } });
     expect(container.dataset.worldHint).toBeUndefined();
     clickObject(sign);
     expect(opened).toHaveBeenCalledOnce();
+    expect(container.dataset.worldPaused).toBe("true");
+    send(container, "tqa:set-locale", { detail: { locale: "en" } });
     expect(container.dataset.worldPaused).toBe("true");
     send(window, "keydown", { code: "ArrowLeft" });
     send(canvas, "wheel", { deltaX: 100, deltaY: 100, deltaMode: 0, ctrlKey: false });
@@ -169,6 +194,8 @@ it("implements container pause/quality events in place and gates camera input", 
   }
   expect((container as unknown as HTMLElement).__tqaPerf).toBeUndefined();
   expect(container.dataset.worldPaused).toBeUndefined();
+  send(container, "tqa:set-locale", { detail: { locale: "vi" } });
+  expect(container.dataset.worldLocale).toBeUndefined();
   const count = states.length;
   send(container, "tqa:set-quality", { detail: { quality: "low" } });
   expect(states).toHaveLength(count);

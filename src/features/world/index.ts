@@ -1,3 +1,4 @@
+import { WORLD_COPY, isWorldLocale, type WorldLocale } from "./copy";
 import { initialAdaptive, sampleQuality, selectManualQuality } from "./adaptive-quality";
 import { createInteraction, type InteractionTarget } from "../interaction/targets";
 import { BoxGeometry } from "three";
@@ -12,11 +13,13 @@ import { createObstacles, steepRamp, HALF_HEIGHT, RADIUS } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
+  locale?: WorldLocale;
   collision?: "rapier" | "raycast";
   quality?: Quality | "low" | "balanced" | "high";
   debug?: boolean;
 }
 export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}): Promise<() => void> {
+  let locale = opts.locale ?? "en";
   let quality = normalizeQuality(opts.quality ?? "balanced");
   const terrain = createTerrain();
   const trees = createTrees(terrain);
@@ -81,7 +84,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       new MeshBasicMaterial({ color: spec.id === "desk" ? 0x8b6040 : 0xd9bd7b }),
     );
     mesh.position.set(spec.x, terrainHeight(terrain, spec.x, spec.z) + 1, spec.z);
-    mesh.name = spec.id + " (placeholder)";
+    mesh.name = WORLD_COPY[locale][spec.id === "desk" ? "desk" : "signpost"];
     const feet = spec.id === "desk" ? [-0.65, 0.65] : [0];
     for (const x of feet) {
       const support = new Mesh(
@@ -97,11 +100,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     return { id: spec.id, zoneId: spec.zoneId, position: mesh.position, mesh };
   });
   const labels = document.createElement("p");
-  labels.textContent = "First Light signpost (placeholder) · The Workshop desk (placeholder)";
+  labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
   container.appendChild(labels);
   const camera = new PerspectiveCamera(55, 1, 0.1, 100);
   gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
-  gpu.domElement.setAttribute("aria-label", "P01-E placeholder forest. WASD to walk, Shift to run, arrows or drag to orbit, plus/minus or wheel to zoom. E or click nearby signpost or desk to open content.");
+  gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
+  container.dataset.worldLocale = locale;
   container.appendChild(gpu.domElement);
   const metrics = opts.debug ? document.createElement("output") : undefined;
   if (metrics) {
@@ -124,6 +128,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const interaction = createInteraction({
     container,
     targets: props,
+    locale: () => locale,
     player: () => physics.position,
     enabled: cameraEnabled,
     lineOfSight(target: InteractionTarget) {
@@ -242,6 +247,19 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const detail = (event as CustomEvent).detail;
     if (detail && ["overlay", "error"].includes(detail.reason) && typeof detail.paused === "boolean") pause(detail.reason, detail.paused);
   }
+  function setLocale(event: Event) {
+    const next = (event as CustomEvent).detail?.locale;
+    if (!isWorldLocale(next)) return;
+    locale = next;
+    container.dataset.worldLocale = locale;
+    labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
+    gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
+    for (const prop of props) {
+      prop.mesh.name = WORLD_COPY[locale][prop.id === "desk" ? "desk" : "signpost"];
+    }
+    if (metrics) metrics.textContent = "";
+    interaction.update();
+  }
   function setQuality(event: Event) {
     const detail = (event as CustomEvent).detail;
     if (!detail || !["low", "balanced", "high"].includes(detail.quality)) return;
@@ -333,7 +351,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       metricFrames++;
       if (now - metricStart >= 500) {
         const ms = (now - metricStart) / metricFrames;
-        metrics.textContent = `DEV | FPS ${(1000 / ms).toFixed(1)} | frame ${ms.toFixed(2)} ms | draw calls ${gpu.info.render.calls} | triangles ${gpu.info.render.triangles} | geometries ${gpu.info.memory.geometries} | textures ${gpu.info.memory.textures}`;
+        const copy = WORLD_COPY[locale].debug;
+        metrics.textContent = `${copy[0]} | ${copy[1]} ${(1000 / ms).toFixed(1)} | ${copy[2]} ${ms.toFixed(2)} ms | ${copy[3]} ${gpu.info.render.calls} | ${copy[4]} ${gpu.info.render.triangles} | ${copy[5]} ${gpu.info.memory.geometries} | ${copy[6]} ${gpu.info.memory.textures}`;
         metricStart = now;
         metricFrames = 0;
       }
@@ -345,6 +364,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   container.addEventListener("tqa:return-to-path", returnToPath);
   container.addEventListener("tqa:pause", externalPause);
   container.addEventListener("tqa:set-quality", setQuality);
+  container.addEventListener("tqa:set-locale", setLocale);
   gpu.domElement.addEventListener("click", click);
   gpu.domElement.addEventListener("pointerdown", pointerdown);
   gpu.domElement.addEventListener("pointermove", pointermove);
@@ -373,6 +393,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     observer.disconnect();
     container.removeEventListener("tqa:pause", externalPause);
     container.removeEventListener("tqa:set-quality", setQuality);
+    container.removeEventListener("tqa:set-locale", setLocale);
+    delete container.dataset.worldLocale;
     gpu.domElement.removeEventListener("click", click);
     interaction.dispose();
     labels.remove();
