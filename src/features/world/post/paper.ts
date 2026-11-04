@@ -1,12 +1,27 @@
 import {
   BufferGeometry, Color, DepthTexture, Float32BufferAttribute, HalfFloatType,
-  Mesh, NoBlending, OrthographicCamera, Scene, ShaderMaterial, Vector2,
+  Matrix4, Mesh, NoBlending, OrthographicCamera, Scene, ShaderMaterial, Vector2, Vector3,
   WebGLRenderTarget,
   type PerspectiveCamera, type WebGLRenderer,
 } from "three";
 import { PALETTE } from "../art/palette";
 
 type Quality = "Low" | "Balanced" | "High";
+
+export const DEFAULT_MIST_BANDS = Object.freeze([20, 35, 55] as const);
+// World Y; assumes water at Y = 0. Call setMist({ height: waterY + 1.2 }) otherwise.
+export const DEFAULT_MIST_HEIGHT = 1.2;
+export const DEFAULT_MIST_STRENGTH = 0.65;
+const MIST_CLEAR_DISTANCE = 8;
+const MIST_FADE_DISTANCE = 12;
+const MIST_BAND_HALF_WIDTH = 1.2;
+const MIST_HEIGHT_FALLOFF = 2.4;
+
+type MistOptions = {
+  bands?: [number, number, number];
+  height?: number;
+  strength?: number;
+};
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -20,6 +35,12 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D tColor;
   uniform sampler2D tDepth;
   uniform vec3 paperColor;
+  uniform vec3 mistColor;
+  uniform vec3 mistBands;
+  uniform float mistHeight;
+  uniform float mistStrength;
+  uniform mat4 cameraProjectionMatrixInverse;
+  uniform mat4 cameraMatrixWorld;
   uniform float cameraNear;
   uniform float cameraFar;
   uniform bool perspective;
@@ -45,10 +66,30 @@ const fragmentShader = /* glsl */ `
   void main() {
     vec4 color = texture2D(tColor, vUv);
     float depth = texture2D(tDepth, vUv).x;
-    float distanceToCamera = perspective
+    vec4 viewPosition = cameraProjectionMatrixInverse * vec4(vUv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+    viewPosition /= viewPosition.w;
+    vec3 worldPosition = (cameraMatrixWorld * viewPosition).xyz;
+    float distanceToCamera = length(viewPosition.xyz);
+    float viewDepth = perspective
       ? -perspectiveDepthToViewZ(depth, cameraNear, cameraFar)
       : -orthographicDepthToViewZ(depth, cameraNear, cameraFar);
-    color.rgb = mix(color.rgb, paperColor, smoothstep(fogNear, fogFar, distanceToCamera));
+    float edgeOffset = 0.0;
+    #ifdef MIST_EDGE_NOISE
+      // World-locked horizontal variation, at most +/-0.25 m; never animated.
+      edgeOffset = (fibers(worldPosition.xz * 0.12) - 0.5) * 0.5;
+    #endif
+    vec3 bands = smoothstep(mistBands - vec3(${MIST_BAND_HALF_WIDTH}),
+                            mistBands + vec3(${MIST_BAND_HALF_WIDTH}),
+                            vec3(distanceToCamera + edgeOffset));
+    float lowMist = 1.0 - smoothstep(mistHeight, mistHeight + ${MIST_HEIGHT_FALLOFF}, worldPosition.y);
+    // Each narrow transition adds a shelf; density increases at every band.
+    float layeredMist = 1.0 - (1.0 - bands.x * 0.18) * (1.0 - bands.y * 0.26)
+                            * (1.0 - bands.z * 0.42) * (1.0 - lowMist * 0.18);
+    float nearVisibility = smoothstep(${MIST_CLEAR_DISTANCE}.0, ${MIST_FADE_DISTANCE}.0, distanceToCamera);
+    vec3 mistTint = mix(mistColor, paperColor, bands.z * 0.75);
+    color.rgb = mix(color.rgb, mistTint, layeredMist * mistStrength * nearVisibility);
+    // Preserve the original depth fog and its final fade to paper, with the same near guard.
+    color.rgb = mix(color.rgb, paperColor, smoothstep(fogNear, fogFar, viewDepth) * nearVisibility);
 
     // Pixel-locked, time-independent grain. Both noises are in [0, 1],
     // so their weighted sum gives at most +/-2% multiplicative variation.
@@ -71,6 +112,11 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
   const size = renderer.getSize(new Vector2());
   let disposed = false;
   let resources: ReturnType<typeof allocate> | undefined;
+  const mist = {
+    bands: new Vector3(...DEFAULT_MIST_BANDS),
+    height: DEFAULT_MIST_HEIGHT,
+    strength: DEFAULT_MIST_STRENGTH,
+  };
 
   function physicalSize() {
     const dpr = renderer.getPixelRatio();
@@ -88,10 +134,17 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     const material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
+      defines: quality === "High" ? { MIST_EDGE_NOISE: 1 } : {},
       uniforms: {
         tColor: { value: target.texture },
         tDepth: { value: depth },
         paperColor: { value: new Color(PALETTE.paper) },
+        mistColor: { value: new Color(PALETTE.mist) },
+        mistBands: { value: mist.bands },
+        mistHeight: { value: mist.height },
+        mistStrength: { value: mist.strength },
+        cameraProjectionMatrixInverse: { value: new Matrix4() },
+        cameraMatrixWorld: { value: new Matrix4() },
         cameraNear: { value: 0.1 },
         cameraFar: { value: 100 },
         perspective: { value: true },
@@ -139,6 +192,9 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         renderer.setRenderTarget(target);
         if (!renderer.autoClear) renderer.clear();
         renderer.render(scene, camera);
+        // Scene rendering updates camera.matrixWorld before reconstruction consumes it.
+        material.uniforms.cameraProjectionMatrixInverse!.value.copy(camera.projectionMatrixInverse);
+        material.uniforms.cameraMatrixWorld!.value.copy(camera.matrixWorld);
         scene.fog = fog;
         renderer.setRenderTarget(destination);
         renderer.render(screen, screenCamera);
@@ -156,7 +212,33 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       if (disposed || quality === q) return;
       quality = q;
       if (q === "Low") release();
-      else resources ??= allocate();
+      else if (!resources) resources = allocate();
+      else {
+        if (q === "High") resources.material.defines.MIST_EDGE_NOISE = 1;
+        else delete resources.material.defines.MIST_EDGE_NOISE;
+        resources.material.needsUpdate = true;
+      }
+    },
+    /** Distances/heights are metres; strength in [0, 1] scales added mist, preserving depth fog. */
+    setMist({ bands, height, strength }: MistOptions): void {
+      if (disposed) return;
+      if (bands && (!bands.every(value => Number.isFinite(value) && value > 0)
+        || bands[0] >= bands[1] || bands[1] >= bands[2])) {
+        throw new RangeError("Mist bands must be finite, positive and strictly increasing");
+      }
+      if (height !== undefined && !Number.isFinite(height)) {
+        throw new RangeError("Mist height must be finite");
+      }
+      if (strength !== undefined && (!Number.isFinite(strength) || strength < 0 || strength > 1)) {
+        throw new RangeError("Mist strength must be between 0 and 1");
+      }
+      if (bands) mist.bands.set(...bands);
+      if (height !== undefined) mist.height = height;
+      if (strength !== undefined) mist.strength = strength;
+      if (resources) {
+        resources.material.uniforms.mistHeight!.value = mist.height;
+        resources.material.uniforms.mistStrength!.value = mist.strength;
+      }
     },
     dispose(): void {
       if (disposed) return;
