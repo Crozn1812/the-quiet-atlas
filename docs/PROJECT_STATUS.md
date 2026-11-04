@@ -188,7 +188,9 @@ Repo đã push: `github.com/Crozn1812/the-quiet-atlas` (public). Trước khi pu
 | L5-010 | L5 Platform (subagent) | **Merged** `a8339f9`. 4 runbook cho Duy (`docs/runbook/aws-*.md`, `domain-and-acm.md`); workflow lên action Node 24, chỉ rõ Chrome cho lhci. Terraform: **BLOCKED** (máy chưa có terraform; `infra/` chưa có file `.tf`) |
 | L4-010 | L4 QA (subagent) | **Merged** `97cedf7`. Timeout 30 s cho contract test (CI chậm); e2e chữ world theo ngôn ngữ; T11 font tự host |
 
-**CI GitHub run #1** (commit `3e24151`): **FAIL** ở bước unit test — `contract.test.ts` timeout 5 s trên runner (local 2,4 s). Các bước sau chưa chạy trên CI → NOT RUN. Đã sửa ở L4-010; chờ run mới.
+**CI GitHub run #1** (commit `3e24151`): **FAIL** ở bước unit test — `contract.test.ts` timeout 5 s trên runner (local 2,4 s). Các bước sau chưa chạy trên CI → NOT RUN. Đã sửa ở L4-010.
+
+**CI run #2 (`ed116ea`) và #3 (`74db86b`)**: install, lint, typecheck, **unit test, build, check-bundle, scan-leaks: PASS trên CI**; **gitleaks: FAIL** (lần đầu gitleaks thật sự chạy trên toàn lịch sử). Log chi tiết cần đăng nhập GitHub; máy local không chạy được gitleaks (chưa cài, Docker Desktop không khởi động). Run #3 đã allowlist theo đường dẫn các giá trị mẫu cố ý của bộ quét — vẫn FAIL → nguyên nhân thật **chưa biết**. Licenses, e2e, perf, Lighthouse trên CI: NOT RUN (bị chặn sau gitleaks). Cần Q-21.
 
 **L4 full suite trên lane (= main `97cedf7` trừ docs)** — máy dev, Edge: lint 0, typecheck 0, unit 172/172, build:artifacts 0, **e2e 137 passed / 0 skipped** (lần 1 có 1 fail do test so khung hình chưa ẩn nhãn world đã dịch → sửa test, không phải lỗi sản phẩm), test:perf EN+VI PASS (Welcome 184,6/190,7 KB; JS 143,3 KB / 150 — còn ~6,7 KB; 0 request 3D trước Enter World; 1,71 MB / 2,07 s tới playable).
 
