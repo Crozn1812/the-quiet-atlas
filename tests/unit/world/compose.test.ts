@@ -179,9 +179,11 @@ it("grades paper fog without changing the paper pigment, across Low and High rea
     expect(materials).toHaveLength(2);
     for (const material of materials) {
       expect(material.uniforms.paperColor!.value).toEqual(new Color(PALETTE.paper));
-      expect(material.uniforms.gradeFogColor!.value).toEqual(lightingAt(1).fogColor);
-      expect(material.fragmentShader).toContain("mix(color.rgb, gradeFogColor, smoothstep(fogNear, fogFar, viewDepth)");
-      expect(material.fragmentShader).toContain("nearVisibility * step(depth, 0.999999)");
+      // Grade tints fog + mist through the pass API (survives Low -> High reallocation); paper stays immutable.
+      expect(material.uniforms.fogColor!.value).toEqual(lightingAt(1).fogColor);
+      expect(material.uniforms.mistColor!.value).toEqual(lightingAt(1).fogColor);
+      expect(material.fragmentShader).toContain("mix(color.rgb, fogColor, smoothstep(fogNear, fogFar, viewDepth)");
+      expect(material.fragmentShader).toContain("1.0 - step(0.99999, depth)");
     }
   } finally { paper.dispose(); }
 });

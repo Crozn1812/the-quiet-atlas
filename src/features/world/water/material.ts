@@ -65,7 +65,7 @@ const fragmentShader = /* glsl */ `
       float grazing = 1.0 - clamp(dot(surfaceNormal, normalize(vViewDirection)), 0.0, 1.0);
       float fresnel = grazing * grazing * grazing;
       vec3 sky = mix(uPaperColor, uDuskColor, uSkyMix);
-      color = mix(color, sky, fresnel * 0.22);
+      color = mix(color, sky, fresnel * SKY_REFLECTION);
     #endif
     gl_FragColor = vec4(color, 1.0);
     #include <tonemapping_fragment>
@@ -85,10 +85,12 @@ export class WaterMaterial extends ShaderMaterial {
     const edge = new Color(PALETTE.water);
     const deep = new Color(PALETTE.indigo);
     if (sea) {
-      edge.copy(deep).lerp(new Color(PALETTE.dusk), 0.16);
-      deep.lerp(new Color(PALETTE.dusk), 0.06);
+      // B2-031: the open sea is jade-teal water, not indigo; indigo under a warm horizon wash reads grey.
+      deep.set(PALETTE.water).lerp(new Color(PALETTE.mist), 0.18);
+      edge.set(PALETTE.water).lerp(new Color(PALETTE.dusk), 0.14);
     }
-    const defines: Record<string, number> = {};
+    // The broad sea mirrors more of the painted sky than the shaded river.
+    const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22 };
     if (quality !== "Low") {
       defines.WATER_FLOW = 1;
       defines.WATER_REFLECTION = 1;

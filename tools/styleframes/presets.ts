@@ -34,7 +34,8 @@ export interface StylePreset {
     ramp: { steps: number; soft: boolean };
     /** World-scale linear fog to paper (m); the 15/65 m prototype values swallow a 900 m world. */
     fog: { near: number; far: number };
-    mist: { bands: [number, number, number]; strength: number };
+    /** warmth: 0 = palette mist (cool jade), 1 = the shot's painted horizon colour. */
+    mist: { bands: [number, number, number]; strength: number; warmth: number };
     edges: { ink: boolean; bleed: number };
     sky: Record<"dawn" | "dusk", { top: PaletteRecipe; horizon: PaletteRecipe }>;
   };
@@ -55,7 +56,8 @@ const A: StylePreset = {
     ramp: { steps: 4, soft: true },
     // §5.2: distant forest layers stay visible through lighter mist.
     fog: { near: 60, far: 340 },
-    mist: { bands: [70, 130, 220], strength: 0.32 },
+    // Mist borrows the dawn/dusk horizon so shelves read as lit air, not silver haze.
+    mist: { bands: [70, 130, 220], strength: 0.32, warmth: 0.7 },
     // Watercolour edges, without the ink contour of direction B.
     edges: { ink: false, bleed: 0.32 },
     sky: {
@@ -83,7 +85,8 @@ const B: StylePreset = {
     ramp: { steps: 3, soft: true },
     // Closer, stronger depth layers dissolve distance into paper (§5.4).
     fog: { near: 40, far: 260 },
-    mist: { bands: [45, 90, 160], strength: 0.6 },
+    // B keeps more cool jade in its mist to stay close to ink-wash monochrome.
+    mist: { bands: [45, 90, 160], strength: 0.6, warmth: 0.45 },
     // Diluted ink contour plus stronger pigment pooling; High enables ink.
     edges: { ink: true, bleed: 0.65 },
     sky: {

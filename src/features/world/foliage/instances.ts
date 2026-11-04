@@ -1,8 +1,35 @@
-import { ConeGeometry, CylinderGeometry, Group, IcosahedronGeometry, InstancedMesh, Object3D } from "three";
+import { ConeGeometry, CylinderGeometry, Group, IcosahedronGeometry, InstancedMesh, Object3D, type BufferGeometry } from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
 import { TRUNK_HEIGHT, TRUNK_RADIUS } from "./colliders";
 import type { FoliageTree } from "./scatter";
+
+function merged(parts: BufferGeometry[]): BufferGeometry {
+  const geometry = mergeGeometries(parts.map(part => part.index ? part.toNonIndexed() : part));
+  for (const part of parts) part.dispose();
+  if (!geometry) throw new Error("Crown parts must share attributes");
+  return geometry;
+}
+
+/** B2-031: three stacked tiers read as a painted fir, not a single cone (same -2..2 m extent, 42 triangles). */
+export function createPineCrown(): BufferGeometry {
+  return merged([
+    new ConeGeometry(1.85, 2.3, 7).translate(0, -0.85, 0),
+    new ConeGeometry(1.45, 2.1, 7).rotateY(0.45).translate(0, 0.45, 0),
+    new ConeGeometry(0.95, 1.8, 7).rotateY(0.9).translate(0, 1.1, 0),
+  ]);
+}
+
+/** B2-031: a cluster of four lumps reads as a broadleaf canopy (80 triangles). */
+export function createBroadleafCrown(): BufferGeometry {
+  return merged([
+    new IcosahedronGeometry(1.55, 0),
+    new IcosahedronGeometry(1.15, 0).rotateY(0.7).translate(1.15, -0.35, 0.35),
+    new IcosahedronGeometry(1.1, 0).rotateY(1.3).translate(-1.0, -0.2, -0.55),
+    new IcosahedronGeometry(1.0, 0).rotateY(2.1).translate(0.15, 1.05, 0.25),
+  ]);
+}
 
 /** Capacity is per species. Overflow throws before changing the current scene. */
 export function createFoliage(maxPerKind: number) {
@@ -14,11 +41,11 @@ export function createFoliage(maxPerKind: number) {
   const species = {
     pine: {
       trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind),
-      crowns: new InstancedMesh(new ConeGeometry(1.8, 4, 7), crownMaterial, maxPerKind),
+      crowns: new InstancedMesh(createPineCrown(), crownMaterial, maxPerKind),
     },
     broadleaf: {
       trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind),
-      crowns: new InstancedMesh(new IcosahedronGeometry(2, 0), crownMaterial, maxPerKind),
+      crowns: new InstancedMesh(createBroadleafCrown(), crownMaterial, maxPerKind),
     },
   };
   const meshes = Object.values(species).flatMap(({ trunks, crowns }) => [trunks, crowns]);

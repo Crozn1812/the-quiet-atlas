@@ -85,9 +85,9 @@ describe("river ribbon", () => {
 
 describe("painted water material", () => {
   it.each([
-    ["Low", {}],
-    ["Balanced", { WATER_FLOW: 1, WATER_REFLECTION: 1 }],
-    ["High", { WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1 }],
+    ["Low", { SKY_REFLECTION: 0.22 }],
+    ["Balanced", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1 }],
+    ["High", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1 }],
   ] as const)("uses the %s shader features and Three fog/colour pipeline", (quality, defines) => {
     const material = createWaterMaterial(quality);
     expect(material).toBeInstanceOf(ShaderMaterial);
@@ -174,7 +174,7 @@ describe("painted water material", () => {
 });
 
 describe("sea and water lifecycle", () => {
-  it("joins the mouth at the sea datum, covers 800 m offshore and uses indigo/dusk colours", () => {
+  it("joins the mouth at the sea datum, covers 800 m offshore and uses jade-teal water with a dusk edge", () => {
     const sea = createSea("Balanced");
     const mouth = riverPointAt(1);
     const bounds = sea.mesh.geometry.boundingBox!;
@@ -186,8 +186,9 @@ describe("sea and water lifecycle", () => {
     expect(bounds.max.x).toBe(mouth.x + SEA_SIZE / 2);
     expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength(), 3);
     const material = sea.mesh.material;
-    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.indigo).lerp(new Color(PALETTE.dusk), 0.06));
-    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.indigo).lerp(new Color(PALETTE.dusk), 0.16));
+    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.mist), 0.18));
+    expect(material.defines.SKY_REFLECTION).toBe(0.5);
+    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.dusk), 0.14));
     expect(material.uniforms.uSkyMix!.value).toBe(1);
     sea.dispose();
   });

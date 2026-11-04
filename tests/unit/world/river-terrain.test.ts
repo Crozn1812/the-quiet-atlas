@@ -116,14 +116,15 @@ describe("river terrain heightmap", () => {
     expect(worldHeight(0, -300)).toBeGreaterThan(worldHeight(0, -850));
   });
 
-  it("grows seeded moderate hills beyond the river banks", () => {
+  // B2-031 (Lead art decision, taste §5.2): valley hills 2-12 m above the bank; was 1-5 m in B2-011.
+  it("grows seeded valley hills beyond the river banks", () => {
     const centre = riverPointAt(0.1);
     const tangent = riverTangentAt(0.1);
     for (const side of [-1, 1]) {
       const bank = worldHeight(centre.x - tangent.z * 8 * side, centre.z + tangent.x * 8 * side);
       const hill = worldHeight(centre.x - tangent.z * 70 * side, centre.z + tangent.x * 70 * side);
-      expect(hill - bank).toBeGreaterThan(1);
-      expect(hill - bank).toBeLessThan(5);
+      expect(hill - bank).toBeGreaterThan(2);
+      expect(hill - bank).toBeLessThan(12.5);
     }
   });
 });

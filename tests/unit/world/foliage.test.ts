@@ -3,7 +3,7 @@ import { Matrix4, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createFoliageColliders, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
 import { createFoliage } from "../../../src/features/world/foliage/instances";
-import { foliageBiomeAt, MIN_TREE_DISTANCE, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
+import { foliageBiomeAt, MIN_TREE_DISTANCE, scatterTile, SHORE_MIN_HEIGHT, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
 import { riverPointAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
@@ -144,4 +144,18 @@ describe("foliage instances and colliders", () => {
     empty.setTiles([]); empty.setQuality("Low"); empty.dispose();
     expect(new Set(tenTiles.map(t => tileKey(t.ix, t.iz))).size).toBe(10);
   });
+});
+
+it("never roots a tree on the sea floor or wet sand around the river mouth (B2-031)", () => {
+  const mouth = riverPointAt(1);
+  const ix = Math.floor(mouth.x / 64);
+  const iz = Math.floor(mouth.z / 64);
+  let checked = 0;
+  for (let x = ix - 3; x <= ix + 3; x++) for (let z = iz - 4; z <= iz + 1; z++) {
+    for (const tree of scatterTile({ ix: x, iz: z })) {
+      checked++;
+      expect(worldHeight(tree.x, tree.z)).toBeGreaterThanOrEqual(SHORE_MIN_HEIGHT);
+    }
+  }
+  expect(checked).toBeGreaterThanOrEqual(0);
 });

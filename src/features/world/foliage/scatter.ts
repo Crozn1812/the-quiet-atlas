@@ -20,6 +20,8 @@ export const RIVER_CLEARANCE = 6 + 3 + 0.28 + 0.02;
 export const PATH_CLEARANCE = PATH_WIDTH / 2 + 2.5 + 0.28 + 0.02;
 export const ZONE_CLEARANCE = 4 + 0.28;
 export const BRIDGE_CLEARANCE = 6;
+/** Ground below this height (m, sea level 0) is sea floor or wet sand: no trees (B2-031). */
+export const SHORE_MIN_HEIGHT = 0.8;
 
 function randomFor(key: string): () => number {
   let state = TERRAIN_SEED;
@@ -37,6 +39,7 @@ export function foliageBiomeAt(x: number, z: number): Biome {
 }
 
 export function isFoliageExcluded(x: number, z: number): boolean {
+  if (worldHeight(x, z) < SHORE_MIN_HEIGHT) return true;
   const path = nearestPath(x, z);
   return path.distance < PATH_CLEARANCE || nearestRiver(x, z).distance < RIVER_CLEARANCE
     || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE)

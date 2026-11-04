@@ -105,7 +105,10 @@ describe("paper post pass", () => {
     expect(material.uniforms.cameraFar!.value).toBe(120);
     expect(material.uniforms.perspective!.value).toBe(true);
     expect(material.toneMapped).toBe(true);
-    expect(material.fragmentShader).toContain("#include <tonemapping_fragment>");
+    // Tone mapping is applied to lit geometry only; paper/mist/fog colours are composited after it, unmapped.
+    expect(material.fragmentShader).not.toContain("#include <tonemapping_fragment>");
+    expect(material.fragmentShader).toContain("mix(color.rgb, toneMapping(color.rgb), geometry)");
+    expect(material.uniforms.fogColor!.value.getHexString()).toBe("eee8d8");
     expect(material.fragmentShader).toContain("#include <colorspace_fragment>");
     expect(renderer.toneMapping).toBe(ACESFilmicToneMapping);
     expect(renderer.toneMappingExposure).toBe(1.3);

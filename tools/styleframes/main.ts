@@ -143,9 +143,13 @@ async function start() {
     hemi.groundColor.copy(grade.hemiGround);
     hemi.intensity = grade.hemiIntensity;
     paper.setEdges(preset.background.edges);
-    paper.setFog(preset.background.fog);
+    // Distance dissolves into the painted horizon, so land, sea and sky meet without a paper seam.
+    paper.setFog({ ...preset.background.fog, color: grade.skyHorizon });
+    if (scene.fog instanceof Fog) scene.fog.color.copy(grade.skyHorizon);
     if (scene.fog instanceof Fog) { scene.fog.near = preset.background.fog.near; scene.fog.far = preset.background.fog.far; }
-    paper.setMist({ ...preset.background.mist, height: setCamera().mistHeight });
+    const { warmth, ...mist } = preset.background.mist;
+    const mistColor = new Color(PALETTE.mist).lerp(grade.skyHorizon, warmth);
+    paper.setMist({ ...mist, color: mistColor, height: setCamera().mistHeight });
     invalidate();
   }
 

@@ -21,6 +21,8 @@ type MistOptions = {
   bands?: [number, number, number];
   height?: number;
   strength?: number;
+  /** Linear working-space colour of the near mist shelves (default palette mist). */
+  color?: Color;
 };
 
 type EdgeOptions = {
@@ -55,6 +57,7 @@ const fragmentShader = /* glsl */ `
   uniform bool perspective;
   uniform float fogNear;
   uniform float fogFar;
+  uniform vec3 fogColor;
   varying vec2 vUv;
   #include <packing>
 
@@ -144,6 +147,11 @@ const fragmentShader = /* glsl */ `
     float viewDepth = linearViewDepth(depth);
     vec2 pixel = floor(gl_FragCoord.xy);
     float fiber = fibers(pixel / vec2(48.0, 12.0));
+    // Tone-map only the lit scene; paper, mist, fog and the painted sky are display colours and stay exact.
+    float geometry = 1.0 - step(0.99999, depth);
+    #ifdef TONE_MAPPING
+      color.rgb = mix(color.rgb, toneMapping(color.rgb), geometry);
+    #endif
     color.rgb = paintEdges(color.rgb, depth, viewDepth, distanceToCamera, fiber);
     float edgeOffset = 0.0;
     #ifdef MIST_EDGE_NOISE
@@ -158,12 +166,11 @@ const fragmentShader = /* glsl */ `
     float layeredMist = 1.0 - (1.0 - bands.x * 0.18) * (1.0 - bands.y * 0.26)
                             * (1.0 - bands.z * 0.42) * (1.0 - lowMist * 0.18);
     // Sky pixels (cleared depth) keep the sky dome's own dawn/dusk wash; fog/mist apply to geometry only.
-    float geometry = 1.0 - step(0.99999, depth);
     float nearVisibility = smoothstep(${MIST_CLEAR_DISTANCE}.0, ${MIST_FADE_DISTANCE}.0, distanceToCamera) * geometry;
-    vec3 mistTint = mix(mistColor, paperColor, bands.z * 0.75);
+    vec3 mistTint = mix(mistColor, fogColor, bands.z * 0.75);
     color.rgb = mix(color.rgb, mistTint, layeredMist * mistStrength * nearVisibility);
-    // Preserve the original depth fog and its final fade to paper, with the same near guard.
-    color.rgb = mix(color.rgb, paperColor, smoothstep(fogNear, fogFar, viewDepth) * nearVisibility);
+    // Depth fog dissolves into the horizon wash (paper by default), with the same near guard.
+    color.rgb = mix(color.rgb, fogColor, smoothstep(fogNear, fogFar, viewDepth) * nearVisibility);
 
     // Pixel-locked, time-independent grain. Both noises are in [0, 1],
     // so their weighted sum gives at most +/-2% multiplicative variation.
@@ -174,7 +181,6 @@ const fragmentShader = /* glsl */ `
     float vignette = smoothstep(0.3, 1.5, dot(edge, edge)) * 0.025;
     color.rgb = mix(color.rgb, paperColor, vignette);
     gl_FragColor = color;
-    #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
 `;
@@ -186,11 +192,12 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
   let disposed = false;
   let resources: ReturnType<typeof allocate> | undefined;
   const edges: { bleed: number; ink?: boolean } = { bleed: 0.5 };
-  const fog = { near: 15, far: 65 };
+  const fog = { near: 15, far: 65, color: new Color(PALETTE.paper) };
   const mist = {
     bands: new Vector3(...DEFAULT_MIST_BANDS),
     height: DEFAULT_MIST_HEIGHT,
     strength: DEFAULT_MIST_STRENGTH,
+    color: new Color(PALETTE.mist),
   };
 
   function physicalSize() {
@@ -218,7 +225,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         texelSize: { value: new Vector2(1 / width, 1 / height) },
         bleedStrength: { value: edges.bleed },
         inkEnabled: { value: quality === "High" && (edges.ink ?? true) },
-        mistColor: { value: new Color(PALETTE.mist) },
+        mistColor: { value: mist.color },
         mistBands: { value: mist.bands },
         mistHeight: { value: mist.height },
         mistStrength: { value: mist.strength },
@@ -229,6 +236,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         perspective: { value: true },
         fogNear: { value: fog.near },
         fogFar: { value: fog.far },
+        fogColor: { value: fog.color },
       },
       depthTest: false,
       depthWrite: false,
@@ -308,14 +316,15 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         resources.material.needsUpdate = true;
       }
     },
-    /** Linear depth fog to paper, metres; survives quality changes (Low uses scene.fog instead). */
-    setFog({ near, far }: { near: number; far: number }): void {
+    /** Linear depth fog in metres toward `color` (default paper, e.g. the sky horizon); survives quality changes. */
+    setFog({ near, far, color }: { near: number; far: number; color?: Color }): void {
       if (disposed) return;
       if (!Number.isFinite(near) || !Number.isFinite(far) || near < 0 || far <= near) {
         throw new RangeError("Fog needs 0 <= near < far");
       }
       fog.near = near;
       fog.far = far;
+      if (color) fog.color.copy(color);
       if (resources) {
         resources.material.uniforms.fogNear!.value = near;
         resources.material.uniforms.fogFar!.value = far;
@@ -335,7 +344,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       }
     },
     /** Distances/heights are metres; strength in [0, 1] scales added mist, preserving depth fog. */
-    setMist({ bands, height, strength }: MistOptions): void {
+    setMist({ bands, height, strength, color }: MistOptions): void {
       if (disposed) return;
       if (bands && (!bands.every(value => Number.isFinite(value) && value > 0)
         || bands[0] >= bands[1] || bands[1] >= bands[2])) {
@@ -350,6 +359,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       if (bands) mist.bands.set(...bands);
       if (height !== undefined) mist.height = height;
       if (strength !== undefined) mist.strength = strength;
+      if (color) mist.color.copy(color);
       if (resources) {
         resources.material.uniforms.mistHeight!.value = mist.height;
         resources.material.uniforms.mistStrength!.value = mist.strength;

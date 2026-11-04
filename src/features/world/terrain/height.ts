@@ -42,7 +42,8 @@ export function worldHeight(x: number, z: number): number {
   const coastal = coastWeight(z);
   // A 1.2 m channel with a gently rounded bank; hills grow only beyond the bank.
   const channel = -1.1 + 1.2 * smoothstep(0, 6, river.distance);
-  const hills = smoothstep(12, 65, river.distance) * (3 + 1.25 * noise(x / 38, z / 38));
+  // B2-031: a readable valley (taste §5.2) — hills rise to ~7–12 m beyond the bank instead of 3–4 m.
+  const hills = smoothstep(14, 75, river.distance) * (7 + 5 * noise(x / 38, z / 38));
   const land = riverLevel(z) + coastal * (channel + hills);
 
   // The heightfield follows a shallow ford under each future bridge. These
