@@ -170,13 +170,22 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       container.current.focus();
       const { mountWorldMenu } = await import("./WorldMenu");
       if (current !== generation.current || !container.current) return;
+      const { mountWorldHud } = await import("./hud/WorldHud");
+      if (current !== generation.current || !container.current) return;
+      const removeHud = mountWorldHud(container.current, currentLocale.current, menu.current!);
+      teardown.current = () => {
+        removeHud();
+        unmount();
+      };
       const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld, (next, nextCopy) => {
         currentLocale.current = next;
         setLocale(next);
         setCopy(nextCopy);
+        removeHud.setLocale(next);
         setAnnouncement(next === "vi" ? "Ngôn ngữ: Tiếng Việt" : "Language: English");
       });
       teardown.current = () => {
+        removeHud();
         removeMenu();
         unmount();
       };

@@ -1,0 +1,61 @@
+.notices {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  color: #203e35;
+  font-family: "Noto Serif", "Times New Roman", serif;
+}
+
+.keys,
+.zone {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  margin: 0;
+  padding: .45rem .8rem;
+  text-align: center;
+  background: rgb(247 243 232 / 94%);
+  border-radius: .25rem;
+}
+
+.keys {
+  bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 5rem));
+  font-size: .75rem;
+  line-height: 1.6;
+  transition: opacity 600ms ease;
+}
+
+/* Keep the existing interaction prompt above the one-time onboarding line. */
+:global(.world-entry):has(.keys:not([hidden])) :global(.world-viewport) > p[aria-live] {
+  bottom: 8.5rem !important;
+}
+
+.zone {
+  top: max(1.5rem, env(safe-area-inset-top));
+  transition: opacity 400ms ease;
+}
+
+.zone p {
+  margin: 0;
+  font-size: .75rem;
+  line-height: 1.6;
+}
+
+.zone p:first-child {
+  font-size: .95rem;
+  font-variant-caps: small-caps;
+  letter-spacing: .12em;
+}
+
+.notices [data-fading] { opacity: 0; }
+.notices [hidden] { display: none; }
+.notices[data-reduced-motion="true"] > div { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .keys,
+  .zone { transition: none; }
+}
