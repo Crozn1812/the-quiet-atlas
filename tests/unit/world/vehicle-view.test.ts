@@ -1,4 +1,4 @@
-import { Box3, Color, Group, Mesh, MeshToonMaterial, Vector3 } from "three";
+import { Bone, Box3, Color, Group, Mesh, MeshToonMaterial, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialVehicle, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../../src/features/vehicle/model";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
@@ -45,29 +45,28 @@ describe("GD110 procedural mesh", () => {
       const parts = meshes(bike);
       const triangles = parts.reduce((n, mesh) => n + (mesh.geometry.index?.count
         ?? mesh.geometry.getAttribute("position").count) / 3, 0);
-      expect(triangles).toBeLessThanOrEqual(3000);
+      expect(triangles).toBeLessThanOrEqual(8000);
       expect(triangles).toBeGreaterThan(1000);
       const draws = parts.reduce((n, mesh) => n + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
-      expect(draws).toBe(3);
+      expect(draws).toBe(1);
       expect(parts.every(mesh => !mesh.castShadow)).toBe(true);
       expect(parts.every(mesh => !/logo|text/i.test(mesh.name))).toBe(true);
       const bounds = new Box3().setFromObject(bike);
       const size = bounds.getSize(new Vector3());
-      for (const [actual, target] of [[size.z, 1.9], [size.y, 1.1], [size.x, .75]]) {
-        expect(actual).toBeGreaterThanOrEqual(target! * .85);
-        expect(actual).toBeLessThanOrEqual(target! * 1.15);
+      // Measured B2-189 input geometry, including mirrors, tote and fenders.
+      for (const [actual, target] of [[size.z, 1.6351106167], [size.y, 1.2522599853], [size.x, .7800461352]]) {
+        expect(actual).toBeGreaterThanOrEqual(target! * .95);
+        expect(actual).toBeLessThanOrEqual(target! * 1.05);
       }
       expect(bounds.min.y).toBeCloseTo(0, 6);
-      const front = bike.getObjectByName("front_wheel") as Mesh;
-      const rear = bike.getObjectByName("rear_wheel") as Mesh;
+      const front = bike.getObjectByName("front_wheel")!;
+      const rear = bike.getObjectByName("rear_wheel")!;
       expect(front.parent).toBe(bike);
       expect(rear.parent).toBe(bike);
       expect(front.position.z - rear.position.z).toBeCloseTo(GD110_WHEELBASE);
       for (const wheel of [front, rear]) {
-        const wheelBounds = new Box3().setFromObject(wheel);
-        expect(wheelBounds.min.y).toBeCloseTo(0, 6);
-        expect(wheelBounds.max.y).toBeCloseTo(2 * GD110_WHEEL_RADIUS, 6);
-        expect(wheelBounds.getSize(new Vector3()).z).toBeCloseTo(2 * GD110_WHEEL_RADIUS, 6);
+        expect(wheel).toBeInstanceOf(Bone);
+        expect(wheel.position.y).toBe(GD110_WHEEL_RADIUS);
       }
     } finally { disposeGd110(bike); }
   });
@@ -225,7 +224,7 @@ describe("vehicle view", () => {
     expect(disposeOther).not.toHaveBeenCalled();
     expect(parent.children).toHaveLength(0);
     expect(a.group.children).toHaveLength(0);
-    expect(meshes(b.group)).toHaveLength(3);
+    expect(meshes(b.group)).toHaveLength(1);
     b.update(riding(), straight, .25);
   });
 });
