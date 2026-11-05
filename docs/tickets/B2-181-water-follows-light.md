@@ -26,3 +26,8 @@
 - Ở biển t = 0,93: luma ≤ 0,35 và R/B lớn hơn ở giữa trưa (t = 0,55).
 - Không có dải sáng liên tục > 40 m (test B2-178 mở rộng thêm góc nhìn cao 9 m).
 - Test cũ pass.
+
+### Bổ sung (Lead, 2026-11-06)
+
+- Ảnh `01-duong-ven-bien`: dải suối chạy dọc bên trái đường ven biển sáng xanh ngọc gần như trắng, nổi hơn cả mặt đường. Sau ticket này dải đó phải tối hơn mặt đường cùng khoảng cách (test luma CPU ở t = 0,86).
+- Đọc thêm `_asset-common.md` (bóng không đen, không bão hoà mạnh).
