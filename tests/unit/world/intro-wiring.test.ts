@@ -18,6 +18,11 @@ const harness = vi.hoisted(() => ({
   dispose: vi.fn(),
 }));
 
+// B2-045: unit tests never fetch the rigged GLB; the loader's capsule fallback keeps the old player shape.
+vi.mock("../../../src/features/world/character/loader", async () => {
+  const { createFallbackCharacter } = await import("../../../src/features/world/character/fallback");
+  return { loadCharacter: async () => createFallbackCharacter() };
+});
 vi.mock("three", async importOriginal => {
   const actual = await importOriginal<typeof import("three")>();
   return { ...actual, WebGLRenderer: class {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { PerspectiveCamera, Scene, Vector3 } from "three";
+import { Box3, PerspectiveCamera, Scene, Vector3 } from "three";
 import { SIGNPOSTS, arrivalPoint } from "../../../src/features/navigation/signposts";
 import { MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../../../src/features/navigation/teleport";
 import { HEIGHT } from "../../../src/features/world/scene";
@@ -23,6 +23,11 @@ const harness = vi.hoisted(() => ({
   teleport: vi.fn(),
 }));
 
+// B2-045: unit tests never fetch the rigged GLB; the loader's capsule fallback keeps the old player shape.
+vi.mock("../../../src/features/world/character/loader", async () => {
+  const { createFallbackCharacter } = await import("../../../src/features/world/character/fallback");
+  return { loadCharacter: async () => createFallbackCharacter() };
+});
 vi.mock("three", async importOriginal => {
   const actual = await importOriginal<typeof import("three")>();
   return { ...actual, WebGLRenderer: class {
@@ -198,7 +203,9 @@ it("places eight teleport targets at SIGNPOSTS and preserves the content sign", 
     const mesh = postMesh(post.zoneId);
     expect(mesh.position.x).toBe(post.position.x);
     expect(mesh.position.z).toBe(post.position.z);
-    expect(mesh.position.y).toBe(101); // surface height + sign centre
+    // B2-046: painted signpost rests its geometry's lowest point on the surface (100).
+    const box = new Box3().setFromObject(mesh);
+    expect(box.min.y).toBeCloseTo(100, 4);
   }
   const content = scene.getObjectByName(WORLD_COPY.en.signpost)!;
   expect(content.position.distanceTo(postMesh().position)).toBeGreaterThanOrEqual(2);

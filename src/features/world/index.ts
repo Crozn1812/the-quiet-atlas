@@ -4,7 +4,6 @@ import { createInteraction, ZONE_IDS, type InteractionTarget, type ZoneId } from
 import { SIGNPOSTS, arrivalPoint } from "../navigation/signposts";
 import { createTeleport } from "../navigation/teleport";
 import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
-import { BoxGeometry } from "three";
 import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
@@ -13,12 +12,15 @@ import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
-import { ACESFilmicToneMapping, CapsuleGeometry, Color, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, Color, PerspectiveCamera, Scene, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
-import { HALF_HEIGHT, HEIGHT, RADIUS } from "./scene";
+import { HEIGHT } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
 import { PALETTE } from "./art/palette";
 import { disposeRampGradients } from "./materials/ramp";
+import { createCharacterAnimator } from "./character/animator";
+import { loadCharacter } from "./character/loader";
+import { createProp, type PropKind } from "./props";
 import { createGradedPaperPass } from "./scene/paper";
 import { WORLD_DIRECTION } from "./art/direction";
 import { pathLength, pathPointAt } from "./layout/path";
@@ -42,6 +44,8 @@ function introCorridor(position: { x: number; z: number }) {
   const to = Math.min(length, start + INTRO_PRELOAD_M);
   return Array.from({ length: CORRIDOR_POINTS }, (_, i) => pathPointAt((from + (to - from) * i / (CORRIDOR_POINTS - 1)) / length));
 }
+/** B2-045: optimized rig (meshopt), loaded only after Enter World. */
+const CHARACTER_URL = "/world/start/character-duy.glb";
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
   locale?: WorldLocale;
@@ -94,46 +98,33 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const locomotion = createLocomotion(physics);
   const sun = composed.sun;
   gpu.shadowMap.enabled = sun.castShadow;
-  const player = new Mesh(new CapsuleGeometry(RADIUS, HALF_HEIGHT * 2), new MeshBasicMaterial({ color: 0xcc754e }));
+  // B2-045: rigged character (D-23) with Idle/Walk/Run; the loader falls back to the capsule on any failure.
+  const character = await loadCharacter(CHARACTER_URL);
+  const player = character.root;
   scene.add(player);
-  const supports: Mesh<BoxGeometry, MeshBasicMaterial>[] = [];
-  const contentProps = [
-    { id: "signpost", zoneId: "first-light" as const, offset: 1.8, size: [1.2, 0.7, 0.18] },
-    { id: "desk", zoneId: "workshop" as const, offset: 2, size: [1.8, 0.25, 0.9] },
-  ].map(spec => {
-    const mesh = new Mesh(
-      new BoxGeometry(...spec.size as [number, number, number]),
-      new MeshBasicMaterial({ color: spec.id === "desk" ? 0x8b6040 : 0xd9bd7b }),
-    );
-    const zone = ZONES.find(zone => zone.id === spec.zoneId)!;
-    const x = zone.position.x + spec.offset;
-    const z = zone.position.z;
-    mesh.position.set(x, surfaceHeight(x, z) + 1, z);
-    mesh.name = WORLD_COPY[locale][spec.id === "desk" ? "desk" : "signpost"];
-    const feet = spec.id === "desk" ? [-0.65, 0.65] : [0];
-    for (const x of feet) {
-      const support = new Mesh(
-        new BoxGeometry(0.15, 0.9, spec.id === "desk" ? 0.7 : 0.15),
-        new MeshBasicMaterial({ color: 0x8b6040 }),
-      );
-      support.position.set(x, -0.5, 0);
-      mesh.add(support);
-      supports.push(support);
-    }
+  const animator = createCharacterAnimator(character, { reducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false });
+  const lastPlayer = new Vector3();
+  // B2-046: hand-cut painted props replace the placeholder boxes; feet rest on the rendered surface.
+  function placeProp(kind: PropKind, x: number, z: number, name: string) {
+    const mesh = createProp(kind);
+    mesh.geometry.computeBoundingBox();
+    mesh.position.set(x, surfaceHeight(x, z) - mesh.geometry.boundingBox!.min.y, z);
+    mesh.name = name;
     mesh.updateMatrixWorld(true);
     scene.add(mesh);
+    return mesh;
+  }
+  const contentProps = [
+    { id: "signpost", zoneId: "first-light" as const, offset: 1.8 },
+    { id: "desk", zoneId: "workshop" as const, offset: 2 },
+  ].map(spec => {
+    const zone = ZONES.find(zone => zone.id === spec.zoneId)!;
+    const mesh = placeProp(spec.id as PropKind, zone.position.x + spec.offset, zone.position.z,
+      WORLD_COPY[locale][spec.id === "desk" ? "desk" : "signpost"]);
     return { id: spec.id, kind: "content" as const, zoneId: spec.zoneId, position: mesh.position, mesh };
   });
   const props = [...contentProps, ...SIGNPOSTS.map(post => {
-    const mesh = new Mesh(new BoxGeometry(1.2, 0.7, 0.18), new MeshBasicMaterial({ color: 0xd9bd7b }));
-    mesh.position.set(post.position.x, surfaceHeight(post.position.x, post.position.z) + 1, post.position.z);
-    mesh.name = `teleport-${post.zoneId}`;
-    const support = new Mesh(new BoxGeometry(0.15, 0.9, 0.15), new MeshBasicMaterial({ color: 0x8b6040 }));
-    support.position.set(0, -0.5, 0);
-    mesh.add(support);
-    supports.push(support);
-    mesh.updateMatrixWorld(true);
-    scene.add(mesh);
+    const mesh = placeProp("signpost", post.position.x, post.position.z, `teleport-${post.zoneId}`);
     return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh };
   })];
   const labels = document.createElement("p");
@@ -536,7 +527,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // The chooser's overlay pause must not stall travel. Blur/hidden/error still suspend it.
     if (!introPending() && state.appMode === "world" && !state.pauseReasons.has("windowBlur") && !state.pauseReasons.has("error")) updateTeleport(dt);
     last = now;
+    lastPlayer.copy(player.position);
     player.position.copy(physics.position);
+    const moved = Math.hypot(player.position.x - lastPlayer.x, player.position.z - lastPlayer.z);
+    // Teleports and intro hand-offs jump the controller: never read them as running.
+    animator.update(dt, dt > 0 && moved < 2 ? moved / dt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     if (intro?.inputLocked) {
       if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
     } else updateCamera(dt);
@@ -635,9 +630,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     motionPreference?.removeEventListener("change", updateMotionPreference);
     composed.dispose();
     physics.dispose();
-    for (const mesh of [player, ...props.map(prop => prop.mesh), ...supports]) {
+    character.dispose();
+    for (const { mesh } of props) {
       mesh.geometry.dispose();
-      mesh.material.dispose();
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();
     }
     paper.dispose();
     disposeRampGradients();

@@ -33,3 +33,6 @@ docs/art-bible/refs/*
 # Video showcase lớn lưu ngoài repo
 docs/showcase/**/*.mp4
 docs/showcase/**/*.webm
+
+# Intermediate asset exports (tools/assets README)
+/tmp/

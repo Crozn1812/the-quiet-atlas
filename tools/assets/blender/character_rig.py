@@ -121,6 +121,9 @@ def blend_at(height, stops):
     for (low, a), (high, b) in zip(stops, stops[1:]):
         if height < high:
             t = (height - low) / (high - low)
+            # Lead fix: equal neighbouring stops (e.g. shin -> shin) must sum, not overwrite.
+            if a == b:
+                return {a: 1.0}
             return {a: 1 - t, b: t}
     return {stops[-1][1]: 1.0}
 
