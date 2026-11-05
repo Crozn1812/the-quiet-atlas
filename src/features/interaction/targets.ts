@@ -8,7 +8,7 @@ export const ZONE_IDS = ["first-light", "roots", "workshop", "milestones", "old-
 export type ZoneId = typeof ZONE_IDS[number];
 export interface InteractionTarget {
   id: string;
-  kind?: "content" | "teleport";
+  kind?: "content" | "teleport" | "vehicle";
   zoneId: ZoneId;
   position: Position;
 }
@@ -43,6 +43,8 @@ export function createInteraction(options: {
   locale?: () => WorldLocale;
   visit: (zoneId: ZoneId) => void;
   chooseTeleport?: (from: ZoneId) => boolean;
+  ride?: () => boolean;
+  hint?: () => string | undefined;
 }) {
   const { container } = options;
   const hint = document.createElement("p");
@@ -58,11 +60,12 @@ export function createInteraction(options: {
     const target = select();
     if (target) container.dataset.worldHint = target.zoneId;
     else delete container.dataset.worldHint;
-    const text = target ? interactionHint(options.locale?.() ?? "en", target.zoneId, target.kind) : "";
+    const text = options.hint?.() ?? (target ? interactionHint(options.locale?.() ?? "en", target.zoneId, target.kind) : "");
     if (hint.textContent !== text) hint.textContent = text;
   }
   function open(target: InteractionTarget | null) {
     if (!target) return false;
+    if (target.kind === "vehicle") return options.ride?.() ?? false;
     if (target.kind === "teleport") {
       if (options.chooseTeleport?.(target.zoneId) === false) return false;
       container.dispatchEvent(new CustomEvent(TELEPORT_CHOOSE_EVENT, {

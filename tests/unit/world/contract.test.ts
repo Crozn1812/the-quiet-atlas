@@ -130,6 +130,7 @@ it.each([
   const { mountWorld } = await import("../../../src/features/world/index");
   const unmount = await mountWorld(container as unknown as HTMLElement, { collision, debug: true, locale });
   try {
+    expect(container.dataset.worldVehicle).toBe("parked");
     const tick = (now: number) => harness.next!(now);
     tick(100);
     const camera = harness.camera as import("three").Camera;
@@ -214,22 +215,39 @@ it.each([
     const player = scene.children.find(object => (object as import("three").Mesh).geometry?.type === "CapsuleGeometry")!;
     const teleportSign = scene.getObjectByName("teleport-first-light")!;
     let now = 30000;
-    for (let i = 0; i < 40 && player.position.distanceTo(teleportSign.position) > 0.8; i++) {
-      const dx = teleportSign.position.x - player.position.x;
-      const dz = teleportSign.position.z - player.position.z;
-      const offset = camera.position.clone().sub(player.position);
-      const yaw = Math.atan2(offset.x, offset.z);
-      const directions = [
-        { code: "KeyW", x: -Math.sin(yaw), z: -Math.cos(yaw) },
-        { code: "KeyS", x: Math.sin(yaw), z: Math.cos(yaw) },
-        { code: "KeyA", x: -Math.cos(yaw), z: Math.sin(yaw) },
-        { code: "KeyD", x: Math.cos(yaw), z: -Math.sin(yaw) },
-      ];
-      const direction = directions.sort((a, b) => (b.x - a.x) * dx + (b.z - a.z) * dz)[0]!;
-      send(window, "keydown", { code: direction.code });
-      tick(now += 100);
-      send(window, "keyup", { code: direction.code });
+    function approach(target: import("three").Object3D) {
+      for (let i = 0; i < 80 && Math.hypot(player.position.x - target.position.x, player.position.z - target.position.z) > 0.8; i++) {
+        const dx = target.position.x - player.position.x;
+        const dz = target.position.z - player.position.z;
+        const offset = camera.position.clone().sub(player.position);
+        const yaw = Math.atan2(offset.x, offset.z);
+        const directions = [
+          { code: "KeyW", x: -Math.sin(yaw), z: -Math.cos(yaw) },
+          { code: "KeyS", x: Math.sin(yaw), z: Math.cos(yaw) },
+          { code: "KeyA", x: -Math.cos(yaw), z: Math.sin(yaw) },
+          { code: "KeyD", x: Math.cos(yaw), z: -Math.sin(yaw) },
+        ];
+        const direction = directions.sort((a, b) => (b.x - a.x) * dx + (b.z - a.z) * dz)[0]!;
+        send(window, "keydown", { code: direction.code });
+        tick(now += 100);
+        send(window, "keyup", { code: direction.code });
+      }
     }
+    const bike = scene.getObjectByName("vehicle_view")!;
+    approach(bike);
+    send(window, "keydown", { code: "KeyE" });
+    expect(container.dataset.worldVehicle).toBe("manual");
+    expect(player.visible).toBe(false);
+    const parked = bike.position.clone();
+    send(window, "keydown", { code: "KeyW" });
+    for (let i = 0; i < 10; i++) tick(now += 100);
+    send(window, "keyup", { code: "KeyW" });
+    for (let i = 0; i < 30; i++) tick(now += 100);
+    expect(bike.position.distanceTo(parked)).toBeGreaterThan(1);
+    send(window, "keydown", { code: "KeyE" });
+    expect(container.dataset.worldVehicle).toBe("parked");
+    expect(player.visible).toBe(true);
+    approach(teleportSign);
     const chosen = vi.fn();
     const journeys: CustomEvent[] = [];
     container.addEventListener("tqa:teleport-choose", chosen);
@@ -276,6 +294,7 @@ it.each([
   }
   expect((container as unknown as HTMLElement).__tqaPerf).toBeUndefined();
   expect(container.dataset.worldPaused).toBeUndefined();
+  expect(container.dataset.worldVehicle).toBeUndefined();
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
   expect(container.dataset.worldLocale).toBeUndefined();
   const count = states.length;

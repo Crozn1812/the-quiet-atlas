@@ -12,7 +12,7 @@ import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
-import { ACESFilmicToneMapping, Color, PerspectiveCamera, Scene, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, Box3, Color, PerspectiveCamera, Ray, Scene, Raycaster, Vector2, Vector3, WebGLRenderer, type Mesh } from "three";
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
 import { HEIGHT } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
@@ -29,6 +29,10 @@ import { nearestPath } from "./terrain/samples";
 import { TERRAIN_RADIUS } from "./terrain/tiles";
 import { createIntroController } from "./cinematic/controller";
 import type { IntroFrame } from "./cinematic/intro";
+import { createVehicleView } from "./vehicle/view";
+import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
+import { VEHICLE_LABELS } from "../vehicle/labels";
+import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
 
 declare global {
   interface Window { __tqaSkipIntro?: boolean }
@@ -86,7 +90,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const composed = composition;
   const paper = paperPass;
   const motionPreference = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-  function updateMotionPreference() { composed.setReducedMotion(motionPreference?.matches ?? false); }
+  const bike = createVehicleView({ surfaceHeight, reducedMotion: motionPreference?.matches ?? false });
+  function updateMotionPreference() {
+    composed.setReducedMotion(motionPreference?.matches ?? false);
+    bike.setReducedMotion(motionPreference?.matches ?? false);
+  }
   updateMotionPreference();
   motionPreference?.addEventListener("change", updateMotionPreference);
   const gpu = renderer;
@@ -127,6 +135,30 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const mesh = placeProp("signpost", post.position.x, post.position.z, `teleport-${post.zoneId}`);
     return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh };
   })];
+  // Include the one-metre dry shoulder: the model's margin leaves a 2 m lateral limit.
+  const corridor: VehicleCorridor = {
+    length: pathLength(),
+    halfWidthAt: () => PATH_WIDTH / 2 + 1,
+    pointAt: s => pathPointAt(s / corridor.length),
+    tangentAt: s => pathPointAt(Math.min(1, (s + 0.1) / corridor.length))
+      .sub(pathPointAt(Math.max(0, (s - 0.1) / corridor.length))).normalize(),
+  };
+  // Downstream and on the outer bank, clear of both First Light signs.
+  const parkedVehicle = initialVehicle(corridor, 6, -2);
+  let vehicle = parkedVehicle;
+  let unsafeStop = false;
+  scene.add(bike.group);
+  const vehicleTarget: InteractionTarget = {
+    id: "gd110", kind: "vehicle", zoneId: "first-light", position: new Vector3(),
+  };
+  function publishVehicle(dt = 0) {
+    bike.update(vehicle, corridor, dt);
+    Object.assign(vehicleTarget.position, bike.group.position);
+    vehicleTarget.position.y += HEIGHT;
+    player.visible = vehicle.mode !== "ride";
+    container.dataset.worldVehicle = vehicle.mode === "walk" ? "parked" : vehicle.cruise ? "cruise" : "manual";
+  }
+  publishVehicle();
   const labels = document.createElement("p");
   labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
   container.appendChild(labels);
@@ -164,14 +196,32 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const sightRay = new Raycaster();
   const interaction = createInteraction({
     container,
-    targets: props,
+    targets: [...props, vehicleTarget],
     locale: () => locale,
     player: () => physics.position,
     enabled: cameraEnabled,
+    ride() {
+      if (!cameraEnabled()) return false;
+      const result = mount(vehicle, Math.hypot(physics.position.x - vehicleTarget.position.x, physics.position.z - vehicleTarget.position.z));
+      if (!result.ok) return false;
+      vehicle = result.state;
+      unsafeStop = false;
+      physics.teleport(vehicleTarget.position);
+      clear();
+      publishVehicle();
+      interaction.update();
+      return true;
+    },
+    hint() {
+      if (!cameraEnabled() || vehicle.mode !== "ride") return undefined;
+      return unsafeStop ? WORLD_COPY[locale].vehicleUnsafe
+        : `${VEHICLE_LABELS[locale].getOff} · ${VEHICLE_LABELS[locale].cruise}`;
+    },
     chooseTeleport(from) {
       if (introPending() || teleport.inputLocked) return false;
       teleport = createTeleport({ reducedMotion: motionPreference?.matches ?? false });
       if (!teleport.startChoosing(from)) return false;
+      parkVehicle();
       clear();
       container.dataset.worldTeleport = "active";
       interaction.update();
@@ -193,6 +243,114 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let last = 0;
   let frame = 0;
   let disposed = false;
+  const obstacleBounds = new WeakMap<Mesh, Map<number, Box3>>();
+  function solidBounds(radius: number) {
+    // Compose exposes terrain in both lists, and trunk collider meshes only in collisionMeshes.
+    // Signs use their existing mesh too; both driving modes share this same sweep and controller.
+    return [...composed.collisionMeshes.filter(mesh => !composed.visibleMeshes.includes(mesh)), ...props.map(prop => prop.mesh)].map(mesh => {
+      let cache = obstacleBounds.get(mesh);
+      if (!cache) { cache = new Map(); obstacleBounds.set(mesh, cache); }
+      let bounds = cache.get(radius);
+      if (!bounds) {
+        bounds = new Box3().setFromObject(mesh);
+        // Minkowski expansion for an upright body: sweep the feet along the ground.
+        bounds.min.add(new Vector3(-radius, -HEIGHT * 2, -radius));
+        bounds.max.add(new Vector3(radius, -0.1, radius));
+        cache.set(radius, bounds);
+      }
+      return bounds;
+    });
+  }
+  function groundPoint(point: { x: number; z: number }) {
+    return new Vector3(point.x, surfaceHeight(point.x, point.z), point.z);
+  }
+  function clearance(from: Vector3, to: Vector3, obstacles: readonly Box3[]) {
+    const direction = to.clone().sub(from);
+    const distance = direction.length();
+    const ray = new Ray(from, direction.normalize());
+    let nearest = Infinity;
+    for (const box of obstacles) {
+      if (box.containsPoint(from)) return 0;
+      if (!distance) continue;
+      const hit = ray.intersectBox(box, new Vector3());
+      if (hit) nearest = Math.min(nearest, hit.distanceTo(from));
+    }
+    return nearest;
+  }
+  function safeDismountPosition() {
+    const centre = vehiclePosition(vehicle, corridor);
+    const tangent = corridor.tangentAt(vehicle.s);
+    const obstacles = solidBounds(0.4);
+    for (const side of [1, -1]) {
+      const candidate = groundPoint({ x: centre.x + tangent.z * side * 1.5, z: centre.z - tangent.x * side * 1.5 });
+      const dry = [[0, 0], [0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]].every(([dx, dz]) => {
+        const x = candidate.x + dx!, z = candidate.z + dz!;
+        const height = surfaceHeight(x, z);
+        return height > waterLevelAt(z) + 0.08 && Math.abs(height - candidate.y) < 0.3;
+      });
+      const from = groundPoint(centre);
+      if (dry && composed.contains(candidate) && clearance(from, candidate, obstacles) > from.distanceTo(candidate)
+        && clearance(candidate, candidate, obstacles) > 0) return candidate.add(new Vector3(0, HEIGHT + 0.02, 0));
+    }
+    return undefined;
+  }
+  function getOffVehicle() {
+    const safe = safeDismountPosition();
+    const result = dismount(vehicle, !!safe);
+    unsafeStop = !result.ok;
+    if (result.ok && safe) {
+      vehicle = result.state;
+      physics.teleport(safe);
+      state = sessionReducer({ ...state, position: { ...safe } }, { type: "safePosition", position: safe });
+      clear();
+    }
+    publishVehicle();
+    interaction.update();
+  }
+  function parkVehicle() {
+    if (vehicle.mode !== "ride") return;
+    // Travel/recovery owns the destination; release the rider before resetting the bike.
+    vehicle = dismount({ ...vehicle, speed: 0 }, true).state;
+    vehicle = parkedVehicle;
+    unsafeStop = false;
+    publishVehicle();
+  }
+  function driveVehicle(dt: number) {
+    const obstacles = solidBounds(0.85);
+    let obstacleAhead = Infinity;
+    let from = groundPoint(vehiclePosition(vehicle, corridor));
+    // Follow the curve, rather than a straight heading ray that can miss a bend's obstacle.
+    if (vehicle.cruise) {
+      for (let distance = 0.5; distance <= VEHICLE_LIMITS.obstacleSlowDistance; distance += 0.5) {
+        const to = groundPoint(vehiclePosition({ ...vehicle, s: Math.min(corridor.length, vehicle.s + distance) }, corridor));
+        const hit = clearance(from, to, obstacles);
+        if (hit <= from.distanceTo(to)) { obstacleAhead = distance - 0.5 + hit; break; }
+        from = to;
+      }
+    }
+    const proposal = stepVehicle(vehicle, corridor, dt, {
+      w: keys.has("KeyW"), s: keys.has("KeyS"), a: keys.has("KeyA"), d: keys.has("KeyD"), obstacleAhead,
+    });
+    const before = physics.position.clone();
+    from = groundPoint(before);
+    const to = groundPoint(vehiclePosition(proposal, corridor));
+    const distance = from.distanceTo(to);
+    if (distance > 0 && clearance(from, to, obstacles) <= distance) {
+      vehicle = { ...vehicle, speed: 0 };
+      physics.resetVelocity();
+      return;
+    }
+    physics.step((to.x - before.x) / dt, (to.z - before.z) / dt, dt);
+    if (Math.hypot(physics.position.x - to.x, physics.position.z - to.z) > 0.02) {
+      // Reject any slide outside the proposal, keeping model, collider and view on the corridor.
+      physics.teleport(before);
+      vehicle = { ...vehicle, speed: 0 };
+    } else {
+      vehicle = proposal;
+      if (distance > 0.001) unsafeStop = false;
+    }
+    state = { ...state, position: { ...physics.position } };
+  }
   function clear(action: InputAction = { type: "clear" }) {
     if (drag && gpu.domElement.hasPointerCapture(drag.id)) gpu.domElement.releasePointerCapture(drag.id);
     drag = undefined;
@@ -203,6 +361,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     adaptive = { ...adaptive, frames: [], windowTime: 0 };
   }
   function pause(reason: "hiddenTab" | "windowBlur" | "overlay" | "journal" | "error", paused: boolean) {
+    if (paused) {
+      vehicle = cancelCruise(vehicle, reason === "windowBlur" ? "blur" : "ui-open");
+      publishVehicle();
+    }
     state = sessionReducer(state, { type: "pause", reason, paused });
     metricStart = 0;
     metricFrames = 0;
@@ -219,6 +381,22 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       skipIntro();
       return;
     }
+    if (vehicle.mode === "ride" && cameraEnabled() && !isInputTarget(event.target)) {
+      if (event.code === "KeyE" && !event.repeat) {
+        event.preventDefault();
+        getOffVehicle();
+        return;
+      }
+      if (event.code === "KeyC" && !event.repeat) {
+        event.preventDefault();
+        vehicle = toggleCruise(vehicle);
+      }
+      if (event.code === "Escape" || event.code === "KeyS") {
+        vehicle = cancelCruise(vehicle, event.code === "Escape" ? "escape" : "brake");
+      }
+      publishVehicle();
+    }
+    if (vehicle.mode === "ride" && event.code === "KeyE") return;
     if (interaction.keydown(event)) return;
     if (cameraEnabled() && !isInputTarget(event.target)) {
       if (["Equal", "NumpadAdd"].includes(event.code)) zoom = clampZoom(zoom - 0.75);
@@ -231,7 +409,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     keys = inputReducer(keys, { type: "keyup", event });
   }
   function focusin(event: FocusEvent) {
-    if (isInputTarget(event.target)) clear({ type: "focusin", event });
+    if (isInputTarget(event.target)) {
+      vehicle = cancelCruise(vehicle, "ui-open");
+      publishVehicle();
+      clear({ type: "focusin", event });
+    }
   }
   function blur() {
     pause("windowBlur", true);
@@ -246,6 +428,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function returnToPath() {
     if (introPending() || teleport.inputLocked) return;
+    parkVehicle();
     const safe = nearestSafePath(physics.position);
     composed.update(safe, 0);
     state = sessionReducer(state, { type: "safePosition", position: safe });
@@ -260,7 +443,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       (event.clientX - rect.left) / rect.width * 2 - 1,
       -(event.clientY - rect.top) / rect.height * 2 + 1,
     ), camera);
-    const hit = raycaster.intersectObjects([...composed.visibleMeshes, player, ...props.map(prop => prop.mesh)])[0];
+    const hit = raycaster.intersectObjects([...composed.visibleMeshes, player, bike.group, ...props.map(prop => prop.mesh)])[0];
+    if (hit && (hit.object === bike.group || bike.group.getObjectById(hit.object.id))) {
+      interaction.click(vehicleTarget.id);
+      return;
+    }
     const target = props.find(prop => prop.mesh === hit?.object || prop.mesh === hit?.object.parent);
     if (target) interaction.click(target.id);
   }
@@ -270,7 +457,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     raycaster.far = Infinity;
     raycaster.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
     // Terrain is empty space; visible character, trees and props retain click ownership.
-    if (raycaster.intersectObjects([...composed.foliageMeshes, player, ...props.map(prop => prop.mesh)]).length) return;
+    if (raycaster.intersectObjects([...composed.foliageMeshes, player, bike.group, ...props.map(prop => prop.mesh)]).length) return;
     drag = { id: event.pointerId, x: event.clientX };
     gpu.domElement.setPointerCapture(event.pointerId);
   }
@@ -338,6 +525,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (!ZONE_IDS.includes(to)) return;
     const start = teleport.choose(to);
     if (!start) return;
+    parkVehicle();
     destination = to;
     clear();
     teleportCover = document.createElement("div");
@@ -390,9 +578,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const target = physics.position.clone();
     const direction = new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH));
     raycaster.set(target, direction);
-    raycaster.far = zoom;
+    const distance = zoom * (vehicle.mode === "ride" ? 1.3 : 1);
+    raycaster.far = distance;
     const hit = raycaster.intersectObjects(cameraObstacles())[0];
-    arm = springArm(arm, zoom, hit?.distance, dt);
+    arm = springArm(arm, distance, hit?.distance, dt);
     camera.position.copy(target).addScaledVector(direction, arm);
     camera.position.y = Math.max(camera.position.y, surfaceHeight(camera.position.x, camera.position.z) + CAMERA_CLEARANCE);
     camera.lookAt(target);
@@ -494,6 +683,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     contextLost = true;
     cancelAnimationFrame(frame);
     state = sessionReducer(state, { type: "mode", mode: "recoverableError" });
+    vehicle = cancelCruise(vehicle, "ui-open");
+    publishVehicle();
     clear();
     publishState();
     interaction.update();
@@ -520,7 +711,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       accumulator = plan.remainder;
       for (let i = 0; i < plan.steps; i++) {
         composed.update(physics.position, FIXED_DT);
-        state = locomotion.step(state, keys, yaw, FIXED_DT);
+        if (vehicle.mode === "ride") driveVehicle(FIXED_DT);
+        else state = locomotion.step(state, keys, yaw, FIXED_DT);
         if (!composed.contains(physics.position)) returnToPath();
       }
     }
@@ -531,7 +723,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     player.position.copy(physics.position);
     const moved = Math.hypot(player.position.x - lastPlayer.x, player.position.z - lastPlayer.z);
     // Teleports and intro hand-offs jump the controller: never read them as running.
-    animator.update(dt, dt > 0 && moved < 2 ? moved / dt : 0, (physics as { grounded?: boolean }).grounded ?? true);
+    animator.update(dt, vehicle.mode === "ride" ? 0 : dt > 0 && moved < 2 ? moved / dt : 0, (physics as { grounded?: boolean }).grounded ?? true);
+    publishVehicle(dt);
     if (intro?.inputLocked) {
       if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
     } else updateCamera(dt);
@@ -609,6 +802,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     delete container.dataset.worldLocale;
     gpu.domElement.removeEventListener("click", click);
     interaction.dispose();
+    bike.dispose();
+    delete container.dataset.worldVehicle;
     labels.remove();
     gpu.domElement.removeEventListener("pointerdown", pointerdown);
     gpu.domElement.removeEventListener("pointermove", pointermove);
