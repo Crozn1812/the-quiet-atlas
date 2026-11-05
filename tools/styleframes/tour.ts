@@ -6,6 +6,7 @@ import { ACESFilmicToneMapping, PCFSoftShadowMap, PerspectiveCamera, Scene, Vect
 import { createWorldScene, surfaceHeight } from "../../src/features/world/scene/compose";
 import { createGradedPaperPass } from "../../src/features/world/scene/paper";
 import { placeZoneScenes, zoneFoliageBounds } from "../../src/features/world/zones";
+import { pathPointAt } from "../../src/features/world/layout/path";
 
 declare global { interface Window { __frameReady: boolean } }
 window.__frameReady = false;
@@ -48,6 +49,15 @@ async function start() {
   eye.y = surfaceHeight(eye.x, eye.z) + (view === "wide" ? 9 : 3.4);
   camera.position.copy(eye);
   camera.lookAt(view === "wide" ? anchor.clone().setY(anchor.y + 2) : zone.target.position.clone().setY(zone.target.position.y + 0.5));
+  // view=road&t=0.88: eye height on the path, looking ahead along it (Duy's coast scene: ridge left, bay right).
+  if (view === "road") {
+    const t = Number(params.get("t") ?? "0.88");
+    const at = pathPointAt(t);
+    const ahead = pathPointAt(Math.min(1, t + 0.02));
+    camera.position.set(at.x, surfaceHeight(at.x, at.z) + 1.7, at.z);
+    composed.update(camera.position.clone(), 0);
+    camera.lookAt(ahead.x, surfaceHeight(ahead.x, ahead.z) + 1.2, ahead.z);
+  }
 
   let frames = 0;
   let last = performance.now();
