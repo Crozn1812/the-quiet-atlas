@@ -103,7 +103,7 @@ for (const { locale, sound } of LOCALES) {
   });
 }
 
-test("L3-008 #2 Enter World: canvas = viewport (0, 0, 1366×800); HUD has 6 named controls, each ≥ 24×24", async ({ page }) => {
+test("L3-008 #2 Enter World: canvas = viewport (0, 0, 1366×800); HUD has 7 named controls (Atlas Journal added, B2-112), each ≥ 24×24", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await enterWorld(page, "en");
   test.skip(!world, "NOT RUN: WebGL2 unavailable in this browser");
@@ -132,7 +132,7 @@ test("L3-008 #2 Enter World: canvas = viewport (0, 0, 1366×800); HUD has 6 name
   const hud = page.locator(HUD);
   await expect(hud).toHaveAttribute("data-compact", "true");
   const visible = await hud.locator("a, button").evaluateAll(els => els.filter(el => (el as HTMLElement).checkVisibility()).length);
-  expect(visible, "HUD shows exactly 6 controls").toBe(6);
+  expect(visible, "HUD shows exactly 7 controls").toBe(7);
   const sizes: string[] = [];
   for (const { role, name } of hudControls(leave)) {
     const control = hud.getByRole(role, { name, exact: true });

@@ -127,7 +127,7 @@ test.describe("desktop (fine pointer)", () => {
     expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   });
 
-  test("(b) en → menu Tiếng Việt → menu “Thoát world”: full navigation to the /vi/ Welcome, no world", async ({ page }) => {
+  test("(b) en → menu Tiếng Việt → menu “Rời world”: full navigation to the /vi/ Welcome, no world", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const world = await enterWorld(page, "en");
     test.skip(!world, "NOT RUN: WebGL2 unavailable in this browser");

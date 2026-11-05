@@ -83,7 +83,7 @@ test("T07 First Light: hinted at spawn, E opens the overlay (paused, focus on ti
   const world = await setup(page);
 
   await expect(world).toHaveAttribute("data-world-hint", "first-light");
-  await expect(world.getByText("E — First Light signpost (placeholder)")).toBeAttached();
+  await expect(world.getByText("E — A first hello")).toBeAttached();
   await page.keyboard.press("e");
   await expect(overlay(page)).toHaveAttribute("open", "");
   await recordOpenLatency(page);
@@ -144,7 +144,7 @@ test("T07 Workshop: walk to the desk with real keys (W+D), hint = workshop, E op
   await expect(overlayTitle(page)).toHaveText("The Workshop");
   await expect(overlayTitle(page)).toBeFocused();
   // Content arrives from /en/world-content.json: the project list (links to case studies).
-  await expect(overlay(page).getByRole("heading", { level: 2, name: "Featured projects" })).toBeVisible({ timeout: 10_000 });
+  await expect(overlay(page).getByRole("heading", { level: 1, name: "Featured projects" })).toBeVisible({ timeout: 10_000 });
   await expect(overlay(page).locator("a[href^='/en/projects/']").first()).toBeVisible();
   await expect(overlay(page).getByText("Under construction")).toHaveCount(0);
 
@@ -152,17 +152,17 @@ test("T07 Workshop: walk to the desk with real keys (W+D), hint = workshop, E op
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-test("§6.3 zone without data (roots): overlay shows 'Under construction' with a Quick Portfolio link; × Close closes", async ({ page }) => {
+// B2-115: a zone still waiting for Duy's content says so honestly (no "Under construction", no TBD).
+test("§6.3 zone without data (roots): overlay says Duy is still writing it, links Quick Portfolio; × Close closes", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await setup(page);
 
-  // Simulated request: P01-E has no 3D object for The Roots yet (ADR 0008 zone list).
   await world.evaluate(element => element.dispatchEvent(new CustomEvent("tqa:open-content", { detail: { zoneId: "roots" } })));
   await expect(overlay(page)).toHaveAttribute("open", "");
   await expect(world).toHaveAttribute("data-world-paused", "true");
   await expect(overlayTitle(page)).toHaveText("The Roots");
   await expect(overlayTitle(page)).toBeFocused();
-  await expect(overlay(page).getByText("Under construction")).toBeVisible({ timeout: 10_000 });
+  await expect(overlay(page).getByText("Duy is still writing this page.")).toBeVisible({ timeout: 10_000 });
   await expect(overlay(page).getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", "/en/quick/");
 
   await overlay(page).getByRole("button", { name: "× Close" }).click();

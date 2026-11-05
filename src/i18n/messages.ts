@@ -45,7 +45,7 @@ export const messages: Record<Locale,Messages>={
       loading: "Đang tải thế giới…",
       error: "Không tải được thế giới. Thử lại một lần hoặc mở Quick Portfolio.",
       retry: "Thử lại",
-      leave: "Thoát world",
+      leave: "Rời world", // same label as the world menu (B2-111)
       scene: "Cảnh thử physics — di chuyển bằng WASD",
       soundReason: "Âm thanh rừng, suối, biển",
       soundOn: "Âm thanh bật",
