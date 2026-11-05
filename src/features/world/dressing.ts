@@ -258,53 +258,10 @@ function dressingShoreLayout() {
       const rock = stone(x, z, diameter, 10);
       pebbles.push({ ...rock, size: [diameter, rock.size[1] * 0.6, rock.size[2]], shore, offset });
     }
-
-    for (const target of [0.84, 0.91, 0.965]) {
-      let best: ShorePoint | undefined, error = Infinity;
-      for (const segment of contour) {
-        yield;
-        const p = segment.a, path = nearestPath(p.x, p.z);
-        const f = pathPointAt(Math.min(1, path.t + 0.001)).sub(pathPointAt(Math.max(0, path.t - 0.001))).normalize();
-        const right = -(p.x - path.x) * f.z + (p.z - path.z) * f.x;
-        const score = Math.abs(path.t - target);
-        if (right > 12 && score < error && shorePlacementClear(p.x, p.z, 15)) { best = p; error = score; }
-      }
-      if (best) sand.push({ ...best, normal: shoreNormal(best), width: [8, 11, 14][sand.length]!, length: 26 });
-    }
+    // B2-193: no separate sand overlay (its 2 m grid had hard edges and crossed the coast road);
+    // terrain/mesh.ts already paints sand along real water.
   }
   return { layout, build: build() };
-}
-
-function* dressingSandGeometry(patches: readonly SandPatch[]): Generator<void, BufferGeometry> {
-  const positions: number[] = [];
-  const used = new Set<string>();
-  function vertex(x: number, z: number) { positions.push(x, shoreGroundHeight(x, z) + 0.025, z); }
-  for (const patch of patches) {
-    const reach = patch.length / 2 + patch.width + 4;
-    for (let x = Math.floor((patch.x - reach) / 2) * 2; x < patch.x + reach; x += 2) {
-      yield;
-      for (let z = Math.floor((patch.z - reach) / 2) * 2; z < patch.z + reach; z += 2) {
-        const dx = x + 1 - patch.x, dz = z + 1 - patch.z;
-        const across = dx * patch.normal.x + dz * patch.normal.z;
-        const along = -dx * patch.normal.z + dz * patch.normal.x;
-        const width = patch.width * (1 - 0.2 * (along / (patch.length / 2)) ** 2);
-        if (Math.abs(along) > patch.length / 2 || across < 1 || across > width - 1) continue;
-        const key = `${x}:${z}`;
-        if (used.has(key) || !shorePlacementClear(x + 1, z + 1, Math.SQRT2)
-          || [[x, z], [x + 2, z], [x, z + 2], [x + 2, z + 2]]
-            .some(([px, pz]) => worldHeight(px!, pz!) <= 0)) continue;
-        used.add(key);
-        vertex(x, z); vertex(x, z + 2); vertex(x + 2, z);
-        vertex(x + 2, z); vertex(x, z + 2); vertex(x + 2, z + 2);
-      }
-    }
-  }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-  return geometry;
 }
 
 function deferredShore() {
@@ -355,14 +312,7 @@ function deferredShore() {
     material.vertexColors = true;
     const pebbles = yield* stones("shore-pebbles", layout.pebbles, 4, material);
     const rocks = yield* stones("shore-boulders-and-cairns", [...layout.boulders, ...layout.cairns.flatMap(cairn => cairn.stones)], 6, material);
-    const sandGeometry = yield* dressingSandGeometry(layout.sand);
-    geometries.push(sandGeometry);
-    const sandMaterial = createRampMaterial(hex("sand"), { steps: 4, soft: true });
-    materials.push(sandMaterial);
-    const sand = new Mesh(sandGeometry, sandMaterial);
-    sand.name = "shore-sand-overlay";
-    sand.receiveShadow = true;
-    group.add(pebbles, rocks, sand);
+    group.add(pebbles, rocks);
   }
   const build = construct();
   return { group, colliders, build, dispose() {

@@ -103,30 +103,12 @@ describe("rocky shore layout", () => {
     }
   });
 
-  it("lays several 6–15 m sand patches on the bay side and conforms to terrain triangles", () => {
-    expect(layout.sand).toHaveLength(3);
-    for (const patch of layout.sand) {
-      expect(patch.width).toBeGreaterThanOrEqual(6);
-      expect(patch.width).toBeLessThanOrEqual(15);
-      const p = nearestPath(patch.x, patch.z);
-      expect(p.t).toBeGreaterThan(0.82);
-      const f = pathPointAt(Math.min(1, p.t + 0.001)).sub(pathPointAt(p.t - 0.001)).normalize();
-      expect(-(patch.x - p.x) * f.z + (patch.z - p.z) * f.x).toBeGreaterThan(12);
-    }
-    for (let i = 1; i < layout.sand.length; i++) expect(Math.hypot(layout.sand[i]!.x - layout.sand[i - 1]!.x,
-      layout.sand[i]!.z - layout.sand[i - 1]!.z)).toBeGreaterThan(20);
-    const sand = shore.group.getObjectByName("shore-sand-overlay") as Mesh;
-    const positions = sand.geometry.getAttribute("position");
-    expect(positions.count).toBeGreaterThan(200);
-    for (let i = 0; i < positions.count; i += 3) {
-      const a = new Vector3().fromBufferAttribute(positions, i);
-      const b = new Vector3().fromBufferAttribute(positions, i + 1);
-      const c = new Vector3().fromBufferAttribute(positions, i + 2);
-      // The whole planar triangle, not just its vertices, stays 2.5 cm above ground.
-      const middle = a.clone().add(b).add(c).divideScalar(3);
-      expect(middle.y - shoreGroundHeight(middle.x, middle.z)).toBeCloseTo(0.025, 3);
-      expectClear(middle.x, middle.z, 0);
-    }
+  it("leaves the road verge and dry headland exposed by emitting no sand overlays", () => {
+    // B2-193 uses terrain vertex pigment instead of a second sand surface.
+    // With no patches there are no edges to feather, floating faces or road overlaps.
+    expect(layout.sand).toEqual([]);
+    // No overlay mesh at all: no edges to feather, no floating faces, no road overlap.
+    expect(shore.group.getObjectByName("shore-sand-overlay")).toBeUndefined();
   });
 
   it("is deterministic without runtime random state", () => {
@@ -164,8 +146,7 @@ describe("shore rendering and lifecycle", () => {
       // The only production geometry change is shore; legacy rocks cost 20/32 triangles.
       const oldShore = layout.pebbles.length * 20
         + (layout.boulders.length + layout.cairns.flatMap(cairn => cairn.stones).length) * 32;
-      const newShore = shore.budget.triangles
-        - ((shore.group.getObjectByName("shore-sand-overlay") as Mesh).geometry.getAttribute("position").count / 3);
+      const newShore = shore.budget.triangles;
       for (const t of [0, 0.9]) {
         composed.update(pathPointAt(t), 0);
         let after = 0;
@@ -175,27 +156,33 @@ describe("shore rendering and lifecycle", () => {
         });
         const before = after - newShore + oldShore;
         expect(after).toBeLessThanOrEqual(before * 1.25);
-        console.info(`High world t=${t}: ${before} -> ${after} triangles; shore ${oldShore} -> ${newShore} (excluding unchanged sand).`);
+        console.info(`High world t=${t}: ${before} -> ${after} triangles; shore ${oldShore} -> ${newShore} (legacy rock comparison).`);
       }
     } finally { composed.dispose(); dressing.dispose(); zones.forEach(zone => zone.dispose()); far.dispose(); }
   }, 60_000);
 
-  it("measures actual instance-expanded triangles and draw calls within budget", () => {
-    let triangles = 0, draws = 0;
+  it("measures instance-expanded triangles and mesh slots, with only two non-empty meshes", () => {
+    let triangles = 0, nonEmptyMeshes = 0, meshes = 0;
     shore.group.traverse(object => {
       if (!(object instanceof Mesh)) return;
       expect(object.castShadow).toBe(false);
       expect(Array.isArray(object.material)).toBe(false);
       expect(object.geometry.groups).toHaveLength(0);
-      triangles += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3
+      const vertices = object.geometry.index?.count ?? object.geometry.getAttribute("position").count;
+      triangles += vertices / 3
         * (object instanceof InstancedMesh ? object.count : 1);
-      draws++;
+      if (vertices > 0) nonEmptyMeshes++;
+      meshes++;
     });
-    expect(shore.budget).toEqual({ triangles, drawCalls: draws });
-    expect(draws).toBeLessThanOrEqual(SHORE_BUDGET.drawCalls);
+    // B2-193 removed the sand overlay mesh: pebbles + boulders/cairns only.
+    // Node counts drawable geometry; GPU draw calls require renderer validation.
+    expect(shore.budget).toEqual({ triangles, drawCalls: meshes });
+    expect(nonEmptyMeshes).toBe(2);
+    expect(meshes).toBe(2);
+    expect(meshes).toBeLessThanOrEqual(SHORE_BUDGET.drawCalls);
     expect(triangles).toBeLessThanOrEqual(SHORE_BUDGET.triangles);
     expect(triangles).toBeGreaterThan(15_000);
-    console.info(`Shore budget: ${draws} draw calls, ${triangles} triangles; ${layout.pebbles.length} pebbles, ${layout.boulders.length} boulders, ${layout.cairns.length} cairns.`);
+    console.info(`Shore budget: ${meshes} mesh slots, ${nonEmptyMeshes} non-empty meshes, ${triangles} triangles; ${layout.pebbles.length} pebbles, ${layout.boulders.length} boulders, ${layout.cairns.length} cairns.`);
   });
 
   it("uses a soft 4-step ramp, neutral facet colors and only rock/rockDark/sand pigment", () => {

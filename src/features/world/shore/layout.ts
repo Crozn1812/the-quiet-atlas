@@ -157,17 +157,7 @@ export function createShoreLayout(): ShoreLayout {
     }
   }
 
-  const sand: SandPatch[] = [];
-  for (const target of [0.84, 0.91, 0.965]) {
-    let best: ShorePoint | undefined, error = Infinity;
-    for (const segment of contour) {
-      const p = segment.a, path = nearestPath(p.x, p.z);
-      const f = pathPointAt(Math.min(1, path.t + 0.001)).sub(pathPointAt(Math.max(0, path.t - 0.001))).normalize();
-      const right = -(p.x - path.x) * f.z + (p.z - path.z) * f.x;
-      const score = Math.abs(path.t - target);
-      if (right > 12 && score < error && shorePlacementClear(p.x, p.z, 15)) { best = p; error = score; }
-    }
-    if (best) sand.push({ ...best, normal: shoreNormal(best), width: [8, 11, 14][sand.length]!, length: 26 });
-  }
-  return { pebbles, boulders, cairns, sand };
+  // terrain/mesh.ts already blends sand/rock into grass at the real waterline.
+  // Separate overlays covered the road verge and dry headland with hard-edged cells.
+  return { pebbles, boulders, cairns, sand: [] };
 }

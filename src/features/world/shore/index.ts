@@ -1,8 +1,8 @@
-import { Color, Group, InstancedMesh, Mesh, Object3D, Vector3, type BufferGeometry, type MeshToonMaterial } from "three";
-import { hex, PALETTE } from "../art/palette";
+import { Color, Group, InstancedMesh, Object3D, Vector3, type BufferGeometry, type MeshToonMaterial } from "three";
+import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
 import type { ZoneCollider } from "../zones/types";
-import { createShoreRockGeometry, createShoreSandGeometry } from "./geometry";
+import { createShoreRockGeometry } from "./geometry";
 import { createShoreLayout, type ShoreStone } from "./layout";
 
 export { createShoreLayout, SHORE_BUDGET, SHORE_SEED, SHORE_ZONE_MARGIN } from "./layout";
@@ -52,17 +52,13 @@ export function createShore() {
   // White is only a neutral multiplier; all visible pigment comes from PALETTE.
   const material = createRampMaterial(0xffffff, { steps: 4, soft: true });
   material.vertexColors = true;
-  const sandMaterial = createRampMaterial(hex("sand"), { steps: 4, soft: true });
   const pebbleGeometry = createShoreRockGeometry(4);
   const boulderGeometry = createShoreRockGeometry(6);
-  const sandGeometry = createShoreSandGeometry(layout.sand);
   const pebbles = instances("shore-pebbles", layout.pebbles, pebbleGeometry, material);
   const largeStones = [...layout.boulders, ...layout.cairns.flatMap(cairn => cairn.stones)];
   const rocks = instances("shore-boulders-and-cairns", largeStones, boulderGeometry, material);
-  const sand = new Mesh(sandGeometry, sandMaterial);
-  sand.name = "shore-sand-overlay";
-  sand.receiveShadow = true;
-  group.add(pebbles, rocks, sand);
+  // B2-193: no sand overlay mesh; terrain/mesh.ts paints sand along real water.
+  group.add(pebbles, rocks);
 
   const colliders: ShoreCollider[] = layout.boulders.map(rock => ({
     kind: "boulder", center: new Vector3(rock.x, rock.y + rock.size[1] / 2, rock.z),
@@ -73,10 +69,9 @@ export function createShore() {
     size: new Vector3(1.05, cairn.height, 1.05), yaw: 0,
   });
   const budget = {
-    drawCalls: 3,
+    drawCalls: 2,
     triangles: pebbleGeometry.getAttribute("position").count / 3 * pebbles.count
-      + boulderGeometry.getAttribute("position").count / 3 * rocks.count
-      + sandGeometry.getAttribute("position").count / 3,
+      + boulderGeometry.getAttribute("position").count / 3 * rocks.count,
   };
   let disposed = false;
   return {
@@ -86,8 +81,8 @@ export function createShore() {
       disposed = true;
       group.removeFromParent();
       pebbles.dispose(); rocks.dispose();
-      pebbleGeometry.dispose(); boulderGeometry.dispose(); sandGeometry.dispose();
-      material.dispose(); sandMaterial.dispose();
+      pebbleGeometry.dispose(); boulderGeometry.dispose();
+      material.dispose();
       group.clear();
     },
   };

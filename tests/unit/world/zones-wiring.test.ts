@@ -256,7 +256,7 @@ it("mounts fixed dressing colliders before any optional build, then finishes eve
   clock.paint(); vi.runAllTimers();
   expect(far.visible).toBe(true);
   expect(scene.getObjectByName("rocky-shore")!.children.map(child => child.name))
-    .toEqual(["shore-pebbles", "shore-boulders-and-cairns", "shore-sand-overlay"]);
+    .toEqual(["shore-pebbles", "shore-boulders-and-cairns"]);
   expect(scene.getObjectByName("coast-road")!.children.map(child => child.name))
     .toEqual(["coast-asphalt-and-markings", "coast-bollards", "coast-utility-poles", "coast-utility-wires"]);
   const shafts = scene.getObjectByName("forest-path-sun") as InstancedMesh;
