@@ -6,43 +6,33 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createFern } from "../foliage/ground";
-import { createPineCrown } from "../foliage/shapes";
-import { createRampMaterial } from "../materials/ramp";
+import { createPineCrownV2 } from "../foliage/pine";
+import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createRockGeometry } from "../props/rocks";
+import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
-/** Uneven, chamfered timber with a chipped shoulder; y = 0 is its foot. */
-function timber(width: number, height: number, depth: number, lean = 0): BufferGeometry {
-  const positions: number[] = [];
-  const indices: number[] = [];
-  const outline = [[-0.38, -0.5], [0.37, -0.5], [0.5, -0.36], [0.5, 0.36],
-    [0.36, 0.5], [-0.37, 0.5], [-0.5, 0.35], [-0.5, -0.36]];
-  const bevel = Math.min(width, depth, height) * 0.12;
-  for (let ring = 0; ring < 4; ring++) {
-    const y = [0, bevel, height - bevel, height][ring]!;
-    const inset = ring === 0 || ring === 3 ? 0.88 : 1;
-    for (const [x, z] of outline) {
-      positions.push(x! * width * inset + lean * y / height,
-        y - (ring === 3 && x! > 0 ? bevel * 0.65 : 0), z! * depth * inset);
-    }
+/** Resize the shared hewn post to the existing marker footprint. Keep its grain. */
+function post(width: number, height: number, depth: number, lean: number, seed: number): BufferGeometry {
+  const part = createPostGeometry(height, seed);
+  const size = part.boundingBox!.getSize(new Vector3());
+  const center = part.boundingBox!.getCenter(new Vector3());
+  part.translate(-center.x, 0, -center.z);
+  part.scale(width / size.x, 1, depth / size.z);
+  const positions = part.getAttribute("position");
+  for (let i = 0; i < positions.count; i++) {
+    positions.setX(i, positions.getX(i) + lean * positions.getY(i) / height);
   }
-  for (let ring = 0; ring < 3; ring++) {
-    for (let i = 0; i < 8; i++) {
-      const a = ring * 8 + i, b = ring * 8 + (i + 1) % 8;
-      indices.push(a, a + 8, b, b, a + 8, b + 8);
-    }
-  }
-  // Convex end caps, facing down/up respectively.
-  for (let i = 1; i < 7; i++) indices.push(0, i, i + 1, 24, 24 + i + 1, 24 + i);
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  geometry.setIndex(indices);
-  return geometry;
+  return part;
 }
 
-function beam(from: Vector3, to: Vector3, width: number, depth = width): BufferGeometry {
+function beam(from: Vector3, to: Vector3, width: number, depth: number, seed: number): BufferGeometry {
   const direction = to.clone().sub(from);
-  return timber(width, direction.length(), depth)
-    .applyQuaternion(new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), direction.normalize()))
+  const part = createPlankGeometry(direction.length(), seed);
+  const size = part.boundingBox!.getSize(new Vector3());
+  return part.scale(1, depth / size.y, width / size.z).rotateX(Math.PI / 2)
+    .applyQuaternion(new Quaternion().setFromUnitVectors(new Vector3(1, 0, 0), direction.normalize()))
+    .translate((to.x - from.x) / 2, (to.y - from.y) / 2, (to.z - from.z) / 2)
     .translate(from.x, from.y, from.z);
 }
 
@@ -51,6 +41,12 @@ function wash(part: BufferGeometry, phase: number): BufferGeometry {
   const flat = part.index ? part.toNonIndexed() : part;
   if (flat !== part) part.dispose();
   flat.deleteAttribute("uv");
+  // Shared wood, rock and pine assets already encode palette pigments. Replacing
+  // them with a grey wash would erase grain, fracture highlights and bark/needles.
+  if (flat.hasAttribute("color")) {
+    flat.computeVertexNormals();
+    return flat;
+  }
   const positions = flat.getAttribute("position");
   const colors: number[] = [];
   for (let i = 0; i < positions.count; i++) {
@@ -63,12 +59,56 @@ function wash(part: BufferGeometry, phase: number): BufferGeometry {
   return flat;
 }
 
+/** Collision-only support samples of the pre-R4 canopy. No retired geometry is
+ * built or rendered: the seed-dependent box stays stable when switching to V2. */
+function pineEnvelope(seed: number, x: number, z: number, heightAt: (x: number, z: number) => number): Box3 {
+  let state = seed >>> 0;
+  const random = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  const tiers = 3 + (seed >>> 0) % 3;
+  const lean = (random() < 0.5 ? -1 : 1) * (0.2 + random() * 0.12);
+  const phase = random() * Math.PI * 2, points: Vector3[] = [];
+  for (let tier = 0; tier < tiers; tier++) {
+    const t = tier / (tiers - 1), radius = (1.82 - t * 1.18) * (0.96 + random() * 0.04);
+    const base = t * (2.9 + (tiers - 3) * 0.2), height = 1.65 + random() * 0.15;
+    const cx = lean * t, cz = Math.sin(phase + t * 2) * 0.07;
+    const rim = Array.from({ length: 11 }, () => 0.88 + random() * 0.24);
+    for (let ring = 0; ring < 2; ring++) for (let j = 0; j < 11; j++) {
+      const angle = phase + tier * 0.37 + j * Math.PI * 2 / 11;
+      const r = radius * rim[j]! * (ring === 0 ? 1 : 0.52);
+      const y = ring === 0 ? base - (0.1 + random() * 0.1) * (1 - t * 0.25)
+        : base + height * (0.27 + random() * 0.05);
+      points.push(new Vector3(cx + Math.cos(angle) * r + ring * lean * 0.12, y, cz + Math.sin(angle) * r));
+    }
+    points.push(new Vector3(cx + lean * 0.4, base + height, cz + 0.04), new Vector3(cx, base - height * 0.22, cz));
+  }
+  const raw = new Box3().setFromPoints(points), extent = raw.getSize(new Vector3());
+  const width = Math.min(1, 2.7 / Math.max(extent.x, extent.z));
+  const height = 15 + (seed >>> 0) % 3, box = new Box3();
+  for (const point of points) {
+    point.set(point.x * width * 0.85, height * 2 / 3 - 0.6 + (point.y - raw.min.y) / extent.y * height / 3,
+      point.z * width * 0.85).applyAxisAngle(new Vector3(0, 0, 1), -Math.sign(x) * 0.18);
+    point.x += x;
+    point.z += z;
+    point.y += heightAt(point.x, point.z);
+    box.expandByPoint(point);
+  }
+  // The former trunk controls only the inward edge and ground contact. These
+  // conservative foot corners differ by under 1 cm from its chamfered outline.
+  for (const dx of [-0.18, 0.18]) for (const dz of [-0.16, 0.16]) {
+    box.expandByPoint(new Vector3(x + dx, heightAt(x + dx, z + dz), z + dz));
+  }
+  return box;
+}
+
 export const createOldTrailScene: ZoneSceneFactory = (context) => {
   const group = new Group();
   group.name = "old-trail";
   const phase = ((Math.imul(context.seed >>> 0, 1664525) + 1013904223) >>> 0) / 4294967296 * Math.PI * 2;
   const colliders: ZoneCollider[] = [];
-  const wood: BufferGeometry[] = [], green: BufferGeometry[] = [], ink: BufferGeometry[] = [];
+  const wood: BufferGeometry[] = [], green: BufferGeometry[] = [], stones: BufferGeometry[] = [];
   const ownedGeometry: BufferGeometry[] = [];
   const ownedMaterials: MeshToonMaterial[] = [];
 
@@ -111,19 +151,28 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
 
   function marker(x: number, z: number, tall: boolean) {
     const height = tall ? 2.35 : 0.92 + 0.08 * Math.sin(z + phase);
-    const parts = [ground(timber(tall ? 0.28 : 0.24, height, 0.25, 0.035 * Math.sin(z + phase))
-      .translate(x, 0, z))];
+    const seed = (context.seed + Math.imul(Math.round(x * 10), 73856093) + Math.imul(z, 19349663)) >>> 0;
+    const parts = [ground(post(tall ? 0.28 : 0.24, height + 0.05, 0.25,
+      0.035 * Math.sin(z + phase), seed).translate(x, -0.05, z))];
     // A close-fitting cap keeps every marker a plain post, with no projecting crossbar.
-    parts.push(ground(timber(tall ? 0.34 : 0.30, 0.10, 0.31)
+    parts.push(ground(post(tall ? 0.34 : 0.30, 0.10, 0.31, 0, seed + 1)
       .translate(x + 0.035 * Math.sin(z + phase), height - 0.02, z)));
-    const foot = ground(timber(tall ? 0.29 : 0.25, 0.18, 0.26)
-      .translate(x, 0, z));
-    parts.push(foot);
     addCollider(parts);
-    wood.push(...parts.slice(0, 2).map(part => wash(part, phase)));
-    ink.push(wash(foot, phase));
+    wood.push(...parts.map(part => wash(part, phase)));
     green.push(wash(ground(new IcosahedronGeometry(1, 0).scale(0.17, 0.07, 0.15)
       .translate(x + 0.03, height * 0.63, z - 0.05)), phase));
+    // A pair of half-buried chocks suggests old repairs; the post stays readable.
+    rubble(x, z, seed, 0.23);
+  }
+
+  function rubble(x: number, z: number, seed: number, spread: number) {
+    for (let i = 0; i < 2; i++) {
+      const px = x + (i ? -1 : 1) * spread, pz = z + (i ? 0.09 : -0.12);
+      if (!safe(px, pz, 0.24, 0.24)) continue;
+      stones.push(wash(ground(createRockGeometry("stone", seed + i, true)
+        .scale(0.45, 0.45, 0.45).rotateY(phase + i * 1.7)
+        .translate(px, -0.04, pz)), phase));
+    }
   }
 
   marker(anchor.x, anchor.z, true);
@@ -132,6 +181,10 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
       if (Math.hypot(x - anchor.x, z - anchor.z) < 1.8 || !safe(x, z, 0.6, 0.36)) continue;
       marker(x, z, false);
     }
+  }
+  // Three quiet groups follow the path edge between the regularly spaced posts.
+  for (const [x, z] of [[-3.4, -6], [3.4, 2], [-3.4, 6]]) {
+    rubble(x!, z!, context.seed + Math.round(z! * 31), 0.18);
   }
 
   // Enlarge the entire broken gate 1.5x around its foot, including the fallen slat and moss.
@@ -142,20 +195,27 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   if (fence) {
     const { x, z } = fence;
     const place = (part: BufferGeometry) => ground(part.scale(gateScale, gateScale, gateScale).translate(x, 0, z));
-    const parts = [-1.6, 1.6].map((offset, i) => place(timber(0.23, 1.12 - i * 0.18, 0.23, i ? -0.06 : 0.03)
-      .translate(0, 0, offset)));
+    const parts = [-1.6, 1.6].map((offset, i) => place(post(0.23, 1.12 - i * 0.18, 0.23,
+      i ? -0.06 : 0.03, context.seed + 40 + i).translate(0, -0.04, offset)));
     for (const y of [0.47, 0.88]) {
-      parts.push(place(beam(new Vector3(0, y, -1.6), new Vector3(0.02, y - 0.10, -0.18), 0.14, 0.09)));
-      parts.push(place(beam(new Vector3(0, y - 0.16, 0.28), new Vector3(-0.03, y - 0.06, 1.6), 0.14, 0.09)));
+      parts.push(place(beam(new Vector3(0, y, -1.6), new Vector3(0.02, y - 0.10, -0.18),
+        0.14, 0.09, context.seed + Math.round(y * 100))));
+      parts.push(place(beam(new Vector3(0, y - 0.16, 0.28), new Vector3(-0.03, y - 0.06, 1.6),
+        0.14, 0.09, context.seed + Math.round(y * 100) + 1)));
     }
     // Fallen slat still rests on the ground, leaving the broken middle open.
-    parts.push(place(beam(new Vector3(-0.08, 0.08, -0.5), new Vector3(0.18, 0.13, 0.65), 0.12, 0.08)));
+    const fallen = beam(new Vector3(-0.08, 0.08, -0.5), new Vector3(0.18, 0.13, 0.65),
+      0.12, 0.08, context.seed + 91);
+    fallen.computeBoundingBox();
+    fallen.translate(0, -fallen.boundingBox!.min.y - 0.03, 0);
+    parts.push(place(fallen));
     addCollider(parts);
     wood.push(...parts.map(part => wash(part, phase)));
     for (const offset of [-1.3, -0.85, 1.35]) {
       green.push(wash(place(new IcosahedronGeometry(1, 0).scale(0.19, 0.10, 0.31)
         .translate(0, 0.78, offset)), phase));
     }
+    for (const offset of [-1.6, 1.6]) rubble(x, z + offset * gateScale, context.seed + 90, 0.25);
   }
 
   function mesh(parts: BufferGeometry[], material: MeshToonMaterial, name: string, parent = group) {
@@ -172,17 +232,16 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     return object;
   }
 
-  // Two small clusters beside the tall marker: 120 triangles, no new collider or draw call.
+  // Keep the two fern clusters; their shared geometry can change independently.
   for (const [dx, dz, scale] of [[0.4, 0.05, 0.4], [-0.45, -0.08, 0.34]]) {
     const x = anchor.x + dx!, z = anchor.z + dz!;
     if (!safe(x, z, 0.32, 0.31)) continue;
-    green.push(wash(ground(createFern().scale(scale!, scale!, scale!).rotateY(phase + dx!)
+    green.push(wash(ground(createFern().deleteAttribute("color").scale(scale!, scale!, scale!).rotateY(phase + dx!)
       .translate(x, 0, z)), phase));
     green.push(wash(ground(new IcosahedronGeometry(1, 0).scale(0.22, 0.06, 0.19)
       .translate(x - dx! * 0.5, 0.065, z)), phase));
   }
-  const timberMaterial = createRampMaterial(paletteColor({ base: "rockDark", mix: "forestDeep", amount: 0.45,
-    saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
+  const timberMaterial = createRampMaterial(0xffffff, WORLD_DIRECTION.foliage.ramp);
   timberMaterial.vertexColors = true;
   mesh(wood, timberMaterial, "weathered-trail-timber");
   const moss = createRampMaterial(paletteColor({ base: "grass", mix: "forestDeep", amount: 0.6,
@@ -198,17 +257,24 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     .find(({ x, z }) => safe(x, z, 2.5, 2));
   if (pine) {
     const direction = Math.sign(pine.x);
-    const trunk = ground(timber(0.36, 4.3, 0.32, direction * 0.8).translate(pine.x, 0, pine.z));
-    const crown = ground(createPineCrown(context.seed).scale(0.85, 1, 0.85)
-      .translate(0, 4.4, 0).rotateZ(-direction * 0.18).translate(pine.x, 0, pine.z));
-    addCollider([trunk, crown]);
-    ink.push(wash(trunk, phase));
-    const jade = createRampMaterial(paletteColor({ base: "forestLight", mix: "forestDeep", amount: 0.15,
-      saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
+    const envelope = pineEnvelope(context.seed, pine.x, pine.z, () => 0);
+    const size = envelope.getSize(new Vector3());
+    const crown = createPineCrownV2(context.seed).translate(0, 5, 0)
+      .scale(0.85, 1, 0.85).rotateZ(-direction * 0.18);
+    crown.computeBoundingBox();
+    const bounds = crown.boundingBox!, visualSize = bounds.getSize(new Vector3());
+    crown.translate(-bounds.min.x, -bounds.min.y, -bounds.min.z)
+      .scale(size.x / visualSize.x, size.y / visualSize.y, size.z / visualSize.z)
+      .translate(envelope.min.x, -0.05, envelope.min.z);
+    ground(crown);
+    const collision = pineEnvelope(context.seed, pine.x, pine.z, context.heightAt);
+    colliders.push({ center: collision.getCenter(new Vector3()), size: collision.getSize(new Vector3()) });
+    const jade = createRampMaterial(RAMP_PRESETS.crown, WORLD_DIRECTION.foliage.ramp);
     jade.vertexColors = true;
     mesh([wash(crown, phase)], jade, "leaning-pine-jade-crown");
+    rubble(pine.x, pine.z, context.seed + 130, 0.3);
   }
-  mesh(ink, timberMaterial, "ink-marker-feet-and-pine-trunk");
+  if (stones.length) mesh(stones, timberMaterial, "trail-edge-stones");
 
   const lantern = new Group();
   lantern.name = "storm-lantern-pivot";
@@ -219,7 +285,7 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     new CylinderGeometry(0.19, 0.22, 0.10, 6).translate(0, -0.37, 0),
     new CylinderGeometry(0.18, 0.16, 0.12, 6).translate(0, -0.73, 0),
     new CylinderGeometry(0.08, 0.17, 0.12, 6).translate(0, -0.29, 0),
-    ...[-0.17, 0.17].map(x => beam(new Vector3(x, -0.38, 0), new Vector3(x, -0.70, 0), 0.025)),
+    ...[-0.17, 0.17].map(x => new CylinderGeometry(0.0125, 0.0125, 0.32, 4).translate(x, -0.54, 0)),
   ];
   mesh(frame.map(part => wash(part, phase)), metal, "storm-lantern-frame", lantern);
   const light = createRampMaterial(paletteColor({ base: "sunGold", mix: "dusk", amount: 0.25,
