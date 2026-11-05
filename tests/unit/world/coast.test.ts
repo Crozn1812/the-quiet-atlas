@@ -79,9 +79,10 @@ describe("organic coast", () => {
 
   it("has at least 8 m shoreline variation across 40 zero crossings", () => {
     const shore = Array.from({ length: 40 }, (_, i) => {
-      // B2-152b moves the ridge west and bay east. Probe the seeded beaches
-      // outside both footprints; coast-shape covers the curved bay's transects.
-      const x = i < 20 ? -650 + i * 20 : 430 + (i - 20) * 20;
+      // B2-173: the old western probes (-430..-270) now cross the main
+      // mountain's seaward toe. Move the western set to untouched seeded
+      // beaches; coast-mountains and shore cover the new rocky coastline.
+      const x = i < 20 ? -1050 + i * 20 : 430 + (i - 20) * 20;
       let sea = -1040;
       let land = sea;
       // Find the outermost crossing, including the protected Last Postcard headland.

@@ -133,7 +133,21 @@ function shoreHeight(x: number, z: number): number {
   return beachHeight(z - (-880 + 30 * noise(x / 90, 0)));
 }
 
-function coastalRelief(x: number, z: number, land: number, river: ReturnType<typeof nearestRiver>, bankRadius: number): number {
+/** Pointed elliptical cones, with a shorter rear face for exposed rocky cliffs. */
+function coastalSummit(along: number, left: number, centreAlong: number, centreLeft: number,
+  rise: number, length: number, shoulder: number, cliff: number): number {
+  const across = left - centreLeft;
+  const radius = Math.hypot((along - centreAlong) / length, across / (across < 0 ? shoulder : cliff));
+  const road = riverLevel(coastStart.z + coastForward.z * centreAlong);
+  // A narrow, gentle beach keeps the existing shore stones on low ground.
+  // Above it, the cone retains its steep faces and exact summit elevation.
+  // Both branches meet at 0.75 m; the seaward toe eases into the -2.5 m bed.
+  const face = road + rise + 9.25 - (road + rise + 11.75) * radius;
+  return face <= 10 ? beachHeight(face * 0.96) : face - 9.25;
+}
+
+function coastalRelief(x: number, z: number, land: number, river: ReturnType<typeof nearestRiver>,
+  bankRadius: number, pathDistance: number): number {
   const { along, right } = coastCoordinates(x, z);
   const valley = land;
   // The ellipse opens into the existing sea. Its near rim recedes inland at
@@ -173,7 +187,20 @@ function coastalRelief(x: number, z: number, land: number, river: ReturnType<typ
   const ridge = Math.min(smoothstep(26.5, 110, left), smoothstep(32, 102, river.distance))
     * (1 - smoothstep(130, 240, left))
     * smoothstep(-20, 0, along) * (1 - smoothstep(220, 300, along));
-  return land + Math.max(0, riverLevel(coastStart.z + coastForward.z * along) + 45 - land) * ridge;
+  land += Math.max(0, riverLevel(coastStart.z + coastForward.z * along) + 45 - land) * ridge;
+
+  // B2-173: keep the complete old foreground, path, zone pads and estuary.
+  // The main peak starts beyond 150 m left; stagger two lower crests behind it
+  // so they form separate silhouettes instead of another flat, raised shelf.
+  if (pathDistance <= 150 || river.distance <= bankRadius + 12) return land;
+  const main = coastalSummit(along, -right, 155, 325, 130, 190, 175, 125);
+  const middle = coastalSummit(along, -right, 20, 580, 92, 140, 130, 110);
+  const distant = coastalSummit(along, -right, 155, 790, 80, 120, 120, 90);
+  // A long, narrow cape joins the outer bay rim to a steep, seaward nose.
+  // It stays far right of the open water views and beyond the river mouth.
+  const cape = coastalSummit(along, right, 210, 330, 32, 230, 38, 38);
+  const relief = Math.max(main, middle, distant, cape);
+  return land + Math.max(0, relief - land) * smoothstep(150, 180, pathDistance);
 }
 
 /** Pure metres above sea level. No quality setting, random state, or tile-local coordinates. */
@@ -202,7 +229,7 @@ export function worldHeight(x: number, z: number): number {
   const sourcePool = 0.45 * (1 - smoothstep(0, 4, Math.hypot(x - source.x, z - source.z)));
   let land = valley + (estuary - valley) * smoothstep(760, 840, -z) - sourcePool
     + landmarkLift(x, z, river.distance);
-  land = coastalRelief(x, z, land, river, bankRadius);
+  land = coastalRelief(x, z, land, river, bankRadius, path.distance);
   // The coastal shelf must respect the same flat bed as the inland valley.
   // Only lower intruding ground; retain the existing beach outside the channel.
   land -= Math.max(0, land - Math.max(0.05, waterLevelAt(z) - 0.65))
