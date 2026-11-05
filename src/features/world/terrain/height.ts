@@ -1,5 +1,5 @@
-import { PATH_BRIDGES, pathLength, pathPointAt } from "../layout/path";
-import { clampProgress, riverLength, riverPointAt } from "../layout/river";
+import { PATH_BRIDGES, pathLength, pathPointAt, pathRiverTAt } from "../layout/path";
+import { clampProgress, riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "./samples";
 
@@ -16,6 +16,12 @@ const coastRoad = Array.from({ length: 33 }, (_, i) => {
   const point = pathPointAt(0.82 + 0.18 * i / 32);
   return coastCoordinates(point.x, point.z);
 });
+const coastPads = ZONES.filter(zone => zone.biome === "coast-dusk");
+// Match the existing Unwritten Page detour without importing story/secrets,
+// which itself uses worldHeight to ground the bench.
+const quietShore = coastPads.find(zone => zone.id === "quiet-shore")!;
+const benchForward = riverTangentAt(pathRiverTAt(quietShore.t));
+const coastBench = { x: quietShore.position.x - benchForward.z * 24, z: quietShore.position.z + benchForward.x * 24 };
 
 function coastCoordinates(x: number, z: number) {
   const dx = x - coastStart.x;
@@ -129,6 +135,7 @@ function shoreHeight(x: number, z: number): number {
 
 function coastalRelief(x: number, z: number, land: number, river: ReturnType<typeof nearestRiver>, bankRadius: number): number {
   const { along, right } = coastCoordinates(x, z);
+  const valley = land;
   // The ellipse opens into the existing sea. Its near rim recedes inland at
   // mid-bay and returns to a low cape, rather than adding noise to a straight line.
   // Reserve the channel in distance space, so its fade is finished before the
@@ -138,6 +145,26 @@ function coastalRelief(x: number, z: number, land: number, river: ReturnType<typ
     bankRadius + 12 - river.distance);
   const bay = (1 - smoothstep(0, 32, inland)) * smoothstep(bankRadius, bankRadius + 12, river.distance);
   land += Math.min(0, beachHeight(inland) - land) * bay;
+
+  // Bring the upstream shore out to 35–70 m from the road and remove the
+  // inland blending hump. The low sand shelf descends smoothly to sea level.
+  const upstreamSetback = 9 * (1 - smoothstep(50, 120, along));
+  const openInland = Math.max(Math.hypot((along - 65) * 160 / 145, right - 180 - upstreamSetback) - 160,
+    bankRadius + 12 - river.distance);
+  const sand = openInland > 0 ? 1.2 * smoothstep(0, 32, openInland) : beachHeight(openInland);
+  const openBay = (1 - smoothstep(32, 64, openInland)) * smoothstep(bankRadius, bankRadius + 12, river.distance);
+  const lowered = valley + Math.min(0, sand - valley) * openBay;
+  let opening = smoothstep(PATH_WIDTH / 2, 18, right - coastRoadRight(along))
+    * smoothstep(-10, 22, along) * (1 - smoothstep(163, 194, along));
+  // Keep the authored foundations, plus a full triangle of surrounding ground,
+  // bit-identical. Round off their outer shoulders instead of moving the props.
+  for (const zone of coastPads) {
+    opening *= smoothstep(zone.radius + 3, zone.radius + 11, Math.hypot(x - zone.position.x, z - zone.position.z));
+  }
+  land += (lowered - land) * opening;
+  // Keep the bench's 2.5 m activation disc dry, with a gentle sand shoulder.
+  const bench = 1 - smoothstep(3, 12, Math.hypot(x - coastBench.x, z - coastBench.z));
+  land += Math.max(0, waterLevelAt(z) + 0.4 - land) * bench;
 
   // Start 25 m beyond the 3 m strip; ease to a rounded 45 m ridge at 110 m.
   // End caps extend beyond the route so the final station has a full shoulder.

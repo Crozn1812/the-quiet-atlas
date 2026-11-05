@@ -1,9 +1,13 @@
+import { MeshBasicMaterial, Raycaster, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { PATH_WIDTH, worldHeight } from "../../../src/features/world/terrain/height";
+import { createTileMesh } from "../../../src/features/world/terrain/mesh";
+import { buildTile, TILE_SIZE } from "../../../src/features/world/terrain/tiles";
+import { createSea } from "../../../src/features/world/water/sea";
 import { placeZoneScenes } from "../../../src/features/world/zones";
 
 function rightOf(forward: { x: number; z: number }) {
@@ -60,6 +64,92 @@ describe("coastal mountain and curved bay", () => {
       expect(height(mountain.x, mountain.z) - height(road.x, road.z)).toBeGreaterThanOrEqual(30);
       expect(height(sea.x, sea.z)).toBeLessThan(0);
     }
+  });
+
+  it("reaches gentle sand 25–45 m past the right road edge and bay water 35–70 m away throughout t=0.84–0.97", () => {
+    for (let i = 840; i <= 970; i++) {
+      const t = i / 1000, at = station(t);
+      for (const height of [worldHeight, surfaceHeight]) {
+        const sample = (right: number) => {
+          const p = at(-right);
+          return height(p.x, p.z);
+        };
+        expect(sample(40), `right 40 m at t=${t}`).toBeLessThanOrEqual(1.5);
+        // Sand is fully visible below 0.9 m (terrain/mesh). Measure from the
+        // edge of the 3 m road, outside the preserved scene foundations.
+        let sand = false;
+        for (let right = PATH_WIDTH / 2 + 25; right <= PATH_WIDTH / 2 + 45; right += 0.5) {
+          const ground = sample(right);
+          sand ||= ground >= 0 && ground <= 0.9;
+          expect(Math.abs(sample(right + 0.5) - ground) / 0.5, `beach slope at t=${t}, right=${right}`)
+            .toBeLessThanOrEqual(0.25);
+        }
+        expect(sand, `dry sand at t=${t}`).toBe(true);
+        // As in waterline(), take the outer shore, skipping the estuary's
+        // separate channel crossing near the end of the route.
+        let land = 0;
+        for (let right = 0; right <= 100; right += 0.5) if (sample(right) > 0) land = right;
+        let sea = land + 0.5;
+        expect(sample(land)).toBeGreaterThan(0);
+        expect(sample(sea)).toBeLessThanOrEqual(0);
+        for (let step = 0; step < 24; step++) {
+          const middle = (land + sea) / 2;
+          if (sample(middle) > 0) land = middle;
+          else sea = middle;
+        }
+        expect((land + sea) / 2, `bay shore at t=${t}`).toBeGreaterThanOrEqual(35);
+        expect((land + sea) / 2, `bay shore at t=${t}`).toBeLessThanOrEqual(70);
+      }
+    }
+  });
+
+  it.each([
+    [0.86, 60, 60], [0.9, 35, 115], [0.94, 50, 80],
+  ])("sees the water surface before terrain from road eye height at t=%s, %s degrees right", (t, degrees, reach) => {
+    const point = pathPointAt(t);
+    const forward = pathPointAt(t + 0.00001).sub(pathPointAt(t - 0.00001)).normalize();
+    const right = rightOf(forward), angle = degrees * Math.PI / 180;
+    const eye = point.clone().setY(surfaceHeight(point.x, point.z) + 1.7);
+    const target = new Vector3(point.x + reach * (forward.x * Math.cos(angle) + right.x * Math.sin(angle)), 0,
+      point.z + reach * (forward.z * Math.cos(angle) + right.z * Math.sin(angle)));
+    expect(degrees).toBeGreaterThanOrEqual(30);
+    expect(degrees).toBeLessThanOrEqual(70);
+    expect(eye.distanceTo(target)).toBeLessThanOrEqual(120);
+    const sea = createSea("Balanced"), material = new MeshBasicMaterial();
+    const terrain = [];
+    try {
+      // Raycast the actual Float32 tile triangles and sea plane, rather than
+      // sampling ground below a horizontal ray or treating submerged bed as water.
+      for (let ix = Math.floor(Math.min(eye.x, target.x) / TILE_SIZE); ix <= Math.floor(Math.max(eye.x, target.x) / TILE_SIZE); ix++) {
+        for (let iz = Math.floor(Math.min(eye.z, target.z) / TILE_SIZE); iz <= Math.floor(Math.max(eye.z, target.z) / TILE_SIZE); iz++) {
+          terrain.push(createTileMesh(buildTile(ix, iz), material));
+        }
+      }
+      sea.mesh.updateMatrixWorld(true);
+      const ray = new Raycaster(eye, target.clone().sub(eye).normalize(), 0, 120);
+      const hit = ray.intersectObjects([...terrain, sea.mesh])[0];
+      expect(hit?.object).toBe(sea.mesh);
+      expect(hit!.distance).toBeLessThanOrEqual(120);
+      expect(hit!.point.y).toBeCloseTo(0, 10);
+      for (const height of [worldHeight, surfaceHeight]) expect(height(hit!.point.x, hit!.point.z)).toBeLessThan(0);
+    } finally {
+      terrain.forEach(mesh => mesh.geometry.dispose());
+      material.dispose();
+      sea.dispose();
+    }
+  });
+
+  it.each([
+    ["quiet-shore", [1.0669097379495256, -0.03169602216023834, 1.960734487482947, 1.7928339103413669,
+      -0.01680185748850568, 0.6929674646932081, 1.1976735429469867]],
+    ["last-postcard", [0.829999828532066, -1.9596842443915536, 0.4000093441336567, 0.39998487667371874,
+      0.8210855926001707, -1.4454988159407285, 0.46071000604332424]],
+  ] as const)("preserves the rendered foundation and surrounding channel heights at %s", (id, baseline) => {
+    const zone = ZONES.find(zone => zone.id === id)!;
+    const offsets = [[0, 0], [-12, 0], [12, 0], [0, -12], [0, 12], [-8, -8], [8, 8]] as const;
+    offsets.forEach(([dx, dz], i) => {
+      expect(surfaceHeight(zone.position.x + dx, zone.position.z + dz)).toBe(baseline[i]);
+    });
   });
 
   it.each([0.82, 0.85, 0.9, 0.95, 1])("has a soft shoulder and a 35–55 m crest 80–140 m inland at t=%s", t => {
