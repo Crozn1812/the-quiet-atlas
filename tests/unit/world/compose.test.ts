@@ -17,6 +17,7 @@ import { disposeRampGradients } from "../../../src/features/world/materials/ramp
 import { HEIGHT } from "../../../src/features/world/scene";
 import { FIXED_DT } from "../../../src/features/world/timestep";
 import { PALETTE } from "../../../src/features/world/art/palette";
+import { createWaterMaterial, WaterMaterial } from "../../../src/features/world/water/material";
 
 afterEach(() => { disposeRampGradients(); vi.restoreAllMocks(); });
 
@@ -47,6 +48,34 @@ it("shares biome fog distances between native fog and paper at every quality, in
         expect(hemi.intensity).toBeCloseTo(grade.hemiIntensity, 6);
         expect((scene.fog as Fog).color.toArray()).toEqual(grade.fogColor.toArray().map(v => expect.closeTo(v, 6)));
         expect(paper.setGrade.mock.lastCall![0].sunIntensity).toBeCloseTo(grade.sunIntensity, 6);
+        const water = scene.children.filter((child): child is Mesh<BufferGeometry, WaterMaterial> =>
+          child instanceof Mesh && child.material instanceof WaterMaterial);
+        expect(water).toHaveLength(2);
+        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([2048, 2]);
+        if (quality === "High" && id === "quiet-shore") {
+          let triangles = 0, draws = 0;
+          scene.traverseVisible(object => {
+            if (!(object instanceof Mesh)) return;
+            const instances = object instanceof InstancedMesh ? object.count : 1;
+            if (!instances) return;
+            triangles += Math.min(object.geometry.drawRange.count,
+              object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3 * instances;
+            draws += Array.isArray(object.material) ? object.material.length : 1;
+          });
+          process.stdout.write(`B2-181 High quiet-shore composer: ${triangles} triangles, ${draws} mesh draws; water=2050 triangles, 2 draws (unchanged)\n`);
+        }
+        // Both surfaces receive exactly the same followed/directed grade as the scene lights,
+        // including the first frame after quality reallocation and the return from coast to forest.
+        for (const mesh of water) {
+          const material = mesh.material;
+          const expected = createWaterMaterial(quality, {
+            surface: material.defines.SEA_WATER ? "sea" : "river", grade: paper.setGrade.mock.lastCall![0],
+          });
+          for (const key of ["uEdgeColor", "uDeepColor", "uPaperColor", "uSkyHorizon", "uSunWashColor"]) {
+            expect(material.uniforms[key]!.value).toEqual(expected.uniforms[key]!.value);
+          }
+          expected.dispose();
+        }
       }
     }
   } finally { composed.dispose(); }

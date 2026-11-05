@@ -142,7 +142,7 @@ describe("painted water material", () => {
       const deep = uniform.uDeepColor!.value as Color;
       const edge = uniform.uEdgeColor!.value as Color;
       const paper = uniform.uPaperColor!.value as Color;
-      const dusk = uniform.uDuskColor!.value as Color;
+      const horizon = uniform.uSkyHorizon!.value as Color;
       // Evaluate the actual cross-stream GLSL before the sea-only branch.
       const start = material.fragmentShader.indexOf("float edge =");
       const end = material.fragmentShader.indexOf("#ifdef SEA_WATER", start);
@@ -168,7 +168,7 @@ describe("painted water material", () => {
             for (const fresnel of [0, 0.5, 1]) {
               const color = sample(i / 20).lerp(paper, stroke);
               if (material.defines.WATER_REFLECTION) {
-                color.lerp(paper.clone().lerp(dusk, skyMix), fresnel * Number(material.defines.SKY_REFLECTION));
+                color.lerp(horizon, fresnel * Number(material.defines.SKY_REFLECTION) * (0.85 + skyMix * 0.15));
               }
               // Linear shader space and displayed sRGB both keep green at least as strong as blue.
               for (const rgb of [color, color.clone().convertLinearToSRGB()]) {
@@ -198,8 +198,13 @@ describe("painted water material", () => {
     expect(material.fragmentShader).toContain("#include <tonemapping_fragment>");
     expect(material.fragmentShader).toContain("#include <colorspace_fragment>");
     for (const key of ["fogColor", "fogNear", "fogFar", "fogDensity"]) expect(material.uniforms[key]).toBeDefined();
-    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.seaDeep).lerp(new Color(PALETTE.forestLight), 0.5));
-    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.seaShallow).lerp(new Color(PALETTE.forestLight), 0.25));
+    const grade = lightingAt(0);
+    const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
+      .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)).multiplyScalar(0.2 / Math.PI);
+    expect(material.uniforms.uDeepColor!.value.toArray()).toEqual(
+      new Color(PALETTE.seaDeep).lerp(new Color(PALETTE.forestLight), 0.5).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
+    expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(
+      new Color(PALETTE.seaShallow).lerp(new Color(PALETTE.forestLight), 0.25).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.transparent).toBe(false);
     material.dispose();
   });
@@ -364,9 +369,15 @@ describe("sea and water lifecycle", () => {
     expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength() - SEA_INLAND_OVERLAP, 3);
     const material = sea.mesh.material;
     // B2-174: turquoise pigment follows the sampled coast; B2-160's wash stays separate.
-    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.seaDeep));
+    const grade = lightingAt(1);
+    const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
+      .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)).multiplyScalar(0.85 / Math.PI);
+    expect(material.uniforms.uDeepColor!.value.toArray()).toEqual(new Color(PALETTE.seaDeep)
+      .lerp(new Color(PALETTE.indigo), (grade.sunColor.r - grade.sunColor.b) * 0.8)
+      .multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.defines.SKY_REFLECTION).toBe(0.5);
-    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.seaShallow));
+    expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(new Color(PALETTE.seaShallow)
+      .multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.uniforms.uSkyMix!.value).toBe(1);
     sea.dispose();
   });

@@ -340,8 +340,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     paper?.setGrade(grade);
     paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });
     elapsed += dt;
-    water[1]!.mesh.material.setSunDirection(grade.sunDirection);
     for (const surface of water) {
+      surface.mesh.material.setGrade(grade);
       surface.mesh.material.setTime(elapsed);
       surface.mesh.material.setSkyMix(surface === water[1] ? SEA_SKY_MIX * tod : tod);
     }

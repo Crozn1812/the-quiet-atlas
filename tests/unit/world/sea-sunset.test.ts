@@ -2,6 +2,9 @@ import { Color, Vector2, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { worldHeight } from "../../../src/features/world/terrain/height";
+import { applyCoastAtmosphere, lightingAt } from "../../../src/features/world/sky/grade";
+import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
+import { directGrade } from "../../../src/features/world/scene/compose";
 import {
   createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, type WaterMaterial,
 } from "../../../src/features/world/water/material";
@@ -38,6 +41,9 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
     .replace(/uSunDirection\.y/g, "sunElevation")
     .replace(/\b(sin|cos|sqrt|abs|max|min|floor)\(/g, "Math.$1(")
     .replace(/SEA_FOAM_MAX_SLOPE/g, String(SEA_FOAM_MAX_SLOPE))
+    .replace(/fwidth\(alongSun \* 0.24 \* perspective\)/g, "washPixelWidth")
+    .replace(/fwidth\(alongSun \* 1.7\)/g, "glimmerPixelWidth")
+    .replace(/#ifdef SEA_WATER|#endif/g, "")
     .replace(/fwidth\(offshore\)/g, "offshorePixelWidth");
   const evaluate = new Function("inputs", "smoothstep", "mix", "clamp", `
     "use strict";
@@ -63,11 +69,12 @@ function seaPigment(material: WaterMaterial, point: Vector3) {
   return { color, offshore: offshore!, shallows: shallows! };
 }
 
-function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: number, phase: number) {
+function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: number, phase: number,
+  washPixelWidth = 0, glimmerPixelWidth = 0) {
   return scalars(material, "// Sun wash scalars: also evaluated directly by the CPU colour regression.",
     "// End sun wash scalars.", {
       alongSun, signedAcrossSun, acrossSun: Math.abs(signedAcrossSun), phase,
-      sunElevation: material.uniforms.uSunDirection!.value.y,
+      sunElevation: material.uniforms.uSunDirection!.value.y, washPixelWidth, glimmerPixelWidth,
     }, ["washStrength", "washWidth", "core", "glimmer", "washMarks", "distanceFade"]);
 }
 
@@ -86,9 +93,10 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
   if (material.defines.WATER_REFLECTION) {
     const normal = new Vector3(crossSwell * 0.012, 1, swell * 0.012).normalize();
     const grazing = 1 - Math.max(0, Math.min(1, normal.dot(camera.clone().sub(point).normalize())));
-    const sky = (uniform.uDeepColor!.value as Color).clone().lerp(uniform.uPaperColor!.value, 0.28)
-      .lerp(uniform.uDuskColor!.value, skyMix * 0.18);
-    color.lerp(sky, grazing ** 3 * Number(material.defines.SKY_REFLECTION));
+    const { reflection } = scalars(material, "float fresnel =", "color = mix(color, uSkyHorizon", {
+      grazing, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: skyMix, offshore,
+    }, ["reflection"]);
+    color.lerp(uniform.uSkyHorizon!.value, reflection!);
   }
   const sun = uniform.uSunDirection!.value as Vector3;
   const axis = new Vector2(sun.x, sun.z).normalize();
@@ -98,6 +106,54 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
 }
 
 describe("road-view sunset sea", () => {
+  it.each(["Balanced", "High"] as const)("reflects more of the grade horizon at grazing angles and farther offshore on %s", quality => {
+    const material = createWaterMaterial(quality, { surface: "sea" });
+    try {
+      const reflectionAt = (grazing: number, offshore: number) => scalars(material,
+        "float fresnel =", "color = mix(color, uSkyHorizon", {
+          grazing, offshore, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: 1,
+        }, ["reflection"]).reflection!;
+      expect(reflectionAt(0, 300)).toBe(0);
+      expect(reflectionAt(1, 300)).toBeGreaterThan(reflectionAt(0.5, 300));
+      expect(reflectionAt(1, 300)).toBeGreaterThan(reflectionAt(1, 5));
+      const grade = applyCoastAtmosphere(lightingAt(1), 0.93);
+      const noon = applyCoastAtmosphere(lightingAt(0.5), 0.55).skyHorizon;
+      material.setGrade(grade);
+      const horizon = (material.uniforms.uSkyHorizon!.value as Color).clone();
+      expect(horizon.r / horizon.b).toBeGreaterThan(noon.r / noon.b);
+      grade.skyHorizon.set(PALETTE.skyLow);
+      material.setGrade(grade);
+      expect(material.uniforms.uSkyHorizon!.value).not.toEqual(horizon);
+    } finally { material.dispose(); }
+  });
+
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s dusk water dark and warmer than noon, including the sun wash", quality => {
+    const sea = createSea(quality);
+    try {
+      const material = sea.mesh.material;
+      const camera = new Vector3(0, 1.7, -860);
+      const onAxis = new Vector3(64, WATER_LEVEL, -908);
+      const points = [onAxis, ...[-40, 40].map(offset => onAxis.clone()
+        .add(new Vector3(0.6, 0, 0.8).multiplyScalar(offset))),
+      new Vector3(64, WATER_LEVEL, -1100), new Vector3(64, WATER_LEVEL, -1400)];
+      const samples = (t: number) => {
+        material.setGrade(applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t));
+        return Array.from({ length: 17 }, (_, frame) => {
+          material.uniforms.uTime!.value = frame * SEA_WAVE_PERIOD / 16;
+          return points.map(point => seaColor(material, point, camera));
+        }).flat();
+      };
+      const noon = samples(0.55), dusk = samples(0.93);
+      for (let i = 0; i < dusk.length; i++) {
+        const color = dusk[i]!;
+        expect(luma(color)).toBeLessThanOrEqual(0.35);
+        expect(color.r / color.b).toBeGreaterThan(noon[i]!.r / noon[i]!.b);
+        expect(luma(color.clone().convertLinearToSRGB())).toBeGreaterThanOrEqual(0.06);
+      }
+      process.stdout.write(`${quality} t=0.93: maximum sea luma=${Math.max(...dusk.map(luma)).toFixed(4)}\n`);
+    } finally { sea.dispose(); }
+  });
+
   it.each(["Low", "Balanced", "High"] as const)("keeps the %s wash visibly brighter and warmer across the slow cycle", quality => {
     const camera = new Vector3(0, 1.7, -860);
     const sun = new Vector3(0.8, 0.14, -0.6);
@@ -205,6 +261,48 @@ describe("road-view sunset sea", () => {
     } finally { sea.dispose(); }
   });
 
+  it.each(["Low", "Balanced", "High"] as const)("filters subpixel %s rays from the 9 m quiet-shore wide camera", quality => {
+    const sea = createSea(quality);
+    try {
+      const material = sea.mesh.material;
+      let longest = 0, peak = 0;
+      // Tour wide uses a 55 degree camera, 9 m above the surface. Include road height too.
+      for (const height of [1.7, 9]) for (const resolution of [720, 1080, 2160]) {
+        const pixelAngle = 2 * Math.tan(55 * Math.PI / 360) / resolution;
+        for (const angle of [-0.12, -0.02, 0, 0.02, 0.12]) for (const phase of [0, Math.PI / 2, Math.PI]) {
+          let run = 0;
+          // Pixel centres projected onto the flat water; a gap cannot hide between metres-based samples.
+          let previous = 12;
+          for (let row = Math.ceil(height / (800 * pixelAngle)); row <= height / (12 * pixelAngle); row++) {
+            const distance = height / (row * pixelAngle);
+            const near = height / ((row + 0.5) * pixelAngle);
+            const far = height / ((row - 0.5) * pixelAngle);
+            const along = distance * Math.cos(angle);
+            const washPhase = (d: number) => {
+              const a = d * Math.cos(angle);
+              return a * 0.24 * mix(1, 2.5, smoothstep(120, 600, a));
+            };
+            const sample = washAt(material, along, distance * Math.sin(angle), phase,
+              Math.abs(washPhase(far) - washPhase(near)), (far - near) * Math.cos(angle) * 1.7);
+            const strength = sample.washStrength!;
+            peak = Math.max(peak, strength);
+            // Iterate far -> near; only adjacent lit pixels contribute a continuous interval.
+            run = strength > 0.01 ? run + (previous === 12 ? 0 : previous - distance) : 0;
+            previous = distance;
+            longest = Math.max(longest, run);
+            if (distance > 500) {
+              expect(strength).toBe(0);
+              expect(sample.glimmer).toBe(0);
+            }
+          }
+        }
+      }
+      expect(peak).toBeGreaterThan(0.5);
+      expect(longest).toBeLessThanOrEqual(40);
+      process.stdout.write(`${quality} projected road/wide: longest bright ray=${longest.toFixed(2)} m\n`);
+    } finally { sea.dispose(); }
+  });
+
   it.each(["Low", "Balanced", "High"] as const)("uses %s turquoise at 5 m and deep blue at 300 m from the sampled coast", quality => {
     const shallow = new Color(PALETTE.seaShallow);
     const deep = new Color(PALETTE.seaDeep);
@@ -225,20 +323,21 @@ describe("road-view sunset sea", () => {
               expect(pigment.offshore).toBeCloseTo(distance, 8);
               expect(pigment.shallows).toBeLessThanOrEqual(previousWeight);
               previousWeight = pigment.shallows;
-              if (distance === 5) expect(pigment.color).toEqual(shallow);
-              if (distance === 300) expect(pigment.color).toEqual(deep);
+              if (distance === 5) expect(pigment.color).toEqual(material.uniforms.uEdgeColor!.value);
+              if (distance === 300) expect(pigment.color).toEqual(material.uniforms.uDeepColor!.value);
               if (distance === 80) expect(pigment.shallows).toBeGreaterThan(0);
             }
           }
         }
       } finally { material.dispose(); }
     }
+    expect(luma(shallow)).toBeGreaterThan(luma(deep));
   });
 
   it("uses deep pigment when no sampled coast is supplied", () => {
     const material = createWaterMaterial("Balanced", { surface: "sea" });
     try {
-      expect(seaPigment(material, new Vector3(0, WATER_LEVEL, -5)).color).toEqual(new Color(PALETTE.seaDeep));
+      expect(seaPigment(material, new Vector3(0, WATER_LEVEL, -5)).color).toEqual(material.uniforms.uDeepColor!.value);
     } finally { material.dispose(); }
   });
 

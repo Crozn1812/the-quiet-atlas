@@ -1,6 +1,6 @@
 import { Color, ShaderMaterial, UniformsLib, UniformsUtils, Vector2, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
-import { lightingAt } from "../sky/grade";
+import { lightingAt, type LightingGrade } from "../sky/grade";
 import type { Quality } from "../terrain";
 
 export const WATER_FLOW_SPEED = 0.05;
@@ -12,10 +12,12 @@ export const SEA_FOAM_MAX_SLOPE = 3;
 
 export interface WaterMaterialOptions {
   surface?: "river" | "sea";
-  /** Paper sky at 0, dusk sky at 1; colours use Three's linear working space. */
+  /** Reflection weight from morning (0) to dusk (1); setGrade supplies linear sky colours. */
   skyMix?: number;
   /** World-space direction toward the sun, supplied by the lighting grade. */
   sunDirection?: Readonly<Vector3>;
+  /** Player-local lighting, including any directed/coast atmosphere adjustments. */
+  grade?: LightingGrade;
   /** Sampled outer coastline; absent on standalone materials and river ribbons. */
   shoreline?: { minX: number; width: number; z: readonly number[] };
 }
@@ -49,7 +51,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uEdgeColor;
   uniform vec3 uDeepColor;
   uniform vec3 uPaperColor;
-  uniform vec3 uDuskColor;
+  uniform vec3 uSkyHorizon;
   uniform float uSkyMix;
   uniform float uTime;
   varying vec2 vWaterUv;
@@ -116,12 +118,11 @@ const fragmentShader = /* glsl */ `
       #endif
       float grazing = 1.0 - clamp(dot(surfaceNormal, normalize(vViewDirection)), 0.0, 1.0);
       float fresnel = grazing * grazing * grazing;
-      vec3 sky = mix(uPaperColor, uDuskColor, uSkyMix);
+      float reflection = fresnel * SKY_REFLECTION * mix(0.85, 1.0, uSkyMix);
       #ifdef SEA_WATER
-        // Keep distant water turquoise beneath the warm horizon.
-        sky = mix(mix(uDeepColor, uPaperColor, 0.28), uDuskColor, uSkyMix * 0.18);
+        reflection *= mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore));
       #endif
-      color = mix(color, sky, fresnel * SKY_REFLECTION);
+      color = mix(color, uSkyHorizon, reflection);
     #endif
     #ifdef SEA_WATER
       // A broad pigment wash along the sun/viewer axis, broken into soft brush marks.
@@ -144,6 +145,10 @@ const fragmentShader = /* glsl */ `
       // Break the entire wash, including its base/core, so it cannot form a continuous ray.
       // Transverse soft bands compress with distance; lateral wobble keeps their edges organic.
       float perspective = mix(1.0, 2.5, smoothstep(120.0, 600.0, alongSun));
+      // Subpixel gaps otherwise merge back into a straight ray, especially from the wide tour.
+      float washFootprint = fwidth(alongSun * 0.24 * perspective);
+      float glimmerFootprint = fwidth(alongSun * 1.7);
+      wash *= 1.0 - smoothstep(0.4, 1.2, washFootprint);
       float washMarks = smoothstep(0.0, 0.65,
         cos(alongSun * 0.24 * perspective + 0.3 * sin(signedAcrossSun * 0.3)));
       // Thin transverse marks, interrupted every few metres across the sun axis.
@@ -151,6 +156,7 @@ const fragmentShader = /* glsl */ `
         + 0.35 * sin(signedAcrossSun * 0.42 + alongSun * 0.11)));
       glimmer *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(signedAcrossSun * 0.82 + 2.0 * sin(alongSun * 0.37)));
       glimmer *= distanceFade;
+      glimmer *= 1.0 - smoothstep(0.4, 1.2, glimmerFootprint);
       float washStrength = wash * washMarks * (0.5 + 0.14 * core + 0.24 * glimmer);
       // End sun wash scalars.
       color = mix(color, uSunWashColor, washStrength);
@@ -173,11 +179,19 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-/** No textures, render targets or lights; Low compiles out river flow and Fresnel. */
+/** Grade lighting is baked into colour uniforms; no textures, targets or extra light uniforms. */
 export class WaterMaterial extends ShaderMaterial {
   private reducedMotion = false;
   private lastSeconds: number | undefined = 0;
   private disposed = false;
+  private readonly edgePigment: Color;
+  private readonly deepPigment: Color;
+  private readonly irradiance = new Color();
+  private readonly fill = new Color();
+  private readonly paper = new Color(PALETTE.paper);
+  private readonly indigo = new Color(PALETTE.indigo);
+  private readonly sunWash = new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.72)
+    .lerp(new Color(PALETTE.flower), 0.1);
 
   constructor(readonly quality: Quality, options: WaterMaterialOptions = {}) {
     const shore = options.shoreline;
@@ -210,7 +224,7 @@ export class WaterMaterial extends ShaderMaterial {
           uEdgeColor: { value: edge },
           uDeepColor: { value: deep },
           uPaperColor: { value: new Color(PALETTE.paper) },
-          uDuskColor: { value: new Color(PALETTE.dusk) },
+          uSkyHorizon: { value: new Color() },
           uSkyMix: { value: 0 },
           uTime: { value: 0 },
           uSunDirection: { value: new Vector3() },
@@ -229,8 +243,37 @@ export class WaterMaterial extends ShaderMaterial {
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -1,
     });
+    this.edgePigment = edge;
+    this.deepPigment = deep;
+    this.setGrade(options.grade ?? lightingAt(sea ? 1 : 0));
     this.setSkyMix(options.skyMix ?? (sea ? 1 : 0));
-    this.setSunDirection(options.sunDirection ?? lightingAt(1).sunDirection);
+    if (options.sunDirection) this.setSunDirection(options.sunDirection);
+  }
+
+  /** Flat-surface half-Lambert + hemisphere, with the same Lambert BRDF as terrain.
+   * Pigment absorption keeps the shaded ribbon below the road; every stroke/foam
+   * highlight receives this light too. Uniform count and geometry stay unchanged.
+   */
+  setGrade(grade: LightingGrade): void {
+    if (this.disposed) return;
+    const sea = Boolean(this.defines.SEA_WATER);
+    const halfLambert = Math.max(0, Math.min(1, grade.sunDirection.y * 0.5 + 0.5));
+    this.fill.copy(grade.hemiSky).multiplyScalar(grade.hemiIntensity);
+    this.irradiance.copy(grade.sunColor).multiplyScalar(grade.sunIntensity * (0.25 + 0.75 * halfLambert))
+      .add(this.fill).multiplyScalar(1 / Math.PI);
+    // The shaded stream sits beside dark wet soil (B2-190), including its lit strokes.
+    const absorption = sea ? 0.85 : 0.2;
+    this.uniforms.uEdgeColor!.value.copy(this.edgePigment).multiply(this.irradiance).multiplyScalar(absorption);
+    // Low warm sun shifts the open sea toward indigo without changing the turquoise banks.
+    const dusk = Math.max(0, Math.min(1, grade.sunColor.r - grade.sunColor.b));
+    this.uniforms.uDeepColor!.value.copy(this.deepPigment).lerp(this.indigo, sea ? dusk * 0.8 : 0)
+      .multiply(this.irradiance).multiplyScalar(absorption);
+    this.uniforms.uPaperColor!.value.copy(this.paper).multiply(this.irradiance).multiplyScalar(absorption);
+    // A small sky contribution, attenuated by the available light, rather than emissive paper.
+    this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon).multiply(this.irradiance).multiplyScalar(sea ? 0.12 : 0.08);
+    this.uniforms.uSunWashColor!.value.copy(this.sunWash).multiply(grade.sunColor)
+      .multiplyScalar(grade.sunIntensity * 0.65);
+    this.setSunDirection(grade.sunDirection);
   }
 
   /** Supply elapsed seconds, not frame deltas. Frozen intervals never catch up. */
