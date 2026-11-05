@@ -154,6 +154,7 @@ export function ZoneContent({ locale, zoneId, data }: {
           <h2>{vi ? "Liên hệ & CV" : "Contact & CV"}</h2>
           <address className={styles.links}>
             {published(p.email) && <a href={`mailto:${p.email}`}>{p.email}</a>}
+            {p.phone && published(p.phone) && <a href={`tel:${p.phone.replace(/\s/g, "")}`}>{p.phone}</a>}
             {published(p.githubUrl) && <a href={p.githubUrl}>GitHub</a>}
             {published(p.linkedinUrl) && <a href={p.linkedinUrl}>LinkedIn</a>}
             {cv}

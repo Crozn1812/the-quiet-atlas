@@ -34,7 +34,7 @@ import type { EndingFrame } from "./cinematic/ending";
 import type { IntroFrame } from "./cinematic/intro";
 import { SECRETS, nearestSecret } from "../story/secrets";
 import { initialStory, storyReducer } from "../story/story";
-import { storyFeedbackText } from "../story/copy";
+import { POEM_TOGGLE, storyFeedbackText } from "../story/copy";
 import { createSecretLandmark, disposeLandmark } from "./props/secrets";
 import { lightingAt } from "./sky/grade";
 import { timeOfDayAt } from "./layout/lighting";
@@ -406,9 +406,45 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   feedback.dataset.worldStoryFeedback = "true";
   feedback.setAttribute("aria-live", "polite");
   feedback.setAttribute("aria-atomic", "true");
-  Object.assign(feedback.style, { position: "absolute", bottom: "4rem", left: "1rem", right: "1rem", fontSize: ".875rem", pointerEvents: "none" });
+  // Layout lives in portfolio.css (poem card above the E hint); inline styles are the bare fallback.
+  Object.assign(feedback.style, {
+    position: "absolute", bottom: "4rem", left: "1rem", right: "1rem", fontSize: ".875rem", pointerEvents: "none",
+    whiteSpace: "pre-line", fontStyle: "italic",
+  });
   container.appendChild(feedback);
+  // Q-32: Duy's poems show in English first; the button reveals the Vietnamese original (and back).
+  let poemLanguage: WorldLocale = "en";
+  const translate = document.createElement("button");
+  translate.type = "button";
+  translate.dataset.worldStoryTranslate = "true";
+  translate.hidden = true;
+  Object.assign(translate.style, { position: "absolute", bottom: "1.5rem", left: "1rem", fontSize: ".8rem", zIndex: "1" });
+  container.appendChild(translate);
   let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  const POEM_SECONDS = 14_000;
+  function renderPoem() {
+    if (!story.lastFeedback) return;
+    feedback.textContent = storyFeedbackText(story.lastFeedback, poemLanguage);
+    feedback.setAttribute("lang", poemLanguage);
+    translate.textContent = POEM_TOGGLE[poemLanguage === "en" ? "toVi" : "toEn"][locale];
+  }
+  function hidePoem() {
+    feedback.textContent = "";
+    translate.hidden = true;
+    feedbackTimer = undefined;
+  }
+  function holdPoem() {
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(hidePoem, POEM_SECONDS);
+  }
+  function togglePoem() {
+    poemLanguage = poemLanguage === "en" ? "vi" : "en";
+    renderPoem();
+    holdPoem();
+  }
+  translate.addEventListener("click", togglePoem);
+  translate.addEventListener("pointerenter", holdPoem);
+  translate.addEventListener("focus", holdPoem);
   function discover(id: string) {
     if (!cameraEnabled()) return false;
     const secret = nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z });
@@ -419,9 +455,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const response = secret.id === "unwritten-page" && !story.found.has(secret.id)
       ? { id: secret.id, feedback: "not-yet" as const } : { id: secret.id, feedback: "found" as const };
     story = { ...story, lastFeedback: response };
-    feedback.textContent = storyFeedbackText(response, locale);
-    clearTimeout(feedbackTimer);
-    feedbackTimer = setTimeout(() => { feedback.textContent = ""; feedbackTimer = undefined; }, 6000);
+    poemLanguage = "en";
+    translate.hidden = false;
+    renderPoem();
+    holdPoem();
     if (story.found.size > previous.found.size) {
       container.dispatchEvent(new CustomEvent("tqa:secret-found", { bubbles: false, detail: { id: secret.id, count: story.found.size } }));
     }
@@ -703,7 +740,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dataset.worldLocale = locale;
     gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
     if (cinematicUI) cinematicUI.skip.textContent = WORLD_COPY[locale].skip;
-    if (feedback.textContent && story.lastFeedback) feedback.textContent = storyFeedbackText(story.lastFeedback, locale);
+    // Locale changes only relabel the toggle; the poem stays in the language the reader chose.
+    if (feedback.textContent && story.lastFeedback) renderPoem();
     if (mascotHintZone) mascotHint.textContent = MASCOT_HINTS[mascotHintZone][locale];
     if (metrics) metrics.textContent = "";
     interaction.update();
@@ -1138,6 +1176,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     removeCinematicUI();
     clearTimeout(feedbackTimer);
     feedback.remove();
+    translate.removeEventListener("click", togglePoem);
+    translate.removeEventListener("pointerenter", holdPoem);
+    translate.removeEventListener("focus", holdPoem);
+    translate.remove();
     clearMascotHint();
     mascotHint.remove();
     mascot.dispose();

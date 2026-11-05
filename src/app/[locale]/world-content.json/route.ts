@@ -23,13 +23,18 @@ export async function GET(_request: Request, { params }: {
       role: profile.role,
       level: profile.level,
       introduction: profile.introduction,
-      // B2-115 (Lead): public contact layer only — the phone number stays in the CV (spec §4.4).
+      // Spec §4.4 keeps the phone in the CV by default; Duy chose to show it on the web too (Q-04, 2026-11-04).
       email: profile.email,
+      phone: profile.phone,
       githubUrl: profile.githubUrl,
       linkedinUrl: profile.linkedinUrl,
       experience: profile.experience.map(({ employer, title, start, end, summary }) => ({ employer, title, start, end, summary })),
       education: profile.education.map(({ institution, program, expectedGraduation, status }) => ({ institution, program, expectedGraduation, status })),
     },
+    skills: profile.skills,
+    certificates: profile.certificates,
+    direction: profile.direction,
+    hobbies: profile.hobbies,
     projects: content.projects.filter(p => p.locale === locale).map(project => ({
       id: project.id,
       slug: project.slug,

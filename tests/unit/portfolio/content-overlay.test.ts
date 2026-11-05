@@ -43,7 +43,7 @@ it("provides focusable skip targets, using the information card on Welcome", asy
 });
 
 // B2-115: every zone is a magazine page; no "under construction" remains (zones without Duy's data say so honestly).
-it("uses public profile/projects/journey/contact in every zone and never shows placeholders or the phone", async () => {
+it("uses public profile/projects/journey/contact in every zone and never shows placeholders; the phone only on Last Postcard (Duy, Q-04)", async () => {
   for (const locale of ["en", "vi"] as const) {
     const response = await GET(new Request("https://example.com"), { params: Promise.resolve({ locale }) });
     const data = await response.json();
@@ -61,14 +61,22 @@ it("uses public profile/projects/journey/contact in every zone and never shows p
     }
     for (const zoneId of ["roots", "milestones", "old-trail", "horizon", "quiet-shore", "last-postcard"]) {
       const html = renderToStaticMarkup(createElement(ZoneContent, { locale, data, zoneId }));
-      expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD/);
-      expect(html).not.toContain(p.phone);
+      expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD|Duy đang viết|still writing/);
+      if (zoneId !== "last-postcard") expect(html).not.toContain(p.phone);
+    }
+    // Q-34..37: the four "about Duy" zones render every item Duy gave.
+    const about = { roots: p.skills, milestones: p.certificates, horizon: p.direction, "quiet-shore": p.hobbies } as const;
+    for (const [zoneId, items] of Object.entries(about)) {
+      expect(items.length).toBeGreaterThan(0);
+      const html = renderToStaticMarkup(createElement(ZoneContent, { locale, data, zoneId }));
+      for (const item of items) expect(html).toContain(item.title.replaceAll("&", "&amp;"));
     }
     const trail = renderToStaticMarkup(createElement(ZoneContent, { locale, data, zoneId: "old-trail" }));
     for (const item of p.experience) expect(trail).toContain(item.employer);
     for (const item of p.education) expect(trail).toContain(item.institution);
     const postcard = renderToStaticMarkup(createElement(ZoneContent, { locale, data, zoneId: "last-postcard" }));
     expect(postcard).toContain(`mailto:${p.email}`);
+    expect(postcard).toContain(`tel:${p.phone.replaceAll(" ", "")}`);
     expect(postcard).toContain(p.githubUrl);
     expect(postcard).toContain(p.linkedinUrl);
   }

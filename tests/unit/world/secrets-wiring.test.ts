@@ -224,7 +224,10 @@ it("grounds four unsigned landmarks at the story positions and gives them neutra
   }
 });
 
-it("keeps the early bench metaphorical; discovers once, translates feedback and hides it after six seconds", async () => {
+const translate = () => container.children.find(child => child.dataset.worldStoryTranslate)! as Element & { hidden: boolean };
+
+// Q-32: the poem shows in English first; the toggle reveals Duy's Vietnamese original and back.
+it("keeps the early bench metaphorical; discovers once, toggles the poem's language and hides it after 14 seconds", async () => {
   await mount();
   const events: CustomEvent[] = [];
   const onFound = (event: Event) => events.push(event as CustomEvent);
@@ -239,12 +242,24 @@ it("keeps the early bench metaphorical; discovers once, translates feedback and 
   expect(events.every(event => !event.bubbles)).toBe(true);
   expect(feedback().attributes["aria-live"]).toBe("polite");
   expect(feedback().textContent).toBe(SECRET_FEEDBACK.reflection.en);
+  expect(feedback().attributes.lang).toBe("en");
+  expect(translate().hidden).toBe(false);
+  expect(translate().textContent).toBe("Read in Vietnamese");
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
+  // The page locale relabels the button but keeps the poem in the reader's chosen language.
+  expect(feedback().textContent).toBe(SECRET_FEEDBACK.reflection.en);
+  expect(translate().textContent).toBe("Tiếng Việt");
+  send(translate(), "click");
   expect(feedback().textContent).toBe(SECRET_FEEDBACK.reflection.vi);
-  vi.advanceTimersByTime(5999);
+  expect(feedback().attributes.lang).toBe("vi");
+  expect(translate().textContent).toBe("Bản tiếng Anh");
+  vi.advanceTimersByTime(10_000);
+  send(translate(), "pointerenter");
+  vi.advanceTimersByTime(13_999);
   expect(feedback().textContent).not.toBe("");
   vi.advanceTimersByTime(1);
   expect(feedback().textContent).toBe("");
+  expect(translate().hidden).toBe(true);
   send(container, "tqa:set-locale", { detail: { locale: "en" } });
   expect(feedback().textContent).toBe("");
   discover("forgotten-sound"); discover("unmarked-road"); discover("unwritten-page");

@@ -101,17 +101,17 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     expect(html).toContain(locale === "vi" ? "Dự kiến tốt nghiệp: 2027" : "Expected graduation: 2027");
   });
 
-  it("shows only the permitted contact links, even if the incoming object includes a phone", () => {
+  // Q-04: Duy chose to show the phone on the web as well as the CV (spec §4.4 lets the owner choose).
+  it("shows the permitted contact links, including the phone Duy chose to publish", () => {
     const data = fixture(locale);
     const profile = content.profiles.find(p => p.locale === locale)!;
     Object.assign(data.profile, { phone: profile.phone, cvUrl: "TBD" });
     const html = render(locale, "last-postcard", data);
-    for (const href of [`mailto:${profile.email}`, profile.githubUrl, profile.linkedinUrl, "/cv/"]) {
+    for (const href of [`mailto:${profile.email}`, `tel:${profile.phone.replaceAll(" ", "")}`, profile.githubUrl, profile.linkedinUrl, "/cv/"]) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).toContain("<address");
-    expect(html).not.toContain(profile.phone);
-    expect(html).not.toMatch(/tel:|TBD|target=/);
+    expect(html).not.toMatch(/TBD|target=/);
   });
 
   it.each(optional)("shows honest copy for %s when %s is absent or empty", (zoneId, field) => {

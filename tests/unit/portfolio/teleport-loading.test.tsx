@@ -49,7 +49,11 @@ it("reserves a modal during lazy loading, traps focus and cancels without reopen
     await act(async () => {
       dom.container.dispatchEvent(new CustomEvent("tqa:teleport-choose", { detail: { from: "roots" } }));
     });
-    expect(dom.document.querySelector("dialog[open]")!.querySelectorAll("li")).toHaveLength(8);
+    // The real chooser module is transformed on first import; cold (single-file run) that takes longer than one act.
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(dom.document.querySelector("dialog[open]")?.querySelectorAll("li")).toHaveLength(8);
+    }, { timeout: 5_000 });
   } finally {
     chunk.release();
     await act(async () => { removeMenu?.(); });

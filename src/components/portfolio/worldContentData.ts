@@ -36,6 +36,7 @@ export interface WorldContentData {
     introduction: string;
     // Optional while older serialized world-content payloads remain supported.
     email?: string;
+    phone?: string;
     githubUrl?: string;
     linkedinUrl?: string;
     experience?: WorldExperience[];

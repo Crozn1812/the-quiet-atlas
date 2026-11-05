@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { endingUnlocked, initialJournal, journalReducer, type SecretId } from "../../../src/features/journal/model";
-import { NOT_YET_FEEDBACK, SECRET_FEEDBACK, storyFeedbackText } from "../../../src/features/story/copy";
+import { NOT_YET_FEEDBACK, SECRET_POEMS, SECRET_FEEDBACK, storyFeedbackText } from "../../../src/features/story/copy";
 import { SECRETS, nearestSecret } from "../../../src/features/story/secrets";
 import { initialStory, storyReducer, type StoryState } from "../../../src/features/story/story";
 import { pathPointAt } from "../../../src/features/world/layout/path";
@@ -236,18 +236,21 @@ describe("secret scenery placement and proximity", () => {
 });
 
 describe("metaphorical feedback and memory-only boundary", () => {
-  it.each(["en", "vi"] as const)("provides one short sentence per discovery and not-yet in %s", locale => {
+  // Q-32: each answer is one of Duy's four-line poems; the Vietnamese is Duy's original, word for word.
+  it.each(["en", "vi"] as const)("answers each discovery and the early bench with a four-line poem in %s", locale => {
     for (const id of ids) {
-      expect(storyFeedbackText({ id, feedback: "found" }, locale)).toBe(SECRET_FEEDBACK[id][locale]);
+      expect(storyFeedbackText({ id, feedback: "found" }, locale)).toBe(SECRET_POEMS[id][locale].join("\n"));
+      expect(SECRET_FEEDBACK[id][locale].split("\n")).toHaveLength(4);
     }
     expect(storyFeedbackText({ id: "unwritten-page", feedback: "not-yet" }, locale)).toBe(NOT_YET_FEEDBACK[locale]);
-    const sentences = [...Object.values(SECRET_FEEDBACK).map(copy => copy[locale]), NOT_YET_FEEDBACK[locale]];
-    expect(new Set(sentences).size).toBe(5);
-    for (const sentence of sentences) {
-      expect(sentence.trim().split(/\s+/).length).toBeLessThanOrEqual(12);
-      expect(sentence.match(/[.!?]/g)).toHaveLength(1);
-    }
-    expect(readFileSync("src/features/story/copy.ts", "utf8")).toContain("// TBD: Duy duyệt câu chữ");
+    expect(NOT_YET_FEEDBACK[locale].split("\n")).toHaveLength(4);
+    const poems = [...Object.values(SECRET_FEEDBACK).map(copy => copy[locale]), NOT_YET_FEEDBACK[locale]];
+    expect(new Set(poems).size).toBe(5);
+    for (const poem of poems) for (const line of poem.split("\n")) expect(line.trim().split(/\s+/).length).toBeLessThanOrEqual(8);
+  });
+  it("keeps Duy's Vietnamese lines verbatim", () => {
+    expect(SECRET_POEMS.reflection.vi).toEqual(["Đọng lại hướng đi,", "Tìm về đường cũ,", "Cứ ngỡ chia li,", "Bình yên để ngủ."]);
+    expect(NOT_YET_FEEDBACK.vi).toContain("vực dậy trong tâm thức");
   });
 
   it("greps every story source for persistence, browser, network and backend APIs", () => {

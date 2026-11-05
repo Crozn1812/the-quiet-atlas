@@ -204,6 +204,78 @@ const hptSummary: Record<Locale, string>={
   en: "Deploying Microsoft Azure cloud services: API Management, Azure Functions, Microsoft Fabric and Power Automate.",
   vi: "Triển khai các dịch vụ cloud Microsoft Azure: API Management, Azure Functions, Microsoft Fabric và Power Automate."
 };
+// Q-34..37 (Duy trả lời 2026-11-05). Giữ đúng mức "đã làm / đã học / muốn học" (spec §4.3), không phần trăm.
+// Định hướng ghi là định hướng tính từ mốc tốt nghiệp, không phải thành tích. Chứng chỉ VTI chưa có mã xác minh
+// nên không ghi mã (Q-40). Phần tính cách đã lược câu về chuyện gia đình (spec §1.1: không đưa chuyện đời tư) — Q-42.
+type ProfileItem={ title: string; description: string };
+const skills: Record<Locale, ProfileItem[]>={
+  vi: [
+    { title: "Cloud: AWS, Azure", description: "Đã làm. Dựng hạ tầng AWS EKS trong dự án CMS DevOps Platform; triển khai dịch vụ Azure khi thực tập tại HPT." },
+    { title: "Container và Kubernetes", description: "Đã làm." },
+    { title: "Monitoring và logging", description: "Đã làm." },
+    { title: "Infrastructure as Code: Terraform", description: "Đã học, đã thực hành." },
+    { title: "CI/CD", description: "Đã học." },
+    { title: "Bảo mật trong DevOps", description: "Đã học." },
+    { title: "Mạng và hệ thống", description: "Ngành học của mình. Đã học và đã làm: dựng hạ tầng mạng Cisco trên Packet Tracer." },
+    { title: "Linux và Python", description: "Linux: đã học, đã làm, tự tin nhất. Python: đã học, đã làm." },
+    { title: "Muốn học tiếp", description: "Nắm thật chắc các kỹ năng DevOps đã học, rồi học tiếp AIOps." }
+  ],
+  en: [
+    { title: "Cloud: AWS, Azure", description: "Done in practice. Built AWS EKS infrastructure in the CMS DevOps Platform project; deploying Azure services as an intern at HPT." },
+    { title: "Containers and Kubernetes", description: "Done in practice." },
+    { title: "Monitoring and logging", description: "Done in practice." },
+    { title: "Infrastructure as Code: Terraform", description: "Studied and practised." },
+    { title: "CI/CD", description: "Studied." },
+    { title: "Security in DevOps", description: "Studied." },
+    { title: "Networking and systems", description: "My major. Studied and done in practice: Cisco network infrastructure built in Packet Tracer." },
+    { title: "Linux and Python", description: "Linux: studied, used in practice, my strongest. Python: studied and used in practice." },
+    { title: "Learning next", description: "Get truly solid on the DevOps skills I have studied, then move on to AIOps." }
+  ]
+};
+const certificates: Record<Locale, ProfileItem[]>={
+  vi: [
+    { title: "Chứng chỉ DevOps, VTI", description: "Hoàn thành khoá DevOps tại VTI, 09/2026. Mã xác minh sẽ thêm khi đã đối chiếu." },
+    { title: "Dự định: AWS Solutions Architect Associate", description: "Chưa thi. Viên đá này còn để trống." },
+    { title: "Dự định: chứng chỉ Linux hoặc CEH", description: "Chưa thi. Viên đá này còn để trống." }
+  ],
+  en: [
+    { title: "DevOps certificate, VTI", description: "Completed the DevOps course at VTI, 09/2026. The verification code will be added once checked." },
+    { title: "Planned: AWS Solutions Architect Associate", description: "Not taken yet. This stone is still blank." },
+    { title: "Planned: a Linux certification or CEH", description: "Not taken yet. This stone is still blank." }
+  ]
+};
+const direction: Record<Locale, ProfileItem[]>={
+  vi: [
+    { title: "1–3 năm sau khi tốt nghiệp (06/2027)", description: "Hiểu rõ mọi mảng của nghề DevOps và các kỹ năng liên quan đến AI." },
+    { title: "Khoảng 3–5 năm kinh nghiệm", description: "Hướng tới vai trò lead trong ngành. Đây là định hướng, chưa phải kinh nghiệm." },
+    { title: "Học tiếp", description: "Dự định học Thạc sĩ một ngành STEM ở nước ngoài." },
+    { title: "Một ngôn ngữ nữa", description: "Mình thích đi đây đi đó, nên muốn học thêm tiếng Đức hoặc tiếng Ý, ngoài tiếng Anh." }
+  ],
+  en: [
+    { title: "1–3 years after graduating (06/2027)", description: "Understand every part of DevOps well, along with AI-related skills." },
+    { title: "Around 3–5 years of experience", description: "Aim for a lead role. This is a direction, not experience." },
+    { title: "Further study", description: "Planning a STEM master's degree abroad." },
+    { title: "One more language", description: "I love travelling, so I want to learn German or Italian on top of English." }
+  ]
+};
+const hobbies: Record<Locale, ProfileItem[]>={
+  vi: [
+    { title: "Xe máy classic", description: "Mình thích đi đâu đó và chạy vòng vòng bằng một chiếc xe dáng classic. Vì vậy mới chọn GD110." },
+    { title: "Nhạc indie", description: "Hay nghe Minh Tốc & Lam; thích nhạc band của Chillies và Chớp." },
+    { title: "Piano", description: "Thích piano hơn guitar, nhưng muốn biết từng chút về mọi loại nhạc cụ." },
+    { title: "Biển", description: "Biển sóng đánh là tâm mình: trầm lặng, nhẹ nhàng, nhưng luôn chạy vì một điều gì đó. Tò mò mọi thứ, muốn khám phá những gì chưa biết, chưa thấy, và hiểu thật sâu từng vấn đề." },
+    { title: "Chó hơn mèo", description: "Vì chó rất trung thành." },
+    { title: "Tính cách", description: "Thích những khoảng một mình và tự sự với chính mình. Cố hết sức, rồi tự cười mình khi mắc lỗi; luôn nghiêm khắc với bản thân." }
+  ],
+  en: [
+    { title: "Classic motorbikes", description: "I like heading somewhere and riding around on a classic-style bike. That is why I chose the GD110." },
+    { title: "Indie music", description: "Often Minh Tốc & Lam; I love the band sound of Chillies and Chớp." },
+    { title: "Piano", description: "I prefer piano to guitar, but I want to know a little about every instrument." },
+    { title: "The sea", description: "Waves on the shore are how I feel inside: quiet and gentle, yet always running toward something. Curious about everything, wanting to explore what I have not known or seen, and to understand things deeply." },
+    { title: "Dogs over cats", description: "Because dogs are so loyal." },
+    { title: "Personality", description: "I like time alone and talking things through with myself. I give it everything, then laugh at myself when I get it wrong; I am always hard on myself." }
+  ]
+};
 export const content=validateContent({
   profiles: locales.map(locale => ({
     locale,
@@ -237,6 +309,10 @@ export const content=validateContent({
         status: "in-progress"
       }
     ],
+    skills: skills[locale],
+    certificates: certificates[locale],
+    direction: direction[locale],
+    hobbies: hobbies[locale],
     ...review
   })),
   projects: locales.flatMap(locale => slugs.map(slug => ({

@@ -46,6 +46,11 @@ export const educationSchema=z.object({
     "in-progress","graduated"
   ])
 });
+// Q-34..37 (Duy, 2026-11-05): kỹ năng, chứng chỉ, định hướng, sở thích. Mỗi mục = tiêu đề + 1 đoạn.
+export const profileItemSchema=z.object({
+  title: text,
+  description: text
+});
 export const profileSchema=z.object({
   locale,
   name: text,
@@ -59,6 +64,10 @@ export const profileSchema=z.object({
   linkedinUrl: publicUrlSchema,
   experience: z.array(experienceSchema).default([]),
   education: z.array(educationSchema).default([]),
+  skills: z.array(profileItemSchema).default([]),
+  certificates: z.array(profileItemSchema).default([]),
+  direction: z.array(profileItemSchema).default([]),
+  hobbies: z.array(profileItemSchema).default([]),
   ...review
 });
 export const evidenceSchema=z.object({
