@@ -44,3 +44,11 @@ Duy yêu cầu giao nhiều việc hơn cho Codex. Đợt 18–19 chạy **12 wo
 | Ngày | Số worker | Lý do |
 |---|---|---|
 | 2026-11-04 | 5 | Khởi đầu theo ADR 0012; chưa đo RAM đỉnh với 5 worker |
+
+## 2026-11-05: tăng lên 8 worker cho đợt 25
+
+- **Lý do:** Duy muốn chia nhiều việc hơn cho Codex. Các ticket hướng A nằm ở các vùng file tách rời nhau.
+- **Giới hạn giữ nguyên:**
+  - tối đa 3 việc nặng chạy cùng lúc (§3.1);
+  - Lead chạy gate tuần tự khi merge.
+- **Khi nào giảm lại:** RAM vượt ~26 GB, hoặc test của worker timeout vì tải máy.
