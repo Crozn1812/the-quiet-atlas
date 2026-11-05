@@ -3,7 +3,7 @@ import type { WorldCopy } from "./WorldEntry";
 import { replaceWorldLocale, type WorldLocale } from "./worldLocale";
 import { mountWorldContent } from "./WorldContent";
 import { worldMenuMessages } from "@/i18n/world-menu";
-import { escapeAction, pauseWorld, returnToPath, setWorldQuality, trapFocus } from "./worldMenuControls";
+import { escapeAction, pauseWorld, returnToPath, setWorldMotion, setWorldQuality, trapFocus } from "./worldMenuControls";
 import type { Quality } from "./worldMenuControls";
 import { journalTitle } from "@/features/journal/model";
 import { mountWorldJournal } from "./journal/WorldJournal";
@@ -49,30 +49,17 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     return element;
   }
 
-  button(() => `× ${copy.close}`, close);
   button(() => journalTitle(language), () => {
     close();
     removeJournal.toggle();
   });
-  let mascotEnabled = container.getAttribute("data-world-mascot") !== "off";
-  function mascotLabel() {
-    const status = language === "vi" ? mascotEnabled ? "Bật" : "Tắt" : mascotEnabled ? "On" : "Off";
-    return `Mascot: ${status}`;
-  }
-  const mascotToggle = button(mascotLabel, () => {
-    mascotEnabled = !mascotEnabled;
-    syncMascot();
-    container.dispatchEvent(new CustomEvent("tqa:set-mascot", {
-      bubbles: false,
-      detail: { enabled: mascotEnabled },
-    }));
+  button(() => copy.returnToPath, () => {
+    returnToPath(container);
+    close();
   });
-  function syncMascot() {
-    mascotToggle.textContent = mascotLabel();
-    mascotToggle.setAttribute("aria-pressed", String(mascotEnabled));
-  }
-  translations.push(syncMascot);
   const label = document.createElement("label");
+  // Keep the existing paper/ink styling; whitespace separates the menu groups.
+  label.style.marginBlockStart = "2rem";
   const qualityText = document.createElement("span");
   translations.push(() => {
     qualityText.textContent = copy.quality;
@@ -97,37 +84,58 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     setWorldQuality(container, select.value as Quality);
   });
   container.addEventListener("tqa:world-state", syncQuality);
-  button(() => copy.returnToPath, () => {
-    returnToPath(container);
-    close();
-  });
-  const quick = document.createElement("a");
-  translations.push(() => {
-    quick.href = `/${language}/quick/`;
-    quick.textContent = copy.quick;
-  });
-  dialog.append(quick);
-  const keys = document.createElement("details");
-  const summary = document.createElement("summary");
-  translations.push(() => {
-    summary.textContent = copy.keys;
-  });
-  keys.append(summary);
-  for (const key of ["move", "camera", "zoom", "escape"] as const) {
-    const line = document.createElement("p");
-    translations.push(() => {
-      line.textContent = copy[key];
-    });
-    keys.append(line);
+
+  const soundButton = container.parentElement?.querySelector<HTMLButtonElement>('button[aria-describedby="sound-reason"]');
+  function soundLabel() {
+    return `${copy.sound}: ${soundButton?.getAttribute("aria-pressed") === "true" ? copy.on : copy.off}`;
   }
-  dialog.append(keys);
-  button(() => copy.leave, leaveWorld);
-  button(() => copy.close, close);
+  const soundToggle = button(soundLabel, () => {
+    // The HUD owns audio and user activation, including failed/pending enables.
+    soundButton?.click();
+    syncSound();
+  });
+  function syncSound() {
+    soundToggle.textContent = soundLabel();
+    soundToggle.setAttribute("aria-pressed", String(soundButton?.getAttribute("aria-pressed") === "true"));
+    soundToggle.disabled = !soundButton || soundButton.disabled;
+  }
+  translations.push(syncSound);
+  const soundObserver = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(syncSound);
+  if (soundButton) soundObserver?.observe(soundButton, { attributes: true, attributeFilter: ["aria-pressed", "disabled"] });
+
+  let reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const motionLabel = () => `${copy.motion}: ${reducedMotion ? copy.on : copy.off}`;
+  const motionToggle = button(motionLabel, () => {
+    reducedMotion = !reducedMotion;
+    syncMotion();
+    setWorldMotion(container, reducedMotion);
+  });
+  function syncMotion() {
+    motionToggle.textContent = motionLabel();
+    motionToggle.setAttribute("aria-pressed", String(reducedMotion));
+  }
+  translations.push(syncMotion);
+
+  let mascotEnabled = container.getAttribute("data-world-mascot") !== "off";
+  const mascotLabel = () => `Mascot: ${mascotEnabled ? copy.on : copy.off}`;
+  const mascotToggle = button(mascotLabel, () => {
+    mascotEnabled = !mascotEnabled;
+    syncMascot();
+    container.dispatchEvent(new CustomEvent("tqa:set-mascot", {
+      bubbles: false,
+      detail: { enabled: mascotEnabled },
+    }));
+  });
+  function syncMascot() {
+    mascotToggle.textContent = mascotLabel();
+    mascotToggle.setAttribute("aria-pressed", String(mascotEnabled));
+  }
+  translations.push(syncMascot);
 
   const languages = document.createElement("fieldset");
   const legend = document.createElement("legend");
   translations.push(() => {
-    legend.textContent = language === "vi" ? "Ngôn ngữ" : "Language";
+    legend.textContent = copy.language;
   });
   languages.append(legend);
   for (const next of ["en", "vi"] as const) {
@@ -154,12 +162,38 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     languages.append(choice);
   }
   dialog.append(languages);
+
+  const keys = document.createElement("details");
+  keys.style.marginBlockStart = "2rem";
+  const summary = document.createElement("summary");
+  translations.push(() => {
+    summary.textContent = copy.keys;
+  });
+  keys.append(summary);
+  for (const key of ["move", "camera", "zoom", "interact", "cruise", "journal", "escape"] as const) {
+    const line = document.createElement("p");
+    translations.push(() => {
+      line.textContent = copy[key];
+    });
+    keys.append(line);
+  }
+  dialog.append(keys);
+  const quick = document.createElement("a");
+  translations.push(() => {
+    quick.href = `/${language}/quick/`;
+    quick.textContent = copy.quick;
+  });
+  dialog.append(quick);
+  const leave = button(() => copy.leave, leaveWorld);
+  leave.style.marginBlockStart = "2rem";
+  button(() => `× ${copy.close}`, close);
   for (const translate of translations) translate();
 
   function open(source: HTMLElement) {
     if (document.querySelector("dialog[open]")) return;
     opener = source;
     syncQuality();
+    syncSound();
     dialog.showModal();
     pauseWorld(container, true);
     title.focus();
@@ -172,7 +206,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   });
   dialog.addEventListener("keydown", (event) => {
     if (event.key !== "Tab") return;
-    const items = Array.from(dialog.querySelectorAll<HTMLElement>("button, select, a[href], summary"));
+    const items = Array.from(dialog.querySelectorAll<HTMLElement>("button:not(:disabled), select:not(:disabled), a[href], summary"));
     const next = trapFocus(items, document.activeElement as HTMLElement | null, event.shiftKey);
     if (!next) return;
     event.preventDefault();
@@ -202,6 +236,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     removeJournal();
     removeTeleport();
     removeContent();
+    soundObserver?.disconnect();
     document.removeEventListener("keydown", onEscape, true);
     container.removeEventListener("tqa:world-state", syncQuality);
     trigger.removeEventListener("click", onMenu);

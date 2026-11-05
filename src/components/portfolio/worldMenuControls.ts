@@ -20,6 +20,10 @@ export function setWorldQuality(target: EventTarget, quality: Quality) {
   target.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality } }));
 }
 
+export function setWorldMotion(target: EventTarget, reduced: boolean) {
+  target.dispatchEvent(new CustomEvent("tqa:set-motion", { detail: { reduced } }));
+}
+
 export function returnToPath(target: EventTarget) {
   target.dispatchEvent(new CustomEvent("tqa:return-to-path"));
 }
