@@ -27,3 +27,19 @@ Nguồn ảnh: tìm trên mạng, không rõ tác giả. **Chỉ lấy cảm h�
 - `coast-ref-duy-2026-11-05-a.webp`: đường ven biển giờ vàng. Núi xanh cao có mây vờn đỉnh; sườn cỏ vàng xanh; bãi đá cuội, cát; đá xếp chồng; cột điện gỗ. Ánh nắng ấm, trong.
 - `coast-ref-duy-2026-11-05-b.png`: đường nhựa ven biển có vạch vàng, cột tiêu trắng đỏ phía biển. Biển xanh ngọc, trời xanh có mây trắng; núi đá dốc phủ cây xanh; mũi đất đá xa; bãi đá ven bờ.
 - Ý Duy: muốn bối cảnh **rõ, chân thật, thực tế hơn**. Hiện tại thấy sơ sài.
+
+## Đợt 25 (2026-11-05): rừng, Duy gửi ("trong khu rừng thì đối với mình sẽ gần giống như này")
+
+Nguồn: tìm trên mạng, không rõ tác giả. **Chỉ lấy cảm hứng**, không chép bố cục, không dùng pixel.
+
+- `forest-ref-duy-2026-11-05-6.png`: rừng già ẩm, tối.
+  - Thân cây lớn phủ rêu, nghiêng.
+  - Cây cầu gỗ/tre có tay vịn bắc qua khe suối.
+  - Dương xỉ, đá rêu; sương xanh ở chiều sâu.
+- `forest-ref-duy-2026-11-05-7.png`: rừng mây (cloud forest) xanh rêu.
+  - Thân cây cao phủ rêu, dây leo và dương xỉ bám thân.
+  - Lối mòn đất nhỏ uốn lượn.
+  - Sương dày phía sau, các lớp cây mờ dần.
+- `forest-ref-duy-2026-11-05-8.png`: rừng lá rộng xanh tươi.
+  - Nắng lọt qua tán, đốm sáng trên lối đất phủ lá khô màu cam nâu.
+  - Bụi cây thấp hai bên lối.
