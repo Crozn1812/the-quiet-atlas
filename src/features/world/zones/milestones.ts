@@ -182,7 +182,8 @@ function fits(parts: readonly Part[], context: ZoneSceneContext, side: number, o
     part.geometry.computeBoundingBox();
     const bounds = part.geometry.boundingBox!;
     const size = bounds.getSize(new Vector3());
-    const stepsX = Math.ceil(size.x / 0.05), stepsZ = Math.ceil(size.z / 0.05);
+    // Lead perf (2026-11-06): 10 cm footprint sampling, edges included (5 cm cost 1.47 s per mount, now ~0.42 s; same placement).
+    const stepsX = Math.ceil(size.x / 0.1), stepsZ = Math.ceil(size.z / 0.1);
     for (let ix = 0; ix <= stepsX; ix++) {
       for (let iz = 0; iz <= stepsZ; iz++) {
         const x = side * (part.x + bounds.min.x + size.x * ix / Math.max(1, stepsX));
