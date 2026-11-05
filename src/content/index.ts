@@ -205,8 +205,9 @@ const hptSummary: Record<Locale, string>={
   vi: "Triển khai các dịch vụ cloud Microsoft Azure: API Management, Azure Functions, Microsoft Fabric và Power Automate."
 };
 // Q-34..37 (Duy trả lời 2026-11-05). Giữ đúng mức "đã làm / đã học / muốn học" (spec §4.3), không phần trăm.
-// Định hướng ghi là định hướng tính từ mốc tốt nghiệp, không phải thành tích. Chứng chỉ VTI chưa có mã xác minh
-// nên không ghi mã (Q-40). Phần tính cách đã lược câu về chuyện gia đình (spec §1.1: không đưa chuyện đời tư) — Q-42.
+// Định hướng ghi là định hướng tính từ mốc tốt nghiệp, không phải thành tích. Chứng chỉ VTI: Lead đã đối chiếu bản
+// giấy Duy gửi (Q-40, 2026-11-05): "Certificate of Completion", khoá DEVOPS, VTI Academy, 9/2026; giấy không có mã
+// xác minh nên không ghi mã. Bản chụp chứng chỉ lưu ngoài repo. Phần tính cách Duy đã duyệt (Q-42).
 type ProfileItem={ title: string; description: string };
 const skills: Record<Locale, ProfileItem[]>={
   vi: [
@@ -234,12 +235,12 @@ const skills: Record<Locale, ProfileItem[]>={
 };
 const certificates: Record<Locale, ProfileItem[]>={
   vi: [
-    { title: "Chứng chỉ DevOps, VTI", description: "Hoàn thành khoá DevOps tại VTI, 09/2026. Mã xác minh sẽ thêm khi đã đối chiếu." },
+    { title: "Chứng nhận hoàn thành khoá DevOps, VTI Academy", description: "Certificate of Completion, 09/2026. Khoá học có đồ án tốt nghiệp là CMS DevOps Platform trên AWS EKS." },
     { title: "Dự định: AWS Solutions Architect Associate", description: "Chưa thi. Viên đá này còn để trống." },
     { title: "Dự định: chứng chỉ Linux hoặc CEH", description: "Chưa thi. Viên đá này còn để trống." }
   ],
   en: [
-    { title: "DevOps certificate, VTI", description: "Completed the DevOps course at VTI, 09/2026. The verification code will be added once checked." },
+    { title: "Certificate of Completion: DevOps, VTI Academy", description: "Completed the DevOps training course, 09/2026. Its graduation project was the CMS DevOps Platform on AWS EKS." },
     { title: "Planned: AWS Solutions Architect Associate", description: "Not taken yet. This stone is still blank." },
     { title: "Planned: a Linux certification or CEH", description: "Not taken yet. This stone is still blank." }
   ]
@@ -248,13 +249,13 @@ const direction: Record<Locale, ProfileItem[]>={
   vi: [
     { title: "1–3 năm sau khi tốt nghiệp (06/2027)", description: "Hiểu rõ mọi mảng của nghề DevOps và các kỹ năng liên quan đến AI." },
     { title: "Khoảng 3–5 năm kinh nghiệm", description: "Hướng tới vai trò lead trong ngành. Đây là định hướng, chưa phải kinh nghiệm." },
-    { title: "Học tiếp", description: "Dự định học Thạc sĩ một ngành STEM ở nước ngoài." },
+    { title: "Học tiếp", description: "Dự định học Thạc sĩ một ngành STEM ở nước ngoài, và thi một chứng chỉ đánh giá năng lực đầu vào được các trường châu Âu ưa chuộng." },
     { title: "Một ngôn ngữ nữa", description: "Mình thích đi đây đi đó, nên muốn học thêm tiếng Đức hoặc tiếng Ý, ngoài tiếng Anh." }
   ],
   en: [
     { title: "1–3 years after graduating (06/2027)", description: "Understand every part of DevOps well, along with AI-related skills." },
     { title: "Around 3–5 years of experience", description: "Aim for a lead role. This is a direction, not experience." },
-    { title: "Further study", description: "Planning a STEM master's degree abroad." },
+    { title: "Further study", description: "Planning a STEM master's degree abroad, and an entrance aptitude test favoured by European universities." },
     { title: "One more language", description: "I love travelling, so I want to learn German or Italian on top of English." }
   ]
 };

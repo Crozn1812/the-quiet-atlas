@@ -8,13 +8,8 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 |---|---|---|---|---|---|
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
 | Q-33 | **Chấm showcase đợt 18–20** (giữ/sửa/bỏ 9 dòng) | L3 | Không | Khi rảnh | `docs/showcase/20-world-life/checklist.md` |
-| Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong". **Credit đã có (Q-08), nên đây là việc tiếp theo của A2** | L5 | A2 | Sớm | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
-| Q-38 | **Tên miền `nhbduy.id.vn`**: gửi tên nhà đăng ký, ngày hết hạn, giá gia hạn năm sau; kiểm trong trang quản lý tên miền xem **có cho đổi nameserver sang nameserver ngoài** không (bắt buộc để dùng Route 53). Chưa tạo hosted zone, chưa đổi nameserver | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1–2 |
-| Q-39 | **Duyệt bản tiếng Anh 5 bài thơ secrets** (Lead dịch; bản tiếng Việt giữ nguyên lời Duy). Giữ hoặc sửa từng câu | L3 | Không | Khi rảnh | `src/features/story/copy.ts` |
-| Q-40 | **Chứng chỉ VTI DevOps**: có mã hoặc link xác minh không? Web hiện chỉ ghi "hoàn thành 09/2026", chưa ghi mã (spec §4.3) | L2 | Không | Khi có | Gửi mã/link; Lead đối chiếu rồi mới đưa lên |
-| Q-41 | **"Chứng chỉ PRE"** trong câu trả lời định hướng là chứng chỉ gì (ví dụ PTE, GRE…)? Lead chưa đưa lên web vì chưa rõ | L2 | Không | Khi rảnh | Trả lời 1 dòng |
-| Q-42 | **Duyệt phần tính cách (Quiet Shore)**: Lead đã lược câu về chuyện gia đình (spec: không đưa chuyện đời tư); "chửi bản thân" ghi thành "luôn nghiêm khắc với bản thân"; "thích sống một mình" ghi thành "thích những khoảng một mình". Giữ cách viết này hay sửa? | L2 | Không | Khi rảnh | Trang Quiet Shore trong world |
-| Q-43 | **Email theo tên miền** (spec §11.3 mục 5, không bắt buộc): muốn dùng `hello@nhbduy.id.vn` chuyển tiếp về Gmail không? Hiện web giữ Gmail | L5 | Không | Sau A2 | Chỉ làm nếu nhà đăng ký có email forwarding miễn phí |
+| Q-20 | **AWS bảo mật tài khoản** (Duy tự làm). MFA bằng app Authenticator: **đã xong** (Duy, 2026-11-05). Còn: (a) kiểm root **không có access key**; (b) tạo **user dùng hằng ngày** (không dùng root). Đây là bảo mật, **không phải** nhiệm vụ nhận credit | L5 | A2 | Sớm | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
+| Q-38 | **Tên miền `nhbduy.id.vn`** (VinaHost, 60k/năm, mua 2026-11-05; có mục nameserver tùy chỉnh). **Chưa bấm "Đổi Nameservers"**: giữ ns3/ns4.vinahost.vn tới khi A2 tạo hosted zone Route 53 và Lead gửi 4 nameserver. Còn thiếu: ngày hết hạn chính xác (dự kiến 2027-11-05), bật tự gia hạn | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 3–4 |
 
 ## Câu trả lời ngày 2026-11-05 — Lead đã ghi nhận
 
@@ -27,6 +22,11 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | Q-35 | Chứng chỉ DevOps của VTI (09/2026); dự định AWS SAA và Linux hoặc CEH | Trang The Milestones: 1 đã đạt + 2 "dự định" (khớp 2 đá trống) |
 | Q-36 | Định hướng 1–3 năm, lead sau 3–5 năm kinh nghiệm tính từ tốt nghiệp 06/2027; Thạc sĩ STEM ở nước ngoài; học tiếng Đức hoặc Ý | Trang The Horizon, ghi là định hướng (spec §4.3). "Chứng chỉ PRE" chờ Q-41 |
 | Q-37 | Xe classic (GD110), indie (Minh Tốc & Lam, Chillies, Chớp), piano, biển, thích chó, tính cách; tả cảnh bờ biển hoàng hôn | Trang The Quiet Shore; cảnh biển giao Codex B2-152…156 (đợt 24) |
+| Q-39 | Bản tiếng Anh 5 bài thơ: duyệt | Giữ nguyên |
+| Q-40 | Gửi ảnh chứng chỉ: "Certificate of Completion", khóa DEVOPS, VTI Academy, 9/2026 | Lead đối chiếu: không có mã xác minh trực tuyến nên web ghi tên, tổ chức, tháng/năm, không ghi mã. Ảnh lưu ngoài repo (có con dấu, chữ ký) |
+| Q-41 | "PRE" là chứng chỉ đánh giá năng lực đầu vào Thạc sĩ, được các trường châu Âu ưa chuộng | Web ghi chung "chứng chỉ đánh giá năng lực đầu vào", chưa ghi tên viết tắt (khi chắc tên thì gửi lại) |
+| Q-42 | Duyệt cách viết phần tính cách | Giữ nguyên |
+| Q-43 | Chỉ dùng `duybao09012004@gmail.com`, không dùng email theo tên miền | Đóng; không tạo email forwarding |
 
 ## Câu trả lời ngày 2026-11-04 (lượt 2) — Lead đã ghi nhận
 

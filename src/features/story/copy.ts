@@ -5,7 +5,7 @@ import type { StoryFeedback } from "./story";
 /**
  * Q-32 (Duy, 2026-11-05): each secret answers with one of Duy's own four-line poems. The world shows the English
  * rendering first with a button that reveals the Vietnamese original. The Vietnamese lines are Duy's words verbatim;
- * the English lines are Lead's translation (Q-39: Duy to approve or rewrite).
+ * the English lines are Lead's translation, approved by Duy (Q-39, 2026-11-05).
  */
 export interface Poem {
   readonly en: readonly string[];
