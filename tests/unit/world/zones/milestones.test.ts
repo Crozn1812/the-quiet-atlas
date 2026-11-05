@@ -1,8 +1,13 @@
 import { Box3, BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ZONE_IDS } from "../../../../src/features/interaction/targets";
 import { paletteColor, WORLD_DIRECTION } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
+import { HEIGHT } from "../../../../src/features/world/scene";
+import { surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { TERRAIN_SEED } from "../../../../src/features/world/terrain/height";
+import { placeZoneScenes } from "../../../../src/features/world/zones";
 import { createMilestonesScene } from "../../../../src/features/world/zones/milestones";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
@@ -34,8 +39,10 @@ function points(mesh: Mesh, start = 0, count = mesh.geometry.getAttribute("posit
 }
 function moundAt(scene: ZoneScene, x: number, z: number) {
   scene.group.updateMatrixWorld(true);
-  return new Raycaster(new Vector3(x, 20, z), new Vector3(0, -1, 0))
-    .intersectObject(named(scene, "mound"))[0]?.point.y ?? 0;
+  const origin = scene.group.localToWorld(new Vector3(x, 20, z));
+  const hit = new Raycaster(origin, new Vector3(0, -1, 0))
+    .intersectObject(named(scene, "mound"))[0];
+  return hit ? scene.group.worldToLocal(hit.point.clone()).y : 0;
 }
 function rockPoints(scene: ZoneScene, index: number) {
   const surface = index < 7 ? "weathered" : "future";
@@ -67,6 +74,47 @@ afterEach(() => {
 });
 
 describe("The Milestones hillside", () => {
+  it("places the scene on the composed world's real terrain", () => {
+    const placed = placeZoneScenes(surfaceHeight);
+    try {
+      const scene = placed.find(zone => zone.zoneId === "milestones")!;
+      expect(scene).toBeDefined();
+      const anchor = scene.group.position;
+      const heightAt = (x: number, z: number) => {
+        const p = new Vector3(x, 0, z).applyMatrix4(scene.group.matrixWorld);
+        return surfaceHeight(p.x, p.z) - anchor.y;
+      };
+      // The complete composition retreats along the road onto its shallow uphill shoulder.
+      const target = scene.interactable.position;
+      expect(target.x).toBeLessThan(-PATH_CLEARANCE);
+      expect(Math.abs(target.z)).toBeGreaterThan(8);
+      const edge = new Vector3(-PATH_CLEARANCE, 0, target.z);
+      edge.y = heightAt(edge.x, edge.z) + HEIGHT;
+      expect(edge.distanceTo(target)).toBeLessThanOrEqual(2.5);
+      const flat = create({ seed: TERRAIN_SEED + ZONE_IDS.indexOf("milestones") });
+      const offsetZ = target.z - flat.interactable.position.z;
+      const localHeights = unique(rockPoints(scene, 0)).map(point =>
+        point.y - heightAt(point.x, point.z) - moundAt(flat, -point.x, point.z - offsetZ));
+      expect(Math.min(...localHeights)).toBeCloseTo(0, 5);
+      expect(Math.max(...localHeights)).toBeCloseTo(2.4, 5);
+      // Near-foot, middle and upper-body sight lines must reach rock before any terrain lip.
+      const ground = moundAt(scene, target.x, target.z);
+      for (const lift of [0.2, 1.2, 2.1]) {
+        const eye = scene.group.localToWorld(edge.clone());
+        const aim = scene.group.localToWorld(new Vector3(target.x, ground + lift, target.z));
+        const hit = new Raycaster(eye, aim.clone().sub(eye).normalize())
+          .intersectObjects(scene.group.children)[0];
+        expect(hit?.object.name).toMatch(/^milestones-(ink|weathered)$/);
+        const localHit = scene.group.worldToLocal(hit!.point.clone());
+        for (let i = 0; i <= 20; i++) {
+          const point = edge.clone().lerp(localHit, i / 20);
+          expect(point.y).toBeGreaterThan(heightAt(point.x, point.z));
+        }
+      }
+    } finally {
+      placed.forEach(zone => zone.dispose());
+    }
+  });
   it.each([0, 1, 104, 65535])("seed %i: fits triangle, draw-call and full 3D radius budgets", seed => {
     const scene = create({ seed });
     let triangles = 0, drawCalls = 0;
@@ -93,7 +141,7 @@ describe("The Milestones hillside", () => {
     expect(snapshot(create({ seed: 105 }))).not.toEqual(snapshot(first));
   });
 
-  it.each([0, 1, 104, 65535])("seed %i: has six rough leaning rocks, a broad 2 m target and two detached low slots", seed => {
+  it.each([0, 1, 104, 65535])("seed %i: has six rough leaning rocks, a broad 2.4 m target and two detached low slots", seed => {
     const scene = create({ seed });
     expect(scene.zoneId).toBe("milestones");
     expect(scene.colliders).toHaveLength(10);
@@ -104,7 +152,7 @@ describe("The Milestones hillside", () => {
       const vertices = unique(rockPoints(scene, index));
       const local = vertices.map(point => new Vector3(point.x, point.y - moundAt(scene, point.x, point.z), point.z));
       const height = Math.max(...local.map(point => point.y));
-      if (index === 0) expect(height).toBeCloseTo(2, 5);
+      if (index === 0) expect(height).toBeCloseTo(2.4, 5);
       else if (index < 7) {
         expect(height).toBeGreaterThanOrEqual(0.9);
         expect(height).toBeLessThanOrEqual(1.6);
@@ -229,6 +277,23 @@ describe("The Milestones hillside", () => {
     }
   });
 
+  it("moves the whole cluster behind a steep road-side lip onto flat dry ground", () => {
+    const heightAt = (x: number, z: number) => z <= -6 ? 0 : -4 * Math.min(1, Math.max(0, x - 3));
+    const flat = create(), retreat = create({ heightAt, underWater: x => x < 0 });
+    expect(retreat.interactable.position.z - flat.interactable.position.z).toBeCloseTo(-16, 5);
+    const before = meshes(flat), after = meshes(retreat);
+    for (const [index, mesh] of before.entries()) {
+      const a = mesh.geometry.getAttribute("position"), b = after[index]!.geometry.getAttribute("position");
+      for (let i = 0; i < a.count; i++) {
+        expect(b.getX(i)).toBeCloseTo(a.getX(i), 5);
+        expect(b.getZ(i)).toBeCloseTo(a.getZ(i) - 16, 5);
+        expect(b.getY(i)).toBeCloseTo(a.getY(i), 5);
+        expect(heightAt(b.getX(i), b.getZ(i))).toBe(0);
+      }
+    }
+    expect(snapshot(create({ heightAt, underWater: x => x < 0 }))).toEqual(snapshot(retreat));
+  });
+
   it("keeps the labelled middle stone 2–6 m from the corridor and within E range at its edge", () => {
     for (const seed of [0, 1, 104, 65535]) {
       for (const wet of [false, true]) {
@@ -237,7 +302,7 @@ describe("The Milestones hillside", () => {
         const fromEdge = Math.abs(point.x) - PATH_CLEARANCE;
         expect(fromEdge).toBeGreaterThanOrEqual(2);
         expect(fromEdge).toBeLessThanOrEqual(6);
-        const standingAtEdge = new Vector3(Math.sign(point.x) * PATH_CLEARANCE, 0, point.z);
+        const standingAtEdge = new Vector3(Math.sign(point.x) * PATH_CLEARANCE, HEIGHT, point.z);
         expect(standingAtEdge.distanceTo(point)).toBeLessThanOrEqual(2.5);
         expect(scene.interactable.label).toEqual({ vi: "Cụm đá dấu mốc", en: "Milestone rocks" });
       }
@@ -247,7 +312,7 @@ describe("The Milestones hillside", () => {
   it("uses only palette recipes, neutral vertex pigment and soft matte ramp materials", () => {
     const scene = create();
     const expected = [
-      new Color(PALETTE.mist).lerp(new Color(PALETTE.paper), 0.35).getHex(),
+      new Color(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.45).getHex(),
       new Color(PALETTE.mist).lerp(new Color(PALETTE.paper), 0.88).getHex(),
       new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
       paletteColor(WORLD_DIRECTION.foliage.crown),

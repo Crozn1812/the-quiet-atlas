@@ -121,7 +121,7 @@ function materials(): Record<Surface, MeshToonMaterial> {
   const ramp = WORLD_DIRECTION.foliage.ramp;
   const result = {
     weathered: createRampMaterial(paletteColor({
-      base: "mist", mix: "paper", amount: 0.35, saturation: 1, brightness: 1,
+      base: "ink", mix: "paper", amount: 0.45, saturation: 1, brightness: 1,
     }), ramp),
     future: createRampMaterial(paletteColor({
       base: "mist", mix: "paper", amount: 0.88, saturation: 1, brightness: 1,
@@ -161,12 +161,30 @@ function fits(parts: readonly Part[], context: ZoneSceneContext, side: number, o
   });
 }
 
+/** Prefer a level shoulder behind the road's lip, rather than draping rocks down its steep face. */
+function slopeAtSite(context: ZoneSceneContext, side: number, offsetZ: number) {
+  let steepest = 0;
+  // Cover the complete mound and the road-facing approach; use the same local terrain as the feet.
+  for (let x = PATH_CLEARANCE; x <= 16; x += 2) {
+    for (let z = -9; z <= 9; z += 3) {
+      const y = context.heightAt(side * x, z + offsetZ);
+      const across = context.heightAt(side * (x + 1), z + offsetZ) - y;
+      const along = context.heightAt(side * x, z + offsetZ + 1) - y;
+      const slope = Math.hypot(across, along);
+      if (!Number.isFinite(slope)) return Infinity;
+      steepest = Math.max(steepest, slope);
+    }
+  }
+  // Numerically equal slopes keep the authored order, including on a uniform gentle incline.
+  return Math.round(steepest * 1e6) / 1e6;
+}
+
 export const createMilestonesScene: ZoneSceneFactory = context => {
   const random = randomFor(context.seed);
   const parts: Part[] = [];
   // The large road-facing rock is followed by six irregularly spaced companions, not a memorial arc.
   const stones = [
-    [4.7, 0, 2.2, 1.02, 2],
+    [4.7, 0, 2.2, 1.02, 2.4],
     [6.8, -3.1, 1.16, 0.83, 1.28], [9.5, -4.8, 1.32, 1.04, 1.52],
     [10.9, -1.4, 0.98, 0.86, 1.08], [7.4, 2.6, 1.28, 0.91, 1.41],
     [10.3, 4.2, 1.08, 0.96, 1.19], [11.5, 1.4, 1.36, 1.1, 1.56],
@@ -195,8 +213,10 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     surface: "flower", x, z, solid: false,
   });
 
-  // Keep the complete composition on dry ground, trying the opposite bank and then along the path.
-  const placement = [0, -8, 8, -16, 16].flatMap(offsetZ => [1, -1].map(side => ({ side, offsetZ })))
+  // Move the whole composition together to the flattest dry shoulder, keeping the target near the road.
+  const placement = [0, -4, 4, -8, 8, -12, 12, -16, 16]
+    .flatMap(offsetZ => [1, -1].map(side => ({ side, offsetZ, slope: slopeAtSite(context, side, offsetZ) })))
+    .sort((a, b) => a.slope - b.slope)
     .find(({ side, offsetZ }) => fits(parts, context, side, offsetZ));
   if (!placement) {
     parts.forEach(part => part.geometry.dispose());
