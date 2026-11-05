@@ -4,7 +4,8 @@ import type { ZoneId } from "../interaction/targets";
 export const HINT_COOLDOWN = 45;
 
 export const MASCOT_HINTS: Readonly<Record<ZoneId, Readonly<Record<Locale, string>>>> = {
-  "first-light": { en: "Use WASD to walk; press E near a marker to read.", vi: "Dùng WASD di chuyển; nhấn E gần dấu mốc để đọc." },
+  // The HUD key hint already teaches the controls on arrival; the mascot points somewhere instead (Lead UX review).
+  "first-light": { en: "Press E at the notebook by the log, then follow the stream.", vi: "Nhấn E ở cuốn sổ cạnh khúc gỗ, rồi theo dòng suối." },
   roots: { en: "Press E nearby to read about skills.", vi: "Nhấn E ở gần để đọc về kỹ năng." },
   workshop: { en: "Press E nearby to explore selected projects.", vi: "Nhấn E ở gần để đọc các dự án tiêu biểu." },
   milestones: { en: "Press E nearby to read about certificates and learning.", vi: "Nhấn E ở gần để đọc về chứng chỉ và học tập." },
