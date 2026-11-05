@@ -57,7 +57,7 @@ function installBarkLighting(material: Material, branches = false) {
   const previousKey = material.customProgramCacheKey.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
-    shader.uniforms.forestBarkLuma = { value: new Vector2(0.055, 0.10) };
+    shader.uniforms.forestBarkLuma = { value: new Vector2(0.02, 0.05) };
     if (branches) {
       // surface may already be declared by the tree-shape install (it derives "hanging" from it).
       if (!shader.vertexShader.includes("attribute float surface;")) shader.vertexShader = "attribute float surface;\n" + shader.vertexShader;
@@ -74,7 +74,7 @@ if (vForestWood > 0.5) vColor.xyz /= instanceColor;
       .replace("#include <common>", "#include <common>\nuniform vec2 forestBarkLuma;")
       .replace("#include <opaque_fragment>", `
 ${branches ? "if (vForestWood > 0.5)" : ""} {
-outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.85);
+outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.25);
 float barkLuma = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
 outgoingLight *= clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y) / max(barkLuma, 0.00001);
 }
@@ -103,13 +103,15 @@ if (vForestWood < 0.5) {
   #endif
   // The existing front-lit ramp is retained; rescue only backlit/no-sun leaves.
   // Add only missing ambient luma, preserving relief above the floor.
-  if (leafBacklit) {
-    vec3 leafShade = rampShadowTint;
+  // Lead: floor every leaf, also sun-facing leaves inside cast shadow (they rendered black).
+  {
+    // Lead: rescue with the leaf's own green, only tinted toward the cool shade (was pure shade/sky blue → navy crowns).
+    vec3 leafShade = mix(diffuseColor.rgb, rampShadowTint, 0.2) * vec3(1.05, 1.0, 0.72);
     #if NUM_HEMI_LIGHTS > 0
-      leafShade = mix(leafShade, hemisphereLights[0].skyColor, 0.5);
+      leafShade = mix(leafShade, leafShade * hemisphereLights[0].skyColor * 2.0, 0.25);
     #endif
     float leafLuma = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
-    outgoingLight += leafShade * (max(0.12 - leafLuma, 0.0)
+    outgoingLight += leafShade * (max(0.075 - leafLuma, 0.0)
       / max(dot(leafShade, vec3(0.2126, 0.7152, 0.0722)), 0.00001));
   }
 }

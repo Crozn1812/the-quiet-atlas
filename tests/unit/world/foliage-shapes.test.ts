@@ -182,12 +182,13 @@ describe("painted procedural tree shapes", () => {
     } finally { trunk.dispose(); }
   });
 
-  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: has 18-30 small closed leaf bunches`, () => {
+  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: has 14-30 small closed leaf bunches`, () => {
     const geometry = createBroadleafCrown(seed);
     try {
       const positions = geometry.getAttribute("position");
       const masses = leafMasses(geometry);
-      expect(masses.length).toBeGreaterThanOrEqual(18);
+      // Lead 2026-11-06: 14 dome bunches (was 18–30) keep the crown under the world +25% triangle cap.
+      expect(masses.length).toBeGreaterThanOrEqual(14);
       expect(masses.length).toBeLessThanOrEqual(30);
       const widths: number[] = [];
       const colors = geometry.getAttribute("color"), surfaces = geometry.getAttribute("surface");
@@ -313,7 +314,8 @@ describe("painted procedural tree shapes", () => {
           expect(canopy.min.y / height).toBeGreaterThanOrEqual(0.35);
           expect(canopy.min.y / height).toBeLessThanOrEqual(0.45);
           expect(size.y / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.7);
-          expect(size.y / Math.max(size.x, size.z)).toBeLessThanOrEqual(1.5);
+          // Lead 2026-11-06: same 1.6 aspect limit as the unit crown above (dome canopy on tall trail trees).
+          expect(size.y / Math.max(size.x, size.z)).toBeLessThanOrEqual(1.6);
         }
       }
     } finally { foliage.dispose(); shapes.forEach(shape => shape.dispose()); }

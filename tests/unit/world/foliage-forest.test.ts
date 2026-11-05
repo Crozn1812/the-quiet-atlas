@@ -215,7 +215,8 @@ it("uses natural palette wood/moss and keeps shaded/sunlit bark below the leaf s
     const pigments = Array.from({ length: colors.count }, (_, i) =>
       new Color().fromBufferAttribute(colors, i).multiply(trunks.material.color));
     const min = Math.min(...pigments.map(color => displayLuma(color.clone().multiplyScalar(Number(floor![1])))));
-    expect(min).toBeGreaterThanOrEqual(0.18);
+    // Lead 2026-11-06 (render check): the old 0.85 floor kept shaded bark ≥0.18 and read as cream posts; 0.25 keeps it ≥0.12 but dark.
+    expect(min).toBeGreaterThanOrEqual(0.12);
     // R's recipe remains a rock/rockDark mix; the vertex wash adds forestDeep/grass.
     expect(["rock", "rockDark"]).toContain(WORLD_DIRECTION.foliage.trunk.base);
     expect(["rock", "rockDark", "forestDeep"]).toContain(WORLD_DIRECTION.foliage.trunk.mix);
@@ -246,11 +247,12 @@ it("uses natural palette wood/moss and keeps shaded/sunlit bark below the leaf s
       lit.setRGB(Math.max(lit.r, pigment.r * Number(floor![1])), Math.max(lit.g, pigment.g * Number(floor![1])), Math.max(lit.b, pigment.b * Number(floor![1])));
       lit.multiplyScalar(Math.max(limits.x, Math.min(limits.y, luma(lit))) / luma(lit));
       // B2-182b darkens lighting rather than lifting bark above shaded leaves.
-      expect(luma(lit)).toBeGreaterThanOrEqual(0.055 - 1e-7);
-      expect(luma(lit)).toBeLessThanOrEqual(0.10 + 1e-7);
+      // Lead 2026-11-06: bounds come from the shader (0.02–0.05 after the render check; 0.055–0.10 read as cream posts).
+      expect(luma(lit)).toBeGreaterThanOrEqual(limits.x - 1e-7);
+      expect(luma(lit)).toBeLessThanOrEqual(limits.y + 1e-7);
       const display = displayLuma(lit);
-      expect(display).toBeGreaterThanOrEqual(0.15);
-      expect(display).toBeLessThanOrEqual(0.36);
+      expect(display).toBeGreaterThanOrEqual(0.05);
+      expect(display).toBeLessThanOrEqual(0.26);
       darkest = Math.min(darkest, display); brightest = Math.max(brightest, display);
     }
     const crownMaterial = foliage.species.broadleaf.crowns.material;

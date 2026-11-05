@@ -146,12 +146,47 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     branchStarts.push(new Vector3(0.04, -0.85 + branch * 0.3, -0.02));
     branchEnds.push(end);
     tips.push(radial.clone().multiplyScalar(0.72).setY(3.65 + branch * 0.05));
-    for (let bunch = 0; bunch < 6; bunch++) {
-      const offset = [-0.1, 0.1, -0.08, 0.08, -0.06, 0.04][bunch]!;
-      const reach = [1.3, 1.55, 1.16, 1.23, 0.9, 0.48][bunch]!;
-      const center = radial.clone().multiplyScalar(reach).addScaledVector(side, offset + (random() - 0.5) * 0.16);
-      center.y = [-0.55, 0.42, 1.14, 2.02, 2.92, 3.65][bunch]! + branch * 0.05 + (random() - 0.5) * 0.12;
-      const radius = (bunch === 2 || bunch === 4 ? 0.64 : 0.735) + random() * 0.008;
+    void side;
+  }
+  // Lead (2026-11-06): leaf bunches cover a domed ellipsoid shell (Fibonacci spread + seeded jitter)
+  // instead of three vertical columns, which rendered as hollow arches. Bunches overlap into one
+  // canopy mass with small sun gaps; the envelope matches the old crown (reach ≈ 2.3 m, y −1.3…4.4).
+  const BUNCHES = 14; // Lead: 14 larger bunches + twigs stay below the old 457-triangle crown (world +25% cap).
+  const bunchCenters: Vector3[] = [], bunchRadii: number[] = [], bunchAngles: number[] = [];
+  for (let bunch = 0; bunch < BUNCHES; bunch++) {
+    const k = (bunch + 0.5) / BUNCHES;
+    // Latitudes from the crown top down to slightly below the equator (no bunch under the limbs).
+    const lat = Math.asin(Math.max(-1, 1 - 2.07 * k));
+    const lon = phase + bunch * 2.39996323 + (random() - 0.5) * 0.35;
+    const shell = 0.86 + random() * 0.1;
+    bunchAngles.push(lon);
+    bunchCenters.push(new Vector3(Math.cos(lon) * Math.cos(lat) * 2.05 * shell,
+      1.26 + Math.sin(lat) * 2.62 * shell + (random() - 0.5) * 0.2,
+      Math.sin(lon) * Math.cos(lat) * 2.05 * shell));
+    bunchRadii.push(0.6 + random() * 0.14 - 0.03 * Math.max(0, Math.sin(lat)));
+  }
+  // Pull any bunch that does not overlap toward its nearest higher neighbour: one joined canopy.
+  // Each bunch links to the nearest earlier (higher) bunch, so the overlap graph is connected.
+  for (let i = 1; i < BUNCHES; i++) {
+    let nearest = -1, best = Infinity;
+    for (let j = 0; j < i; j++) {
+      const d = bunchCenters[i]!.distanceTo(bunchCenters[j]!);
+      if (d < best) { best = d; nearest = j; }
+    }
+    const reach = (bunchRadii[i]! + bunchRadii[nearest]!) * 0.72;
+    if (best > reach) {
+      // Pull sideways first (keeps the canopy floor and top), then close any remaining vertical gap.
+      const a = bunchCenters[i]!, b = bunchCenters[nearest]!;
+      const dy = a.y - b.y, need = Math.sqrt(Math.max(0, reach * reach - dy * dy));
+      const flat = Math.hypot(a.x - b.x, a.z - b.z);
+      if (need > 0 && flat > need) { const f = (flat - need) / flat; a.x += (b.x - a.x) * f; a.z += (b.z - a.z) * f; }
+      const now = a.distanceTo(b);
+      if (now > reach) a.lerp(b, (now - reach) / now);
+    }
+  }
+  for (let bunch = 0; bunch < BUNCHES; bunch++) {
+    {
+      const center = bunchCenters[bunch]!, radius = bunchRadii[bunch]!, angle = bunchAngles[bunch]!;
       const start = positions.length / 3;
       for (let i = 0; i < spherePoints.length; i += 3) {
         const x = spherePoints[i]!, y = spherePoints[i + 1]!, z = spherePoints[i + 2]!;
@@ -223,13 +258,13 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     vertex(radial.clone().multiplyScalar(0.24).setY(-TRUNK_HEIGHT + 0.85), 1);
     indices.push(start, start + 3, start + 2, start + 2, start + 3, start + 1, start + 1, start + 3, start);
   }
+  const twigFrom = (center: Vector3) => new Vector3(0.08, Math.min(2.4, Math.max(-0.6, center.y * 0.55 - 0.2)), -0.03);
   for (let branch = 0; branch < 3; branch++) {
-    const from = branchStarts[branch]!, end = branchEnds[branch]!;
-    limb(from, end, 0.15, 0.075);
-    limb(end, tips[branch]!, 0.075, 0.025);
+    // Lead: vines hang from the twigs of the three lowest dome bunches (the twigs are the branches now).
+    const low = bunchCenters[bunchCenters.length - 1 - branch]!, from = twigFrom(low), end = from.clone().lerp(low, 0.92);
     // Thin double-sided ribbons hang from limbs, away from the crown boundary.
     // Per-tree selection remains owned by hasHangingFoliage in instances.ts.
-    const anchor = from.clone().lerp(end, 0.75);
+    const anchor = from.clone().lerp(end, 0.6);
     const length = 1.25 + branch * 0.45 + random() * 0.1;
     const start = positions.length / 3;
     // A straight tapered ribbon needs only two end rows on each side.
@@ -241,6 +276,11 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     }
     indices.push(start, start + 2, start + 1, start + 1, start + 2, start + 3,
       start + 5, start + 6, start + 4, start + 7, start + 6, start + 5);
+  }
+  // One thin twig from the leader to each dome bunch, so every leaf mass hangs on wood.
+  for (const center of bunchCenters) {
+    const from = twigFrom(center);
+    limb(from, from.clone().lerp(center, 0.92), 0.07, 0.03);
   }
   const geometry = geometryFrom(positions, indices);
   const normals = geometry.getAttribute("normal");

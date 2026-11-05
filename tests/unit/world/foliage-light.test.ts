@@ -41,12 +41,15 @@ function oldLight(pigment: Color, grade: LightingGrade, shader: WebGLProgramPara
 /** CPU evaluation with constants read from the installed leaf shader. */
 function leafLight(old: Color, pigment: Color, grade: LightingGrade, shader: WebGLProgramParametersWithUniforms, nl: number, edge: number): Color {
   const out = old.clone();
-  if (nl >= 0) return out;
-  const coefficients = shader.fragmentShader.match(/mix\(([\d.]+), ([\d.]+), leafEdge\)/)!;
-  const k = Number(coefficients[1]) + (Number(coefficients[2]) - Number(coefficients[1])) * edge;
-  out.add(pigment.clone().multiply(grade.sunColor).multiplyScalar(grade.sunIntensity * k * (1 - nl)));
+  if (nl < 0) {
+    const coefficients = shader.fragmentShader.match(/mix\(([\d.]+), ([\d.]+), leafEdge\)/)!;
+    const k = Number(coefficients[1]) + (Number(coefficients[2]) - Number(coefficients[1])) * edge;
+    out.add(pigment.clone().multiply(grade.sunColor).multiplyScalar(grade.sunIntensity * k * (1 - nl)));
+  }
+  // Lead 2026-11-06: every leaf is floored (also sun-facing leaves in cast shade), using the leaf green.
   const floor = Number(shader.fragmentShader.match(/max\(([\d.]+) - leafLuma, 0.0\)/)![1]);
-  const shade = (shader.uniforms.rampShadowTint!.value as Color).clone().lerp(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity), 0.5);
+  const shade = pigment.clone().lerp(shader.uniforms.rampShadowTint!.value as Color, 0.2).multiply(new Color(1.05, 1, 0.72));
+  shade.lerp(shade.clone().multiply(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity * 2)), 0.25);
   return out.add(shade.multiplyScalar(Math.max(floor - luma(out), 0) / Math.max(luma(shade), 0.00001)));
 }
 
@@ -81,10 +84,11 @@ describe("foliage graded lighting (B2-183)", () => {
                 const rim = leafLight(old, pigment, grade, shader, nl, 1);
                 if (nl < 0) {
                   minimum = Math.min(minimum, luma(display(center)), luma(display(rim)));
-                  expect(luma(center)).toBeGreaterThanOrEqual(0.12 - 1e-12);
+                  expect(luma(center)).toBeGreaterThanOrEqual(0.075 - 1e-12);
                   expect(luma(rim)).toBeGreaterThanOrEqual(luma(center) - 1e-12);
                 } else {
-                  frontRatio = Math.max(frontRatio, luma(display(center)) / luma(display(old)));
+                  // Leaves already above the floor must not brighten; floored cast-shade leaves are the intended change.
+                  if (luma(old) >= 0.075) frontRatio = Math.max(frontRatio, luma(display(center)) / luma(display(old)));
                 }
               }
             }
@@ -92,12 +96,12 @@ describe("foliage graded lighting (B2-183)", () => {
         }
         // Force zero illumination/pigment to exercise the ambient fallback alone.
         const shade = leafLight(new Color(0, 0, 0), new Color(0, 0, 0), grade, shader, -1, 0);
-        expect(luma(shade)).toBeCloseTo(0.12, 10);
+        expect(luma(shade)).toBeCloseTo(0.075, 10);
         expect(shade.b).toBeGreaterThan(shade.r);
       }
       expect(minimum).toBeGreaterThanOrEqual(0.12);
       expect(frontRatio).toBeLessThanOrEqual(1.1);
-      process.stdout.write(`B2-182b CPU t=0.15/0.86/0.93: min backlit display luma=${minimum.toFixed(4)}; front-lit ratio=${frontRatio.toFixed(4)}; backlit linear floor=0.1200\n`);
+      process.stdout.write(`B2-182b CPU t=0.15/0.86/0.93: min backlit display luma=${minimum.toFixed(4)}; front-lit ratio=${frontRatio.toFixed(4)}; leaf linear floor=0.0750\n`);
     } finally { foliage.dispose(); }
   });
 
@@ -120,7 +124,7 @@ describe("foliage graded lighting (B2-183)", () => {
           const colors = mesh.geometry.getAttribute("color"), surfaces = mesh.geometry.getAttribute("surface");
           const shader = compile(mesh.material), bounds = shader.uniforms.forestBarkLuma!.value as Vector2;
           expect(bounds.y).toBeLessThan(0.12);
-          expect(shader.fragmentShader).toContain("outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.85);");
+          expect(shader.fragmentShader).toContain("outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.25);");
           expect(shader.fragmentShader).toContain("clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y)");
           for (let instance = 0; instance < mesh.count; instance++) {
             const tint = new Color(); mesh.getColorAt(instance, tint);
@@ -219,7 +223,7 @@ describe("foliage graded lighting (B2-183)", () => {
       for (const [kind, species] of Object.entries(foliage.species)) for (const { seed, crowns, trunks } of species.variants) {
         const crownTriangles = crowns.geometry.index!.count / 3, trunkTriangles = trunks.geometry.index!.count / 3;
         expect(trunkTriangles).toBe(42);
-        expect(crownTriangles).toBe(kind === "pine" ? (3 + seed % 3) * 44 : 457); // B2-182b: 18 round bunches + budgeted wood/vines.
+        expect(crownTriangles).toBe(kind === "pine" ? (3 + seed % 3) * 44 : 425); // Lead: 14 dome bunches + one twig each + trunk/roots/vines.
         expect(Object.keys(crowns.geometry.attributes).sort()).toEqual(["color", "normal", "position", "shapeA", "shapeB", "surface", "treeStyle"]);
         expect(crowns.material).toBe(foliage.species.broadleaf.crowns.material);
         reports.push(`${kind}/${seed}=${kind === "pine" ? crownTriangles + trunkTriangles : 391}->${crownTriangles + trunkTriangles}`);
