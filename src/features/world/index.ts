@@ -11,6 +11,7 @@ import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpa
 import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import { createZoneEntryTracker, placeZoneScenes, zoneFoliageBounds } from "./zones";
+import { placeDressing } from "./dressing";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
 import { ACESFilmicToneMapping, Box3, Color, HemisphereLight, PerspectiveCamera, Ray, Scene, Raycaster, Vector2, Vector3, WebGLRenderer, type Mesh, type ShaderMaterial } from "three";
@@ -80,14 +81,17 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let paperPass: ReturnType<typeof createGradedPaperPass> | undefined;
   let renderer: WebGLRenderer | undefined;
   let zones: ReturnType<typeof placeZoneScenes> = [];
+  let dressing: ReturnType<typeof placeDressing> | undefined;
   try {
     const physicsBackend = opts.collision === "raycast"
       ? createMeshPhysics()
       : await (await import("./rapier")).createController(undefined, [], { streamed: true });
     if ("step" in physicsBackend) controller = physicsBackend;
     zones = placeZoneScenes(surfaceHeight);
-    const zoneBoxes = zones.flatMap(zone => zone.boxes);
+    dressing = placeDressing();
+    const zoneBoxes = [...zones.flatMap(zone => zone.boxes), ...dressing.boxes];
     for (const zone of zones) scene.add(zone.group);
+    for (const group of dressing.groups) scene.add(group);
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     if (opts.collision !== "raycast") for (const box of zoneBoxes) {
       const size = box.geometry.parameters;
@@ -103,6 +107,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     controller.teleport(worldSpawn());
   } catch (error) {
     zones.forEach(zone => zone.dispose());
+    dressing?.dispose();
     composition?.dispose();
     controller?.dispose();
     paperPass?.dispose();
@@ -1075,6 +1080,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     updateMascot(canSimulate(state) ? dt : 0);
     updateMascotHint(canSimulate(state) ? dt : 0);
     for (const zone of zones) zone.update?.(animDt, reducedMotion);
+    dressing?.update(animDt, reducedMotion);
     for (const zoneId of trackZoneEntry(physics.position, canSimulate(state) && !cinematicLocked() && !teleport.inputLocked)) {
       container.dispatchEvent(new CustomEvent("tqa:zone-enter", { bubbles: false, detail: { zoneId } }));
     }
@@ -1230,6 +1236,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     motionPreference?.removeEventListener("change", updateMotionPreference);
     composed.dispose();
     zones.forEach(zone => zone.dispose());
+    dressing?.dispose();
     physics.dispose();
     character.dispose();
     for (const { root } of secretTargets) {
