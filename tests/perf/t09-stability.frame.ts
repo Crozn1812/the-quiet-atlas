@@ -15,7 +15,7 @@
 // PASS = no crash/page error, world still running/unpaused and responsive at the end, every trend "ổn định".
 import { createWriteStream, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test, type CDPSession, type Locator, type Page } from "@playwright/test";
+import { expect, test, type CDPSession, type Locator, type Page } from "../e2e/test"; // skips the opening cinematic
 import { classifyTrend, deltasFromTimestamps, formatT09Markdown, frameStats, toCsv, type Trend } from "../../tools/frame-budget/index.mjs";
 import { enterWorld, trackConsoleErrors } from "../e2e/helpers";
 import { OUT_DIR, ROUTE, driveRoute, installGlCounter, machineInfo, pageNow, startRecorder, stopRecorder } from "./frame-harness";

@@ -10,7 +10,7 @@
 // HEADED Edge, maximised, real DPR — see playwright.frame.config.ts. T08_RUNS / T08_SCENARIOS (comma list) narrow a run.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../e2e/test"; // skips the opening cinematic: T08 measures gameplay frames
 import { T08_METHOD, deltasFromTimestamps, evaluateT08, frameStats, toCsv, type T08Run } from "../../tools/frame-budget/index.mjs";
 import { enterWorld, trackConsoleErrors } from "../e2e/helpers";
 import { OUT_DIR, ROUTE, driveRoute, machineInfo, pageNow, selectQuality, startRecorder, stopRecorder, type Quality } from "./frame-harness";
