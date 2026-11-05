@@ -25,11 +25,9 @@ function tint(key: keyof typeof PALETTE, amount: number): Color {
   return new Color(PALETTE.paper).lerp(new Color(PALETTE[key]), amount);
 }
 
-// Dilute the warm pigment before covering a large horizon; orange stays a small accent.
-const COAST_HORIZON = new Color(PALETTE.paper).lerp(
-  new Color(PALETTE.dusk).lerp(new Color(PALETTE.flower), 0.4).lerp(new Color(PALETTE.vermilion), 0.42), 0.28,
-);
-const COAST_TOP = tint("indigo", 0.64).lerp(tint("vermilion", 0.64), 0.06);
+const SKY_TOP = new Color(PALETTE.skyHigh);
+const SKY_HORIZON = new Color(PALETTE.skyLow);
+const COAST_HORIZON = SKY_HORIZON.clone().lerp(new Color(PALETTE.sunGold), 0.55);
 const COAST_FOG = tint("mist", 0.18).lerp(COAST_HORIZON, 0.2);
 
 /** Same smooth hill-to-coast window as fogAt; position only, with no stored state. */
@@ -38,13 +36,13 @@ export function coastAtmosphereWeight(pathT: number): number {
   return u * u * (3 - 2 * u);
 }
 
-/** Apply AFTER art-direction sky overrides, leaving light following and fog distances intact. */
+/** Restore direction A AFTER legacy sky overrides; preserve light following and fog distances. */
 export function applyCoastAtmosphere(grade: LightingGrade, pathT: number): LightingGrade {
   const weight = coastAtmosphereWeight(pathT);
   if (weight > 0) grade.coastWeight = weight;
   else delete grade.coastWeight;
-  grade.skyTop.lerp(COAST_TOP, weight);
-  grade.skyHorizon.lerp(COAST_HORIZON, weight);
+  grade.skyTop.copy(SKY_TOP);
+  grade.skyHorizon.copy(SKY_HORIZON).lerp(COAST_HORIZON, weight);
   grade.fogColor.lerp(COAST_FOG, weight);
   return grade;
 }
@@ -52,30 +50,28 @@ export function applyCoastAtmosphere(grade: LightingGrade, pathT: number): Light
 // Private snapshots: callers can freely mutate returned grades without changing keyframes.
 const KEYFRAMES: readonly LightingGrade[] = [
   {
-    // B2-031 (Art Director r2): less hemisphere fill so soft shade and dark trunks return.
-    sunColor: tint("dusk", 0.24), sunIntensity: 2.3,
+    sunColor: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.24), sunIntensity: 2.3,
     sunDirection: new Vector3(-0.9, 0.2, 0.4).normalize(),
-    // AD r3: 12% less ground bounce in linear space restores shade without changing hue.
-    hemiSky: tint("mist", 0.25), hemiGround: tint("indigo", 0.28).multiplyScalar(0.88), hemiIntensity: 1.0,
-    fogColor: tint("dusk", 0.1), skyTop: tint("mist", 0.32),
-    skyHorizon: tint("dusk", 0.1), shadowTint: tint("indigo", 0.32),
+    hemiSky: SKY_HORIZON.clone(), hemiGround: new Color(PALETTE.grassDry).lerp(SKY_HORIZON, 0.25).multiplyScalar(0.88), hemiIntensity: 1.0,
+    fogColor: SKY_HORIZON.clone(), skyTop: SKY_TOP.clone(),
+    skyHorizon: SKY_HORIZON.clone(), shadowTint: SKY_TOP.clone().lerp(new Color(PALETTE.cloud), 0.2),
   },
   {
-    sunColor: tint("mist", 0.08), sunIntensity: 2.8,
+    sunColor: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.08), sunIntensity: 2.8,
     sunDirection: new Vector3(0, 0.94, 0.34).normalize(),
-    hemiSky: tint("mist", 0.4), hemiGround: tint("indigo", 0.22).multiplyScalar(0.88), hemiIntensity: 2,
-    fogColor: tint("mist", 0.12), skyTop: tint("mist", 0.55),
-    skyHorizon: tint("mist", 0.12), shadowTint: tint("indigo", 0.26),
+    hemiSky: SKY_HORIZON.clone().lerp(SKY_TOP, 0.15), hemiGround: new Color(PALETTE.grassDry).lerp(SKY_HORIZON, 0.3).multiplyScalar(0.88), hemiIntensity: 2,
+    fogColor: SKY_HORIZON.clone(), skyTop: SKY_TOP.clone(),
+    skyHorizon: SKY_HORIZON.clone(), shadowTint: SKY_TOP.clone().lerp(new Color(PALETTE.cloud), 0.26),
   },
   {
-    sunColor: tint("dusk", 0.4), sunIntensity: 1.7,
+    sunColor: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.4), sunIntensity: 1.7,
     // Low over the sea (-Z), on the walking route's right (+X), with forward reach.
     sunDirection: new Vector3(0.8, 0.14, -0.6).normalize(),
-    hemiSky: tint("mist", 0.24), hemiGround: tint("indigo", 0.32).multiplyScalar(0.88), hemiIntensity: 0.95,
+    hemiSky: SKY_HORIZON.clone(), hemiGround: new Color(PALETTE.grassDry).lerp(SKY_HORIZON, 0.2).multiplyScalar(0.88), hemiIntensity: 0.95,
     fogColor: COAST_FOG,
-    skyTop: COAST_TOP,
+    skyTop: SKY_TOP.clone(),
     skyHorizon: COAST_HORIZON,
-    shadowTint: tint("indigo", 0.36),
+    shadowTint: SKY_TOP.clone().lerp(new Color(PALETTE.cloud), 0.16),
   },
 ];
 
