@@ -2,7 +2,7 @@ import { WORLD_COPY, isWorldLocale, type WorldLocale } from "./copy";
 import { initialAdaptive, sampleQuality, selectManualQuality } from "./adaptive-quality";
 import { createInteraction, ZONE_IDS, type InteractionTarget, type ZoneId } from "../interaction/targets";
 import { SIGNPOSTS, arrivalPoint } from "../navigation/signposts";
-import { createTeleport } from "../navigation/teleport";
+import { createTeleport, MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../navigation/teleport";
 import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
 import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { createLocomotion } from "./locomotion";
@@ -10,6 +10,7 @@ import { PRESETS, type Quality } from "./terrain";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
 import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
+import { createZoneEntryTracker, placeZoneScenes, zoneFoliageBounds } from "./zones";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
 import { ACESFilmicToneMapping, Box3, Color, HemisphereLight, PerspectiveCamera, Ray, Scene, Raycaster, Vector2, Vector3, WebGLRenderer, type Mesh, type ShaderMaterial } from "three";
@@ -78,19 +79,30 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let composition: ReturnType<typeof createWorldScene> | undefined;
   let paperPass: ReturnType<typeof createGradedPaperPass> | undefined;
   let renderer: WebGLRenderer | undefined;
+  let zones: ReturnType<typeof placeZoneScenes> = [];
   try {
     const physicsBackend = opts.collision === "raycast"
       ? createMeshPhysics()
       : await (await import("./rapier")).createController(undefined, [], { streamed: true });
     if ("step" in physicsBackend) controller = physicsBackend;
+    zones = placeZoneScenes(surfaceHeight);
+    const zoneBoxes = zones.flatMap(zone => zone.boxes);
+    for (const zone of zones) scene.add(zone.group);
+    // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
+    if (opts.collision !== "raycast") for (const box of zoneBoxes) {
+      const size = box.geometry.parameters;
+      physicsBackend.world.createCollider(physicsBackend.RAPIER.ColliderDesc.cuboid(size.width / 2, size.height / 2, size.depth / 2)
+        .setTranslation(box.position.x, box.position.y, box.position.z).setRotation(box.quaternion));
+    }
     renderer = new WebGLRenderer({ antialias: true });
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paperPass = createGradedPaperPass(renderer, quality);
-    composition = createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass });
+    composition = createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes, zoneBounds: zoneFoliageBounds(zones) });
     if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
     controller.teleport(worldSpawn());
   } catch (error) {
+    zones.forEach(zone => zone.dispose());
     composition?.dispose();
     controller?.dispose();
     paperPass?.dispose();
@@ -102,10 +114,23 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const composed = composition;
   const paper = paperPass;
   const motionPreference = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-  const bike = createVehicleView({ surfaceHeight, reducedMotion: motionPreference?.matches ?? false });
+  let motionOverride: boolean | undefined;
+  let reducedMotion = motionPreference?.matches ?? false;
+  let syncMotion = () => {};
+  const bike = createVehicleView({ surfaceHeight, reducedMotion });
   function updateMotionPreference() {
-    composed.setReducedMotion(motionPreference?.matches ?? false);
-    bike.setReducedMotion(motionPreference?.matches ?? false);
+    const previous = reducedMotion;
+    reducedMotion = motionOverride ?? motionPreference?.matches ?? false;
+    container.dataset.worldMotion = reducedMotion ? "reduced" : "full";
+    composed.setReducedMotion(reducedMotion);
+    bike.setReducedMotion(reducedMotion);
+    if (previous !== reducedMotion) syncMotion();
+  }
+  function setMotion(event: Event) {
+    const reduced = (event as CustomEvent).detail?.reduced;
+    if (typeof reduced !== "boolean") return;
+    motionOverride = reduced;
+    updateMotionPreference();
   }
   updateMotionPreference();
   motionPreference?.addEventListener("change", updateMotionPreference);
@@ -122,9 +147,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const character = await loadCharacter(CHARACTER_URL);
   const player = character.root;
   scene.add(player);
-  const animator = createCharacterAnimator(character, { reducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false });
+  const animator = createCharacterAnimator(character, { reducedMotion });
   const lastPlayer = new Vector3();
-  // B2-046: hand-cut painted props replace the placeholder boxes; feet rest on the rendered surface.
+  // Teleport signs retain their separate interaction; zone scenes own all content objects.
   function placeProp(kind: PropKind, x: number, z: number, name: string) {
     const mesh = createProp(kind);
     mesh.geometry.computeBoundingBox();
@@ -134,21 +159,14 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     scene.add(mesh);
     return mesh;
   }
-  const contentProps = [
-    { id: "signpost", zoneId: "first-light" as const, offset: 1.8 },
-    { id: "desk", zoneId: "workshop" as const, offset: 2 },
-  ].map(spec => {
-    const zone = ZONES.find(zone => zone.id === spec.zoneId)!;
-    const mesh = placeProp(spec.id as PropKind, zone.position.x + spec.offset, zone.position.z,
-      WORLD_COPY[locale][spec.id === "desk" ? "desk" : "signpost"]);
-    return { id: spec.id, kind: "content" as const, zoneId: spec.zoneId, position: mesh.position, mesh };
-  });
-  const props = [...contentProps, ...SIGNPOSTS.map(post => {
+  const contentTargets = zones.map(zone => zone.target);
+  const props = SIGNPOSTS.map(post => {
     const mesh = placeProp("signpost", post.position.x, post.position.z, `teleport-${post.zoneId}`);
     return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh };
-  })];
+  });
   let story = initialStory();
   let ending: ReturnType<typeof createEndingController> | undefined;
+  let endingOptions: Parameters<typeof createEndingController>[0] | undefined;
   let sunsetBoost = 0;
   let chimeTime = 0;
   const secretSolids: Box3[] = [];
@@ -211,9 +229,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dataset.worldVehicle = vehicle.mode === "walk" ? "parked" : vehicle.cruise ? "cruise" : "manual";
   }
   publishVehicle();
-  const labels = document.createElement("p");
-  labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
-  container.appendChild(labels);
   const camera = new PerspectiveCamera(55, 1, 0.1, 100);
   gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
   gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
@@ -234,7 +249,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const gameplayFar = camera.far;
   const introPending = () => intro?.state !== "done";
   const cinematicLocked = () => introPending() || ending?.inputLocked === true;
-  let teleport = createTeleport({ reducedMotion: motionPreference?.matches ?? false });
+  let teleport = createTeleport({ reducedMotion });
+  let teleportFrom: ZoneId | undefined;
   let destination: ZoneId | undefined;
   let teleportCover: HTMLDivElement | undefined;
   container.dataset.worldTeleport = "idle";
@@ -252,7 +268,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       playerPosition: { x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z },
       heading: Math.atan2(-forward.x, -forward.z),
       terrainHeight: surfaceHeight,
-      reducedMotion: motionPreference?.matches ?? false,
+      reducedMotion,
       teleported,
     };
   }
@@ -268,11 +284,13 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let belowTerrainFrames = 0;
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
-  const cameraObstacles = () => [...composed.collisionMeshes, ...props.map(prop => prop.mesh), ...secretMeshes];
+  const zoneMeshes: Mesh[] = [];
+  zones.forEach(zone => zone.group.traverse(object => { if ((object as Mesh).isMesh) zoneMeshes.push(object as Mesh); }));
+  const cameraObstacles = () => [...composed.collisionMeshes, ...zoneMeshes, ...props.map(prop => prop.mesh), ...secretMeshes];
   const sightRay = new Raycaster();
   const interaction = createInteraction({
     container,
-    targets: [...props, ...secretTargets, vehicleTarget],
+    targets: [...contentTargets, ...props, ...secretTargets, vehicleTarget],
     locale: () => locale,
     player: () => physics.position,
     enabled: cameraEnabled,
@@ -298,8 +316,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     },
     chooseTeleport(from) {
       if (cinematicLocked() || teleport.inputLocked) return false;
-      teleport = createTeleport({ reducedMotion: motionPreference?.matches ?? false });
+      teleport = createTeleport({ reducedMotion });
       if (!teleport.startChoosing(from)) return false;
+      teleportFrom = from;
       parkVehicle();
       clear();
       container.dataset.worldTeleport = "active";
@@ -311,8 +330,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       sightRay.set(physics.position, direction.clone().normalize());
       sightRay.far = Math.max(0, direction.length() - 0.01);
       const ownSecret = secretTargets.find(secret => secret.id === target.id)?.root;
+      const ownZone = zones.find(zone => zone.target.id === target.id);
       const blockers = cameraObstacles().filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh)
-        && !ownSecret?.getObjectById(mesh.id));
+        && !ownSecret?.getObjectById(mesh.id) && !ownZone?.group.getObjectById(mesh.id) && !ownZone?.boxes.includes(mesh as typeof ownZone.boxes[number]));
       return sightRay.intersectObjects(blockers).length === 0;
     },
     visit(zoneId) {
@@ -625,13 +645,16 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       (event.clientX - rect.left) / rect.width * 2 - 1,
       -(event.clientY - rect.top) / rect.height * 2 + 1,
     ), camera);
-    const hit = raycaster.intersectObjects([...composed.visibleMeshes, player, bike.group, ...props.map(prop => prop.mesh), ...secretTargets.map(target => target.root)])[0];
+    // The character is not clickable and must not shadow objects behind it (Lead, B2-100: Horizon click).
+    const hit = raycaster.intersectObjects([...composed.visibleMeshes, ...zoneMeshes, bike.group, ...props.map(prop => prop.mesh), ...secretTargets.map(target => target.root)])[0];
     if (hit && (hit.object === bike.group || bike.group.getObjectById(hit.object.id))) {
       interaction.click(vehicleTarget.id);
       return;
     }
     const target = props.find(prop => prop.mesh === hit?.object || prop.mesh === hit?.object.parent);
     if (target) interaction.click(target.id);
+    const content = contentTargets.find(target => hit && target.root.getObjectById(hit.object.id));
+    if (content) interaction.click(content.id);
     const secret = secretTargets.find(target => hit && target.root.getObjectById(hit.object.id));
     if (secret) interaction.click(secret.id);
   }
@@ -641,7 +664,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     raycaster.far = Infinity;
     raycaster.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
     // Terrain is empty space; visible character, trees and props retain click ownership.
-    if (raycaster.intersectObjects([...composed.foliageMeshes, player, bike.group, ...props.map(prop => prop.mesh), ...secretTargets.map(target => target.root)]).length) return;
+    if (raycaster.intersectObjects([...composed.foliageMeshes, ...zoneMeshes, player, bike.group, ...props.map(prop => prop.mesh), ...secretTargets.map(target => target.root)]).length) return;
     drag = { id: event.pointerId, x: event.clientX };
     gpu.domElement.setPointerCapture(event.pointerId);
   }
@@ -678,14 +701,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (!isWorldLocale(next)) return;
     locale = next;
     container.dataset.worldLocale = locale;
-    labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
     gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
     if (cinematicUI) cinematicUI.skip.textContent = WORLD_COPY[locale].skip;
     if (feedback.textContent && story.lastFeedback) feedback.textContent = storyFeedbackText(story.lastFeedback, locale);
     if (mascotHintZone) mascotHint.textContent = MASCOT_HINTS[mascotHintZone][locale];
-    for (const prop of contentProps) {
-      prop.mesh.name = WORLD_COPY[locale][prop.id === "desk" ? "desk" : "signpost"];
-    }
     if (metrics) metrics.textContent = "";
     interaction.update();
   }
@@ -727,7 +746,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function cancelTeleport() {
     // The shared machine only cancels choosing; the world contract also aborts an active fade.
     teleport.cancel();
-    teleport = createTeleport({ reducedMotion: motionPreference?.matches ?? false });
+    teleport = createTeleport({ reducedMotion });
+    teleportFrom = undefined;
     destination = undefined;
     teleportCover?.remove();
     teleportCover = undefined;
@@ -887,11 +907,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     zoom = arm = INITIAL_ZOOM;
     const endPosition = landing.clone().add(new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH)).multiplyScalar(zoom));
     endPosition.y = Math.max(endPosition.y, surfaceHeight(endPosition.x, endPosition.z) + CAMERA_CLEARANCE);
-    ending = createEndingController({
+    endingOptions = {
       bench: secretTargets.find(target => target.id === "unwritten-page")!.root.position,
       gameplayPose: { position: endPosition, target: landing, fov: 55 },
-      reducedMotion: motionPreference?.matches ?? false,
-    });
+      reducedMotion,
+    };
+    ending = createEndingController(endingOptions);
     story = storyReducer(story, { type: "startEnding" });
     createCinematicUI("ending").focus({ preventScroll: true });
     composed.setPreload(INTRO_PRELOAD_M);
@@ -1001,20 +1022,24 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // A paused world is frozen (§6.1): no idle breathing either (e2e compares paused frames pixel for pixel).
     const animDt = canSimulate(state) ? dt : 0;
     animator.update(animDt, vehicle.mode === "ride" || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
-    publishVehicle(dt);
+    publishVehicle(animDt);
     if (intro?.inputLocked) {
       if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
     } else if (ending?.inputLocked) {
       if (canSimulate(state)) applyEnding(ending.tick(dt));
-    } else updateCamera(dt);
+    } else updateCamera(animDt);
     interaction.update();
     composed.update(physics.position, 0);
     updateMascot(canSimulate(state) ? dt : 0);
     updateMascotHint(canSimulate(state) ? dt : 0);
+    for (const zone of zones) zone.update?.(animDt, reducedMotion);
+    for (const zoneId of trackZoneEntry(physics.position, canSimulate(state) && !cinematicLocked() && !teleport.inputLocked)) {
+      container.dispatchEvent(new CustomEvent("tqa:zone-enter", { bubbles: false, detail: { zoneId } }));
+    }
     publishAmbience(now);
     updateEndingGrade();
-    if (canSimulate(state) && !motionPreference?.matches) chimeTime += dt;
-    chimes.rotation.z = motionPreference?.matches ? 0 : Math.sin(chimeTime * 1.4) * 0.045;
+    if (canSimulate(state) && !reducedMotion) chimeTime += dt;
+    chimes.rotation.z = reducedMotion ? 0 : Math.sin(chimeTime * 1.4) * 0.045;
     paper.render(scene, camera);
     if (metrics) {
       if (!metricStart) metricStart = now;
@@ -1031,10 +1056,47 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   gpu.domElement.addEventListener("webglcontextlost", loseContext);
   updateCamera(FIXED_DT);
-  const intro = createIntroController({
+  const trackZoneEntry = createZoneEntryTracker();
+  const introOptions = {
     gameplayPose: { position: camera.position, target: physics.position, fov: camera.fov },
-    reducedMotion: motionPreference?.matches ?? false,
-  });
+    reducedMotion,
+  };
+  let intro = createIntroController(introOptions);
+  syncMotion = () => {
+    animator.setReducedMotion(reducedMotion);
+    const nextIntro = createIntroController({ ...introOptions, reducedMotion });
+    if (intro.state === "done") nextIntro.skip();
+    else if (intro.state === "playing") {
+      nextIntro.start();
+      const frame = nextIntro.tick(intro.elapsed / intro.duration * nextIntro.duration);
+      intro = nextIntro;
+      applyIntro(frame);
+    }
+    intro = nextIntro;
+    if (ending && endingOptions) {
+      const nextEnding = createEndingController({ ...endingOptions, reducedMotion });
+      if (ending.state === "done") nextEnding.skip();
+      else if (ending.state === "playing") {
+        nextEnding.start();
+        const frame = nextEnding.tick(ending.elapsed / ending.duration * nextEnding.duration);
+        ending = nextEnding;
+        applyEnding(frame);
+      }
+      ending = nextEnding;
+    }
+    if (teleportFrom && teleport.inputLocked) {
+      const next = createTeleport({ reducedMotion });
+      next.startChoosing(teleportFrom);
+      if (destination) {
+        next.choose(destination);
+        const progress = teleport.state === "fadingIn" ? 2 - teleport.opacity : teleport.opacity;
+        next.tick(progress * (reducedMotion ? REDUCED_MOTION_SECONDS : MIST_SECONDS));
+      }
+      teleport = next;
+      if (teleportCover) teleportCover.dataset.worldTeleportCover = teleport.effect;
+    }
+    updateMascot(0, true);
+  };
   if (window.__tqaSkipIntro === true) {
     intro.skip();
     publishIntro("done");
@@ -1045,6 +1107,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   container.addEventListener("tqa:set-quality", setQuality);
   container.addEventListener("tqa:set-locale", setLocale);
   container.addEventListener("tqa:set-mascot", setMascot);
+  container.addEventListener("tqa:set-motion", setMotion);
   container.addEventListener(TELEPORT_TO_EVENT, teleportTo);
   container.addEventListener(TELEPORT_CANCEL_EVENT, cancelTeleport);
   gpu.domElement.addEventListener("click", click);
@@ -1094,12 +1157,13 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.removeEventListener("tqa:set-quality", setQuality);
     container.removeEventListener("tqa:set-locale", setLocale);
     container.removeEventListener("tqa:set-mascot", setMascot);
+    container.removeEventListener("tqa:set-motion", setMotion);
+    delete container.dataset.worldMotion;
     delete container.dataset.worldLocale;
     gpu.domElement.removeEventListener("click", click);
     interaction.dispose();
     bike.dispose();
     delete container.dataset.worldVehicle;
-    labels.remove();
     gpu.domElement.removeEventListener("pointerdown", pointerdown);
     gpu.domElement.removeEventListener("pointermove", pointermove);
     gpu.domElement.removeEventListener("pointerup", pointerup);
@@ -1119,6 +1183,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     clear();
     motionPreference?.removeEventListener("change", updateMotionPreference);
     composed.dispose();
+    zones.forEach(zone => zone.dispose());
     physics.dispose();
     character.dispose();
     for (const { root } of secretTargets) {

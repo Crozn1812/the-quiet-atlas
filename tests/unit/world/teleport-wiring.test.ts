@@ -4,6 +4,7 @@ import { SIGNPOSTS, arrivalPoint } from "../../../src/features/navigation/signpo
 import { MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../../../src/features/navigation/teleport";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { WORLD_COPY } from "../../../src/features/world/copy";
+import { placeZoneScenes } from "../../../src/features/world/zones";
 
 const harness = vi.hoisted(() => ({
   canvas: undefined as unknown,
@@ -195,7 +196,7 @@ function listen(type: string) {
   return listener;
 }
 
-it("places eight teleport targets at SIGNPOSTS and preserves the content sign", async () => {
+it("places eight teleport targets at SIGNPOSTS separately from zone content", async () => {
   await mount();
   const scene = harness.scene as Scene;
   expect(scene.children.filter(mesh => mesh.name.startsWith("teleport-"))).toHaveLength(8);
@@ -207,9 +208,13 @@ it("places eight teleport targets at SIGNPOSTS and preserves the content sign", 
     const box = new Box3().setFromObject(mesh);
     expect(box.min.y).toBeCloseTo(100, 4);
   }
-  const content = scene.getObjectByName(WORLD_COPY.en.signpost)!;
-  expect(content.position.distanceTo(postMesh().position)).toBeGreaterThanOrEqual(2);
-  position().copy(content.position);
+  // B2-100 removes the old content sign; E now targets the zone's authored greeting object.
+  expect(scene.getObjectByName(WORLD_COPY.en.signpost)).toBeUndefined();
+  const zones = placeZoneScenes(() => 100);
+  const content = zones.find(zone => zone.zoneId === "first-light")!.target.position.clone();
+  zones.forEach(zone => zone.dispose());
+  expect(content.distanceTo(postMesh().position)).toBeGreaterThanOrEqual(2);
+  position().copy(content);
   const opened = listen("tqa:open-content");
   choose();
   expect(opened.mock.calls[0]![0].detail).toEqual({ zoneId: "first-light" });
@@ -258,6 +263,7 @@ it.each([
   await mount();
   approach();
   media.matches = reduced;
+  media.dispatchEvent(new Event("change"));
   const events: CustomEvent[] = [];
   for (const name of ["tqa:teleport-start", "tqa:teleport-end"]) {
     EventTarget.prototype.addEventListener.call(container, name, (event: Event) => events.push(event as CustomEvent));

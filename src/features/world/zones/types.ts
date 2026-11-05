@@ -54,6 +54,6 @@ export type ZoneSceneFactory = (context: ZoneSceneContext) => ZoneScene;
 export const ZONE_BUDGET = {
   triangles: 6000,
   drawCalls: 8,
-  /** Furthest any object may stand from the anchor (m), so streaming tiles always contain the zone. */
+  /** Furthest any object may stand from the anchor, measured horizontally (m), so streamed tiles contain the zone. */
   radius: 30,
 } as const;

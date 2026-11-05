@@ -11,6 +11,7 @@ export interface InteractionTarget {
   kind?: "content" | "teleport" | "vehicle" | "secret";
   zoneId: ZoneId;
   position: Position;
+  label?: Readonly<Record<WorldLocale, string>>;
 }
 
 export function pickTarget<T extends InteractionTarget>(
@@ -61,7 +62,7 @@ export function createInteraction(options: {
     const target = select();
     if (target) container.dataset.worldHint = target.zoneId;
     else delete container.dataset.worldHint;
-    const text = options.hint?.() ?? (target ? interactionHint(options.locale?.() ?? "en", target.zoneId, target.kind) : "");
+    const text = options.hint?.() ?? (target ? interactionHint(options.locale?.() ?? "en", target.zoneId, target.kind, target.label?.[options.locale?.() ?? "en"]) : "");
     if (hint.textContent !== text) hint.textContent = text;
   }
   function open(target: InteractionTarget | null) {

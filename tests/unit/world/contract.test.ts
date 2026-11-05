@@ -147,8 +147,9 @@ it.each([
     expect(mascot.visible).toBe(true);
     const opened = vi.fn();
     container.addEventListener("tqa:open-content", opened);
-    const sign = scene.getObjectByName(WORLD_COPY[locale ?? "en"].signpost)!;
-    const desk = scene.getObjectByName(WORLD_COPY[locale ?? "en"].desk)!;
+    // B2-100: authored zone groups replace the two near-spawn props and their HUD label list.
+    const sign = scene.getObjectByName("first-light-clearing")!;
+    const desk = scene.getObjectByName("workshop")!;
     const clickObject = (object: import("three").Object3D) => {
       const point = object.position.clone().project(camera);
       send(canvas, "click", {
@@ -157,12 +158,11 @@ it.each([
         clientY: (1 - point.y) * 400,
       });
     };
-    expect(container.dataset.worldHint).toBe("first-light");
+    expect(container.dataset.worldHint).toBeUndefined();
     clickObject(desk);
     expect(opened).not.toHaveBeenCalled();
     clickObject(sign);
-    expect(opened).toHaveBeenCalledOnce();
-    expect(opened.mock.calls[0]![0].detail).toEqual({ zoneId: "first-light" });
+    expect(opened).not.toHaveBeenCalled();
     const position = camera.position.clone();
     const stateCount = states.length;
     expect(container.dataset.worldLocale).toBe(locale ?? "en");
@@ -170,10 +170,10 @@ it.each([
       send(container, "tqa:set-locale", { detail: { locale: next } });
       expect(container.dataset.worldLocale).toBe(next);
       expect(canvas.attributes["aria-label"]).toBe(WORLD_COPY[next].canvas);
-      expect(container.children[0]!.textContent).toBe(WORLD_COPY[next].signpost + " · " + WORLD_COPY[next].desk);
-      expect(container.children[3]!.textContent).toBe("E — " + WORLD_COPY[next].signpost);
-      expect(scene.getObjectByName(WORLD_COPY[next].signpost)).toBe(sign);
-      expect(container.children[1]).toBe(canvas);
+      expect(container.children.some(child => child.textContent === WORLD_COPY[next].signpost + " · " + WORLD_COPY[next].desk)).toBe(false);
+      expect(container.children[2]!.textContent).toBe("");
+      expect(scene.getObjectByName("first-light-clearing")).toBe(sign);
+      expect(container.children[0]).toBe(canvas);
       expect(camera.position.distanceTo(position)).toBe(0);
       expect(states).toHaveLength(stateCount);
     }
@@ -185,7 +185,7 @@ it.each([
     send(container, "tqa:content-closed", { detail: { zoneId: "first-light" } });
     expect(container.dataset.worldHint).toBeUndefined();
     clickObject(sign);
-    expect(opened).toHaveBeenCalledOnce();
+    expect(opened).not.toHaveBeenCalled();
     expect(container.dataset.worldPaused).toBe("true");
     // Return uses the nearest safe route point while preserving the overlay pause.
     send(container, "tqa:return-to-path", {});

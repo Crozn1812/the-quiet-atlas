@@ -48,15 +48,15 @@ function block([width, height, depth]: Point, center: Point): BufferGeometry {
 }
 
 /** Check the whole swept footprint, including its interior, before allocating scene resources. */
-function dryFootprint(context: ZoneSceneContext, [x, z]: Site, rx: number, rz: number, top = 0): boolean {
+function dryFootprint(context: ZoneSceneContext, [x, z]: Site, rx: number, rz: number, _top = 0): boolean {
   const nx = Math.ceil(rx * 2 / 0.35), nz = Math.ceil(rz * 2 / 0.35);
   for (let i = 0; i <= nx; i++) {
     for (let j = 0; j <= nz; j++) {
       const px = x - rx + rx * 2 * i / nx, pz = z - rz + rz * 2 * j / nz;
       const y = context.heightAt(px, pz);
       if (Math.abs(px) <= PATH_CLEARANCE || context.onPath(px, pz) || context.underWater(px, pz)
-        || !Number.isFinite(y) || Math.hypot(px, pz, y) > ZONE_BUDGET.radius
-        || Math.hypot(px, pz, y + top) > ZONE_BUDGET.radius) return false;
+        // Lead (B2-100): the zone radius is horizontal (streamed tiles must contain the zone); height is free.
+        || !Number.isFinite(y) || Math.hypot(px, pz) > ZONE_BUDGET.radius) return false;
     }
   }
   return true;
