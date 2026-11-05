@@ -13,6 +13,10 @@ Lệnh chạy một ticket, flag cấm, quy ước worktree: xem `docs/runbook/c
 
 Lý do chọn 5 (đúng mức Duy đề xuất): RAM là giới hạn thật đầu tiên; 5 worker cùng tối đa 3 việc nặng (§3.1 CLAUDE.md) vẫn dưới ~20 GB.
 
+## Ghi nhận đợt 18–19 (2026-11-05)
+
+Duy yêu cầu giao nhiều việc hơn cho Codex. Đợt 18–19 chạy **12 worker cùng lúc**. Khả thi vì các ticket là logic/mesh thuần và chỉ chạy unit test, không build hay e2e song song. Vùng file tách hẳn nhau; chỉ 1 ticket sửa `index.ts`. Lead theo dõi rate limit và RAM; ticket nào có test timeout do tải thì chạy lại riêng.
+
 ## Quy tắc tăng/giảm
 
 - **Tăng lên 6–7** khi: 2 đợt liên tiếp không có rate limit, RAM đỉnh < 70 %, và hàng `todo` > 2× số worker.

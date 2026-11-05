@@ -68,4 +68,16 @@ World → UI, phát trên container của `mountWorld`, `bubbles: false` (hằng
 | `tqa:teleport-start` | `{ from: ZoneId, to: ZoneId }` | Người xem chọn khu đích tại một bảng; UI có thể ẩn gợi ý |
 | `tqa:teleport-end` | `{ to: ZoneId }` | Nhân vật đã đứng cạnh bảng khu đích, input mở lại |
 
-Không có sự kiện UI → world mới; chọn khu đi qua tương tác E tại bảng trong world. Secrets không bao giờ là đích. Reduced motion: fade 0,15 s thay cho sương 0,6 s.
+Secrets không bao giờ là đích. Reduced motion: fade 0,15 s thay cho sương 0,6 s.
+
+### Bổ sung 2026-11-05 (B2-041): hộp chọn khu
+
+E tại bảng mở hộp chọn khu ở phía giao diện (dialog có focus trap, phù hợp a11y §9), thay cho việc chọn khu trong world. Thay thế câu "không có sự kiện UI → world mới" ở bản trước.
+
+| Hướng | Sự kiện | `detail` | Ý nghĩa |
+|---|---|---|---|
+| World → UI | `tqa:teleport-choose` | `{ from: ZoneId }` | Người xem bấm E/click tại bảng dịch chuyển; UI mở hộp chọn và gửi `tqa:pause` lý do `overlay` |
+| UI → world | `tqa:teleport-to` | `{ to: ZoneId }` | Chọn khu đích (khác `from`); world chạy sương → đặt nhân vật → `teleport-start/end` |
+| UI → world | `tqa:teleport-cancel` | không có | Đóng hộp mà không chọn |
+
+Pause lý do `journal` (B2-043a) cũng được world nhận như `overlay`.
