@@ -3,7 +3,8 @@
 /* Static CV navigation avoids prefetching the client router. */
 /* eslint-disable @next/next/no-html-link-for-pages */
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import type { AmbienceBridge } from "./sound/ambience-bridge";
 import { createCapabilityReader, worldEligibility } from "./capabilities";
 import { listenWorldError } from "./worldError";
 
@@ -19,6 +20,8 @@ export type WorldCopy = {
   leave: string;
   scene: string;
   soundReason: string;
+  soundOn: string;
+  soundOff: string;
 };
 
 export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, children, backdrop }: {
@@ -47,6 +50,44 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   const teardown = useRef<(() => void) | undefined>(undefined);
   const generation = useRef(0);
   const busy = useRef(false);
+  const sound = useRef<AmbienceBridge | undefined>(undefined);
+  const soundSession = useRef({ request: 0, on: false, world: false });
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const stopSound = useCallback(() => {
+    soundSession.current.request++;
+    soundSession.current.on = soundSession.current.world = false;
+    sound.current?.dispose();
+    sound.current = undefined;
+    setSoundEnabled(false);
+  }, []);
+
+  async function toggleSound() {
+    const session = soundSession.current;
+    const request = ++session.request;
+    session.on = !session.on;
+    setSoundEnabled(session.on);
+    if (!session.on) {
+      sound.current?.disable();
+      return;
+    }
+    try {
+      let controller = sound.current;
+      if (!controller) {
+        const { createAmbienceBridge } = await import("./sound/ambience-bridge");
+        if (request !== session.request || !container.current) return;
+        controller = sound.current = createAmbienceBridge();
+      }
+      controller.connect(session.world ? container.current : null);
+      // Keep enable in the explicit click/key handler, never in a lifecycle effect.
+      const enabled = await controller.enable();
+      if (!enabled && request === session.request) {
+        session.on = false;
+        setSoundEnabled(false);
+      }
+    } catch {
+      if (request === session.request) stopSound();
+    }
+  }
 
   useEffect(() => {
     const target = container.current;
@@ -54,9 +95,12 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
     return listenWorldError(target, {
       generation,
       teardown,
-      recover: () => setAppMode("recoverableError"),
+      recover: () => {
+        stopSound();
+        setAppMode("recoverableError");
+      },
     });
-  }, []);
+  }, [stopSound]);
 
   useEffect(() => {
     // Restore focus after React reveals the button on exit or recovery.
@@ -65,6 +109,8 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
 
   useEffect(() => {
     const lifecycle = generation;
+    const audioSession = soundSession.current;
+    const audio = sound;
     const read = createCapabilityReader();
     function update() {
       setEligibility(worldEligibility(read()));
@@ -75,6 +121,10 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
     pointer.addEventListener("change", update);
     return () => {
       lifecycle.current++;
+      audioSession.request++;
+      audioSession.on = audioSession.world = false;
+      audio.current?.dispose();
+      audio.current = undefined;
       teardown.current?.();
       window.removeEventListener("resize", update);
       pointer.removeEventListener("change", update);
@@ -82,6 +132,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   }, []);
 
   function leaveWorld() {
+    stopSound();
     generation.current++;
     teardown.current?.();
     teardown.current = undefined;
@@ -113,6 +164,8 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
         return;
       }
       teardown.current = unmount;
+      soundSession.current.world = true;
+      sound.current?.connect(container.current);
       setAppMode("world");
       container.current.focus();
       const { mountWorldMenu } = await import("./WorldMenu");
@@ -129,6 +182,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       };
     } catch {
       if (current === generation.current) {
+        stopSound();
         teardown.current?.();
         teardown.current = undefined;
         setAppMode("recoverableError");
@@ -211,8 +265,10 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
             <span>{appMode === "world" ? "Email" : email}</span>
           </a>
           <button
-            disabled
+            onClick={toggleSound}
+            aria-pressed={soundEnabled}
             aria-describedby="sound-reason"
+            title={soundEnabled ? copy.soundOn : copy.soundOff}
           >
             <HudIcon kind="sound" />
             <span>{hud.sound}</span>

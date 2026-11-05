@@ -420,7 +420,11 @@ describe("audio loading boundary", () => {
 
   it("keeps audio out of app / shared components and has no runtime import of world", () => {
     // Source grep includes static imports, dynamic imports, re-exports and require.
+    // B2-081 (Lead): the lazy sound bridge is the one shell module allowed to reach features/audio;
+    // WorldEntry only reaches it through a dynamic import (checked in sound-loading.test).
+    const bridge = resolve("src/components/portfolio/sound");
     for (const path of [...sourcesUnder(resolve("src/app")), ...sourcesUnder(resolve("src/components"))]) {
+      if (path.startsWith(bridge)) continue;
       expect(readFileSync(path, "utf8"), path).not.toMatch(/["'][^"'\n]*(?:features\/audio|\.\.\/audio)(?:\/[^"'\n]*)?["']/);
     }
     for (const path of sourcesUnder(resolve("src/features/audio"))) {

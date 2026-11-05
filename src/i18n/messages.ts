@@ -23,10 +23,12 @@ export const messages: Record<Locale,Messages>={
       retry: "Try again",
       leave: "Exit world",
       scene: "Physics test scene — WASD to move",
-      soundReason: "Sound is under construction"
+      soundReason: "Ambient forest, stream and sea sounds",
+      soundOn: "Sound on",
+      soundOff: "Sound off"
     },
     building: "Under construction",
-    soundReason: "Sound is under construction",
+    soundReason: "Ambient forest, stream and sea sounds",
     projects: "Featured projects",
     contact: "Contact",
     phone: "Phone",
@@ -45,10 +47,12 @@ export const messages: Record<Locale,Messages>={
       retry: "Thử lại",
       leave: "Thoát world",
       scene: "Cảnh thử physics — di chuyển bằng WASD",
-      soundReason: "Âm thanh đang xây dựng"
+      soundReason: "Âm thanh rừng, suối, biển",
+      soundOn: "Âm thanh bật",
+      soundOff: "Âm thanh tắt"
     },
     building: "Đang xây dựng",
-    soundReason: "Âm thanh đang xây dựng",
+    soundReason: "Âm thanh rừng, suối, biển",
     projects: "Dự án nổi bật",
     contact: "Liên hệ",
     phone: "Điện thoại",
