@@ -1,0 +1,89 @@
+.chooser {
+  box-sizing: border-box;
+  inline-size: min(34rem, calc(100% - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  margin: auto;
+  padding: clamp(1rem, 4vw, 2rem);
+  overflow-y: auto;
+  color: #2B2A26;
+  background: #EEE8D8;
+  border: 1px solid #2b2a2666;
+  border-radius: 2px 5px 3px 1px;
+  font-family: "Noto Serif", Georgia, serif;
+  line-height: 1.6;
+}
+
+.chooser::backdrop {
+  background: #2b2a264d;
+}
+
+.chooser[open],
+.chooser[open]::backdrop {
+  animation: fade-in 200ms ease both;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  overflow-wrap: anywhere;
+}
+
+.close,
+.zone {
+  min-block-size: 44px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.close {
+  flex-shrink: 0;
+  padding: .35rem .75rem;
+  border: 1px solid #2b2a2666;
+}
+
+.zones {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zone {
+  inline-size: 100%;
+  padding: .6rem .25rem;
+  border: 0;
+  border-block-end: 1px solid #2b2a2633;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.zone:disabled {
+  color: #655f52;
+  cursor: default;
+}
+
+.chooser button:focus-visible {
+  outline: 2px solid #2B2A26;
+  outline-offset: 3px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chooser[open],
+  .chooser[open]::backdrop {
+    animation: none;
+  }
+}

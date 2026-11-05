@@ -7,9 +7,11 @@ import { escapeAction, pauseWorld, returnToPath, setWorldQuality, trapFocus } fr
 import type { Quality } from "./worldMenuControls";
 import { journalTitle } from "@/features/journal/model";
 import { mountWorldJournal } from "./journal/WorldJournal";
+import { mountWorldTeleport } from "./teleport/WorldTeleport";
 
 export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void, onLocale: (locale: WorldLocale, copy: WorldCopy, labels: { sound: string; actions: string }) => void) {
   const removeJournal = mountWorldJournal(container, locale);
+  const removeTeleport = mountWorldTeleport(container, locale);
   const removeContent = mountWorldContent(container, locale);
   let language: WorldLocale = locale === "vi" ? "vi" : "en";
   let copy = worldMenuMessages[language];
@@ -126,6 +128,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
       });
       removeContent.setLocale(next);
       removeJournal.setLocale(next);
+      removeTeleport.setLocale(next);
     });
     translations.push(() => {
       choice.setAttribute("aria-pressed", String(language === next));
@@ -179,6 +182,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   return () => {
     close();
     removeJournal();
+    removeTeleport();
     removeContent();
     document.removeEventListener("keydown", onEscape, true);
     container.removeEventListener("tqa:world-state", syncQuality);
