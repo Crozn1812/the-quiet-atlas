@@ -1,10 +1,10 @@
-import { Color, Group, InstancedMesh, Matrix4, Object3D, Ray, Vector3 } from "three";
+import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
 import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
-import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
+import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
 
@@ -22,6 +22,34 @@ export function foliageVariantAt(x: number, z: number, count: number): number {
 /** Independent hash buckets keep ~30% deep crowns stable through streaming/LOD. */
 export function isDeepCrown(x: number, z: number): boolean {
   return foliageVariantAt(x, z, 100) < 30;
+}
+
+export function hasHangingFoliage(x: number, z: number): boolean {
+  return foliageVariantAt(z + 19.73, x - 41.19, 100) < 40;
+}
+
+/** Use the same geometry selection in the colour and existing shadow passes.
+ * Two absolute shape deltas avoid extra batches or morph textures. */
+function installTreeShapes(material: Material) {
+  const previous = material.onBeforeCompile.bind(material);
+  const previousKey = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    previous(shader, renderer);
+    shader.vertexShader = `attribute vec2 treeStyle;
+attribute vec3 shapeA; attribute vec3 shapeB;
+attribute vec3 normalA; attribute vec3 normalB;
+attribute float hanging;
+float treeA() { return step(0.5, treeStyle.x) - step(1.5, treeStyle.x); }
+float treeB() { return step(1.5, treeStyle.x); }
+` + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nobjectNormal += normalA * treeA() + normalB * treeB();")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+transformed += shapeA * treeA() + shapeB * treeB();
+// Collapse every ribbon vertex to the same point on trees without vines.
+transformed *= 1.0 - hanging * (1.0 - treeStyle.y);`);
+  };
+  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v1";
 }
 
 /**
@@ -62,26 +90,49 @@ export function selectFoliageOccludingCrowns(crowns: InstancedMesh, camera: Vect
 export function createFoliage(maxPerKind: number) {
   if (!Number.isSafeInteger(maxPerKind) || maxPerKind < 0) throw new RangeError("Foliage capacity must be a non-negative integer");
   const group = new Group();
-  const trunkGeometry = createTreeTrunk();
+  const trunkGeometry = createTreeTrunk(true);
   const trunkMaterial = createRampMaterial(RAMP_PRESETS.trunk);
+  trunkMaterial.vertexColors = true;
   const crownMaterial = createRampMaterial(RAMP_PRESETS.crown);
   crownMaterial.vertexColors = true;
+  const depthMaterial = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
+  const distanceMaterial = new MeshDistanceMaterial();
+  for (const material of [crownMaterial, depthMaterial, distanceMaterial]) installTreeShapes(material);
   const neutral = new Color(1, 1, 1);
   // Instance colours multiply the shared ramp colour; compensate in linear RGB.
   const deep = new Color(PALETTE.forestDeep);
   deep.setRGB(deep.r / crownMaterial.color.r, deep.g / crownMaterial.color.g, deep.b / crownMaterial.color.b);
-  function createSpecies(seeds: readonly number[], createCrown: (seed: number) => ReturnType<typeof createPineCrown>) {
-    const variants = seeds.map(seed => ({
-      seed,
-      trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind),
-      crowns: new InstancedMesh(createCrown(seed), crownMaterial, maxPerKind),
-    }));
+  function createSpecies(seeds: readonly number[], broadleaf: boolean) {
+    const variants = seeds.map(seed => {
+      const geometry = broadleaf ? createBroadleafCrown() : createPineCrown(seed);
+      const position = geometry.getAttribute("position"), normal = geometry.getAttribute("normal");
+      for (const [targetIndex, suffix] of [[1, "A"], [2, "B"]] as const) {
+        const target = broadleaf ? createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[targetIndex]) : undefined;
+        for (const [source, attribute] of [[position, "shape"], [normal, "normal"]] as const) {
+          const values = new Float32Array(source.count * 3);
+          if (target) {
+            const end = target.getAttribute(attribute === "shape" ? "position" : "normal");
+            for (let i = 0; i < values.length; i++) values[i] = end.array[i]! - source.array[i]!;
+          }
+          geometry.setAttribute(attribute + suffix, new Float32BufferAttribute(values, 3));
+        }
+        if (target) { geometry.boundingBox!.union(target.boundingBox!); target.dispose(); }
+      }
+      if (!broadleaf) geometry.setAttribute("hanging", new Float32BufferAttribute(new Float32Array(position.count), 1));
+      // Bounds include all three real silhouettes; camera selection stays conservative.
+      geometry.boundingBox!.getBoundingSphere(geometry.boundingSphere!);
+      geometry.setAttribute("treeStyle", new InstancedBufferAttribute(new Float32Array(maxPerKind * 2), 2));
+      const crowns = new InstancedMesh(geometry, crownMaterial, maxPerKind);
+      crowns.customDepthMaterial = depthMaterial;
+      crowns.customDistanceMaterial = distanceMaterial;
+      return { seed, trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind), crowns };
+    });
     // Legacy material access targets variant zero; all variants share those materials.
     return { trunks: variants[0]!.trunks, crowns: variants[0]!.crowns, variants };
   }
   const species = {
-    pine: createSpecies(PINE_VARIANT_SEEDS, createPineCrown),
-    broadleaf: createSpecies(BROADLEAF_VARIANT_SEEDS, createBroadleafCrown),
+    pine: createSpecies(PINE_VARIANT_SEEDS, false),
+    broadleaf: { ...createSpecies(BROADLEAF_BATCH_SEEDS, true), shapeSeeds: BROADLEAF_VARIANT_SEEDS },
   };
   const meshes = Object.values(species).flatMap(({ variants }) => variants.flatMap(({ trunks, crowns }) => [trunks, crowns]));
   for (const mesh of meshes) {
@@ -121,10 +172,15 @@ export function createFoliage(maxPerKind: number) {
       transform.updateMatrix();
       crowns.setMatrixAt(index, transform.matrix);
       crowns.setColorAt(index, isDeepCrown(tree.x, tree.z) ? deep : neutral);
+      const style = crowns.geometry.getAttribute("treeStyle");
+      style.setXY(index, tree.kind === "broadleaf" ? foliageVariantAt(tree.x, tree.z, BROADLEAF_VARIANT_SEEDS.length) : 0,
+        tree.kind === "broadleaf" && hasHangingFoliage(tree.x, tree.z) ? 1 : 0);
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      const style = mesh.geometry.getAttribute("treeStyle");
+      if (style) style.needsUpdate = true;
       mesh.computeBoundingBox();
       mesh.computeBoundingSphere();
     }
@@ -158,6 +214,8 @@ export function createFoliage(maxPerKind: number) {
       }
       trunkMaterial.dispose();
       crownMaterial.dispose();
+      depthMaterial.dispose();
+      distanceMaterial.dispose();
       // Ramp gradients are shared and owned by the world, not this factory.
     },
   };

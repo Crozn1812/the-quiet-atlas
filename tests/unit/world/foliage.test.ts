@@ -1,10 +1,10 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Box3, Matrix4, Raycaster, Vector3 } from "three";
+import { Box3, Matrix4, Raycaster, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliageColliders, TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
-import { createFoliage, foliageVariantAt, selectFoliageOccludingCrowns } from "../../../src/features/world/foliage/instances";
-import { pineHeight } from "../../../src/features/world/foliage/shapes";
+import { createFoliage, foliageVariantAt, hasHangingFoliage, selectFoliageOccludingCrowns } from "../../../src/features/world/foliage/instances";
+import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, pineHeight } from "../../../src/features/world/foliage/shapes";
 import { foliageBiomeAt, MIN_TREE_DISTANCE, scatterTile, SHORE_MIN_HEIGHT, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
 import { riverPointAt } from "../../../src/features/world/layout/river";
@@ -186,6 +186,105 @@ describe("procedural foliage variants", () => {
     kind, x: (i % 50) * 4.23 - 110, z: Math.floor(i / 50) * -5.17 + 80,
     y: 0, scale: 1, lean: 0,
   })));
+
+  it("selects three real broadleaf shapes and ~40% hanging ribbons independently of batching, order and LOD", () => {
+    const input = trees.filter(tree => tree.kind === "broadleaf");
+    const foliage = createFoliage(input.length);
+    const shapes = BROADLEAF_VARIANT_SEEDS.map(seed => createBroadleafCrown(seed));
+    try {
+      expect(foliage.species.broadleaf.shapeSeeds.length).toBeGreaterThanOrEqual(3);
+      const hanging = input.filter(tree => hasHangingFoliage(tree.x, tree.z)).length / input.length;
+      expect(hanging).toBeGreaterThan(0.37);
+      expect(hanging).toBeLessThan(0.43);
+      for (const ordered of [input, [...input].reverse(), input.slice(50, 70)]) {
+        foliage.setTiles(ordered);
+        for (const quality of ["Low", "Balanced", "High"] as const) {
+          foliage.setQuality(quality);
+          const counters = foliage.species.broadleaf.variants.map(() => 0);
+          const count = Math.round(ordered.length * PRESETS[quality].density);
+          const used = new Set<number>();
+          for (let i = 0; i < count; i++) {
+            const tree = ordered[Math.floor((i + 0.5) * ordered.length / count)]!;
+            const batch = foliageVariantAt(tree.x, tree.z, counters.length);
+            const { crowns } = foliage.species.broadleaf.variants[batch]!;
+            const style = crowns.geometry.getAttribute("treeStyle");
+            const shape = style.getX(counters[batch]!);
+            expect(shape).toBe(foliageVariantAt(tree.x, tree.z, shapes.length));
+            expect(style.getY(counters[batch]!)).toBe(Number(hasHangingFoliage(tree.x, tree.z)));
+            counters[batch]!++;
+            used.add(shape);
+          }
+          if (ordered.length > 100) expect(used.size).toBe(3);
+        }
+      }
+      // Reconstruct the GPU-selected positions and normals from actual buffers.
+      for (const { crowns } of foliage.species.broadleaf.variants) for (let shape = 0; shape < shapes.length; shape++) {
+        for (const name of ["position", "normal"] as const) {
+          const base = crowns.geometry.getAttribute(name), target = shapes[shape]!.getAttribute(name);
+          const delta = shape === 0 ? undefined : crowns.geometry.getAttribute((name === "position" ? "shape" : "normal") + (shape === 1 ? "A" : "B"));
+          for (let i = 0; i < base.array.length; i++) {
+            expect(base.array[i]! + (delta?.array[i] ?? 0)).toBeCloseTo(target.array[i]!, 6);
+          }
+        }
+        expect(crowns.geometry.groups).toHaveLength(0);
+        const position = shapes[shape]!.getAttribute("position");
+        for (let i = 0; i < position.count; i++) {
+          expect(crowns.geometry.boundingBox!.containsPoint(new Vector3().fromBufferAttribute(position, i))).toBe(true);
+        }
+      }
+    } finally { foliage.dispose(); shapes.forEach(shape => shape.dispose()); }
+  });
+
+  it("chains shape selection into toon, fade and existing depth/distance shadow shaders and disposes them", () => {
+    const foliage = createFoliage(1), { crowns } = foliage.species.broadleaf.variants[0]!;
+    const materials = [crowns.material, crowns.customDepthMaterial!, crowns.customDistanceMaterial!];
+    const spies = materials.slice(1).map(material => vi.spyOn(material, "dispose"));
+    createCrownFade(crowns, 1);
+    try {
+      for (const [i, material] of materials.entries()) {
+        const source = [ShaderLib.toon!, ShaderLib.depth!, ShaderLib.distance!][i]!;
+        const shader = { vertexShader: source.vertexShader, fragmentShader: source.fragmentShader, uniforms: {} } as WebGLProgramParametersWithUniforms;
+        material.onBeforeCompile(shader, {} as WebGLRenderer);
+        expect(shader.vertexShader).toContain("transformed += shapeA");
+        expect(shader.vertexShader).toContain("hanging * (1.0 - treeStyle.y)");
+        expect(material.customProgramCacheKey()).toContain("forest-shapes-v1");
+        if (i === 0) {
+          expect(shader.vertexShader).toContain("vCrownAlpha = crownAlpha");
+          expect(shader.fragmentShader).toContain("rampShadowTint");
+        }
+      }
+    } finally { foliage.dispose(); }
+    for (const spy of spies) expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports before/after submitted triangles and unchanged active draws over the same 240 m corridor", () => {
+    const tiles = tilesAlongPath(240), forests = tiles.map(scatterTile);
+    const foliage = createFoliage(Math.max(...forests.map(trees => trees.length)));
+    let before = 0, after = 0, beforeDraws = 0, afterDraws = 0;
+    try {
+      for (const trees of forests) {
+        const batches = new Set<string>();
+        for (const tree of trees) {
+          const variants = foliage.species[tree.kind].variants;
+          const batch = foliageVariantAt(tree.x, tree.z, variants.length);
+          const { seed } = variants[batch]!;
+          before += 42 + (tree.kind === "pine" ? (3 + seed % 3) * 44 : (4 + seed % 4) * 20);
+          batches.add(`${tree.kind}:${batch}`);
+        }
+        beforeDraws += 2 * batches.size;
+        foliage.setTiles(trees);
+        for (const mesh of foliage.group.children) {
+          if (!("geometry" in mesh) || !("count" in mesh)) continue;
+          const instanced = mesh as typeof foliage.species.pine.crowns;
+          if (instanced.count > 0) afterDraws++;
+          after += instanced.count * instanced.geometry.index!.count / 3;
+        }
+      }
+      expect(afterDraws).toBe(beforeDraws);
+      expect(forests.flat().length).toBeGreaterThan(1000);
+      process.stdout.write(`B2-166 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=294/tree, pine<=262/tree (limit=600; includes collapsed ribbons)\n`);
+    } finally { foliage.dispose(); }
+  });
 
   it("shares materials through the legacy handles and uses at most ten draw calls", () => {
     const foliage = createFoliage(2000);
