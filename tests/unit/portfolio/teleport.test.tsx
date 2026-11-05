@@ -63,25 +63,20 @@ describe("world teleport chooser", () => {
     vi.unstubAllGlobals();
   });
 
-  // CI (Node 24, 2-core runner): lazy dialog chunks can resolve a macrotask later than act() waits (run on d49c129).
-  const settle = () => vi.isFakeTimers() ? Promise.resolve() : act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
   async function mount(locale = "en") {
     await act(async () => { dispose = mountWorldTeleport(dom.container as unknown as HTMLElement, locale); });
-    await settle();
   }
   async function choose(from: unknown = "roots") {
     await act(async () => { dom.container.dispatchEvent(new CustomEvent("tqa:teleport-choose", { detail: { from } })); });
-    await settle();
   }
   async function key(key: string, shiftKey = false) {
     const event = new Event("keydown", { cancelable: true });
     Object.assign(event, { key, shiftKey });
     Object.defineProperty(event, "target", { value: dom.document.activeElement });
     await act(async () => { dom.document.dispatchEvent(event); });
-    await settle();
     return event;
   }
-  async function click(element: TestElement) { await act(async () => { element.click(); }); await settle(); }
+  async function click(element: TestElement) { await act(async () => { element.click(); }); }
   function dialog() { return dom.document.querySelector("dialog[open]"); }
   function button(label: string) {
     const found = dom.shell.querySelectorAll("button").find(element => element.textContent === label);

@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx"],
     environment: "node",
+    // Node 24 EventTarget capture-removal workaround for in-memory DOMs (see the file).
+    setupFiles: ["tests/unit/setup/node-event-target.ts"],
   },
 });
