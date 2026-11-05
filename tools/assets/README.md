@@ -57,3 +57,52 @@ scene.add(pine.scene);
 ```
 
 For this untextured pine KTX2 support is optional. No integration code is applied by this ticket. Required repository checks: `pnpm lint`, `pnpm typecheck`, `pnpm test`. Focused Node fixtures: `pnpm test -- tests/unit/tools/assets.test.ts`; all GLB fixtures are generated in OS temporary directories and removed after tests. No Blender, browser, e2e, or Lighthouse run is needed here.
+
+## Character rig
+
+Lead runs Blender **5.x** from the repository root (Blender is not run in the Codex sandbox):
+
+```sh
+blender -b --factory-startup -P tools/assets/blender/character_rig.py -- tmp/assets
+```
+
+The argument after `--` is an output **directory**, matching `character.py`. The result is `tmp/assets/character-duy-rig.glb`. The script calls the approved D-23 `build_character()` directly: no replacement geometry, changed proportions, textures, or new colors. It retains the source's 1.72 m normalization and flat normals. Original linear base colors become corner vertex colors (`COLOR_0`) under one rough, nonmetallic material, giving **one skinned mesh / one primitive** (within the four-mesh limit). A replacement world shader must consume vertex colors to retain the approved palette.
+
+The armature has **19 bones**: hips, spine, chest, neck, head; shoulder, upper arm, forearm and hand on each side; thigh, shin and foot on each side. Region weights are normalized with at most two influences per vertex. The complete tote, including both handles, follows `shoulder.L`; glasses and head details follow `head`. No automatic-weight operator, external asset, IK constraint, camera, or light is needed in the exported file.
+
+| Action | Duration at 30 fps | Motion |
+|---|---|---|
+| `Idle` | 4 s (frames 1–121) | Subtle breathing through spine, chest and neck |
+| `Walk` | 1 s (frames 1–31) | Approximately 0.70 m per step, two steps per cycle |
+| `Run` | 0.7 s (frames 1–22) | Slow jog, restrained arm swing and 0.10 m foot clearance |
+
+Clips have an identical first/last pose and linear, per-frame samples. The leg solver keeps shoes level during stance; the swing path meets stance with continuous velocity. The armature stays at the origin with no horizontal root motion. Walk/Run use a constant lowered pelvis for knee flexion, without periodic vertical bounce. Walk's nominal travel speed is about 1.4 m/s; the runtime supplies movement separately and can scale clip speed to match its controller. The GLB exports separate NLA tracks named `Idle`, `Walk`, `Run` and includes a 19-joint skin, Y-up coordinates, and no leaf bones.
+
+The script checks the exported GLB for all three clip names/durations, skin attributes, vertex colors, mesh/primitive limits, and unchanged triangle count. Expected geometry is the approved **6,884 triangles**, below **12,000**. Final size is expected to fit **600,000 bytes (600 KB) after meshopt**, but has not been measured in the sandbox; the script reports raw bytes without applying that compressed-size gate prematurely. Optimize without simplification to preserve D-23:
+
+```sh
+mkdir tmp/assets-rig-optimized
+node tools/assets/optimize.mjs tmp/assets/character-duy-rig.glb tmp/assets-rig-optimized/character-duy-rig.glb --texture=none
+node tools/assets/check-budgets.mjs tmp/assets-rig-optimized
+```
+
+Keep optimized output in its own directory: the budget checker recursively checks a directory and would otherwise include the larger raw GLB. Lead must visually review all clips in Blender and the optimized GLB: ground contact, knees/elbows, tote/arm clearance, glasses attachment, seams at the cycle boundary, palette, and framing. Region skinning does not simulate cloth or bag physics. Blender execution, final compressed bytes, and playback remain **unverified** until Lead runs them. Register the final path in `assets/LICENSES.csv` before publication, as in the asset handoff above; do not commit generated GLBs for this ticket.
+
+Lead can connect the final asset inside the existing `src/features/world/index.ts` world mount (no integration is applied by this ticket):
+
+```ts
+const { AnimationMixer } = await import('three');
+const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const character = await loader.loadAsync('/world/start/character-duy-rig.glb');
+scene.add(character.scene);
+const mixer = new AnimationMixer(character.scene);
+const actions = Object.fromEntries(character.animations.map(c => [c.name, mixer.clipAction(c)]));
+actions.Idle.play(); // crossFadeTo(actions.Walk / actions.Run) from controller state
+// Existing frame loop: mixer.update(deltaSeconds).
+// Unmount: mixer.stopAllAction(); mixer.uncacheRoot(character.scene);
+// Remove character.scene and dispose its geometries/materials in existing cleanup.
+```
+
+Run static checks with `pnpm test -- tests/unit/tools/character-rig.test.ts`, then `pnpm lint`, `pnpm typecheck`, and `pnpm test`. These checks do not execute Blender or a browser.
