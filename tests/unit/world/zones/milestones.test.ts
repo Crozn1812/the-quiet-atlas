@@ -2,7 +2,8 @@ import { Box3, BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ZONE_IDS } from "../../../../src/features/interaction/targets";
 import { PALETTE } from "../../../../src/features/world/art/palette";
-import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
+import { createPineCrownV2 } from "../../../../src/features/world/foliage/pine";
+import { disposeRampGradients, RAMP_PRESETS } from "../../../../src/features/world/materials/ramp";
 import { HEIGHT } from "../../../../src/features/world/scene";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
 import { TERRAIN_SEED } from "../../../../src/features/world/terrain/height";
@@ -45,10 +46,9 @@ function moundAt(scene: ZoneScene, x: number, z: number) {
 }
 function rockPoints(scene: ZoneScene, index: number) {
   const surface = index < 7 ? "weathered" : "future";
-  return [
-    ...points(named(scene, "ink"), index * 48, 48),
-    ...points(named(scene, surface), (index < 7 ? index : index - 7) * 84, 84),
-  ];
+  // Upright kit slabs have refined caps (104 triangles); horizontal slots retain 80.
+  const count = index < 7 ? 312 : 240;
+  return points(named(scene, surface), (index < 7 ? index : index - 7) * count, count);
 }
 function unique(points: Vector3[]) {
   return [...new Map(points.map(point => [point.toArray().map(n => n.toFixed(5)).join(","), point])).values()];
@@ -73,6 +73,23 @@ afterEach(() => {
 });
 
 describe("The Milestones hillside", () => {
+  it("keeps the previous box centres and labelled target within 0.1 m", () => {
+    // Captured before the kit migration (seed 104); sizes still enclose the new silhouettes.
+    const previous = [
+      [4.70508, 1.38064, -0.00349], [6.79322, 1.05148, -3.11352],
+      [9.49378, 1.13236, -4.76370], [10.89982, 1.07500, -1.43573],
+      [7.39401, 1.23586, 2.62716], [10.30224, 0.97828, 4.16813],
+      [11.49137, 1.19896, 1.40990], [6.11127, 0.19332, -7.09900],
+      [8.20943, 0.29381, 7.19432], [15.01386, 2.10000, 2.70000],
+    ];
+    const scene = create();
+    scene.colliders.forEach((box, i) => {
+      const centre = new Vector3(...previous[i] as [number, number, number]);
+      expect(box.center.distanceTo(centre)).toBeLessThanOrEqual(0.1);
+      if (i === 0) expect(scene.interactable.position.distanceTo(centre)).toBeLessThanOrEqual(0.1);
+    });
+  });
+
   it("places the scene on the composed world's real terrain", () => {
     const placed = placeZoneScenes(surfaceHeight);
     try {
@@ -94,7 +111,7 @@ describe("The Milestones hillside", () => {
       const offsetZ = target.z - flat.interactable.position.z;
       const localHeights = unique(rockPoints(scene, 0)).map(point =>
         point.y - heightAt(point.x, point.z) - moundAt(flat, -point.x, point.z - offsetZ));
-      expect(Math.min(...localHeights)).toBeCloseTo(0, 5);
+      expect(Math.min(...localHeights)).toBeCloseTo(-0.05, 5);
       expect(Math.max(...localHeights)).toBeCloseTo(2.4, 5);
       // Near-foot, middle and upper-body sight lines must reach rock before any terrain lip.
       const ground = moundAt(scene, target.x, target.z);
@@ -128,10 +145,12 @@ describe("The Milestones hillside", () => {
         expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
       }
     }
+    expect(triangles).toBeLessThanOrEqual(1466 * 1.5);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     expect(drawCalls).toBe(6);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
-    if (seed === 104) expect(triangles).toBe(1466);
+    // New kit slabs, refined cut faces and V2 pine replace the old 1,466-triangle silhouette.
+    if (seed === 104) expect(triangles).toBe(1854);
     if (seed === 104) console.info(`milestones: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
@@ -149,7 +168,8 @@ describe("The Milestones hillside", () => {
     const middle = stones[0]!;
     expect(scene.interactable.position).toEqual(middle.center);
     for (const [index, stone] of stones.entries()) {
-      const vertices = unique(rockPoints(scene, index));
+      const faceVertices = rockPoints(scene, index);
+      const vertices = unique(faceVertices);
       const local = vertices.map(point => new Vector3(point.x, point.y - moundAt(scene, point.x, point.z), point.z));
       const height = Math.max(...local.map(point => point.y));
       if (index === 0) expect(height).toBeCloseTo(2.4, 5);
@@ -159,18 +179,25 @@ describe("The Milestones hillside", () => {
         expect(stone.center.x).toBeGreaterThan(middle.center.x);
         expect(stone.size.z).toBeLessThan(middle.size.z * 0.75);
       }
+      expect(Math.min(...local.map(point => point.y))).toBeCloseTo(-0.05, 5);
       if (index < 7) {
-        const base = local.filter(point => Math.abs(point.y) < 1e-5);
-        const shoulder = local.filter(point => Math.abs(point.y - height * 0.72) < 1e-5);
-        expect(base).toHaveLength(6);
-        expect(shoulder).toHaveLength(6);
-        const mean = (ring: Vector3[]) => ring.reduce((sum, point) => sum.add(point), new Vector3()).divideScalar(ring.length);
-        const axis = mean(shoulder).sub(mean(base));
-        const degrees = Math.atan2(Math.hypot(axis.x, axis.z), axis.y) * 180 / Math.PI;
-        expect(degrees).toBeGreaterThanOrEqual(3 - 1e-4);
-        expect(degrees).toBeLessThanOrEqual(8 + 1e-4);
-        // A fractured summit has several different heights rather than a rounded headstone profile.
-        expect(new Set(local.filter(point => point.y > height * 0.8).map(point => point.y.toFixed(3))).size).toBeGreaterThan(3);
+        // Broad cut faces really face the road and lean slightly; bevels remain distinct.
+        let frontArea = 0;
+        const normals = new Set<string>();
+        const localFaces = faceVertices.map(point =>
+          new Vector3(point.x, point.y - moundAt(scene, point.x, point.z), point.z));
+        for (let i = 0; i < localFaces.length; i += 3) {
+          const [a, b, c] = localFaces.slice(i, i + 3) as [Vector3, Vector3, Vector3];
+          const cross = b.clone().sub(a).cross(c.clone().sub(a)), normal = cross.clone().normalize();
+          normals.add(normal.toArray().map(value => value.toFixed(2)).join(","));
+          if (normal.x < -0.99) {
+            frontArea += cross.length() / 2;
+            expect(Math.abs(normal.y)).toBeGreaterThan(0.01);
+            expect(Math.abs(normal.y)).toBeLessThan(0.06);
+          }
+        }
+        expect(frontArea).toBeGreaterThan(stone.size.z * height * 0.35);
+        expect(normals.size).toBeGreaterThan(6);
       } else {
         expect(stone.size.y).toBeLessThan(0.6);
         expect(Math.abs(stone.center.z)).toBeGreaterThan(6.5);
@@ -201,8 +228,8 @@ describe("The Milestones hillside", () => {
       if (Math.abs(point.x - 3 * (wet ? -1 : 1)) < 1e-5 || Math.abs(point.z) === 9) expect(point.y).toBeCloseTo(0, 5);
     }
     for (let i = 0; i < 9; i++) {
-      const grounded = rockPoints(scene, i).filter(point => Math.abs(point.y - moundAt(scene, point.x, point.z)) < 1e-5);
-      expect(unique(grounded)).toHaveLength(6);
+      const foot = Math.min(...rockPoints(scene, i).map(point => point.y - moundAt(scene, point.x, point.z)));
+      expect(foot).toBeCloseTo(-0.05, 5);
     }
     const pine = points(named(scene, "needles"));
     const outerRockEdge = Math.max(...scene.colliders.slice(0, 9).map(box => Math.abs(box.center.x) + box.size.x / 2));
@@ -256,7 +283,7 @@ describe("The Milestones hillside", () => {
     expect(floodedCentre.interactable.position.z).toBeCloseTo(-16, 1);
   });
 
-  it("drapes the mound, rocks and trunk over a slope without submerged base vertices", () => {
+  it("drapes the mound, rocks and trunk over a slope with shallowly embedded feet", () => {
     const heightAt = (x: number, z: number) => 0.04 * x + 0.025 * z;
     const flat = create(), slope = create({ heightAt });
     const flatMeshes = meshes(flat), slopeMeshes = meshes(slope);
@@ -267,7 +294,7 @@ describe("The Milestones hillside", () => {
       for (let i = 0; i < a.count; i++) {
         const x = b.getX(i), z = b.getZ(i);
         expect(b.getY(i)).toBeCloseTo(a.getY(i) + heightAt(x, z), 5);
-        expect(b.getY(i)).toBeGreaterThanOrEqual(heightAt(x, z) - 1e-6);
+        expect(b.getY(i)).toBeGreaterThanOrEqual(heightAt(x, z) - 0.051);
         if (Math.abs(a.getY(i)) < 1e-6) {
           expect(b.getY(i)).toBeCloseTo(heightAt(x, z), 5);
           feet++;
@@ -330,27 +357,15 @@ describe("The Milestones hillside", () => {
       const colors = mesh.geometry.getAttribute("color");
       expect(colors.count).toBe(mesh.geometry.getAttribute("position").count);
       for (let i = 0; i < colors.count; i++) {
-        if (["milestones-weathered", "milestones-future"].includes(mesh.name) && Math.floor(i / 3) % 7 === 2) {
-          const moss = new Color(PALETTE.grass).lerp(new Color(PALETTE.rock), 0.25);
-          const rendered = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
-          const wash = rendered.r / moss.r;
-          expect(wash).toBeGreaterThanOrEqual(0.9149);
-          expect(wash).toBeLessThanOrEqual(0.9851);
-          expect(rendered.g / moss.g).toBeCloseTo(wash, 6);
-          expect(rendered.b / moss.b).toBeCloseTo(wash, 6);
-          continue;
-        }
-        expect(colors.getX(i)).toBeGreaterThanOrEqual(0.82);
-        expect(colors.getX(i)).toBeLessThanOrEqual(1);
-        expect(colors.getX(i)).toBe(colors.getY(i));
-        expect(colors.getX(i)).toBe(colors.getZ(i));
+        const rendered = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
+        expect(rendered.toArray().every(value => Number.isFinite(value) && value >= 0 && value <= 1)).toBe(true);
       }
     }
   });
 
-  it("anchors silhouettes with ink feet and trunk, with only two 0.13 m flower accents", () => {
+  it("keeps dark pigment on the trunk instead of a black stone plinth, with only two 0.13 m flower accents", () => {
     const scene = create();
-    expect(named(scene, "ink").geometry.getAttribute("position").count / 3).toBe(9 * 16 + 42);
+    expect(named(scene, "ink").geometry.getAttribute("position").count / 3).toBe(42);
     const flowers = named(scene, "flower");
     expect(flowers.material.color.getHex()).toBe(new Color(PALETTE.flower).getHex());
     expect(points(flowers)).toHaveLength(2 * 60);
@@ -362,6 +377,51 @@ describe("The Milestones hillside", () => {
       expect(size.z).toBeGreaterThanOrEqual(0.1);
       expect(size.z).toBeLessThanOrEqual(0.15);
     }
+  });
+
+  it.each([0, 1, 104, 65535])("seed %i: localises green moss at the foot and pale lichen above it", seed => {
+    const scene = create({ seed }), mesh = named(scene, "weathered");
+    const colors = mesh.geometry.getAttribute("color");
+    const green: number[] = [], pale: number[] = [];
+    const kitHighlight = new Color(PALETTE.rock).lerp(new Color(PALETTE.sand), 0.16);
+    // Inspect the interactable's actual surface, not the nearby loose chips.
+    const vertices = rockPoints(scene, 0);
+    for (let i = 0; i < vertices.length; i++) {
+      const point = vertices[i]!, localY = point.y - moundAt(scene, point.x, point.z);
+      const pigment = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
+      if (pigment.g > pigment.r * 1.15) green.push(localY);
+      if (pigment.r > kitHighlight.r + 0.04 && pigment.b > kitHighlight.b + 0.04) pale.push(localY);
+    }
+    expect(green.length).toBeGreaterThan(5);
+    expect(Math.max(...green)).toBeLessThan(0.35);
+    expect(pale.length).toBeGreaterThan(2);
+    expect(Math.min(...pale)).toBeGreaterThan(0.2);
+    expect(pale.length).toBeLessThan(vertices.length * 0.3);
+    // The four loose kit chips are embedded, rather than floating over the mound.
+    for (let chip = 0; chip < 4; chip++) {
+      const foot = Math.min(...points(mesh, 7 * 312 + chip * 78, 78).map(point =>
+        point.y - moundAt(scene, point.x, point.z)));
+      expect(foot).toBeCloseTo(-0.04, 5);
+    }
+    const propTriangles = (mesh.geometry.getAttribute("position").count
+      + named(scene, "future").geometry.getAttribute("position").count) / 3;
+    expect(propTriangles).toBeLessThanOrEqual(2000);
+  });
+
+  it("preserves V2 pine bark and needle pigments through the shared material", () => {
+    const scene = create(), pine = named(scene, "needles");
+    const source = createPineCrownV2(104), flat = source.toNonIndexed();
+    try {
+      const expected = flat.getAttribute("color"), actual = pine.geometry.getAttribute("color");
+      expect(actual.count).toBe(expected.count);
+      for (let i = 0; i < actual.count; i++) {
+        const pigment = new Color().fromBufferAttribute(actual, i).multiply(pine.material.color);
+        const original = new Color().fromBufferAttribute(expected, i).multiply(new Color(RAMP_PRESETS.crown));
+        expect(pigment.r).toBeCloseTo(original.r, 6);
+        expect(pigment.g).toBeCloseTo(original.g, 6);
+        expect(pigment.b).toBeCloseTo(original.b, 6);
+      }
+    } finally { source.dispose(); flat.dispose(); }
   });
 
   it("leaves transforms and geometry still during updates, including reduced motion", () => {

@@ -5,8 +5,11 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
-import { CROWN_BASE, createPineCrown, createTreeTrunk } from "../foliage/shapes";
-import { createRampMaterial } from "../materials/ramp";
+import { TRUNK_HEIGHT } from "../foliage/colliders";
+import { createPineCrownV2 } from "../foliage/pine";
+import { createTreeTrunk } from "../foliage/shapes";
+import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createRockGeometry } from "../props/rocks";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
 } from "./types";
@@ -18,11 +21,12 @@ interface Part {
   x: number;
   z: number;
   solid: boolean;
-  /** First triangles form the dark, rough foot of a boulder. */
-  inkVertices?: number;
+  /** Flat, clean tops of the two future slots use one mound sample. */
+  capHeight?: number;
 }
 
-const MOUND = { x: 8.8, radiusX: 5.8, radiusZ: 9, columns: 16, rows: 24, height: 0.8 };
+// A coarser, still gently graded shoulder reserves triangles for stone surface detail.
+const MOUND = { x: 8.8, radiusX: 5.8, radiusZ: 9, columns: 12, rows: 18, height: 0.8 };
 function moundVertexHeight(x: number, z: number) {
   const r2 = ((x - MOUND.x) / MOUND.radiusX) ** 2 + (z / MOUND.radiusZ) ** 2;
   return MOUND.height * Math.max(0, 1 - r2) ** 2;
@@ -69,57 +73,79 @@ function randomFor(seed: number) {
   };
 }
 
-/** Unequal six-sided rings form a bulky fractured rock, with an off-centre chamfered summit. */
-function stone(width: number, depth: number, height: number, lean: number, random: () => number, future = false) {
-  const rings: Vector3[][] = [];
-  const rim = Array.from({ length: 6 }, () => 0.84 + random() * 0.16);
-  const top = Array.from({ length: 6 }, () => 0.86 + random() * 0.14);
-  const peak = Math.max(...top);
-  const cx = rim.reduce((sum, radius, i) => sum + Math.cos(i * Math.PI / 3 + 0.18) * depth * 0.5 * radius, 0) / 6;
-  const cz = rim.reduce((sum, radius, i) => sum + Math.sin(i * Math.PI / 3 + 0.18) * width * 0.5 * radius, 0) / 6;
-  for (const [level, scale] of [[0, 0.86], [0.13, 1], [0.72, 0.85], [1, 0.56]] as const) {
-    rings.push(rim.map((radius, i) => {
-      const angle = i * Math.PI / 3 + 0.18;
-      const y = height * level * (level === 1 && !future ? top[i]! / peak : 1);
-      return new Vector3((Math.cos(angle) * depth * 0.5 * radius - cx) * scale, y,
-        (Math.sin(angle) * width * 0.5 * radius - cz) * scale + y * Math.tan(lean));
-    }));
-  }
-  const positions: number[] = [];
-  const triangle = (a: Vector3, b: Vector3, c: Vector3) => positions.push(...a.toArray(), ...b.toArray(), ...c.toArray());
-  // Dark foot first (12 side + 4 bottom triangles), so it can be batched with the ink trunk.
-  for (let i = 0; i < 6; i++) {
-    const j = (i + 1) % 6;
-    triangle(rings[0]![i]!, rings[1]![i]!, rings[0]![j]!);
-    triangle(rings[0]![j]!, rings[1]![i]!, rings[1]![j]!);
-  }
-  for (let i = 1; i < 5; i++) triangle(rings[0]![0]!, rings[0]![i]!, rings[0]![i + 1]!);
-  for (let ring = 1; ring < 3; ring++) {
-    for (let i = 0; i < 6; i++) {
-      const j = (i + 1) % 6;
-      triangle(rings[ring]![i]!, rings[ring + 1]![i]!, rings[ring]![j]!);
-      triangle(rings[ring]![j]!, rings[ring + 1]![i]!, rings[ring + 1]![j]!);
+/** Stand the kit's layered slab on edge: its broad cut faces the road (-X).
+ * Refine only the broad faces so lichen can form small islands. The kit still
+ * owns the fractured outline, bevels and strata.
+ */
+function stone(width: number, depth: number, height: number, lean: number, seed: number, future = false) {
+  const source = createRockGeometry("slab", seed);
+  if (!future) source.rotateZ(Math.PI / 2);
+  source.computeBoundingBox();
+  const bounds = source.boundingBox!, size = bounds.getSize(new Vector3());
+  source.translate(-bounds.min.x - size.x / 2, -bounds.min.y, -bounds.min.z - size.z / 2);
+  source.scale(depth * 0.9 / size.x, (height + 0.05) / size.y, width * 0.86 / size.z);
+  const p = source.getAttribute("position"), c = source.getAttribute("color");
+  const positions: number[] = [], pigments: number[] = [];
+  const append = (a: Vector3, b: Vector3, d: Vector3, color: Color) => {
+    for (const point of [a, b, d]) {
+      positions.push(point.x + (point.y - height / 2) * Math.tan(lean) * 0.35,
+        point.y - 0.05, point.z + (point.y - height / 2) * Math.tan(lean));
+      pigments.push(color.r, color.g, color.b);
     }
+  };
+  for (let i = 0; i < p.count; i += 3) {
+    const a = new Vector3().fromBufferAttribute(p, i), b = new Vector3().fromBufferAttribute(p, i + 1);
+    const d = new Vector3().fromBufferAttribute(p, i + 2), pigment = new Color().fromBufferAttribute(c, i);
+    const normal = b.clone().sub(a).cross(d.clone().sub(a)).normalize();
+    if (!future && Math.abs(normal.x) > 0.99) {
+      const ab = a.clone().lerp(b, 0.5), bd = b.clone().lerp(d, 0.5), da = d.clone().lerp(a, 0.5);
+      append(a, ab, da, pigment); append(ab, b, bd, pigment);
+      append(da, bd, d, pigment); append(ab, bd, da, pigment);
+    } else append(a, b, d, pigment);
   }
-  for (let i = 1; i < 5; i++) triangle(rings[3]![0]!, rings[3]![i + 1]!, rings[3]![i]!);
+  source.dispose();
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new Float32BufferAttribute(pigments, 3));
+  geometry.computeBoundingBox();
+  const center = geometry.boundingBox!.getCenter(new Vector3());
+  geometry.translate(-center.x, 0, -center.z);
   return geometry;
 }
 
-/** Moss repaints existing stone faces through vertex pigment, without extra geometry or draws. */
-function wash(geometry: BufferGeometry, surface: Surface, inkVertices = 0) {
-  const vertices = geometry.getAttribute("position");
-  const colors: number[] = [];
-  const rock = new Color(paletteColor({ base: "rock", mix: "rockDark", amount: surface === "future" ? 0 : 0.24,
+/** Author palette pigment before terrain draping, divided by the batch base. */
+function weatherStone(geometry: BufferGeometry, height: number, width: number, seed: number, future = false) {
+  const p = geometry.getAttribute("position"), c = geometry.getAttribute("color");
+  const base = new Color(paletteColor({ base: "rock", mix: "rockDark", amount: future ? 0 : 0.24,
     saturation: 1, brightness: 1 }));
-  const moss = new Color(PALETTE.grass).lerp(new Color(PALETTE.rock), 0.25);
+  const moss = new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.32);
+  const lichen = new Color(PALETTE.paper).lerp(new Color(PALETTE.rock), 0.32);
+  const random = randomFor(seed);
+  const islands = Array.from({ length: 5 }, () => ({
+    y: height * (0.22 + random() * 0.65), z: width * (random() - 0.5) * 0.7,
+    ry: height * (0.07 + random() * 0.09), rz: width * (0.08 + random() * 0.1),
+  }));
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const pigment = new Color().fromBufferAttribute(c, i);
+    if (future) pigment.lerp(new Color(PALETTE.sand), 0.2);
+    const edge = 0.25 + 0.08 * Math.sin(z * 13 + seed) + 0.04 * Math.cos(x * 17);
+    const mossAmount = Math.max(0, Math.min(1, (edge - y) / 0.18)) * (future ? 0.2 : 0.8);
+    pigment.lerp(moss, mossAmount);
+    if (!future && y > 0.2) {
+      const spread = Math.min(...islands.map(patch => ((y - patch.y) / patch.ry) ** 2 + ((z - patch.z) / patch.rz) ** 2));
+      const ragged = 0.18 * Math.sin(y * 31 + z * 23 + seed);
+      pigment.lerp(lichen, Math.max(0, Math.min(0.85, (1.25 + ragged - spread) * 0.8)));
+    }
+    c.setXYZ(i, pigment.r / base.r, pigment.g / base.g, pigment.b / base.b);
+  }
+}
+
+function wash(geometry: BufferGeometry) {
+  const vertices = geometry.getAttribute("position"), colors: number[] = [];
   for (let i = 0; i < vertices.count; i++) {
     const value = 0.95 + 0.035 * Math.sin(vertices.getX(i) * 4 + vertices.getY(i) * 3 + vertices.getZ(i));
-    if (inkVertices && i >= inkVertices && Math.floor((i - inkVertices) / 3) % 7 === 2) {
-      // Divide out the base pigment so material * vertex colour yields the palette moss recipe.
-      colors.push(value * moss.r / rock.r, value * moss.g / rock.g, value * moss.b / rock.b);
-    } else colors.push(value, value, value);
+    colors.push(value, value, value);
   }
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
 }
@@ -202,17 +228,36 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
   for (const [index, [x, z, width, depth, height]] of stones.entries()) {
     const future = index >= 7;
     const lean = (3 + random() * 5) * Math.PI / 180 * (index % 2 ? -1 : 1);
+    const seed = (context.seed + Math.imul(index + 1, 2654435761)) >>> 0;
+    const geometry = stone(width, depth, height, lean, seed, future);
+    weatherStone(geometry, height, width, seed, future);
     parts.push({
-      geometry: stone(width, depth, height, lean, random, future),
-      surface: future ? "future" : "weathered", inkVertices: 16 * 3,
+      geometry, surface: future ? "future" : "weathered", capHeight: future ? height : undefined,
       x, z, solid: true,
     });
   }
+  // Four loose chips settle into the target's foot beside the two small wildflowers.
+  for (const [index, [x, z]] of ([[4.12, -0.72], [4.23, 0.68], [4.98, -0.99], [5.05, 0.85]] as const).entries()) {
+    const seed = (context.seed + index * 97) >>> 0;
+    const geometry = createRockGeometry("pebble", seed, true).translate(0, -0.04, 0);
+    weatherStone(geometry, 0.15, 0.25, seed);
+    parts.push({ geometry, surface: "weathered", x, z, solid: false });
+  }
+  const crown = createPineCrownV2(context.seed).translate(0, TRUNK_HEIGHT, 0);
+  const crownColors = crown.getAttribute("color");
+  const crownBase = new Color(RAMP_PRESETS.crown);
+  const needleBase = new Color(paletteColor({ base: "grass", mix: "forestDeep", amount: 0.42, saturation: 1, brightness: 1 }));
+  for (let i = 0; i < crownColors.count; i++) {
+    crownColors.setXYZ(i, crownColors.getX(i) * crownBase.r / needleBase.r,
+      crownColors.getY(i) * crownBase.g / needleBase.g, crownColors.getZ(i) * crownBase.b / needleBase.b);
+  }
+  // V2's bark/needle pigments are retained in the shared batch, including the root sleeve.
+  crown.deleteAttribute("surface");
   parts.push({
     geometry: createTreeTrunk().scale(1, 4.2, 1).translate(0, 2.1, 0),
     surface: "ink", x: 15, z: 2.7, solid: true,
   }, {
-    geometry: createPineCrown(context.seed).translate(0, 2.1 - CROWN_BASE, 0),
+    geometry: crown,
     surface: "needles", x: 15, z: 2.7, solid: false,
   }, {
     geometry: mound(), surface: "mound", x: 0, z: 0, solid: false,
@@ -245,12 +290,12 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     for (let i = 0; i < vertices.count; i++) {
       const localX = part.x + vertices.getX(i), localZ = part.z + vertices.getZ(i);
       const x = side * localX, z = localZ + offsetZ;
-      const flatCap = part.surface === "future" && Math.abs(vertices.getY(i) - stones[index]![4]) < 1e-6;
+      const flatCap = part.capHeight !== undefined && Math.abs(vertices.getY(i) - part.capHeight) < 1e-6;
       const ground = context.heightAt(x, z) + (part.surface === "mound" ? 0
         : flatCap ? moundHeight(part.x, part.z) : moundHeight(localX, localZ));
       vertices.setXYZ(i, x, vertices.getY(i) + ground, z);
     }
-    if (!geometry.hasAttribute("color")) wash(geometry, part.surface, part.inkVertices);
+    if (!geometry.hasAttribute("color")) wash(geometry);
     geometry.computeVertexNormals();
     geometry.computeBoundingBox();
     const bounds = geometry.boundingBox!;
@@ -272,20 +317,7 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
       const normals = flat.getAttribute("normal");
       for (let i = 0; i < normals.count; i++) normals.setXYZ(i, -normals.getX(i), -normals.getY(i), -normals.getZ(i));
     }
-    if (part.inkVertices) {
-      for (const [start, end, surface] of [
-        [0, part.inkVertices, "ink"], [part.inkVertices, flat.getAttribute("position").count, part.surface],
-      ] as const) {
-        const piece = new BufferGeometry();
-        for (const [name, attribute] of Object.entries(flat.attributes)) {
-          piece.setAttribute(name, new Float32BufferAttribute(
-            attribute.array.slice(start * attribute.itemSize, end * attribute.itemSize), attribute.itemSize,
-          ));
-        }
-        batches[surface].push(piece);
-      }
-      flat.dispose();
-    } else batches[part.surface].push(flat);
+    batches[part.surface].push(flat);
     if (flat !== geometry) geometry.dispose();
   }
   for (const surface of Object.keys(batches) as Surface[]) {
