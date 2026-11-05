@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { paletteColor, WORLD_DIRECTION } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
+import { surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { PATH_WIDTH, waterLevelAt } from "../../../../src/features/world/terrain/height";
+import { nearestPath } from "../../../../src/features/world/terrain/samples";
+import { placeZoneScenes } from "../../../../src/features/world/zones";
 import { createFirstLightScene } from "../../../../src/features/world/zones/first-light";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
@@ -151,6 +155,34 @@ describe("First Light pine clearing", () => {
     for (const collider of flat.colliders) expect(collider.center.y - collider.size.y / 2).toBeCloseTo(0, 5);
   });
 
+  it("composes on the real terrain with a dry, grounded First Light beside the world path", () => {
+    const placed = placeZoneScenes(surfaceHeight);
+    try {
+      const scene = placed.find(zone => zone.zoneId === "first-light")!;
+      expect(scene).toBeDefined();
+      const worldPoint = (x: number, z: number) => new Vector3(x, 0, z).applyMatrix4(scene.group.matrixWorld);
+      checkPlacement(scene, context({
+        heightAt(x, z) {
+          const p = worldPoint(x, z);
+          return surfaceHeight(p.x, p.z) - scene.group.position.y;
+        },
+        onPath(x, z) {
+          const p = worldPoint(x, z);
+          return Math.abs(x) <= PATH_CLEARANCE || nearestPath(p.x, p.z).distance <= PATH_WIDTH / 2;
+        },
+        underWater(x, z) {
+          const p = worldPoint(x, z);
+          return surfaceHeight(p.x, p.z) <= waterLevelAt(p.z);
+        },
+      }));
+      expect(meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0))
+        .toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+      expect(meshes(scene).length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    } finally {
+      placed.forEach(scene => scene.dispose());
+    }
+  });
+
   it("rejects wet footprints, including water through the interior rather than just at a centre", () => {
     const ctx = context({ underWater: (x, z) => x < -6 || (x > 4.47 && x < 4.66 && z > 3.4 && z < 4.2) });
     expect(ctx.underWater(4.8, 3.8)).toBe(false);
@@ -197,7 +229,7 @@ describe("First Light pine clearing", () => {
         .lerp(new Color(PALETTE.paper), 0.12).getHex(),
       paper: new Color(PALETTE.paper).getHex(),
       green: paletteColor(WORLD_DIRECTION.foliage.crown),
-      stone: tint("mist", 0.25), sun: tint("dusk", 0.6),
+      stone: tint("mist", 0.25), sun: tint("dusk", 0.3),
       ink: new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
       flower: new Color(PALETTE.flower).getHex(),
     };
@@ -219,29 +251,32 @@ describe("First Light pine clearing", () => {
       if (surface === "sun") {
         expect(triangles(mesh.geometry)).toBe(4);
         expect(mesh.material.transparent).toBe(true);
-        expect(mesh.material.opacity).toBeCloseTo(0.25);
+        expect(mesh.material.opacity).toBeCloseTo(0.42);
         expect(mesh.material.depthWrite).toBe(false);
         expect(mesh.material.forceSinglePass).toBe(true);
       }
     }
   });
 
-  it("keeps three 0.1–0.15 m orange blooms beside the log, omitting them when the log is flooded", () => {
+  it("keeps the small orange blooms and one larger cluster beside the log, omitting them when flooded", () => {
     const scene = create();
     const flowers = meshes(scene).find(mesh => mesh.name === "first-light-flower")!;
     const positions = flowers.geometry.getAttribute("position");
-    const centres = [new Vector3(-5.45, 0.25, 4.7), new Vector3(-6.25, 0.29, 3.05), new Vector3(-7.65, 0.27, 3)];
+    const centres = [
+      new Vector3(-5.45, 0.25, 4.7), new Vector3(-6.25, 0.29, 3.05), new Vector3(-7.65, 0.27, 3),
+      new Vector3(-5.27, 0.32, 3.2), new Vector3(-5.03, 0.4, 3.24), new Vector3(-5.15, 0.35, 3.43),
+    ];
     const bounds = centres.map(() => new Box3());
     for (let i = 0; i < positions.count; i++) {
       const vertex = new Vector3().fromBufferAttribute(positions, i);
-      const index = centres.findIndex(centre => centre.distanceTo(vertex) < 0.1);
+      const index = centres.findIndex((centre, index) => centre.distanceTo(vertex) < (index < 3 ? 0.1 : 0.145));
       expect(index).toBeGreaterThanOrEqual(0);
       bounds[index]!.expandByPoint(vertex);
     }
-    for (const box of bounds) {
+    for (const [index, box] of bounds.entries()) {
       const size = box.getSize(new Vector3());
-      expect(Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.1);
-      expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(0.15);
+      expect(Math.max(size.x, size.z)).toBeGreaterThanOrEqual(index < 3 ? 0.1 : 0.24);
+      expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(index < 3 ? 0.15 : 0.28);
     }
     expect(meshes(create(context({ underWater: x => x < -6 })))
       .some(mesh => mesh.name === "first-light-flower")).toBe(false);
@@ -258,7 +293,7 @@ describe("First Light pine clearing", () => {
       }
     }
     expect(post.min.y).toBeCloseTo(0);
-    expect(post.max.y).toBeCloseTo(1.02);
+    expect(post.max.y).toBeCloseTo(1.4);
     expect(post.getCenter(new Vector3()).x).toBeCloseTo(scene.interactable.position.x);
     const area = (mesh: Mesh<BufferGeometry, MeshToonMaterial>) => {
       const vertices = mesh.geometry.getAttribute("position");
@@ -284,13 +319,26 @@ describe("First Light pine clearing", () => {
       const { x, z } = scene.interactable.position;
       const edgeX = Math.sign(x) * PATH_CLEARANCE;
       const eye = new Vector3(edgeX, ctx.heightAt(edgeX, z) + 1.6, z);
-      const page = new Vector3(x - 0.12, ctx.heightAt(x, z) + 1.18, z);
+      const paper = meshes(scene).find(mesh => mesh.name === "first-light-paper")!.geometry.getAttribute("position");
+      const book = new Box3();
+      for (let i = 0; i < paper.count; i++) {
+        if (Math.abs(paper.getX(i) - x) < 0.5 && Math.abs(paper.getZ(i) - z) < 0.5) {
+          book.expandByPoint(new Vector3().fromBufferAttribute(paper, i));
+        }
+      }
+      const size = book.getSize(new Vector3());
+      expect(size.x).toBeGreaterThan(0.6);
+      expect(size.z).toBeGreaterThan(0.42);
+      expect(size.y).toBeGreaterThan(0.1);
+      expect(book.min.y - ctx.heightAt(x, z)).toBeGreaterThan(1.5);
+      const page = new Vector3(x - 0.15, ctx.heightAt(x, z) + 1.64, z);
       const ray = new Raycaster(eye, page.clone().sub(eye).normalize(), 0, eye.distanceTo(page) + 0.1);
       scene.group.updateMatrixWorld(true);
       const hits = ray.intersectObjects(scene.group.children);
       expect(hits.length).toBeGreaterThan(0);
       expect(hits[0]!.object.name).toBe("first-light-paper");
-      expect(hits[0]!.point.distanceTo(page)).toBeLessThan(0.1);
+      // The taller, thicker book can meet the eye ray at its page-block edge before the top leaf.
+      expect(book.containsPoint(hits[0]!.point)).toBe(true);
     }
   });
 

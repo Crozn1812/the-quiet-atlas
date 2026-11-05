@@ -51,13 +51,14 @@ function plank(width: number, height: number, depth: number): BufferGeometry {
 
 function notebook(): Part[] {
   return [
-    part(plank(0.19, 1.02, 0.18).translate(0, 0.51, 0), "ink"),
-    part(plank(0.82, 0.12, 0.61).rotateZ(-0.025).translate(0, 1.04, 0), "wood"),
-    part(plank(0.52, 0.035, 0.38).rotateY(0.08).translate(0, 1.122, 0), "wood"),
-    part(new BoxGeometry(0.48, 0.025, 0.34).rotateY(0.08).translate(0, 1.152, 0), "paper"),
+    part(plank(0.19, 1.4, 0.18).translate(0, 0.7, 0), "ink"),
+    part(plank(0.82, 0.12, 0.61).rotateZ(-0.025).translate(0, 1.42, 0), "wood"),
+    // A broad cover overhang and thick paper block keep the book readable above the shelf.
+    part(plank(0.66, 0.045, 0.48).rotateY(0.08).translate(0, 1.5225, 0), "wood"),
+    part(new BoxGeometry(0.61, 0.075, 0.43).rotateY(0.08).translate(0, 1.5825, 0), "paper"),
     // Two blank, gently opened pages; all writing belongs to the HTML overlay.
-    part(new BoxGeometry(0.23, 0.008, 0.33).rotateZ(0.06).rotateY(0.08).translate(-0.12, 1.18, 0), "paper"),
-    part(new BoxGeometry(0.23, 0.008, 0.33).rotateZ(-0.06).rotateY(0.08).translate(0.12, 1.18, 0), "paper"),
+    part(new BoxGeometry(0.295, 0.018, 0.42).rotateZ(0.08).rotateY(0.08).translate(-0.15, 1.64, 0), "paper"),
+    part(new BoxGeometry(0.295, 0.018, 0.42).rotateZ(-0.08).rotateY(0.08).translate(0.15, 1.64, 0), "paper"),
   ];
 }
 
@@ -186,6 +187,18 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       }
       place(flowers, x!, z!);
     }
+    // One compact orange cluster at the near end: ~25 cm flower heads, still a rare accent.
+    const cluster: Part[] = [];
+    for (const [x, z, height] of [[-0.12, 0, 0.32], [0.12, 0.04, 0.4], [0, 0.23, 0.35]]) {
+      cluster.push(part(new CylinderGeometry(0.012, 0.018, height!, 4)
+        .translate(x!, height! / 2, z!), "green"));
+      for (let petal = 0; petal < 5; petal++) {
+        const angle = petal * Math.PI * 2 / 5;
+        cluster.push(part(new IcosahedronGeometry(1, 0).scale(0.072, 0.025, 0.052).rotateY(-angle)
+          .translate(x! + Math.cos(angle) * 0.066, height!, z! + Math.sin(angle) * 0.066), "flower"));
+      }
+    }
+    place(cluster, -5.15, 3.2);
   }
 
   for (const [x, z, scale] of [[-6.7, 7.2, 1], [-8.3, 7.9, 0.7], [7.5, -2.8, 0.85]]) {
@@ -236,14 +249,14 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     wood: createPropMaterial("wood"), paper: createPropMaterial("paper"),
     green: createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.crown), WORLD_DIRECTION.foliage.ramp),
     stone: createRampMaterial(tint("mist", "paper", 0.25), WORLD_DIRECTION.foliage.ramp),
-    // 40% dawn gold diluted with 60% paper, rather than an independent swatch.
-    sun: createRampMaterial(tint("dusk", "paper", 0.6)),
+    // A stronger dawn-gold wash stays translucent against the real world's forest and mist.
+    sun: createRampMaterial(tint("dusk", "paper", 0.3)),
     ink: createRampMaterial(tint("ink", "forestDeep", 0.3), WORLD_DIRECTION.foliage.ramp),
     flower: createRampMaterial(tint("flower", "paper", 0), WORLD_DIRECTION.foliage.ramp),
   };
   materials.green.side = DoubleSide;
   Object.assign(materials.sun, {
-    transparent: true, opacity: 0.25, depthWrite: false, side: DoubleSide, forceSinglePass: true,
+    transparent: true, opacity: 0.42, depthWrite: false, side: DoubleSide, forceSinglePass: true,
   });
   for (const surface of Object.keys(buckets) as Surface[]) {
     const material = materials[surface];
