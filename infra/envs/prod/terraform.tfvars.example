@@ -6,7 +6,8 @@ name_prefix = "tqa"
 # Trùng site_bucket_name của infra/bootstrap.
 site_bucket_name = "<ten-bucket-site-duy-nhat>"
 
-# Để rỗng tới khi Duy mua xong tên miền (DUY_QUEUE Q-09).
+# Tên miền Duy đã mua (Q-09, 2026-11-05): nhbduy.id.vn. Điền vào terraform.tfvars khi làm A2,
+# sau khi Budgets/Paid plan xong (runbook domain-and-acm.md Bước 3 trở đi). Rỗng = chưa tạo DNS/ACM.
 domain_name = ""
 
 waf_rate_limit = 1000

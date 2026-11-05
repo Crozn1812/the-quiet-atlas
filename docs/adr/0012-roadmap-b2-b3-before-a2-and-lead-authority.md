@@ -33,3 +33,10 @@ A2 (đưa lên AWS) bị chặn bởi việc AWS duyệt credit (Q-08) — khôn
 
 - Credit AWS duyệt (Q-08) → A2 quay lại ưu tiên.
 - Ngân sách tải/FPS của B vượt trần hai đợt liên tiếp → dừng thêm nội dung, chỉ tối ưu.
+
+## Cập nhật 2026-11-05
+
+- Credit AWS đã có (Q-08): **100 USD**, hạn **2027-05-05** (spec giả định 200 USD). Tên miền `nhbduy.id.vn` đã mua (Q-09).
+- Theo mục "Hệ quả": **A2 mở lại và ưu tiên hơn ticket B mới.** Ticket B đợt 24 đã giao vẫn làm xong.
+- Bước kế tiếp của A2 là việc của Duy: MFA root + user hằng ngày (Q-20), Budgets 10 USD/tháng (Q-07), xác nhận nhà đăng ký cho đổi nameserver (Q-38). Lead chỉ chuẩn bị (Terraform `validate`, runbook); `apply`, nâng Paid plan, tạo hosted zone vẫn hỏi Duy từng lần.
+- Credit 100 USD với budget 10 USD/tháng đủ khoảng 10 tháng, nhưng credit hết hạn sau khoảng 6 tháng. Kế hoạch chi phí A2 tính theo hạn 2027-05-05.

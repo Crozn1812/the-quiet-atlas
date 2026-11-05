@@ -7,15 +7,26 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
-| Q-32 | **Duyệt 5 câu phản hồi secrets** (EN/VI, ẩn dụ, không chuyện riêng) — giữ hoặc viết lại | L3 | Không (đang TBD) | Khi rảnh | `docs/showcase/20-world-life/checklist.md` mục "Câu chữ secrets" |
 | Q-33 | **Chấm showcase đợt 18–20** (giữ/sửa/bỏ 9 dòng) | L3 | Không | Khi rảnh | `docs/showcase/20-world-life/checklist.md` |
-| Q-34 | **Kỹ năng (khu The Roots)**: liệt kê kỹ năng thật theo nhóm (ví dụ Cloud, CI/CD, IaC, Container, Monitoring, Ngôn ngữ), mỗi mục kèm mức độ hoặc dự án đã dùng. Không có thì ghi "chưa" | L2 | Khu Roots còn trống | Sớm | Gửi dạng danh sách; Lead nhập vào `src/content` |
-| Q-35 | **Chứng chỉ & học tập (khu The Milestones)**: chứng chỉ đã đạt (tên, tổ chức, tháng/năm, link xác minh nếu có) + khóa học đang/sắp học (ghi rõ "đang học"/"dự định", không ghi là đã đạt) | L2 | Khu Milestones còn trống | Sớm | Như trên |
-| Q-36 | **Định hướng (khu The Horizon)**: 2–4 câu về hướng nghề nghiệp 1–3 năm tới; phân biệt nguyện vọng với việc đã làm | L2 | Khu Horizon còn trống | Sớm | Như trên |
-| Q-37 | **Sở thích (khu The Quiet Shore)**: 3–5 sở thích thật (xe máy, nhạc indie, piano/guitar, biển…), mỗi cái 1 câu. Ảnh thật (nếu muốn) phải biết người chụp | L2 | Khu Quiet Shore còn trống | Sớm | Như trên |
-| Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
-| Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
-| Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
+| Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong". **Credit đã có (Q-08), nên đây là việc tiếp theo của A2** | L5 | A2 | Sớm | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
+| Q-38 | **Tên miền `nhbduy.id.vn`**: gửi tên nhà đăng ký, ngày hết hạn, giá gia hạn năm sau; kiểm trong trang quản lý tên miền xem **có cho đổi nameserver sang nameserver ngoài** không (bắt buộc để dùng Route 53). Chưa tạo hosted zone, chưa đổi nameserver | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1–2 |
+| Q-39 | **Duyệt bản tiếng Anh 5 bài thơ secrets** (Lead dịch; bản tiếng Việt giữ nguyên lời Duy). Giữ hoặc sửa từng câu | L3 | Không | Khi rảnh | `src/features/story/copy.ts` |
+| Q-40 | **Chứng chỉ VTI DevOps**: có mã hoặc link xác minh không? Web hiện chỉ ghi "hoàn thành 09/2026", chưa ghi mã (spec §4.3) | L2 | Không | Khi có | Gửi mã/link; Lead đối chiếu rồi mới đưa lên |
+| Q-41 | **"Chứng chỉ PRE"** trong câu trả lời định hướng là chứng chỉ gì (ví dụ PTE, GRE…)? Lead chưa đưa lên web vì chưa rõ | L2 | Không | Khi rảnh | Trả lời 1 dòng |
+| Q-42 | **Duyệt phần tính cách (Quiet Shore)**: Lead đã lược câu về chuyện gia đình (spec: không đưa chuyện đời tư); "chửi bản thân" ghi thành "luôn nghiêm khắc với bản thân"; "thích sống một mình" ghi thành "thích những khoảng một mình". Giữ cách viết này hay sửa? | L2 | Không | Khi rảnh | Trang Quiet Shore trong world |
+| Q-43 | **Email theo tên miền** (spec §11.3 mục 5, không bắt buộc): muốn dùng `hello@nhbduy.id.vn` chuyển tiếp về Gmail không? Hiện web giữ Gmail | L5 | Không | Sau A2 | Chỉ làm nếu nhà đăng ký có email forwarding miễn phí |
+
+## Câu trả lời ngày 2026-11-05 — Lead đã ghi nhận
+
+| ID | Câu trả lời của Duy | Lead áp dụng thế nào |
+|---|---|---|
+| Q-08 | Credit AWS đã có: **100 USD**, còn 182 ngày (hết hạn **2027-05-05**), tài khoản đang ở Free plan | Ghi vào ADR 0012. Lưu ý spec giả định 200 USD; kế hoạch A2 tính theo 100 USD (budget 10 USD/tháng vẫn đủ ~10 tháng, hạn credit ngắn hơn). Không ghi thông tin tài khoản |
+| Q-09 | Đã mua **`nhbduy.id.vn`** (xác thực eKYC) | `SITE_URL` mặc định của build = `https://nhbduy.id.vn` (`next.config.ts`): canonical, sitemap, robots. Hosted zone/ACM chờ A2 (Q-38) |
+| Q-32 | 5 bài thơ 4 câu của Duy cho 4 secrets + ghế "chưa đến lúc"; hiện tiếng Anh, có nút dịch sang tiếng Việt | Đã làm: thẻ thơ trong world, nút "Tiếng Việt / Bản tiếng Anh". Bản dịch tiếng Anh chờ duyệt (Q-39) |
+| Q-34 | Kỹ năng theo nhóm, mức đã làm/đã học; muốn học tiếp AIOps | Trang The Roots, giữ đúng mức Duy ghi |
+| Q-35 | Chứng chỉ DevOps của VTI (09/2026); dự định AWS SAA và Linux hoặc CEH | Trang The Milestones: 1 đã đạt + 2 "dự định" (khớp 2 đá trống) |
+| Q-36 | Định hướng 1–3 năm, lead sau 3–5 năm kinh nghiệm tính từ tốt nghiệp 06/2027; Thạc sĩ STEM ở nước ngoài; học tiếng Đức hoặc Ý | Trang The Horizon, ghi là định hướng (spec §4.3). "Chứng chỉ PRE" chờ Q-41 |
+| Q-37 | Xe classic (GD110), indie (Minh Tốc & Lam, Chillies, Chớp), piano, biển, thích chó, tính cách; tả cảnh bờ biển hoàng hôn | Trang The Quiet Shore; cảnh biển giao Codex B2-152…156 (đợt 24) |
 
 ## Câu trả lời ngày 2026-11-04 (lượt 2) — Lead đã ghi nhận
 
