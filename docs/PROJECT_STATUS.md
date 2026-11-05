@@ -1,13 +1,13 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-05 (đợt 21–23: 8 khu hoàn chỉnh + UX/UI).
+> Cập nhật lần cuối: 2026-11-06 (đợt 24–26: hướng A, ánh sáng bình minh/hoàng hôn, asset làm kỹ, art bible khoá).
 
 ## Milestone hiện tại
 
 | Track | Mốc | Trạng thái |
 |---|---|---|
 | A — Portfolio | **A1** xong ở local (nội dung đã duyệt, CI xanh). **A2 mở lại** (2026-11-05): credit 100 USD đã có (hạn 2027-05-05), tên miền `nhbduy.id.vn` đã mua | A2 chờ Duy: MFA + user hằng ngày (Q-20), Budgets (`aws-budgets.md`), nameserver (Q-38). Lead không chạm cloud |
-| B — World | B1 (P01-A…F) xong ở local; **B2 + B3 làm ở local trước A2** (ADR 0012) | Đang làm: vòng duyệt gu (ADR 0013) + graybox 8 khu |
+| B — World | B1 (P01-A…F) xong ở local; **B2 + B3 làm ở local trước A2** (ADR 0012) | Đang làm: B2 công đoạn 1–4 (ánh sáng, asset, art bible khoá, cảnh chuẩn T10) |
 
 ## Đã có
 
@@ -436,7 +436,52 @@ Duy chỉ test khi map và UX/UI hoàn chỉnh. Đợt này làm 3 phần.
 
 Showcase: `docs/showcase/23-eight-zones/checklist.md`. Chưa push.
 
+### Đợt 24–26 (2026-11-05 → 06): hướng A "Tranh chân thật", ánh sáng bình minh/hoàng hôn, asset làm kỹ
+
+Duy chọn hướng A (Q-44, ADR 0013 bổ sung) và yêu cầu rừng bình minh le lói, biển hoàng hôn (B2-180). Đợt 26 làm công đoạn 1–4 của B2.
+
+**Đã xong:**
+- Ánh sáng theo vị trí (B2-180); nước nhận ánh sáng grade (B2-181/181b); mây không lặp (B2-188/188b).
+- Art bible khoá (B2-184): `docs/art-bible/` gồm palette, lighting, shading, asset-budgets, materials, character, gd110.
+- Asset:
+  - bộ đá (B2-186), bộ gỗ (B2-187);
+  - lớp phủ nền (B2-185, re-land sau revert e13d9b1);
+  - mặt đất (B2-190);
+  - GD110 (B2-189), nhân vật (B2-192, GLB dựng lại 7 784 tam giác / 147 KB);
+  - bỏ lưới cát bờ (B2-193);
+  - 8 khu vòng 4 (B2-201…208).
+- Bộ chụp T10 (B2-209).
+- Lead kiểm bằng render (af97a54):
+  - tán vòm 14 cụm có cành;
+  - thân nâu xám;
+  - lá trong bóng xanh lá thay vì navy/đen.
+- Perf (896ea9e): Milestones dựng 1,47 s → 0,42 s.
+
+**Gate trên `4b29f2b`:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| lint (0 warning), typecheck, unit 1501 | **PASS** |
+| e2e | **151/151 PASS** |
+| perf: 3D tới playable | **PASS**, 1,99 MB / 8 MB |
+| perf: thời gian tới playable | **6,18 s / 10 s PASS**; mục tiêu nội bộ ≤ 6 s **chưa đạt** → B2-197 |
+| T10 | **NOT RUN**: bộ 12 ảnh sẵn trong showcase 26; cần Duy + 1 người ngoài chấm |
+| T08/T09 | **NOT RUN**: laptop Iris Xe của Duy (ADR 0007) |
+
+**Sự cố quy trình:**
+- Một lệnh `gate | tail` che mã lỗi, nên B2-185 vào main khi gate đỏ (9edfefd). Đã revert (e13d9b1), trả Codex làm B2-185b rồi merge lại. Từ nay lệnh commit chỉ chạy sau khi đã kiểm mã thoát của gate.
+- Cả hai tài khoản Codex hết lượt (hồi lúc 8:27). Lead tự làm tiếp B2-181, B2-193, B2-201 (vòng import), B2-205 và lần render cây.
+- Gate chạy song song 12 worker thì unit timeout. Gate của Lead giờ dùng `--maxWorkers=4 --testTimeout=60000` và chạy lại một lần nếu chỉ có timeout; không đổi assertion nào.
+
+Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
+
 ### Ticket tiếp theo
+
+1. Giao Codex: B2-181c (suối ven biển đen), B2-188c (mây bớt dày), B2-195 (rãnh suối ở đồi và đất trồi qua đường nhựa), B2-196 (cây vòm lối), B2-194 (thông v2), B2-197 (dựng khu xa sau khung hình đầu), B2-204b, B2-208b.
+2. Duy + 1 người ngoài chấm T10 (12 ảnh, ≥ 10/12).
+3. B2-034: T08/T09 trên Iris Xe (Duy).
+
+### Ticket tiếp theo (đợt 21–23)
 
 1. ~~B2-151~~ đã xong (`86e4a66`): vệt nắng First Light trong suốt, mép suối ven biển mượt (kiểm bằng tour).
 2. Nhập nội dung khi Duy trả lời Q-34…37.
