@@ -50,7 +50,9 @@ it("shares biome fog distances between native fog and paper at every quality, in
       }
     }
   } finally { composed.dispose(); }
-});
+  // Fifteen full-world streams with dense B2-185 scatter need the same harness
+  // window as the preload traversal below when the whole suite runs in parallel.
+}, 60_000);
 
 it("preloads spawn, streams 300 m, retains every tree collider at all qualities and releases every resource", async () => {
   const physics = await createController(undefined, [], { streamed: true });
@@ -182,12 +184,23 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
   const scene = new Scene();
   const geometryDispose = vi.spyOn(BufferGeometry.prototype, "dispose");
   const materialDispose = vi.spyOn(Material.prototype, "dispose");
+  const geometries = new Set<BufferGeometry>();
+  const setAttribute = BufferGeometry.prototype.setAttribute;
+  vi.spyOn(BufferGeometry.prototype, "setAttribute").mockImplementation(function (this: BufferGeometry, name, attribute) {
+    geometries.add(this);
+    return setAttribute.call(this, name, attribute);
+  });
   backend.world.createCollider = () => { throw new Error("initial allocation failed"); };
   expect(() => createWorldScene({ ...backend, scene, quality: "Balanced" })).toThrow("initial allocation failed");
   expect(scene.children).toHaveLength(0);
-  // Failed tile, sky, river, sea and the shared camera trunk geometry.
-  expect(geometryDispose).toHaveBeenCalledTimes(11); // +5 ground-detail variants (B2-047), +1 coast mist (B2-155)
+  // Six non-ground geometries + 28 ground geometries: 11 source variants,
+  // 11 expanded copies, 4 merged batches and 2 temporary rock cylinders.
+  // B2-185 adds 23 allocations over the former 5 ground geometries, all released once.
+  expect(geometryDispose).toHaveBeenCalledTimes(34);
+  expect(new Set(geometryDispose.mock.contexts)).toEqual(geometries);
+  expect(geometryDispose.mock.contexts).toHaveLength(geometries.size);
   expect(materialDispose).toHaveBeenCalledTimes(7); // +1 shared ground material (B2-047), +1 coast mist (B2-155)
+  expect(new Set(materialDispose.mock.contexts).size).toBe(7);
 });
 
 it("grades paper fog without changing the paper pigment, across Low and High reallocations", async () => {

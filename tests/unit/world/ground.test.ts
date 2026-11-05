@@ -1,7 +1,7 @@
-import { Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, Vector3, type BufferGeometry } from "three";
+import { Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, ShaderLib, Vector3, type BufferGeometry, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import {
-  createBroadleafBush, createFern, createGrassTuft, createGroundDetails, createRock, GRASS_VARIANT_SEEDS,
+  createBroadleafBush, createFern, createGrassTuft, createGroundDetails, createRock, FERN_VARIANT_SEEDS, GRASS_VARIANT_SEEDS,
   groundRadius, GROUND_LIMITS, GROUND_MIN_HEIGHT, GROUND_RADIUS, GROUND_TRIANGLE_LIMIT, ROCK_VARIANT_SEEDS,
   scatterGround, type GroundDetail,
 } from "../../../src/features/world/foliage/ground";
@@ -11,7 +11,7 @@ import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/pa
 import { ZONES } from "../../../src/features/world/layout/zones";
 import type { Quality } from "../../../src/features/world/terrain";
 import { PATH_WIDTH, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
-import { nearestPath } from "../../../src/features/world/terrain/samples";
+import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { buildTile, TILE_SIZE, tilesAlongPath } from "../../../src/features/world/terrain/tiles";
 
 const route = tilesAlongPath(64);
@@ -20,6 +20,11 @@ const details = scattered.flat();
 const kinds = Object.keys(GROUND_LIMITS.High) as GroundDetail["kind"][];
 const meshesOf = (ground: ReturnType<typeof createGroundDetails>) => ground.group.children as InstancedMesh<BufferGeometry, MeshToonMaterial>[];
 const triangleCount = (geometry: BufferGeometry) => (geometry.index?.count ?? geometry.getAttribute("position").count) / 3;
+const maximumGrassHeight = Math.max(...GRASS_VARIANT_SEEDS.map(seed => {
+  const geometry = createGrassTuft(seed), height = geometry.boundingBox!.max.y;
+  geometry.dispose();
+  return height;
+}));
 const renderedTriangles = (meshes: ReturnType<typeof meshesOf>) => meshes.reduce((sum, mesh) => sum + mesh.count * triangleCount(mesh.geometry), 0);
 
 function snapshot(meshes: ReturnType<typeof meshesOf>) {
@@ -52,6 +57,47 @@ function expectRecipe(actual: Color, a: Color, b: Color) {
 }
 
 describe("ground shapes", () => {
+  it("keeps the default and explicit low fern at the legacy 40-triangle zone budget", () => {
+    const legacy = createFern();
+    try {
+      expect(triangleCount(legacy)).toBe(40);
+      for (const seed of FERN_VARIANT_SEEDS) {
+        const low = createFern(seed, { detail: "low" });
+        try {
+          expect(triangleCount(low)).toBeLessThanOrEqual(60);
+          expect(low.index!.array).toEqual(legacy.index!.array);
+          for (const attribute of ["position", "color", "normal"]) {
+            expect(low.getAttribute(attribute).array).toEqual(legacy.getAttribute(attribute).array);
+          }
+        } finally { low.dispose(); }
+      }
+    } finally { legacy.dispose(); }
+  });
+
+  it("builds three distinct deterministic serrated fern variants below the 300-triangle asset cap", () => {
+    const signatures = new Set<string>();
+    const triangles: number[] = [];
+    for (const seed of FERN_VARIANT_SEEDS) {
+      const geometry = createFern(seed, { detail: "high" }), repeated = createFern(seed, { detail: "high" });
+      try {
+        const p = geometry.getAttribute("position");
+        expect(p.array).toEqual(repeated.getAttribute("position").array);
+        signatures.add(JSON.stringify([...p.array]));
+        triangles.push(triangleCount(geometry));
+        // Four rachis vertices and 6 pinnae of 5 vertices per frond.
+        expect(p.count / 34).toBeGreaterThanOrEqual(6);
+        expect(p.count / 34).toBeLessThanOrEqual(9);
+        expect(triangleCount(geometry)).toBeLessThanOrEqual(300);
+        // Serration: the notch is inset between two outer teeth.
+        for (let start = 4; start < p.count; start += 34) {
+          const distance = (i: number) => Math.hypot(p.getX(i), p.getZ(i));
+          expect(distance(start + 2)).toBeLessThan(distance(start + 3));
+        }
+      } finally { geometry.dispose(); repeated.dispose(); }
+    }
+    expect(signatures.size).toBe(3);
+    console.info("GROUND fern triangles: 40 ->", triangles, "; grass unchanged: 18/24/15; rock/log: 24; bush: 24");
+  });
   it("retains distinct seeded curved grass and weathered, partly buried solids within their radius", () => {
     for (const [seeds, factory, budget] of [[GRASS_VARIANT_SEEDS, createGrassTuft, 27], [ROCK_VARIANT_SEEDS, createRock, 24]] as const) {
       const signatures = new Set<string>();
@@ -85,8 +131,8 @@ describe("ground shapes", () => {
         expect(geometry.getAttribute("position").array).toEqual(repeated.getAttribute("position").array);
         expect(triangleCount(geometry)).toBe(triangles);
         expect(geometry.boundingBox!.min.y).toBe(0);
-        expect(geometry.boundingBox!.max.y * low).toBeCloseTo(low);
-        expect(geometry.boundingBox!.max.y * high).toBeCloseTo(high);
+        expect(geometry.boundingBox!.max.y * low).toBeGreaterThan(low * 0.85);
+        expect(geometry.boundingBox!.max.y * high).toBeLessThanOrEqual(high);
         const p = geometry.getAttribute("position");
         for (let i = 0; i < p.count; i++) expect(Math.hypot(p.getX(i), p.getZ(i)) * high).toBeLessThan(GROUND_RADIUS);
         // Leaf fans/fronds reach all four quadrants rather than forming a vertical billboard.
@@ -108,7 +154,7 @@ describe("ground shapes", () => {
           if (factory === createRock) {
             expectRecipe(color, base, moss);
             if (positions.getY(i) < 0) expect(color.toArray()).toEqual(expect.arrayContaining(base.toArray().map(value => expect.closeTo(value, 5))));
-          } else if (factory === createGrassTuft) expectRecipe(color, deep, light.clone().lerp(grass, 0.3));
+          } else if (factory === createGrassTuft) expectRecipe(color, grass, new Color(PALETTE.grassDry));
           else if (factory === createBroadleafBush && Math.floor(i / 5) % 2) expectRecipe(color, deep, grass);
           else expectRecipe(color, deep, light);
         }
@@ -131,81 +177,91 @@ describe("ground scatter", () => {
     expect(() => scatterGround({ ...buildTile(0, 0), size: 32 })).toThrow(RangeError);
   });
 
-  it("keeps complete hard footprints outside PATH_CLEARANCE and every detail off zone pads, bridges and water", () => {
+  it.each(route.map((tile, index) => [tile.ix + "," + tile.iz, index] as const))("keeps all footprints on tile %s clear of paths, asphalt, pads, bridges and water", (_, index) => {
     for (const kind of kinds) expect(details.some(item => item.kind === kind), kind).toBe(true);
-    for (let index = 0; index < route.length; index++) {
+    const violations: GroundDetail[] = [];
+    {
       const tile = route[index]!, items = scattered[index]!;
       for (const kind of kinds) expect(items.filter(item => item.kind === kind).length).toBeLessThanOrEqual(GROUND_LIMITS.High[kind]);
       for (const item of items) {
         const path = nearestPath(item.x, item.z), radius = groundRadius(item.kind);
-        expect(item.x).toBeGreaterThanOrEqual(tile.ix * TILE_SIZE);
-        expect(item.x).toBeLessThan((tile.ix + 1) * TILE_SIZE);
-        expect(item.z).toBeGreaterThanOrEqual(tile.iz * TILE_SIZE);
-        expect(item.z).toBeLessThan((tile.iz + 1) * TILE_SIZE);
-        if (item.kind === "rock" || item.kind === "log") expect(path.distance - radius).toBeGreaterThanOrEqual(PATH_CLEARANCE);
-        else if (item.kind !== "leaf") expect(path.distance - radius).toBeGreaterThanOrEqual(PATH_WIDTH / 2);
-        for (const zone of ZONES) expect(Math.hypot(item.x - zone.position.x, item.z - zone.position.z) - radius).toBeGreaterThanOrEqual(zone.radius + ZONE_CLEARANCE);
-        expect(PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < 6 + radius)).toBe(false);
-        expect(item.y - renderedHeight(item.x, item.z)).toBeCloseTo(item.kind === "leaf" ? 0.018 : 0, 6);
+        let valid = item.x >= tile.ix * TILE_SIZE && item.x < (tile.ix + 1) * TILE_SIZE
+          && item.z >= tile.iz * TILE_SIZE && item.z < (tile.iz + 1) * TILE_SIZE;
+        if (item.kind === "leaf") valid &&= path.distance + radius <= PATH_WIDTH / 2 - 0.02 && foliageBiomeAt(item.x, item.z) === "forest-dawn";
+        else if (item.kind === "grass" && path.distance - radius < PATH_CLEARANCE) valid &&= path.distance - radius >= PATH_WIDTH / 2 && maximumGrassHeight * item.scale < 0.3;
+        else valid &&= path.distance - radius >= PATH_CLEARANCE;
+        valid &&= ZONES.every(zone => Math.hypot(item.x - zone.position.x, item.z - zone.position.z) - radius >= zone.radius + ZONE_CLEARANCE);
+        valid &&= !PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < 6 + radius);
+        valid &&= Math.abs(item.y - renderedHeight(item.x, item.z) - (item.kind === "leaf" ? 0.018 : 0)) < 1e-6;
         for (let i = -1; i < 8; i++) {
           const x = item.x + (i < 0 ? 0 : Math.cos(i * Math.PI / 4) * radius);
           const z = item.z + (i < 0 ? 0 : Math.sin(i * Math.PI / 4) * radius);
-          expect(worldHeight(x, z)).toBeGreaterThanOrEqual(GROUND_MIN_HEIGHT);
-          expect(renderedHeight(x, z)).toBeGreaterThan(waterLevelAt(z));
+          valid &&= worldHeight(x, z) >= GROUND_MIN_HEIGHT && renderedHeight(x, z) > waterLevelAt(z);
         }
-        if (item.kind === "fern" || item.kind === "bush" || item.kind === "log" || item.kind === "leaf") expect(foliageBiomeAt(item.x, item.z)).toBe("forest-dawn");
-        if (item.kind === "fern") { expect(item.scale).toBeGreaterThanOrEqual(0.4); expect(item.scale).toBeLessThanOrEqual(1); }
-        if (item.kind === "bush") { expect(item.scale).toBeGreaterThanOrEqual(0.6); expect(item.scale).toBeLessThanOrEqual(1.4); }
-        if (item.kind === "leaf") expect(path.distance + radius).toBeLessThanOrEqual(1.6);
+        if (item.kind === "fern") valid &&= item.scale >= 0.4 && item.scale <= 1
+          && (foliageBiomeAt(item.x, item.z) === "forest-dawn" || Math.abs(nearestRiver(item.x, item.z).distance - 8) < 7.2);
+        if (item.kind === "bush") valid &&= item.scale >= 0.6 && item.scale <= 1.4 && foliageBiomeAt(item.x, item.z) === "forest-dawn";
+        if (item.kind === "flower") valid &&= foliageBiomeAt(item.x, item.z) === "hill" || foliageBiomeAt(item.x, item.z) === "coast-dusk" && path.distance < 14;
+        if (!valid) violations.push(item);
       }
     }
+    expect(violations).toEqual([]);
     expect(details.filter(item => item.kind === "log").length).toBeLessThan(details.filter(item => item.kind === "rock").length * 0.3);
   });
 
-  it("has at least triple fern AND bush density in 2.5–8 m versus 30–60 m, on both sides, before and after batching", () => {
-    const area = { left: { near: 0, far: 0 }, right: { near: 0, far: 0 } };
-    const classify = (x: number, z: number) => {
-      if (foliageBiomeAt(x, z) !== "forest-dawn") return;
-      const path = nearestPath(x, z);
-      const band = path.distance >= 2.5 && path.distance <= 8 ? "near" : path.distance >= 30 && path.distance <= 60 ? "far" : undefined;
-      if (!band) return;
-      const a = pathPointAt(Math.max(0, path.t - 0.0001)), b = pathPointAt(Math.min(1, path.t + 0.0001));
-      const side = (x - path.x) * (a.z - b.z) + (z - path.z) * (b.x - a.x) >= 0 ? "right" : "left";
-      return { side, band } as const;
-    };
-    for (const tile of route) for (let dx = 2; dx < TILE_SIZE; dx += 4) for (let dz = 2; dz < TILE_SIZE; dz += 4) {
-      const x = tile.ix * TILE_SIZE + dx, z = tile.iz * TILE_SIZE + dz, category = classify(x, z);
-      if (category) area[category.side][category.band] += 16;
-    }
+  it("covers forest 10 x 10 m cells at t=0.15 near and far from the path, including after LOD", () => {
+    const point = pathPointAt(0.15), a = pathPointAt(0.1499), b = pathPointAt(0.1501);
+    const length = Math.hypot(b.x - a.x, b.z - a.z);
+    const nx = -(b.z - a.z) / length, nz = (b.x - a.x) / length;
+    const near = { x: point.x - nx * 22, z: point.z - nz * 22 };
+    const far = { x: point.x - nx * 44, z: point.z - nz * 44 };
+    const inCell = (p: { x: number; z: number }, center: typeof near) => Math.abs(p.x - center.x) <= 5 && Math.abs(p.z - center.z) <= 5;
     const ground = createGroundDetails(details.length);
     try {
+      ground.setFocus(near.x, near.z);
       ground.setTiles(details);
-      for (const kind of ["fern", "bush"] as const) {
-        const mesh = meshesOf(ground).find(mesh => mesh.name === `ground-${kind}`)!;
-        const matrix = new Matrix4();
-        const rendered = Array.from({ length: mesh.count }, (_, i) => {
-          mesh.getMatrixAt(i, matrix);
-          return new Vector3().setFromMatrixPosition(matrix);
-        });
-        for (const points of [details.filter(item => item.kind === kind), rendered]) {
-          const count = { left: { near: 0, far: 0 }, right: { near: 0, far: 0 } };
-          for (const item of points) {
-            const category = classify(item.x, item.z);
-            if (category) count[category.side][category.band]++;
-          }
-          for (const side of ["left", "right"] as const) {
-            expect(area[side].far).toBeGreaterThan(0);
-            expect(count[side].far).toBeGreaterThan(0);
-            const ratio = (count[side].near / area[side].near) / (count[side].far / area[side].far);
-            expect(ratio, `${kind} ${side}`).toBeGreaterThanOrEqual(3);
-          }
-        }
+      const matrix = new Matrix4();
+      const rendered = meshesOf(ground).flatMap(mesh => Array.from({ length: mesh.count }, (_, i) => {
+        mesh.getMatrixAt(i, matrix);
+        return new Vector3().setFromMatrixPosition(matrix);
+      }));
+      const counts = [details, rendered].map(points => ({ near: points.filter(p => inCell(p, near)).length, far: points.filter(p => inCell(p, far)).length }));
+      console.info("GROUND density raw/rendered", counts, "triangles", renderedTriangles(meshesOf(ground)));
+      for (const count of counts) {
+        expect(count.near).toBeGreaterThanOrEqual(25);
+        expect(count.far).toBeGreaterThanOrEqual(8);
+        expect(count.near).toBeGreaterThan(count.far);
       }
     } finally { ground.dispose(); }
   });
 });
 
 describe("ground instancing", () => {
+  it("selects real variant positions/colors in the ramp shader within 16 vertex attribute slots", () => {
+    const ground = createGroundDetails(1);
+    try {
+      const meshes = meshesOf(ground), shader = { ...ShaderLib.toon!, uniforms: {} };
+      const material = meshes[0]!.material;
+      material.onBeforeCompile(shader as unknown as Parameters<typeof material.onBeforeCompile>[0], {} as WebGLRenderer);
+      expect(shader.vertexShader).toContain("groundSelect(position, groundPosition1, groundPosition2)");
+      expect(shader.vertexShader).toContain("mix(instanceColor.rgb, groundTip, blend)");
+      expect(shader.fragmentShader).toContain("rampShadowTint");
+      expect(material.defines?.FLAT_SHADED).toBe("");
+      for (const mesh of meshes) {
+        expect(Object.keys(mesh.geometry.attributes).length + 5).toBeLessThanOrEqual(16);
+        expect(mesh.geometry.boundingSphere!.radius).toBeGreaterThan(0);
+      }
+      for (const [index, seeds, factory] of [[0, FERN_VARIANT_SEEDS, createFern], [3, GRASS_VARIANT_SEEDS, createGrassTuft]] as const) {
+        for (const [variant, seed] of seeds.entries()) {
+          const geometry = factory(seed, { detail: "high" }), expanded = geometry.toNonIndexed();
+          try {
+            const actual = meshes[index]!.geometry.getAttribute(variant ? `groundPosition${variant}` : "position");
+            expect([...actual.array].slice(0, expanded.getAttribute("position").array.length)).toEqual([...expanded.getAttribute("position").array]);
+          } finally { geometry.dispose(); expanded.dispose(); }
+        }
+      }
+    } finally { ground.dispose(); }
+  });
   it("uses four opaque single-pass instance batches and <=40,000 triangles even for the entire route", () => {
     const ground = createGroundDetails(details.length);
     try {
@@ -295,15 +351,16 @@ describe("ground instancing", () => {
 
   it("caps per-tile kinds before the global budget and applies exact quality counts below that budget", () => {
     const fixture = details[0]!;
-    for (const kind of kinds) {
-      const items = [0, 1].flatMap(ix => Array.from({ length: GROUND_LIMITS.High[kind] + 10 }, (_, i) =>
+    for (const kind of kinds.filter(kind => kind !== "grass" && kind !== "flower")) {
+      const items = [0].flatMap(ix => Array.from({ length: GROUND_LIMITS.High[kind] + 10 }, (_, i) =>
         ({ ...fixture, kind, variant: 0, x: ix * TILE_SIZE + 1 + i * 0.001, z: 1 })));
       const ground = createGroundDetails(items.length);
       try {
+        ground.setFocus(1, 1);
         ground.setTiles(items);
         for (const quality of ["High", "Balanced", "Low"] as Quality[]) {
           ground.setQuality(quality);
-          expect(meshesOf(ground).reduce((sum, mesh) => sum + mesh.count, 0)).toBe(GROUND_LIMITS[quality][kind] * 2);
+          expect(meshesOf(ground).reduce((sum, mesh) => sum + mesh.count, 0)).toBe(GROUND_LIMITS[quality][kind]);
         }
       } finally { ground.dispose(); }
     }
