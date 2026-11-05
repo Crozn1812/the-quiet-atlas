@@ -1,4 +1,4 @@
-import { Color, Matrix3, Matrix4, Ray, ShaderLib, SRGBColorSpace, Vector3, type InstancedMesh, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
+import { Color, Matrix3, Matrix4, Ray, ShaderLib, SRGBColorSpace, Vector2, Vector3, type InstancedMesh, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { describe, expect, it } from "vitest";
 import { paletteColor, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -91,7 +91,11 @@ describe("broadleaf forest corridor (B2-170)", () => {
           const path = nearestPath(tree.x, tree.z);
           const limb = new Vector3(1, 0, 0).transformDirection(matrix);
           expect(limb.dot(new Vector3(path.x - tree.x, 0, path.z - tree.z).normalize())).toBeGreaterThan(0.99);
-          expect(new Vector3().setFromMatrixScale(matrix).x / tree.scale).toBeCloseTo(4.2, 5);
+          const scale = new Vector3().setFromMatrixScale(matrix);
+          expect(scale.x / tree.scale).toBeCloseTo(3, 5);
+          expect(scale.z / scale.x).toBeCloseTo(1, 5);
+          // Only the small reaching shear differs from a uniform scale.
+          expect(scale.y / scale.x).toBeCloseTo(Math.hypot(1, 0.3), 5);
           const x = new Vector3().setFromMatrixColumn(matrix, 0), y = new Vector3().setFromMatrixColumn(matrix, 1), z = new Vector3().setFromMatrixColumn(matrix, 2);
           const cofactors = new Matrix3().setFromMatrix4(new Matrix4().makeBasis(
             new Vector3().crossVectors(y, z), new Vector3().crossVectors(z, x), new Vector3().crossVectors(x, y)));
@@ -197,7 +201,7 @@ function displayLuma(color: Color): number {
   return display.r * 0.2126 + display.g * 0.7152 + display.b * 0.0722;
 }
 
-it("reads bark from the direction preset, preserves moss and keeps every trunk vertex above 0.18 display luma in shade", () => {
+it("uses natural palette wood/moss and bounds both shaded and sunlit bark after the ramp (B2-175)", () => {
   const foliage = createFoliage(1);
   try {
     const { trunks } = foliage.species.broadleaf;
@@ -218,7 +222,44 @@ it("reads bark from the direction preset, preserves moss and keeps every trunk v
     expect(pigments.some(color => color.g > color.r && color.g > color.b)).toBe(true);
     expect(new Set(pigments.map(color => color.getHex())).size).toBeGreaterThan(5);
     expect(pigments.every(color => color.r > new Color(PALETTE.ink).r)).toBe(true);
-    process.stdout.write(`B2-170 trunk: minimum ACES+sRGB shade luma=${min.toFixed(3)} (exposure=1)\n`);
+    const wood = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.45).lerp(new Color(PALETTE.dusk), 0.06);
+    const positions = trunks.geometry.getAttribute("position");
+    for (let i = 0; i < positions.count; i++) if (positions.getY(i) === 0.5) {
+      expect(pigments[i]!.r).toBeCloseTo(wood.r, 6);
+      expect(pigments[i]!.g).toBeCloseTo(wood.g, 6);
+      expect(pigments[i]!.b).toBeCloseTo(wood.b, 6);
+    }
+    expect(shader.fragmentShader).toContain("clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y)");
+    const limits = shader.uniforms.forestBarkLuma!.value as Vector2;
+    const shadowTint = shader.uniforms.rampShadowTint!.value as Color;
+    const highlightTint = shader.uniforms.rampHighlightTint!.value as Color;
+    const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+    const smooth = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
+    let darkest = Infinity, brightest = 0;
+    // Exercise every pigment through the shared R ramp: opposite normals,
+    // no direct light, soft-ramp endpoints and strong direct/ambient light.
+    for (const pigment of pigments) for (const irradiance of [0, 0.25, 0.5, 1, 4, 20]) {
+      const lit = pigment.clone().multiplyScalar(irradiance), rampLight = luma(lit);
+      lit.multiply(new Color(1, 1, 1).lerp(highlightTint, smooth((rampLight - 0.5) / 0.5) * 0.12));
+      const shadow = pigment.clone().multiply(new Color(0.25, 0.25, 0.25).lerp(shadowTint, 0.6));
+      lit.copy(shadow.lerp(lit, smooth(rampLight / 0.5)));
+      lit.setRGB(Math.max(lit.r, pigment.r * Number(floor![1])), Math.max(lit.g, pigment.g * Number(floor![1])), Math.max(lit.b, pigment.b * Number(floor![1])));
+      lit.multiplyScalar(Math.max(limits.x, Math.min(limits.y, luma(lit))) / luma(lit));
+      expect(luma(lit)).toBeGreaterThanOrEqual(0.15 - 1e-7);
+      expect(luma(lit)).toBeLessThanOrEqual(0.55);
+      const display = displayLuma(lit);
+      expect(display).toBeGreaterThanOrEqual(0.15);
+      expect(display).toBeLessThanOrEqual(0.55);
+      darkest = Math.min(darkest, display); brightest = Math.max(brightest, display);
+    }
+    const crownMaterial = foliage.species.broadleaf.crowns.material;
+    const crownShader = { vertexShader: ShaderLib.toon!.vertexShader, fragmentShader: ShaderLib.toon!.fragmentShader, uniforms: {} } as WebGLProgramParametersWithUniforms;
+    crownMaterial.onBeforeCompile(crownShader, {} as WebGLRenderer);
+    expect(crownShader.uniforms.forestBarkLuma!.value).toEqual(limits);
+    expect(crownShader.fragmentShader).toContain("if (vForestWood > 0.5)");
+    expect(crownShader.vertexShader).toContain("vColor.xyz /= instanceColor");
+    expect(crownShader.fragmentShader.indexOf("clamp(barkLuma")).toBeGreaterThan(crownShader.fragmentShader.indexOf("outgoingLight = mix( rampShadow"));
+    process.stdout.write(`B2-175 bark: ramp linear luma=${limits.x}–${limits.y}; ACES+sRGB=${darkest.toFixed(3)}–${brightest.toFixed(3)} (exposure=1)\n`);
   } finally { foliage.dispose(); }
   const recipe = WORLD_DIRECTION.foliage.trunk;
   const brightness = recipe.brightness;

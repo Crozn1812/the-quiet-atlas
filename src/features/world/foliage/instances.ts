@@ -1,4 +1,4 @@
-import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector3 } from "three";
+import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
@@ -6,7 +6,7 @@ import { PRESETS, type Quality } from "../terrain";
 import { nearestPath } from "../terrain/samples";
 import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
-import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
+import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
 
@@ -28,6 +28,37 @@ export function isDeepCrown(x: number, z: number): boolean {
 
 export function hasHangingFoliage(x: number, z: number): boolean {
   return foliageVariantAt(z + 19.73, x - 41.19, 100) < 40;
+}
+
+/** Bound wood after the shared ramp, before fog/ACES. This linear interval also
+ * stays below 0.55 display luma with the world's ACES exposure of one. */
+function installBarkLighting(material: Material, branches = false) {
+  const previous = material.onBeforeCompile.bind(material);
+  const previousKey = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    previous(shader, renderer);
+    shader.uniforms.forestBarkLuma = { value: new Vector2(0.15, 0.18) };
+    if (branches) {
+      shader.vertexShader = "attribute float surface; varying float vForestWood;\n" + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace("#include <color_vertex>", `#include <color_vertex>
+vForestWood = step(0.5, surface) * (1.0 - step(1.5, surface));
+#ifdef USE_INSTANCING_COLOR
+// Deep leaf instances must not tint their wooden branches green.
+if (vForestWood > 0.5) vColor.xyz /= instanceColor;
+#endif`);
+      shader.fragmentShader = "varying float vForestWood;\n" + shader.fragmentShader;
+    }
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec2 forestBarkLuma;")
+      .replace("#include <opaque_fragment>", `
+${branches ? "if (vForestWood > 0.5)" : ""} {
+outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.85);
+float barkLuma = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
+outgoingLight *= clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y) / max(barkLuma, 0.00001);
+}
+#include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => previousKey() + `|forest-bark-bounded-v2:${branches}`;
 }
 
 /** Use the same geometry selection in the colour and existing shadow passes.
@@ -107,35 +138,23 @@ export function createFoliage(maxPerKind: number) {
   const trunkGeometry = createTreeTrunk(true);
   const trunkMaterial = createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.trunk), WORLD_DIRECTION.foliage.ramp);
   trunkMaterial.vertexColors = true;
-  // B2-166's relative vertex wash encoded its own dark bark, cancelling the
-  // preset. Rebuild that wash from the active bark recipe, retaining its moss.
-  const bark = trunkMaterial.color.clone().lerp(new Color(PALETTE.forestDeep), 0.12);
+  // Encode the same palette wood/moss pigment relative to the active material.
   const trunkPositions = trunkGeometry.getAttribute("position");
   const trunkNormals = trunkGeometry.getAttribute("normal");
   const trunkColors = trunkGeometry.getAttribute("color");
   for (let i = 0; i < trunkPositions.count; i++) {
     const height = trunkPositions.getY(i) + 0.5;
     const damp = (trunkNormals.getZ(i) + 1) / 2;
-    const coverage = Math.min(1, 0.22 + (1 - height) * 0.48 + Math.max(0, trunkNormals.getY(i)) * 0.2 + damp * 0.22);
-    const moss = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), 0.04 + height * 0.24);
-    const color = bark.clone().lerp(moss, coverage);
-    trunkColors.setXYZ(i, color.r / trunkMaterial.color.r, color.g / trunkMaterial.color.g, color.b / trunkMaterial.color.b);
+    const color = mossColor(height, trunkNormals.getY(i), damp, trunkMaterial.color.getHex());
+    trunkColors.setXYZ(i, color.r, color.g, color.b);
   }
-  // A pigment-coloured shade floor keeps humid-forest trunks legible even with
-  // no direct light. It runs inside the existing ramp, before ACES, with no pass.
-  const trunkCompile = trunkMaterial.onBeforeCompile.bind(trunkMaterial);
-  const trunkKey = trunkMaterial.customProgramCacheKey.bind(trunkMaterial);
-  trunkMaterial.onBeforeCompile = (shader, renderer) => {
-    trunkCompile(shader, renderer);
-    shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>",
-      "outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.85);\n#include <opaque_fragment>");
-  };
-  trunkMaterial.customProgramCacheKey = () => trunkKey() + "|forest-bark-shade-v1";
+  installBarkLighting(trunkMaterial);
   const crownMaterial = createRampMaterial(RAMP_PRESETS.crown);
   crownMaterial.vertexColors = true;
   const depthMaterial = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
   const distanceMaterial = new MeshDistanceMaterial();
   for (const material of [crownMaterial, depthMaterial, distanceMaterial]) installTreeShapes(material);
+  installBarkLighting(crownMaterial, true);
   const neutral = new Color(1, 1, 1);
   // Instance colours multiply the shared ramp colour; compensate in linear RGB.
   const deep = new Color(PALETTE.forestDeep);
@@ -156,7 +175,10 @@ export function createFoliage(maxPerKind: number) {
         }
         if (target) { geometry.boundingBox!.union(target.boundingBox!); target.dispose(); }
       }
-      if (!broadleaf) geometry.setAttribute("hanging", new Float32BufferAttribute(new Float32Array(position.count), 1));
+      if (!broadleaf) {
+        geometry.setAttribute("hanging", new Float32BufferAttribute(new Float32Array(position.count), 1));
+        geometry.setAttribute("surface", new Float32BufferAttribute(new Float32Array(position.count), 1));
+      }
       // Bounds include all three real silhouettes; camera selection stays conservative.
       geometry.boundingBox!.getBoundingSphere(geometry.boundingSphere!);
       geometry.setAttribute("treeStyle", new InstancedBufferAttribute(new Float32Array(maxPerKind * 2), 2));
@@ -200,7 +222,10 @@ export function createFoliage(maxPerKind: number) {
       // Limit pine height to 14–18 m while
       // retaining its width variation and leaving every physics cylinder alone.
       const nominalHeight = pineHeight(seed);
-      const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight : tree.scale;
+      // Uniformly grow mature trail trees, preserving round leaf masses instead
+      // of stretching only X/Z into the old flat umbrellas.
+      const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight
+        : tree.scale * (tree.trailCanopy ? 3 : 1);
       const anchorHeight = TRUNK_HEIGHT * heightScale;
       // Extend the visual trunk slightly into the crown to hide the join.
       const height = tree.kind === "pine" ? nominalHeight * (2 / 3 + 0.05) * heightScale : anchorHeight;
@@ -213,10 +238,9 @@ export function createFoliage(maxPerKind: number) {
       transform.scale.set(tree.scale, heightScale, tree.scale);
       if (tree.trailCanopy && tree.kind === "broadleaf") {
         const path = nearestPath(tree.x, tree.z);
-        // Rotate the existing limbs toward the trail; stretch only the crown,
-        // keeping the trunk, root and physics cylinder fixed.
+        // Face the existing reaching limbs toward the trail.
         transform.rotateY(Math.atan2(tree.z - path.z, path.x - tree.x));
-        transform.scale.set(tree.scale * 4.2, heightScale, tree.scale * 2.2);
+        transform.scale.setScalar(heightScale);
       }
       transform.updateMatrix();
       if (tree.trailCanopy && tree.kind === "broadleaf") transform.matrix.multiply(reachingLimbs);

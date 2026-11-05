@@ -90,7 +90,8 @@ export function createPineCrown(seed: number = PINE_VARIANT_SEEDS[0]): BufferGeo
     const tip = positions.length / 3;
     positions.push(cx + lean * 0.4, base + height, cz + 0.04);
     const underside = positions.length / 3;
-    positions.push(cx, base + 0.06, cz);
+    // A closed, drooping underside gives every tier a solid conical volume.
+    positions.push(cx, base - height * 0.22, cz);
     for (let j = 0; j < segments; j++) {
       const a = start + j;
       const b = start + (j + 1) % segments;
@@ -105,16 +106,17 @@ export function createPineCrown(seed: number = PINE_VARIANT_SEEDS[0]): BufferGeo
   return paintCrown(geometryFrom(positions, indices), height / 3, 2.7, height * 2 / 3 - TRUNK_HEIGHT);
 }
 
-/** Palette-only wash, relative to the ramp colour in linear RGB. */
+/** Natural grey-brown wood, with green moss concentrated around the roots.
+ * Ratios keep this same pigment on the trunk and the crown's shared material. */
 export function mossColor(height: number, upward: number, damp: number, material = RAMP_PRESETS.trunk): Color {
-  const bark = new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.25);
-  const moss = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), 0.04 + height * 0.24);
-  const coverage = Math.min(1, 0.22 + (1 - height) * 0.48 + Math.max(0, upward) * 0.2 + damp * 0.22);
+  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.45).lerp(new Color(PALETTE.dusk), 0.06);
+  const moss = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), 0.28);
+  const coverage = (1 - height) ** 2 * Math.min(0.85, 0.5 + Math.max(0, upward) * 0.15 + damp * 0.2);
   const color = bark.lerp(moss, coverage), base = new Color(material);
   return color.setRGB(color.r / base.r, color.g / base.g, color.b / base.b);
 }
 
-/** Six separated leaf clusters, a bent leader and 2–3 limbs. Identical topology
+/** Seven overlapping rounded leaf masses, a bent leader and 2–3 limbs. Identical topology
  * lets three silhouettes share the original two batches, including shadows. */
 export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]): BufferGeometry {
   const variant = Math.max(0, BROADLEAF_VARIANT_SEEDS.indexOf(seed as typeof BROADLEAF_VARIANT_SEEDS[number]));
@@ -122,11 +124,13 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
   const positions: number[] = [];
   const indices: number[] = [];
   const phase = variant * 0.48;
-  for (let cluster = 0; cluster < 6; cluster++) {
-    const angle = phase + cluster * Math.PI * 2 / 5;
-    const offset = cluster === 0 ? 0.22 : 1.18 + random() * 0.12;
+  for (let cluster = 0; cluster < 7; cluster++) {
+    const edge = cluster >= 5;
+    const angle = phase + (edge ? 0.6 + (cluster - 5) * Math.PI : (cluster - 1) * Math.PI / 2);
+    const offset = cluster === 0 ? 0.18 : edge ? 1.7 : 1.02 + random() * 0.12;
     const cx = Math.cos(angle) * offset, cz = Math.sin(angle) * offset;
-    const cy = cluster === 0 ? 1.6 : (cluster % 2) * 0.65;
+    const cy = cluster === 0 ? 1.45 + variant * 0.08 : edge ? 0.25 : (cluster % 2) * 0.3;
+    const radius = edge ? 0.53 + variant * 0.02 : 1.04 + random() * 0.08;
     const part = new IcosahedronGeometry(1, 0).rotateY(angle);
     const vertices = part.getAttribute("position");
     const start = positions.length / 3;
@@ -134,17 +138,28 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
       const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i);
       // Coordinate noise keeps coincident face vertices coincident (no cracks).
       const wobble = 1 + Math.sin(x * 7 + y * 5 + z * 9 + phase) * 0.07;
-      positions.push(cx + x * (0.82 + variant * 0.04) * wobble, cy + y * 0.48 * wobble, cz + z * 0.8 * wobble);
+      // At most 10% vertical flattening before fitting the whole dome. Never
+      // squeeze separate spheres down into the old umbrella-shaped slabs.
+      positions.push(cx + x * radius * wobble, cy + y * radius * 0.9 * wobble, cz + z * radius * wobble);
       indices.push(start + i);
     }
     part.dispose();
   }
-  const leaves = paintCrown(geometryFrom(positions, indices), 2.5, 4.3, 0.2);
+  // Root-relative leaves span 3.3–7.7 m: 57% of the tree, starting at 43%.
+  const leaves = paintCrown(geometryFrom(positions, indices), 4.4, 4.3, -1.7);
   positions.splice(0, positions.length, ...leaves.getAttribute("position").array);
   const colors = Array.from(leaves.getAttribute("color").array);
   leaves.dispose();
   // Leaves=0, wood=1, hanging greenery=2; one material, no groups.
   const surfaces = Array<number>(positions.length / 3).fill(0);
+  // Real bottom vertices keep B2-166's vines attached to the selected mass.
+  const vineRoots = [1, 2, 3].map(cluster => {
+    let lowest = cluster * 60;
+    for (let i = lowest + 1; i < (cluster + 1) * 60; i++) {
+      if (positions[i * 3 + 1]! < positions[lowest * 3 + 1]!) lowest = i;
+    }
+    return new Vector3().fromArray(positions, lowest * 3);
+  });
   function vertex(point: Vector3, surface: number) {
     positions.push(point.x, point.y, point.z);
     surfaces.push(surface);
@@ -188,7 +203,7 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     // Separate front/back vertices retain opposing normals instead of cancelling.
     for (let face = 0; face < 2; face++) for (let row = 0; row <= 3; row++) {
       const t = row / 3, width = 0.07 * (1 - t * 0.65);
-      const center = (hidden ? bend : end).clone().add(new Vector3(Math.sin(t * 3 + branch) * 0.12, -t * (1.8 + branch * 0.18), t * 0.1));
+      const center = vineRoots[branch]!.clone().add(new Vector3((Math.sin(t * 3 + branch) - Math.sin(branch)) * 0.12, -t * (1.8 + branch * 0.18), t * 0.1));
       vertex(center.clone().add(new Vector3(-width, 0, -width * t)), 2);
       vertex(center.clone().add(new Vector3(width, 0, width * t)), 2);
     }

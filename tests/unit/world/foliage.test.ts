@@ -135,8 +135,8 @@ describe("foliage instances and colliders", () => {
           variant.trunks.getMatrixAt(instanceIndex, matrix);
           const center = new Vector3().setFromMatrixPosition(matrix);
           const nominalHeight = pineHeight(variant.seed);
-          const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight : tree.scale;
-          const visualHeight = tree.kind === "pine" ? nominalHeight * (2 / 3 + 0.05) * heightScale : TRUNK_HEIGHT * tree.scale;
+          const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight : tree.scale * (tree.trailCanopy ? 3 : 1);
+          const visualHeight = tree.kind === "pine" ? nominalHeight * (2 / 3 + 0.05) * heightScale : TRUNK_HEIGHT * heightScale;
           expect(center.x).toBeCloseTo(tree.x - Math.sin(tree.lean) * visualHeight / 2, 4);
           expect(center.y).toBeCloseTo(tree.y + Math.cos(tree.lean) * visualHeight / 2, 4);
           expect(center.z).toBeCloseTo(colliders[index]!.z, 4);
@@ -146,7 +146,7 @@ describe("foliage instances and colliders", () => {
           const expected = new Vector3(tree.x - Math.sin(tree.lean) * 5 * heightScale, tree.y + Math.cos(tree.lean) * 5 * heightScale, tree.z);
           if (tree.trailCanopy) {
             const path = nearestPath(tree.x, tree.z);
-            const reach = 0.24 * 4.2 * tree.scale;
+            const reach = 0.24 * heightScale;
             const dx = (path.x - tree.x) / path.distance * reach;
             expected.add(new Vector3(Math.cos(tree.lean) * dx, Math.sin(tree.lean) * dx, (path.z - tree.z) / path.distance * reach));
           }
@@ -275,7 +275,8 @@ describe("procedural foliage variants", () => {
           const variants = foliage.species[tree.kind].variants;
           const batch = foliageVariantAt(tree.x, tree.z, variants.length);
           const { seed } = variants[batch]!;
-          before += 42 + (tree.kind === "pine" ? (3 + seed % 3) * 44 : (4 + seed % 4) * 20);
+          // B2-175 starts from B2-166's six leaf masses, limbs and ribbons.
+          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 294;
           batches.add(`${tree.kind}:${batch}`);
         }
         beforeDraws += 2 * batches.size;
@@ -289,7 +290,7 @@ describe("procedural foliage variants", () => {
       }
       expect(afterDraws).toBe(beforeDraws);
       expect(forests.flat().length).toBeGreaterThan(1000);
-      process.stdout.write(`B2-166 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=294/tree, pine<=262/tree (limit=600; includes collapsed ribbons)\n`);
+      process.stdout.write(`B2-175 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=314/tree, pine<=262/tree (limit=600; includes collapsed ribbons)\n`);
     } finally { foliage.dispose(); }
   });
 
