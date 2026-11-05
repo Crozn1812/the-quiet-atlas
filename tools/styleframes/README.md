@@ -12,6 +12,55 @@ Server chỉ bind loopback, `strictPort: true`: cổng 4190 bận thì báo lỗ
 `vite.config.ts` tại đây chỉ phục vụ bench độc lập; không sửa cấu hình gốc hay thêm script package.
 Không có route/import trong Next; không cần nối bench vào `src/features/world/index.ts`.
 
+## B2-209 — bộ chụp T10: 3 vị trí × 4 hướng
+
+Từ root repository, mở server bằng lệnh sẵn có ở trên, rồi chạy ở terminal khác:
+
+```sh
+pnpm exec vite tools/styleframes
+node tools/styleframes/t10.mjs <out>
+```
+
+Ví dụ `node tools/styleframes/t10.mjs ./t10-out`. Đối số thứ hai tùy chọn là `baseUrl`, mặc định
+`http://127.0.0.1:4190`. Script mở `tour.html` tương đối với thư mục URL đó. Nếu chạy Vite với
+`pnpm exec vite --config tools/styleframes/vite.config.ts --port 4190` (root là repository), dùng
+`node tools/styleframes/t10.mjs ./t10-out http://127.0.0.1:4190/tools/styleframes/`.
+Máy Lead cần có Microsoft Edge (`channel: msedge`) và dependency đã cài; script không tải trình duyệt.
+
+| Vị trí | t theo chiều dài đường | Bối cảnh |
+| --- | --- | --- |
+| forest | 0,06 | Rừng bình minh, gần First Light, ngoài nền khu |
+| hill | 0,55 | Đồi giữa |
+| coast | 0,86 | Đường ven biển hoàng hôn |
+
+Mỗi vị trí chụp yaw 0° (theo hướng đi), 90° (phải), 180° (quay lại), 270° (trái).
+`tour.html?view=road&t=0.86&yaw=270` minh họa hướng núi; yaw 90 nhìn về vịnh.
+Yaw mặc định 0, chỉ áp dụng cho `view=road`; phải = `(-fz, fx)`, trái = `(fz, -fx)`.
+Hàm thuần export `roadLookDirection(t, yaw = 0)` lấy tiếp tuyến đường tại t, xoay trong mặt phẳng X/Z.
+Máy cao 1,7 m trên mặt đường, cùng độ nghiêng xuống 0,5 m trên khoảng nhìn 20 m ở mọi hướng.
+Ánh sáng và địa hình dùng composer hiện có theo vị trí, quality High.
+
+Script chụp PNG 1600×900, DPR 1, chỉ sau khi `window.__frameReady === true` (ít nhất sáu frame).
+Tên ảnh là `t10-<forest|hill|coast>-<0|90|180|270>.png`. Lỗi `pageerror` được ghi ra stderr kèm tên ảnh;
+lỗi điều hướng, chờ sẵn sàng hoặc chụp cũng được ghi, các ảnh tiếp theo vẫn được thử.
+Cuối lệnh in danh sách file đã ghi và `Errors: <số lỗi>`; có lỗi thì exit 1, thành công exit 0.
+File cùng tên trong thư mục ra được ghi đè; chọn thư mục mới cho mỗi vòng duyệt để tránh lẫn ảnh cũ.
+
+`t10-checklist.md` có đủ 12 dòng, hai cột **Duy: đạt/không** và **Người ngoài: đạt/không**,
+năm tiêu chí về thế giới/phong cách, ánh sáng, lỗi hình, palette và chất liệu.
+Hai người chấm độc lập; đạt khi ≥ 10/12 ảnh được cả hai người chấm đạt.
+Checklist được tạo trước khi mở Edge; nếu lệnh lỗi, ảnh thiếu chưa đủ điều kiện chấm.
+
+**Giới hạn / bàn giao:** chụp T10 **NOT RUN** trong sandbox; Lead chạy lệnh trên và duyệt hình/GPU thực tế.
+Không chạy e2e/Lighthouse. Tool không tự chấm chất lượng mỹ thuật; chưa có kết quả hai người chấm.
+Không cần nối vào `src/features/world/index.ts`: tour dùng trực tiếp composer hiện có, không thêm module runtime.
+Lead giữ `index.ts` như hiện tại; mẫu sử dụng khi tích hợp chỉ là lệnh ngoài runtime:
+
+```sh
+pnpm exec vite tools/styleframes
+node tools/styleframes/t10.mjs ./t10-out
+```
+
 ## Chụp và quay cùng điều kiện
 
 - Chốt cùng máy, viewport, zoom trình duyệt, DPR và quality cho cả sáu tổ hợp A/B/C × hai cảnh.

@@ -1,13 +1,63 @@
 import { describe, expect, it } from "vitest";
 import { Color, SRGBColorSpace } from "three";
 import { PALETTE } from "../../../src/features/world/art/palette";
-import { pathRiverTAt } from "../../../src/features/world/layout/path";
+import { pathPointAt, pathRiverTAt } from "../../../src/features/world/layout/path";
 import { riverPointAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { worldHeight } from "../../../src/features/world/terrain/height";
+import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { paletteColor, STYLE_PRESETS, type PaletteRecipe } from "../../../tools/styleframes/presets";
 import { parseQuery } from "../../../tools/styleframes/query";
 import { cameraAt, SHOTS, SHOT_IDS, VIDEO_SECONDS } from "../../../tools/styleframes/shots";
+import { roadLookDirection } from "../../../tools/styleframes/tour";
+
+describe("T10 road yaw", () => {
+  it.each([0.06, 0.55, 0.86])("turns to forward/right/back/left at t=%s using right = (-fz, fx)", t => {
+    const forward = pathPointAt(t + 0.00001).sub(pathPointAt(t - 0.00001)).normalize();
+    const cases = [
+      [0, forward.x, forward.z],
+      [90, -forward.z, forward.x],
+      [180, -forward.x, -forward.z],
+      [270, forward.z, -forward.x],
+    ] as const;
+    for (const [yaw, x, z] of cases) {
+      const direction = roadLookDirection(t, yaw);
+      expect(direction.x).toBeCloseTo(x, 12);
+      expect(direction.z).toBeCloseTo(z, 12);
+      expect(direction.y).toBe(0);
+      expect(direction.length()).toBeCloseTo(1, 12);
+    }
+    expect(roadLookDirection(t)).toEqual(roadLookDirection(t, 0));
+  });
+
+  it("aims coast left at the mountain and right at the bay at t=0.86", () => {
+    const at = pathPointAt(0.86);
+    const left = roadLookDirection(0.86, 270);
+    const right = roadLookDirection(0.86, 90);
+    // Independent X/Z signs plus the same 100 m inland / 60 m seaward probes as coast-shape.
+    expect(left.x).toBeLessThan(0);
+    expect(right.x).toBeGreaterThan(0);
+    expect(left.dot(right)).toBeCloseTo(-1, 12);
+    const mountain = at.clone().addScaledVector(left, 100);
+    const bay = at.clone().addScaledVector(right, 60);
+    for (const height of [worldHeight, surfaceHeight]) {
+      expect(height(mountain.x, mountain.z) - height(at.x, at.z)).toBeGreaterThanOrEqual(30);
+      expect(height(bay.x, bay.z)).toBeLessThan(0);
+    }
+  });
+
+  it.each([0, 1])("keeps the look direction finite at the route endpoint t=%s", t => {
+    const direction = roadLookDirection(t);
+    expect(direction.length()).toBeCloseTo(1, 12);
+  });
+
+  it("places the forest camera outside all zone foundations", () => {
+    const at = pathPointAt(0.06);
+    for (const zone of ZONES) {
+      expect(Math.hypot(at.x - zone.position.x, at.z - zone.position.z)).toBeGreaterThan(zone.radius);
+    }
+  });
+});
 
 function recipes(): PaletteRecipe[] {
   return Object.values(STYLE_PRESETS).flatMap(({ background, foliage }) => [

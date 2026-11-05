@@ -1,6 +1,7 @@
 // In-context zone tour (Lead tool, not in the web build): the real world composer (terrain, forest, ground,
 // river, sea, sky, position grade, direction C paper pass) plus the eight zone set-pieces, framed per zone.
-// ?zone=<id>&view=approach|wide. No character; physics only feeds the tile colliders the composer requires.
+// ?zone=<id>&view=approach|wide or ?view=road&t=0.86&yaw=90 (degrees clockwise from the path).
+// No character; physics only feeds the tile colliders the composer requires.
 import RAPIER from "@dimforge/rapier3d-compat";
 import { ACESFilmicToneMapping, PCFSoftShadowMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import { createWorldScene, surfaceHeight } from "../../src/features/world/scene/compose";
@@ -12,7 +13,19 @@ import { createFarLandscape, GAMEPLAY_FAR } from "../../src/features/world/scene
 import { createForestSunShafts } from "../../src/features/world/zones/first-light";
 
 declare global { interface Window { __frameReady: boolean } }
-window.__frameReady = false;
+
+/** Horizontal unit look direction; positive yaw turns toward right = (-fz, fx). */
+export function roadLookDirection(t: number, yaw = 0): Vector3 {
+  const progress = Math.max(0, Math.min(1, t));
+  const forward = pathPointAt(Math.min(1, progress + 0.00001))
+    .sub(pathPointAt(Math.max(0, progress - 0.00001))).setY(0).normalize();
+  const angle = yaw * Math.PI / 180;
+  return new Vector3(
+    forward.x * Math.cos(angle) - forward.z * Math.sin(angle),
+    0,
+    forward.z * Math.cos(angle) + forward.x * Math.sin(angle),
+  );
+}
 
 async function start() {
   const params = new URLSearchParams(location.search);
@@ -56,14 +69,15 @@ async function start() {
   eye.y = surfaceHeight(eye.x, eye.z) + (view === "wide" ? 9 : 3.4);
   camera.position.copy(eye);
   camera.lookAt(view === "wide" ? anchor.clone().setY(anchor.y + 2) : zone.target.position.clone().setY(zone.target.position.y + 0.5));
-  // view=road&t=0.88: eye height on the path, looking ahead along it (Duy's coast scene: ridge left, bay right).
+  // Road views share eye height and pitch at every yaw (coast: ridge left, bay right).
   if (view === "road") {
-    const t = Number(params.get("t") ?? "0.88");
+    const t = Math.max(0, Math.min(1, Number(params.get("t") ?? "0.88")));
+    const yaw = Number(params.get("yaw") ?? "0");
     const at = pathPointAt(t);
-    const ahead = pathPointAt(Math.min(1, t + 0.02));
+    const direction = roadLookDirection(t, Number.isFinite(yaw) ? yaw : 0);
     camera.position.set(at.x, surfaceHeight(at.x, at.z) + 1.7, at.z);
     composed.update(camera.position.clone(), 0);
-    camera.lookAt(ahead.x, surfaceHeight(ahead.x, ahead.z) + 1.2, ahead.z);
+    camera.lookAt(camera.position.clone().addScaledVector(direction, 20).add(new Vector3(0, -0.5, 0)));
   }
 
   let frames = 0;
@@ -79,4 +93,8 @@ async function start() {
   requestAnimationFrame(render);
 }
 
-void start().catch(error => { document.body.textContent = String(error); });
+// Keep the pure direction helper importable by Node unit tests without starting a renderer.
+if (typeof window !== "undefined") {
+  window.__frameReady = false;
+  void start().catch(error => { document.body.textContent = String(error); });
+}
