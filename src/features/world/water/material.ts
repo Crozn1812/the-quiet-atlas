@@ -76,7 +76,7 @@ const fragmentShader = /* glsl */ `
     float edge = abs(vWaterUv.x * 2.0 - 1.0);
     vec3 color = mix(uDeepColor, uEdgeColor, smoothstep(0.0, 1.0, edge));
     #ifdef SEA_WATER
-      // Metres offshore, rather than the quad's UV edge, control the warm shallows.
+      // Metres offshore, rather than the quad's UV edge or sky grade, control the turquoise shallows.
       float shoreSample = clamp((vWaterWorld.x - uShoreBounds.x) / uShoreBounds.y,
                                 0.0, 1.0) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)};
       int shoreIndex = int(min(floor(shoreSample), ${(SEA_SHORE_SAMPLES - 2).toFixed(1)}));
@@ -86,8 +86,7 @@ const fragmentShader = /* glsl */ `
       float slope = (shoreB - shoreA) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)} / uShoreBounds.y;
       float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + slope * slope);
       float shallows = (1.0 - smoothstep(12.0, 160.0, offshore)) * uHasShore;
-      float shoreWarmth = shallows * (0.25 + 0.75 * uSkyMix);
-      color = mix(uDeepColor, uEdgeColor, shoreWarmth);
+      color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
     // Thin, gently wandering brush lanes with soft breaks along the current.
     float lane = vWaterUv.x * 50.0 + 0.45 * sin(flow * 0.7);
@@ -117,7 +116,7 @@ const fragmentShader = /* glsl */ `
       float fresnel = grazing * grazing * grazing;
       vec3 sky = mix(uPaperColor, uDuskColor, uSkyMix);
       #ifdef SEA_WATER
-        // Keep distant water blue-violet beneath the warm horizon.
+        // Keep distant water turquoise beneath the warm horizon.
         sky = mix(mix(uDeepColor, uPaperColor, 0.28), uDuskColor, uSkyMix * 0.18);
       #endif
       color = mix(color, sky, fresnel * SKY_REFLECTION);
@@ -176,12 +175,12 @@ export class WaterMaterial extends ShaderMaterial {
       throw new RangeError("Water shoreline must contain finite, evenly spaced coast samples");
     }
     const sea = options.surface === "sea";
-    const edge = new Color(PALETTE.water);
-    const deep = new Color(PALETTE.indigo);
-    if (sea) {
-      // Dilute a little warm pigment into indigo for the blue-violet distance.
-      deep.lerp(new Color(PALETTE.flower), 0.1).lerp(new Color(PALETTE.paper), 0.06);
-      edge.lerp(new Color(PALETTE.dusk), 0.2);
+    const edge = new Color(PALETTE.seaShallow);
+    const deep = new Color(PALETTE.seaDeep);
+    if (!sea) {
+      // Clear green-turquoise banks, with denser pigment down the centre of the stream.
+      edge.lerp(new Color(PALETTE.forestLight), 0.25);
+      deep.lerp(new Color(PALETTE.forestLight), 0.5);
     }
     // The broad sea mirrors more of the painted sky than the shaded river.
     const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22 };

@@ -135,6 +135,53 @@ describe("river ribbon", () => {
 });
 
 describe("painted water material", () => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s stream banks lighter than the centre without purple or pink pigment", quality => {
+    const material = createWaterMaterial(quality);
+    try {
+      const uniform = material.uniforms;
+      const deep = uniform.uDeepColor!.value as Color;
+      const edge = uniform.uEdgeColor!.value as Color;
+      const paper = uniform.uPaperColor!.value as Color;
+      const dusk = uniform.uDuskColor!.value as Color;
+      // Evaluate the actual cross-stream GLSL before the sea-only branch.
+      const start = material.fragmentShader.indexOf("float edge =");
+      const end = material.fragmentShader.indexOf("#ifdef SEA_WATER", start);
+      expect(start).toBeGreaterThanOrEqual(0);
+      expect(end).toBeGreaterThan(start);
+      const pigmentAt = new Function("vWaterUv", "uDeepColor", "uEdgeColor", "abs", "smoothstep", "mix", `
+        ${material.fragmentShader.slice(start, end).replace(/\b(float|vec3)\s+/g, "let ")}
+        return color;
+      `);
+      const sample = (x: number): Color => pigmentAt({ x }, deep, edge, Math.abs,
+        (a: number, b: number, value: number) => {
+          const t = Math.max(0, Math.min(1, (value - a) / (b - a)));
+          return t * t * (3 - 2 * t);
+        }, (a: Color, b: Color, t: number) => a.clone().lerp(b, t));
+      const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+      expect(sample(0)).toEqual(edge);
+      expect(sample(1)).toEqual(edge);
+      expect(sample(0.5)).toEqual(deep);
+      expect(luma(sample(0))).toBeGreaterThan(luma(sample(0.5)));
+      for (let i = 0; i <= 20; i++) {
+        for (const skyMix of [0, 0.35, 1]) {
+          for (const stroke of [0, 0.0325, 0.065]) {
+            for (const fresnel of [0, 0.5, 1]) {
+              const color = sample(i / 20).lerp(paper, stroke);
+              if (material.defines.WATER_REFLECTION) {
+                color.lerp(paper.clone().lerp(dusk, skyMix), fresnel * Number(material.defines.SKY_REFLECTION));
+              }
+              // Linear shader space and displayed sRGB both keep green at least as strong as blue.
+              for (const rgb of [color, color.clone().convertLinearToSRGB()]) {
+                expect(rgb.b).toBeLessThanOrEqual(rgb.g + 0.05);
+                expect(rgb.g).toBeGreaterThan(rgb.r);
+              }
+            }
+          }
+        }
+      }
+    } finally { material.dispose(); }
+  });
+
   it.each([
     ["Low", { SKY_REFLECTION: 0.22 }],
     ["Balanced", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1 }],
@@ -151,8 +198,8 @@ describe("painted water material", () => {
     expect(material.fragmentShader).toContain("#include <tonemapping_fragment>");
     expect(material.fragmentShader).toContain("#include <colorspace_fragment>");
     for (const key of ["fogColor", "fogNear", "fogFar", "fogDensity"]) expect(material.uniforms[key]).toBeDefined();
-    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.indigo));
-    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.water));
+    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.seaDeep).lerp(new Color(PALETTE.forestLight), 0.5));
+    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.seaShallow).lerp(new Color(PALETTE.forestLight), 0.25));
     expect(material.transparent).toBe(false);
     material.dispose();
   });
@@ -316,11 +363,10 @@ describe("sea and water lifecycle", () => {
     expect(sea.mesh.geometry.index!.count).toBe(6);
     expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength() - SEA_INLAND_OVERLAP, 3);
     const material = sea.mesh.material;
-    // B2-160: the offshore pigment is blue-violet; warmth now follows the sampled coast.
-    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.indigo)
-      .lerp(new Color(PALETTE.flower), 0.1).lerp(new Color(PALETTE.paper), 0.06));
+    // B2-174: turquoise pigment follows the sampled coast; B2-160's wash stays separate.
+    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.seaDeep));
     expect(material.defines.SKY_REFLECTION).toBe(0.5);
-    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.dusk), 0.2));
+    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.seaShallow));
     expect(material.uniforms.uSkyMix!.value).toBe(1);
     sea.dispose();
   });

@@ -1,9 +1,10 @@
 import { Color, Vector2, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
+import { PALETTE } from "../../../src/features/world/art/palette";
 import { riverLength, riverPointAt } from "../../../src/features/world/layout/river";
 import { worldHeight } from "../../../src/features/world/terrain/height";
 import {
-  SEA_FOAM_MAX_SLOPE, SEA_WAVE_PERIOD, WATER_FLOW_SPEED, type WaterMaterial,
+  createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, WATER_FLOW_SPEED, type WaterMaterial,
 } from "../../../src/features/world/water/material";
 import { WATER_LEVEL } from "../../../src/features/world/water/ribbon";
 import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
@@ -17,23 +18,37 @@ const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0
 
 // Execute the actual scalar GLSL in JS, so width/strength/foam regressions cannot
 // leave a separately copied CPU formula passing. Only trusted local shader text runs.
-function scalars(material: WaterMaterial, start: string, end: string, inputs: Record<string, number>, outputs: string[]) {
+function scalars(material: WaterMaterial, start: string, end: string, inputs: Record<string, unknown>, outputs: string[]) {
   const startIndex = material.fragmentShader.indexOf(start);
   const endIndex = material.fragmentShader.indexOf(end, startIndex);
   expect(startIndex).toBeGreaterThanOrEqual(0);
   expect(endIndex).toBeGreaterThan(startIndex);
   const source = material.fragmentShader.slice(startIndex, endIndex)
-    .replace(/\bfloat\s+/g, "let ")
+    .replace(/\b(float|int)\s+/g, "let ")
+    .replace(/\bfloat\(/g, "Number(")
+    .replace(/\bint\(/g, "Math.trunc(")
     .replace(/uSunDirection\.y/g, "sunElevation")
-    .replace(/\b(sin|cos|sqrt|abs|max)\(/g, "Math.$1(")
+    .replace(/\b(sin|cos|sqrt|abs|max|min|floor)\(/g, "Math.$1(")
     .replace(/SEA_FOAM_MAX_SLOPE/g, String(SEA_FOAM_MAX_SLOPE))
     .replace(/fwidth\(offshore\)/g, "offshorePixelWidth");
-  return new Function("inputs", "smoothstep", "mix", `
+  return new Function("inputs", "smoothstep", "mix", "clamp", `
     "use strict";
     const { ${Object.keys(inputs).join(", ")} } = inputs;
     ${source}
     return { ${outputs.join(", ")} };
-  `)(inputs, smoothstep, mix) as Record<string, number>;
+  `)(inputs, smoothstep, mix, (x: number, a: number, b: number) => Math.max(a, Math.min(b, x))) as Record<string, number>;
+}
+
+function seaPigment(material: WaterMaterial, point: Vector3) {
+  const uniform = material.uniforms;
+  const { offshore, shallows } = scalars(material, "float shoreSample =", "color = mix(uDeepColor", {
+    vWaterWorld: point,
+    uShoreBounds: uniform.uShoreBounds!.value,
+    uShoreZ: uniform.uShoreZ!.value,
+    uHasShore: uniform.uHasShore!.value,
+  }, ["offshore", "shallows"]);
+  const color = (uniform.uDeepColor!.value as Color).clone().lerp(uniform.uEdgeColor!.value, shallows!);
+  return { color, offshore: offshore!, shallows: shallows! };
 }
 
 function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: number, phase: number) {
@@ -51,16 +66,9 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
   const time = uniform.uTime!.value as number;
   const phase = time * Number((2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10));
   const bounds = uniform.uShoreBounds!.value as Vector2;
-  const shore = uniform.uShoreZ!.value as number[];
-  const sample = Math.max(0, Math.min(1, (point.x - bounds.x) / bounds.y)) * (shore.length - 1);
-  const index = Math.min(Math.floor(sample), shore.length - 2);
-  const slope = (shore[index + 1]! - shore[index]!) * (shore.length - 1) / bounds.y;
-  const offshore = (mix(shore[index]!, shore[index + 1]!, sample - index) - point.z) / Math.sqrt(1 + slope * slope);
+  const { color, offshore } = seaPigment(material, point);
   expect(offshore).toBeGreaterThan(5);
-  const shallows = (1 - smoothstep(12, 160, offshore)) * uniform.uHasShore!.value;
   const skyMix = uniform.uSkyMix!.value as number;
-  const color = (uniform.uDeepColor!.value as Color).clone().lerp(uniform.uEdgeColor!.value,
-    shallows * (0.25 + 0.75 * skyMix));
   const uvX = (point.x - bounds.x) / bounds.y;
   const near = riverPointAt(1).z + SEA_INLAND_OVERLAP;
   let flow = riverLength() - SEA_INLAND_OVERLAP + (near - point.z);
@@ -136,26 +144,41 @@ describe("road-view sunset sea", () => {
     } finally { sea.dispose(); }
   });
 
-  it("warms the shallows with the grade and retains blue-violet offshore pigment", () => {
-    const sea = createSea("Balanced");
+  it.each(["Low", "Balanced", "High"] as const)("uses %s turquoise at 5 m and deep blue at 300 m from the sampled coast", quality => {
+    const shallow = new Color(PALETTE.seaShallow);
+    const deep = new Color(PALETTE.seaDeep);
+    for (const slope of [-0.6, 0, 0.6]) {
+      const material = createWaterMaterial(quality, {
+        surface: "sea",
+        shoreline: { minX: -400, width: 800,
+          z: Array.from({ length: SEA_SHORE_SAMPLES }, (_, i) => -800 + i * 800 / (SEA_SHORE_SAMPLES - 1) * slope) },
+      });
+      try {
+        for (const skyMix of [0, 0.35, 1]) {
+          material.setSkyMix(skyMix);
+          for (const x of [-400, -312.5, 0, 234.5, 400]) {
+            let previousWeight = 1;
+            for (const distance of [5, 40, 80, 160, 300]) {
+              const point = new Vector3(x, WATER_LEVEL, -800 + (x + 400) * slope - distance * Math.sqrt(1 + slope * slope));
+              const pigment = seaPigment(material, point);
+              expect(pigment.offshore).toBeCloseTo(distance, 8);
+              expect(pigment.shallows).toBeLessThanOrEqual(previousWeight);
+              previousWeight = pigment.shallows;
+              if (distance === 5) expect(pigment.color).toEqual(shallow);
+              if (distance === 300) expect(pigment.color).toEqual(deep);
+              if (distance === 80) expect(pigment.shallows).toBeGreaterThan(0);
+            }
+          }
+        }
+      } finally { material.dispose(); }
+    }
+  });
+
+  it("uses deep pigment when no sampled coast is supplied", () => {
+    const material = createWaterMaterial("Balanced", { surface: "sea" });
     try {
-      const material = sea.mesh.material;
-      const deep = material.uniforms.uDeepColor!.value as Color;
-      const edge = material.uniforms.uEdgeColor!.value as Color;
-      expect(deep.b).toBeGreaterThan(deep.r);
-      expect(deep.r).toBeGreaterThan(deep.g);
-      expect(edge.r - edge.b).toBeGreaterThan(deep.r - deep.b);
-      // Run the actual near-shore scalar from the shader at two offshore distances.
-      const weight = (offshore: number, uSkyMix: number, uHasShore = 1) => scalars(material,
-        "float shallows =", "color = mix(uDeepColor", { offshore, uHasShore, uSkyMix }, ["shoreWarmth"]).shoreWarmth!;
-      expect(weight(4, 1)).toBe(1);
-      expect(weight(4, 0.35)).toBeGreaterThan(weight(4, 0));
-      expect(weight(4, 1)).toBeGreaterThan(weight(4, 0.35));
-      expect(weight(180, 1)).toBe(0);
-      expect(weight(4, 1, 0)).toBe(0);
-      const shallow = deep.clone().lerp(edge, weight(4, 0.35));
-      expect(shallow.r - shallow.b).toBeGreaterThan(deep.r - deep.b);
-    } finally { sea.dispose(); }
+      expect(seaPigment(material, new Vector3(0, WATER_LEVEL, -5)).color).toEqual(new Color(PALETTE.seaDeep));
+    } finally { material.dispose(); }
   });
 
   it("keeps the eight-second gentle foam and suppresses it at steep coasts", () => {
