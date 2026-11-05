@@ -40,8 +40,10 @@ describe("organic coast", () => {
       }
       const z = (sea + land) / 2;
       expect(Math.abs(worldHeight(x, z))).toBeLessThan(1e-6);
-      // Away from the estuary and dry zone, the beach reaches its shelf in 32 m.
-      if (Math.abs(x) >= 50) expect(worldHeight(x, z - 32), `x=${x}, shore z=${z}`).toBeLessThanOrEqual(-2.49);
+      // B2-152 adds an eastern mountain shoulder (x=50..300), whose long toe
+      // replaces the old flat beach. Retain the 32 m shelf gate on the beach;
+      // the coastal-strip continuity gate below still covers the mountain too.
+      if (x <= -50 || x >= 300) expect(worldHeight(x, z - 32), `x=${x}, shore z=${z}`).toBeLessThanOrEqual(-2.49);
       return z;
     });
     const mean = shore.reduce((sum, z) => sum + z, 0) / shore.length;

@@ -104,8 +104,11 @@ describe("zone terrain landmarks", () => {
     expect(worldHeight(spawn.x, spawn.z)).toBeCloseTo(7.327632830104367, 10);
     for (const [x, z, baseline] of [
       [8, 0, 7.303021500741667], [0, 0, 5.6499999999999995],
-      [100, -880, -0.3316918335222615], [0, -900, -0.8258008344976953], [0, -960, -2.5],
+      [0, -900, -0.8258008344976953], [0, -960, -2.5],
     ]) expect(worldHeight(x!, z!)).toBeCloseTo(baseline!, 10);
+    // B2-152: (100, -880) is now on the inland coastal ridge, not offshore.
+    const path = nearestPath(100, -880);
+    expect(worldHeight(100, -880) - worldHeight(path.x, path.z)).toBeGreaterThanOrEqual(30);
   });
 
   it("has no height jumps at landmark, pad or path blend boundaries", () => {

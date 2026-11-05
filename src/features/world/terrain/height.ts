@@ -1,4 +1,4 @@
-import { PATH_BRIDGES, pathLength } from "../layout/path";
+import { PATH_BRIDGES, pathLength, pathPointAt } from "../layout/path";
 import { clampProgress, riverLength, riverPointAt } from "../layout/river";
 import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "./samples";
@@ -8,6 +8,35 @@ export const PATH_WIDTH = 3;
 const routeLength = pathLength();
 const source = riverPointAt(0);
 const streamLength = riverLength();
+// A fixed coastal frame avoids nearest-segment switches in the broad bay/ridge.
+const coastStart = pathPointAt(0.82);
+const coastEnd = pathPointAt(1);
+const coastForward = coastEnd.clone().sub(coastStart).normalize();
+const coastRoad = Array.from({ length: 33 }, (_, i) => {
+  const point = pathPointAt(0.82 + 0.18 * i / 32);
+  return coastCoordinates(point.x, point.z);
+});
+
+function coastCoordinates(x: number, z: number) {
+  const dx = x - coastStart.x;
+  const dz = z - coastStart.z;
+  return {
+    along: dx * coastForward.x + dz * coastForward.z,
+    right: dx * coastForward.z - dz * coastForward.x,
+  };
+}
+
+function coastRoadRight(along: number): number {
+  let low = 0, high = coastRoad.length - 1;
+  while (low + 1 < high) {
+    const middle = (low + high) >>> 1;
+    if (coastRoad[middle]!.along < along) low = middle;
+    else high = middle;
+  }
+  const a = coastRoad[low]!, b = coastRoad[high]!;
+  const t = Math.max(0, Math.min(1, (along - a.along) / (b.along - a.along)));
+  return a.right + (b.right - a.right) * t;
+}
 
 /** Shared water/channel profile, including the narrow spring and the full sea flare. */
 export function riverWidthAt(t: number): number {
@@ -86,13 +115,35 @@ function landmarkLift(x: number, z: number, riverDistance: number): number {
   return (hill + headland) * smoothstep(18, 42, riverDistance);
 }
 
-/** Seeded 90 m coastal undulations, independent of query order and tile boundaries. */
-function shoreHeight(x: number, z: number): number {
-  const shoreZ = -880 + 30 * noise(x / 90, 0);
-  const inland = z - shoreZ;
+function beachHeight(inland: number): number {
   // Match slopes at the waterline; flatten smoothly at -2.5 m, 32 m offshore.
   const sea = Math.min(1, Math.max(0, -inland / 32));
   return inland >= 0 ? inland * 2.5 / 32 : -2.5 * (sea + sea * sea - sea ** 3);
+}
+
+/** Seeded beach plus a broad, concave inlet on the walking route's right. */
+function shoreHeight(x: number, z: number): number {
+  return beachHeight(z - (-880 + 30 * noise(x / 90, 0)));
+}
+
+function coastalRelief(x: number, z: number, land: number, river: ReturnType<typeof nearestRiver>, bankRadius: number): number {
+  const { along, right } = coastCoordinates(x, z);
+  // The ellipse opens into the existing sea. Its near rim recedes inland at
+  // mid-bay and returns to a low cape, rather than adding noise to a straight line.
+  // Reserve the channel in distance space, so its fade is finished before the
+  // waterline: blending tall valley ground directly into water steepens the beach.
+  const inland = Math.max(Math.hypot((along - 75) * 160 / 130, right - 190) - 160,
+    bankRadius + 12 - river.distance);
+  const bay = (1 - smoothstep(0, 32, inland)) * smoothstep(bankRadius, bankRadius + 12, river.distance);
+  land += Math.min(0, beachHeight(inland) - land) * bay;
+
+  // Start 25 m beyond the 3 m strip; ease to a rounded 45 m ridge at 110 m.
+  // End caps extend beyond the route so the final station has a full shoulder.
+  const left = coastRoadRight(along) - right;
+  const ridge = smoothstep(26.5, 110, left) * (1 - smoothstep(130, 240, left))
+    * smoothstep(-60, 0, along) * (1 - smoothstep(200, 280, along))
+    * smoothstep(18, 32, river.distance);
+  return land + Math.max(0, riverLevel(coastStart.z + coastForward.z * along) + 45 - land) * ridge;
 }
 
 /** Pure metres above sea level. No quality setting, random state, or tile-local coordinates. */
@@ -118,6 +169,7 @@ export function worldHeight(x: number, z: number): number {
   const sourcePool = 0.45 * (1 - smoothstep(0, 4, Math.hypot(x - source.x, z - source.z)));
   let land = valley + (estuary - valley) * smoothstep(760, 840, -z) - sourcePool
     + landmarkLift(x, z, river.distance);
+  land = coastalRelief(x, z, land, river, bankRadius);
   // The coastal shelf must respect the same flat bed as the inland valley.
   // Only lower intruding ground; retain the existing beach outside the channel.
   land -= Math.max(0, land - Math.max(0.05, waterLevelAt(z) - 0.65))
