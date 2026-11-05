@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Box3, Matrix4, Raycaster, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
+import { Box3, InstancedMesh, Matrix4, Mesh, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliageColliders, TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
@@ -13,6 +13,8 @@ import { worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { buildTile, TILE_SIZE, tileKey, tilesAlongPath } from "../../../src/features/world/terrain/tiles";
 import { PRESETS, type Quality } from "../../../src/features/world/terrain";
+import { createWorldScene } from "../../../src/features/world/scene/compose";
+import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
 
 const route = tilesAlongPath();
 const tenTiles = Array.from({ length: 10 }, (_, i) => route[Math.floor(i * (route.length - 1) / 9)]!);
@@ -276,8 +278,8 @@ describe("procedural foliage variants", () => {
           const variants = foliage.species[tree.kind].variants;
           const batch = foliageVariantAt(tree.x, tree.z, variants.length);
           const { seed } = variants[batch]!;
-          // B2-182 baseline: B2-175's seven masses, limbs and ribbons (314/tree).
-          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 314;
+          // B2-182b baseline: merged B2-182/B2-183 geometry (391/tree).
+          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 391;
           batches.add(`${tree.kind}:${batch}`);
         }
         beforeDraws += 2 * batches.size;
@@ -292,9 +294,37 @@ describe("procedural foliage variants", () => {
       expect(afterDraws).toBe(beforeDraws);
       expect(after).toBeLessThanOrEqual(before * 1.25);
       expect(forests.flat().length).toBeGreaterThan(1000);
-      process.stdout.write(`B2-182 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=391/tree, pine<=262/tree (broadleaf limit=1500; includes collapsed ribbons)\n`);
+      process.stdout.write(`B2-182b 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=499/tree, pine<=262/tree (broadleaf limit=1500; includes collapsed ribbons)\n`);
     } finally { foliage.dispose(); }
   });
+
+  it("keeps resident High world triangles below +25% at forest and coastal review positions", () => {
+    const scene = new Scene(), composition = createWorldScene({ ...createMeshPhysics(), scene, quality: "High" });
+    try {
+      for (const t of [0.15, 0.86, 0.93]) {
+        const path = pathPointAt(t);
+        composition.update(new Vector3(path.x, worldHeight(path.x, path.z) + 1.7, path.z), 0);
+        expect(composition.streamingError).toBeUndefined();
+        let after = 0, extra = 0;
+        scene.traverseVisible(node => {
+          if (!(node instanceof Mesh)) return;
+          const submitted = Math.min(node.geometry.drawRange.count, node.geometry.index?.count ?? node.geometry.getAttribute("position").count);
+          after += submitted / 3 * (node instanceof InstancedMesh ? node.count : 1);
+        });
+        for (const mesh of composition.foliageMeshes) {
+          if (!(mesh instanceof InstancedMesh) || !mesh.geometry.getAttribute("treeStyle")) continue;
+          const surface = mesh.geometry.getAttribute("surface");
+          if (!Array.from(surface.array).includes(1)) continue; // Broadleaf wood; pine surfaces are all leaves.
+          extra += mesh.count * (mesh.geometry.index!.count / 3 - 349);
+        }
+        const before = after - extra;
+        expect(extra).toBeGreaterThan(0);
+        expect(after).toBeLessThanOrEqual(before * 1.25);
+        // Eager props/character/post are unchanged; adding them only reduces this ratio.
+        process.stdout.write(`B2-182b resident world / High / t=${t}: triangles=${before} -> ${after}; increase=${((after / before - 1) * 100).toFixed(3)}%\n`);
+      }
+    } finally { composition.dispose(); }
+  }, 60_000);
 
   it("shares materials through the legacy handles and uses at most ten draw calls", () => {
     const foliage = createFoliage(2000);

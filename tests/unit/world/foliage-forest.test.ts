@@ -201,7 +201,7 @@ function displayLuma(color: Color): number {
   return display.r * 0.2126 + display.g * 0.7152 + display.b * 0.0722;
 }
 
-it("uses natural palette wood/moss and bounds both shaded and sunlit bark after the ramp (B2-175)", () => {
+it("uses natural palette wood/moss and keeps shaded/sunlit bark below the leaf shade floor (B2-182b)", () => {
   const foliage = createFoliage(1);
   try {
     const { trunks } = foliage.species.broadleaf;
@@ -222,7 +222,7 @@ it("uses natural palette wood/moss and bounds both shaded and sunlit bark after 
     expect(pigments.some(color => color.g > color.r && color.g > color.b)).toBe(true);
     expect(new Set(pigments.map(color => color.getHex())).size).toBeGreaterThan(5);
     expect(pigments.every(color => color.r > new Color(PALETTE.ink).r)).toBe(true);
-    const wood = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.32).lerp(new Color(PALETTE.forestDeep), 0.05);
+    const wood = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.48).lerp(new Color(PALETTE.forestDeep), 0.05);
     const positions = trunks.geometry.getAttribute("position");
     for (let i = 0; i < positions.count; i++) if (positions.getY(i) === 0.5) {
       expect(pigments[i]!.r).toBeCloseTo(wood.r, 6);
@@ -245,11 +245,12 @@ it("uses natural palette wood/moss and bounds both shaded and sunlit bark after 
       lit.copy(shadow.lerp(lit, smooth(rampLight / 0.5)));
       lit.setRGB(Math.max(lit.r, pigment.r * Number(floor![1])), Math.max(lit.g, pigment.g * Number(floor![1])), Math.max(lit.b, pigment.b * Number(floor![1])));
       lit.multiplyScalar(Math.max(limits.x, Math.min(limits.y, luma(lit))) / luma(lit));
-      expect(luma(lit)).toBeGreaterThanOrEqual(0.15 - 1e-7);
-      expect(luma(lit)).toBeLessThanOrEqual(0.55);
+      // B2-182b darkens lighting rather than lifting bark above shaded leaves.
+      expect(luma(lit)).toBeGreaterThanOrEqual(0.055 - 1e-7);
+      expect(luma(lit)).toBeLessThanOrEqual(0.10 + 1e-7);
       const display = displayLuma(lit);
       expect(display).toBeGreaterThanOrEqual(0.15);
-      expect(display).toBeLessThanOrEqual(0.55);
+      expect(display).toBeLessThanOrEqual(0.36);
       darkest = Math.min(darkest, display); brightest = Math.max(brightest, display);
     }
     const crownMaterial = foliage.species.broadleaf.crowns.material;
@@ -259,7 +260,7 @@ it("uses natural palette wood/moss and bounds both shaded and sunlit bark after 
     expect(crownShader.fragmentShader).toContain("if (vForestWood > 0.5)");
     expect(crownShader.vertexShader).toContain("vColor.xyz /= instanceColor");
     expect(crownShader.fragmentShader.indexOf("clamp(barkLuma")).toBeGreaterThan(crownShader.fragmentShader.indexOf("outgoingLight = mix( rampShadow"));
-    process.stdout.write(`B2-175 bark: ramp linear luma=${limits.x}–${limits.y}; ACES+sRGB=${darkest.toFixed(3)}–${brightest.toFixed(3)} (exposure=1)\n`);
+    process.stdout.write(`B2-182b bark: ramp linear luma=${limits.x}–${limits.y}; ACES+sRGB=${darkest.toFixed(3)}–${brightest.toFixed(3)} (exposure=1)\n`);
   } finally { foliage.dispose(); }
   const recipe = WORLD_DIRECTION.foliage.trunk;
   const brightness = recipe.brightness;

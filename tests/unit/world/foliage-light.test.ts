@@ -51,7 +51,7 @@ function leafLight(old: Color, pigment: Color, grade: LightingGrade, shader: Web
 }
 
 describe("foliage graded lighting (B2-183)", () => {
-  it("keeps backlit leaves >=0.06 at dawn/coast, cool in shade, with a stronger rim and <=10% front-light increase", () => {
+  it("keeps backlit leaves >=0.12 at dawn/coast, cool in shade, with a stronger rim and <=10% front-light increase", () => {
     const foliage = createFoliage(32);
     const trees: FoliageTree[] = Array.from({ length: 32 }, (_, i) => ({ kind: i % 2 ? "pine" : "broadleaf", x: i * 7.3, z: -i * 4.1, y: 0, scale: 1, lean: 0 }));
     foliage.setTiles(trees);
@@ -65,7 +65,7 @@ describe("foliage graded lighting (B2-183)", () => {
     expect(shader.fragmentShader.indexOf("float leafLuma")).toBeLessThan(shader.fragmentShader.indexOf("#include <tonemapping_fragment>"));
     let minimum = Infinity, frontRatio = 0;
     try {
-      for (const t of [0.15, 0.93]) {
+      for (const t of [0.15, 0.86, 0.93]) {
         const tod = timeOfDayAt(t);
         const grade = applyCoastAtmosphere(directGrade(lightingAt(tod), tod), t);
         for (const species of Object.values(foliage.species)) for (const { crowns } of species.variants) {
@@ -81,7 +81,7 @@ describe("foliage graded lighting (B2-183)", () => {
                 const rim = leafLight(old, pigment, grade, shader, nl, 1);
                 if (nl < 0) {
                   minimum = Math.min(minimum, luma(display(center)), luma(display(rim)));
-                  expect(luma(center)).toBeGreaterThanOrEqual(0.06 - 1e-12);
+                  expect(luma(center)).toBeGreaterThanOrEqual(0.12 - 1e-12);
                   expect(luma(rim)).toBeGreaterThanOrEqual(luma(center) - 1e-12);
                 } else {
                   frontRatio = Math.max(frontRatio, luma(display(center)) / luma(display(old)));
@@ -92,12 +92,66 @@ describe("foliage graded lighting (B2-183)", () => {
         }
         // Force zero illumination/pigment to exercise the ambient fallback alone.
         const shade = leafLight(new Color(0, 0, 0), new Color(0, 0, 0), grade, shader, -1, 0);
-        expect(luma(shade)).toBeCloseTo(0.06, 10);
+        expect(luma(shade)).toBeCloseTo(0.12, 10);
         expect(shade.b).toBeGreaterThan(shade.r);
       }
-      expect(minimum).toBeGreaterThanOrEqual(0.06);
+      expect(minimum).toBeGreaterThanOrEqual(0.12);
       expect(frontRatio).toBeLessThanOrEqual(1.1);
-      process.stdout.write(`B2-183 CPU t=0.15/0.93: min backlit display luma=${minimum.toFixed(4)}; front-lit ratio=${frontRatio.toFixed(4)}; backlit linear floor=0.0600\n`);
+      process.stdout.write(`B2-182b CPU t=0.15/0.86/0.93: min backlit display luma=${minimum.toFixed(4)}; front-lit ratio=${frontRatio.toFixed(4)}; backlit linear floor=0.1200\n`);
+    } finally { foliage.dispose(); }
+  });
+
+  it("checks real trunk material × vertex × instance pigment, and keeps lit wood darker than backlit leaves", () => {
+    const foliage = createFoliage(64);
+    foliage.setTiles(Array.from({ length: 64 }, (_, i) => ({ kind: i % 2 ? "pine" : "broadleaf", x: i * 7.3, z: -i * 4.1, y: 0, scale: 1, lean: 0 })));
+    let minimum = Infinity, maximum = 0, woodDisplay = 0, leafDisplay = Infinity;
+    try {
+      const crownShader = compile(foliage.species.broadleaf.crowns.material);
+      expect(crownShader.vertexShader).toContain("if (vForestWood > 0.5) vColor.xyz /= instanceColor;");
+      expect(crownShader.vertexShader).toContain("vForestWood = step(0.5, surface) * (1.0 - step(1.5, surface));");
+      expect(crownShader.fragmentShader).toContain("if (vForestWood > 0.5) {");
+      expect(crownShader.fragmentShader).toContain("if (vForestWood < 0.5) {");
+      const trunkShader = compile(foliage.species.pine.trunks.material);
+      expect(trunkShader.fragmentShader).not.toContain("leafLuma");
+      expect(trunkShader.fragmentShader).not.toContain("leafEdge");
+      for (const species of Object.values(foliage.species)) for (const { trunks, crowns } of species.variants) {
+        const meshes = [trunks, crowns];
+        for (const mesh of meshes) {
+          const colors = mesh.geometry.getAttribute("color"), surfaces = mesh.geometry.getAttribute("surface");
+          const shader = compile(mesh.material), bounds = shader.uniforms.forestBarkLuma!.value as Vector2;
+          expect(bounds.y).toBeLessThan(0.12);
+          expect(shader.fragmentShader).toContain("outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.85);");
+          expect(shader.fragmentShader).toContain("clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y)");
+          for (let instance = 0; instance < mesh.count; instance++) {
+            const tint = new Color(); mesh.getColorAt(instance, tint);
+            for (let i = 0; i < colors.count; i++) {
+              if (mesh === crowns && surfaces.getX(i) !== 1) continue;
+              const pigment = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
+              // The crown shader cancels leaf instance colour only for wood.
+              if (mesh === trunks) pigment.multiply(tint);
+              minimum = Math.min(minimum, luma(pigment)); maximum = Math.max(maximum, luma(pigment));
+              expect(luma(pigment)).toBeGreaterThanOrEqual(0.12);
+              expect(luma(pigment)).toBeLessThanOrEqual(0.22);
+              expect(pigment.r).toBeGreaterThan(pigment.b); // Brown/grey bark, never cream or blue.
+              for (const t of [0.15, 0.86, 0.93]) {
+                const tod = timeOfDayAt(t), grade = applyCoastAtmosphere(directGrade(lightingAt(tod), tod), t);
+                const leaf = leafLight(new Color(0, 0, 0), new Color(0, 0, 0), grade, crownShader, -1, 0);
+                for (const nl of [-1, 0, 1]) for (const visibility of [0, 1]) {
+                  const old = oldLight(pigment, grade, shader, nl, visibility);
+                  old.setRGB(Math.max(old.r, pigment.r * 0.85), Math.max(old.g, pigment.g * 0.85), Math.max(old.b, pigment.b * 0.85));
+                  const value = luma(old);
+                  const wood = old.multiplyScalar(Math.max(bounds.x, Math.min(bounds.y, value)) / Math.max(value, 0.00001));
+                  expect(luma(wood)).toBeLessThan(luma(leaf));
+                  expect(luma(display(wood))).toBeLessThan(luma(display(leaf)));
+                  woodDisplay = Math.max(woodDisplay, luma(display(wood)));
+                  leafDisplay = Math.min(leafDisplay, luma(display(leaf)));
+                }
+              }
+            }
+          }
+        }
+      }
+      process.stdout.write(`B2-182b actual wood pigment=${minimum.toFixed(4)}–${maximum.toFixed(4)}; max wood display=${woodDisplay.toFixed(4)} < min shaded leaf=${leafDisplay.toFixed(4)}; translucency wood=off\n`);
     } finally { foliage.dispose(); }
   });
 
@@ -157,7 +211,7 @@ describe("foliage graded lighting (B2-183)", () => {
     } finally { foliage.dispose(); }
   });
 
-  it("retains the existing geometry and ten mesh slots without new attributes or materials", () => {
+  it("keeps ten mesh slots without new attributes or materials", () => {
     const foliage = createFoliage(1);
     try {
       expect(foliage.group.children).toHaveLength(10);
@@ -165,10 +219,10 @@ describe("foliage graded lighting (B2-183)", () => {
       for (const [kind, species] of Object.entries(foliage.species)) for (const { seed, crowns, trunks } of species.variants) {
         const crownTriangles = crowns.geometry.index!.count / 3, trunkTriangles = trunks.geometry.index!.count / 3;
         expect(trunkTriangles).toBe(42);
-        expect(crownTriangles).toBe(kind === "pine" ? (3 + seed % 3) * 44 : 349); // B2-182 broadleaf v3 crown (was 272)
+        expect(crownTriangles).toBe(kind === "pine" ? (3 + seed % 3) * 44 : 457); // B2-182b: 18 round bunches + budgeted wood/vines.
         expect(Object.keys(crowns.geometry.attributes).sort()).toEqual(["color", "normal", "position", "shapeA", "shapeB", "surface", "treeStyle"]);
         expect(crowns.material).toBe(foliage.species.broadleaf.crowns.material);
-        reports.push(`${kind}/${seed}=${crownTriangles + trunkTriangles}->${crownTriangles + trunkTriangles}`);
+        reports.push(`${kind}/${seed}=${kind === "pine" ? crownTriangles + trunkTriangles : 391}->${crownTriangles + trunkTriangles}`);
       }
       process.stdout.write(`B2-183 triangles/tree: ${reports.join(", ")}; mesh slots=10->10; extra passes=0\n`);
     } finally { foliage.dispose(); }

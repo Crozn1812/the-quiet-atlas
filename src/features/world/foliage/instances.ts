@@ -50,14 +50,14 @@ export function hasHangingFoliage(x: number, z: number): boolean {
   return foliageVariantAt(z + 19.73, x - 41.19, 100) < 40;
 }
 
-/** Bound wood after the shared ramp, before fog/ACES. This linear interval also
- * stays below 0.55 display luma with the world's ACES exposure of one. */
+/** Bark stays below the 0.12 leaf shade floor, after the ramp and before fog/ACES.
+ * Pigment remains 0.12–0.22; lighting must not turn it into pale cream. */
 function installBarkLighting(material: Material, branches = false) {
   const previous = material.onBeforeCompile.bind(material);
   const previousKey = material.customProgramCacheKey.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
-    shader.uniforms.forestBarkLuma = { value: new Vector2(0.15, 0.18) };
+    shader.uniforms.forestBarkLuma = { value: new Vector2(0.055, 0.10) };
     if (branches) {
       // surface may already be declared by the tree-shape install (it derives "hanging" from it).
       if (!shader.vertexShader.includes("attribute float surface;")) shader.vertexShader = "attribute float surface;\n" + shader.vertexShader;
@@ -80,7 +80,7 @@ outgoingLight *= clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y) / max(barkL
 }
 #include <opaque_fragment>`);
   };
-  material.customProgramCacheKey = () => previousKey() + `|forest-bark-bounded-v2:${branches}`;
+  material.customProgramCacheKey = () => previousKey() + `|forest-bark-bounded-v3:${branches}`;
 }
 
 /** Reuse Three's graded sun/hemi uniforms; no light copies or extra pass. */
@@ -109,13 +109,13 @@ if (vForestWood < 0.5) {
       leafShade = mix(leafShade, hemisphereLights[0].skyColor, 0.5);
     #endif
     float leafLuma = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
-    outgoingLight += leafShade * (max(0.06 - leafLuma, 0.0)
+    outgoingLight += leafShade * (max(0.12 - leafLuma, 0.0)
       / max(dot(leafShade, vec3(0.2126, 0.7152, 0.0722)), 0.00001));
   }
 }
 #include <opaque_fragment>`);
   };
-  material.customProgramCacheKey = () => previousKey() + "|forest-leaf-light-v1";
+  material.customProgramCacheKey = () => previousKey() + "|forest-leaf-light-v2";
 }
 
 /** Palette-derived hue wash and independent +/-8% linear brightness. */
@@ -312,6 +312,9 @@ export function createFoliage(maxPerKind: number) {
       transform.scale.set(1, height, 1);
       transform.updateMatrix();
       trunks.setMatrixAt(index, transform.matrix);
+      // Neutral per-tree bark variation; never reuse the green crown tint.
+      const barkValue = 0.96 + 0.08 * foliageVariantAt(tree.x - 5.31, tree.z + 9.17, 2001) / 2000;
+      trunks.setColorAt(index, new Color(barkValue, barkValue, barkValue));
       transform.position.set(tree.x - Math.sin(tree.lean) * anchorHeight, tree.y + Math.cos(tree.lean) * anchorHeight, tree.z);
       transform.scale.set(tree.scale, heightScale, tree.scale);
       if (tree.trailCanopy && tree.kind === "broadleaf") {

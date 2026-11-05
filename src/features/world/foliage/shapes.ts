@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, Float32BufferAttribute, IcosahedronGeometry, Vector3 } from "three";
+import { BufferGeometry, Color, Float32BufferAttribute, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { RAMP_PRESETS } from "../materials/ramp";
 import { TRUNK_HEIGHT, TRUNK_RADIUS } from "./colliders";
@@ -108,7 +108,7 @@ export function createPineCrown(seed: number = PINE_VARIANT_SEEDS[0]): BufferGeo
 
 /** Palette bark/moss encoded relative to either existing shared material. */
 export function mossColor(height: number, upward: number, damp: number, material = RAMP_PRESETS.trunk): Color {
-  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.32).lerp(new Color(PALETTE.forestDeep), 0.05);
+  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.48).lerp(new Color(PALETTE.forestDeep), 0.05);
   const moss = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), 0.28);
   // Bound the root wash so damp moss retains linear pigment luma >= 0.12.
   const coverage = (1 - Math.max(0, Math.min(1, height))) ** 2
@@ -117,8 +117,8 @@ export function mossColor(height: number, upward: number, damp: number, material
   return color.setRGB(color.r / base.r, color.g / base.g, color.b / base.b);
 }
 
-/** Eighteen small leaf bunches on three rising limbs. Six rounded cores and
- * twelve pointed tips break up the outline without adding draws. All seeds
+/** Eighteen overlapping, smooth spherical bunches on three rising limbs.
+ * A low sphere keeps the submitted triangle increase below 25%. All seeds
  * retain identical indices/surfaces for the existing GPU shape deltas. */
 export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]): BufferGeometry {
   const variant = Math.max(0, BROADLEAF_VARIANT_SEEDS.indexOf(seed as typeof BROADLEAF_VARIANT_SEEDS[number]));
@@ -126,9 +126,18 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
   const positions: number[] = [], indices: number[] = [], colors: number[] = [], surfaces: number[] = [];
   const phase = variant * 0.42 + (random() - 0.5) * 0.12;
   const branchEnds: Vector3[] = [], branchStarts: Vector3[] = [], tips: Vector3[] = [];
-  const core = new IcosahedronGeometry(1, 0);
-  const pointed = geometryFrom([1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, 0, -1, 0, -1, 0],
-    [0, 1, 2, 2, 1, 3, 3, 1, 4, 4, 1, 0, 0, 2, 5, 2, 3, 5, 3, 4, 5, 4, 0, 5]);
+  // Five longitudes / three latitude spans: 20 closed faces, no seam copies.
+  // Round shading comes from cluster-centred normals, not triangle normals.
+  const spherePoints = [0, -1, 0], sphereFaces: number[] = [], leafNormals: number[] = [];
+  for (const y of [-0.5, 0.5]) for (let j = 0; j < 5; j++) {
+    const angle = j * Math.PI * 2 / 5;
+    spherePoints.push(Math.cos(angle) * Math.sqrt(0.75), y, Math.sin(angle) * Math.sqrt(0.75));
+  }
+  spherePoints.push(0, 1, 0);
+  for (let j = 0; j < 5; j++) {
+    const a = 1 + j, b = 1 + (j + 1) % 5;
+    sphereFaces.push(0, a, b, a, a + 5, b, b, a + 5, b + 5, a + 5, 11, b + 5);
+  }
   for (let branch = 0; branch < 3; branch++) {
     const angle = phase + branch * Math.PI * 2 / 3;
     const radial = new Vector3(Math.cos(angle), 0, Math.sin(angle));
@@ -138,18 +147,18 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     branchEnds.push(end);
     tips.push(radial.clone().multiplyScalar(0.72).setY(3.65 + branch * 0.05));
     for (let bunch = 0; bunch < 6; bunch++) {
-      const offset = [-0.48, 0.48, -0.38, 0.38, -0.25, 0.12][bunch]!;
-      const reach = [1.25, 1.55, 1.12, 1.28, 0.74, 0.72][bunch]!;
+      const offset = [-0.1, 0.1, -0.08, 0.08, -0.06, 0.04][bunch]!;
+      const reach = [1.3, 1.55, 1.16, 1.23, 0.9, 0.48][bunch]!;
       const center = radial.clone().multiplyScalar(reach).addScaledVector(side, offset + (random() - 0.5) * 0.16);
       center.y = [-0.55, 0.42, 1.14, 2.02, 2.92, 3.65][bunch]! + branch * 0.05 + (random() - 0.5) * 0.12;
-      const radius = (bunch % 3 === 0 ? 0.71 : 0.58) + random() * 0.055;
-      const source = bunch % 3 === 0 ? core : pointed;
-      const vertices = source.getAttribute("position"), start = positions.length / 3;
-      for (let i = 0; i < vertices.count; i++) {
-        const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i);
+      const radius = (bunch === 2 || bunch === 4 ? 0.64 : 0.735) + random() * 0.008;
+      const start = positions.length / 3;
+      for (let i = 0; i < spherePoints.length; i += 3) {
+        const x = spherePoints[i]!, y = spherePoints[i + 1]!, z = spherePoints[i + 2]!;
         const wobble = 1 + Math.sin(x * 7 + y * 5 + z * 9 + angle) * 0.035;
-        const point = center.clone().addScaledVector(radial, x * radius * wobble).addScaledVector(side, z * radius * wobble);
-        point.y += y * radius * wobble;
+        const point = center.clone().add(new Vector3(x * wobble, y * 0.84, z * wobble).multiplyScalar(radius));
+        const normal = point.clone().sub(center).normalize();
+        leafNormals.push(normal.x, normal.y, normal.z);
         positions.push(point.x, point.y, point.z); surfaces.push(0);
         // Local undersides are darker; radial tips are brighter than the core.
         const heightWash = (point.y + 1.4) / 6;
@@ -157,11 +166,9 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
         const value = Math.min(0.995, 0.825 + heightWash * 0.07 + (y + 1) * 0.025 + edgeWash * 0.05);
         colors.push(value, value, value);
       }
-      const faces = source.index ? Array.from(source.index.array) : Array.from({ length: vertices.count }, (_, i) => i);
-      indices.push(...faces.map(index => start + index));
+      indices.push(...sphereFaces.map(index => start + index));
     }
   }
-  core.dispose(); pointed.dispose();
   function vertex(point: Vector3, surface: number) {
     positions.push(point.x, point.y, point.z); surfaces.push(surface);
     const base = new Color(RAMP_PRESETS.crown);
@@ -172,7 +179,8 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     colors.push(color.r, color.g, color.b);
   }
   function limb(from: Vector3, to: Vector3, bottomRadius: number, topRadius: number) {
-    const start = positions.length / 3, segments = 5;
+    // Small wooden limbs retain a solid triangular section; spend faces on leaves.
+    const start = positions.length / 3, segments = 3;
     const axis = to.clone().sub(from).normalize();
     const side = new Vector3(0, 0, 1).cross(axis).normalize();
     const up = side.clone().cross(axis).normalize();
@@ -224,19 +232,19 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
     const anchor = from.clone().lerp(end, 0.75);
     const length = 1.25 + branch * 0.45 + random() * 0.1;
     const start = positions.length / 3;
-    for (let face = 0; face < 2; face++) for (let row = 0; row <= 2; row++) {
-      const t = row / 2, width = 0.022 * (1 - t * 0.65);
+    // A straight tapered ribbon needs only two end rows on each side.
+    for (let face = 0; face < 2; face++) for (let row = 0; row <= 1; row++) {
+      const t = row, width = 0.022 * (1 - t * 0.65);
       const center = anchor.clone().add(new Vector3(Math.sin(t * 3) * 0.08, -t * length, t * 0.05));
       vertex(center.clone().add(new Vector3(-width, 0, -width * t)), 2);
       vertex(center.clone().add(new Vector3(width, 0, width * t)), 2);
     }
-    for (let row = 0; row < 2; row++) {
-      const a = start + row * 2;
-      indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3,
-        a + 7, a + 8, a + 6, a + 9, a + 8, a + 7);
-    }
+    indices.push(start, start + 2, start + 1, start + 1, start + 2, start + 3,
+      start + 5, start + 6, start + 4, start + 7, start + 6, start + 5);
   }
   const geometry = geometryFrom(positions, indices);
+  const normals = geometry.getAttribute("normal");
+  for (let i = 0; i < leafNormals.length; i += 3) normals.setXYZ(i / 3, leafNormals[i]!, leafNormals[i + 1]!, leafNormals[i + 2]!);
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
   geometry.setAttribute("surface", new Float32BufferAttribute(surfaces, 1));
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();

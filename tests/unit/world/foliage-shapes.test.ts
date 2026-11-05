@@ -42,6 +42,34 @@ function leafMasses(geometry: BufferGeometry): number[][] {
   return components;
 }
 
+// Separating-axis test on the actual closed convex bunches, not overlapping
+// bounding spheres (which can still leave visible gaps between pointed meshes).
+function leafHull(geometry: BufferGeometry, ids: number[]) {
+  const positions = geometry.getAttribute("position"), selected = new Set(ids);
+  const points = ids.map(i => new Vector3().fromBufferAttribute(positions, i));
+  const normals: Vector3[] = [], edges: Vector3[] = [];
+  for (let i = 0; i < geometry.index!.count; i += 3) {
+    const face = [0, 1, 2].map(j => geometry.index!.getX(i + j));
+    if (!face.every(id => selected.has(id))) continue;
+    const vertices = face.map(id => new Vector3().fromBufferAttribute(positions, id));
+    normals.push(new Triangle(...vertices as [Vector3, Vector3, Vector3]).getNormal(new Vector3()));
+    for (let j = 0; j < 3; j++) edges.push(vertices[(j + 1) % 3]!.clone().sub(vertices[j]!));
+  }
+  return { points, normals, edges, bounds: new Box3().setFromPoints(points) };
+}
+
+function hullsOverlap(a: ReturnType<typeof leafHull>, b: ReturnType<typeof leafHull>): boolean {
+  if (!a.bounds.intersectsBox(b.bounds)) return false;
+  const axes = [...a.normals, ...b.normals, ...a.edges.flatMap(x => b.edges.map(y => x.clone().cross(y)))];
+  for (const axis of axes) {
+    if (axis.lengthSq() < 1e-10) continue;
+    axis.normalize();
+    const x = a.points.map(p => p.dot(axis)), y = b.points.map(p => p.dot(axis));
+    if (Math.max(...x) < Math.min(...y) - 1e-6 || Math.max(...y) < Math.min(...x) - 1e-6) return false;
+  }
+  return true;
+}
+
 describe("painted procedural tree shapes", () => {
   it("provides at least three distinct pines and three broadleaf shapes through the original exports", () => {
     expect(PINE_VARIANT_SEEDS.length).toBeGreaterThanOrEqual(3);
@@ -214,6 +242,34 @@ describe("painted procedural tree shapes", () => {
     } finally { geometry.dispose(); }
   });
 
+  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: rounds each bunch's normals and joins every bunch into one canopy`, () => {
+    const geometry = createBroadleafCrown(seed);
+    try {
+      const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
+      const masses = leafMasses(geometry), hulls = masses.map(ids => leafHull(geometry, ids));
+      let minimumRound = 1;
+      for (const [index, mass] of masses.entries()) {
+        const center = hulls[index]!.bounds.getCenter(new Vector3());
+        const round = mass.filter(id => {
+          const radial = new Vector3().fromBufferAttribute(positions, id).sub(center).normalize();
+          return radial.dot(new Vector3().fromBufferAttribute(normals, id)) > Math.cos(35 * Math.PI / 180);
+        }).length / mass.length;
+        expect(round).toBeGreaterThanOrEqual(0.4);
+        minimumRound = Math.min(minimumRound, round);
+      }
+      const neighbours = hulls.map((a, i) => hulls.flatMap((b, j) => i !== j && hullsOverlap(a, b) ? [j] : []));
+      for (const [i, links] of neighbours.entries()) expect(links.length, `isolated bunch ${i}`).toBeGreaterThanOrEqual(1);
+      const seen = new Set<number>(), pending = [0];
+      while (pending.length) {
+        const i = pending.pop()!;
+        if (seen.has(i)) continue;
+        seen.add(i); pending.push(...neighbours[i]!);
+      }
+      expect(seen.size).toBe(masses.length);
+      process.stdout.write(`B2-182b crown ${seed}: round normals >=${(minimumRound * 100).toFixed(1)}%; joined=${seen.size}/${masses.length}\n`);
+    } finally { geometry.dispose(); }
+  });
+
   for (const seed of PINE_VARIANT_SEEDS) it(`pine ${seed}: stacks thick closed cones with a pointed final tip`, () => {
     const geometry = createPineCrown(seed);
     try {
@@ -313,7 +369,7 @@ describe("painted procedural tree shapes", () => {
       const wood = ids.filter(i => surface.getX(i) === 1);
       const canopy = new Box3().setFromPoints(leaves.map(i => new Vector3().fromBufferAttribute(positions, i)));
       const expanded = canopy.clone().expandByScalar(0.5);
-      const count = ribbons.length / 12;
+      const count = ribbons.length / 8; // B2-182b: two end rows instead of three.
       expect(count).toBeGreaterThanOrEqual(2); expect(count).toBeLessThanOrEqual(4);
       for (const i of ribbons) {
         expect(new Vector3().fromBufferAttribute(normals, i).length()).toBeCloseTo(1, 6);
@@ -327,9 +383,9 @@ describe("painted procedural tree shapes", () => {
       }
       const point = (i: number) => new Vector3().fromBufferAttribute(positions, i);
       for (let ribbon = 0; ribbon < count; ribbon++) {
-        const start = ribbon * 12;
+        const start = ribbon * 8;
         const anchor = point(ribbons[start]!).add(point(ribbons[start + 1]!)).multiplyScalar(0.5);
-        const tip = point(ribbons[start + 4]!).add(point(ribbons[start + 5]!)).multiplyScalar(0.5);
+        const tip = point(ribbons[start + 2]!).add(point(ribbons[start + 3]!)).multiplyScalar(0.5);
         expect(anchor.y - tip.y).toBeGreaterThanOrEqual(1);
         expect(anchor.distanceTo(tip)).toBeLessThanOrEqual(2.5);
         expect(point(ribbons[start]!).distanceTo(point(ribbons[start + 1]!))).toBeLessThan(0.06);
@@ -339,8 +395,8 @@ describe("painted procedural tree shapes", () => {
         mesh.updateMatrixWorld();
         expect(ray.intersectObject(mesh).some(hit => hit.face && wood.includes(hit.face.a))).toBe(true);
         (mesh.material as MeshBasicMaterial).dispose();
-        for (let vertex = 0; vertex < 6; vertex++) {
-          const front = ribbons[start + vertex]!, back = ribbons[start + vertex + 6]!;
+        for (let vertex = 0; vertex < 4; vertex++) {
+          const front = ribbons[start + vertex]!, back = ribbons[start + vertex + 4]!;
           expect(point(front)).toEqual(point(back));
           expect(new Vector3().fromBufferAttribute(normals, front).dot(new Vector3().fromBufferAttribute(normals, back))).toBeCloseTo(-1, 6);
         }
@@ -369,7 +425,9 @@ describe("painted procedural tree shapes", () => {
         expect(shape.getAttribute("position").count).toBe(shapes[0]!.getAttribute("position").count);
       }
       expect(new Set(hashes).size).toBe(3);
-      process.stdout.write(`B2-182 geometry SHA256: ${hashes.join(", ")}\n`);
+      // Fingerprints change for round, overlapping leaf spheres, smooth normals,
+      // darker bark and simpler small limbs/ribbons; topology stays batch-compatible.
+      process.stdout.write(`B2-182b geometry SHA256 (rounded crowns/bark/limb budget): ${hashes.join(", ")}\n`);
     } finally { shapes.forEach(shape => shape.dispose()); }
   });
 
