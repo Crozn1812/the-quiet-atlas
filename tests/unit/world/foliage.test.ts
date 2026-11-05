@@ -85,8 +85,8 @@ describe("tile foliage", () => {
           const path = nearestPath(tree.x, tree.z);
           const before = pathPointAt(Math.max(0, path.t - 0.00001));
           const after = pathPointAt(Math.min(1, path.t + 0.00001));
-          const nx = before.z - after.z, nz = after.x - before.x;
-          return ((tree.x - path.x) * nx + (tree.z - path.z) * nz) * (nz < 0 ? -1 : 1) < 0;
+          const nx = after.z - before.z, nz = before.x - after.x;
+          return (tree.x - path.x) * nx + (tree.z - path.z) * nz < 0;
         }).length;
       }
     }

@@ -16,17 +16,17 @@ const tiles = tilesAlongPath();
 const forest = tiles.flatMap(tile => scatterTile(tile));
 
 // Measure against the curve's finite-difference normal, independently of scatter's
-// sampled-segment normal. Pick the normal opposing the world-space sea (-Z).
+// sampled-segment normal: walking left is (fz, -fx), also at the final bend.
 function coastalPosition(tree: { x: number; z: number }) {
   const path = nearestPath(tree.x, tree.z);
   const before = pathPointAt(Math.max(0, path.t - 0.00001));
   const after = pathPointAt(Math.min(1, path.t + 0.00001));
-  const nx = before.z - after.z, nz = after.x - before.x;
-  const inland = ((tree.x - path.x) * nx + (tree.z - path.z) * nz) * (nz < 0 ? -1 : 1) > 0;
+  const nx = after.z - before.z, nz = before.x - after.x;
+  const inland = (tree.x - path.x) * nx + (tree.z - path.z) * nz > 0;
   return { ...path, inland };
 }
 
-it("concentrates forest trees in continuous clumps without increasing the 180-candidate tile budget", () => {
+it("concentrates forest trees in continuous clumps and keeps each tile below 180 trees", () => {
   const area = [0, 0], count = [0, 0];
   for (const tile of tiles) {
     expect(scatterTile(tile).length).toBeLessThanOrEqual(180);
@@ -135,7 +135,8 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
     expect(tree.kind).toBe("broadleaf");
     expect(tree.y).toBe(worldHeight(tree.x, tree.z));
     expect(nearestPath(tree.x, tree.z).distance).toBeGreaterThanOrEqual(22);
-    expect(nearestPath(tree.x, tree.z).distance).toBeLessThanOrEqual(160);
+    // B2-159 extends the canopy over the crest and onto the far shoulder.
+    expect(nearestPath(tree.x, tree.z).distance).toBeLessThanOrEqual(260);
   }
 
   const area = { coast: 0, forest: 0 };

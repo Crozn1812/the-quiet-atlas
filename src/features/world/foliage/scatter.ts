@@ -38,6 +38,8 @@ function randomFor(key: string): () => number {
 }
 
 function biomeAtProgress(t: number): Biome {
+  // The coastal ticket includes the short lead-in before the nearest-zone split.
+  if (t >= 0.82) return "coast-dusk";
   return ZONES.reduce((best, zone) => Math.abs(zone.t - t) < Math.abs(best.t - t) ? zone : best).biome;
 }
 
@@ -46,14 +48,11 @@ export function foliageBiomeAt(x: number, z: number): Biome {
   return biomeAtProgress(nearestPath(x, z).t);
 }
 
-/** Signed metres along the road normal facing away from the sea (-Z).
- * Only the layout determines the side; terrain relief can change independently.
- */
+/** Walking-left normal (fz, -fx), including bends near the last station. */
 function coastInlandDistance(x: number, z: number, path: ReturnType<typeof nearestPath>): number {
   const index = Math.min(PATH_SAMPLES.length - 2, Math.floor(path.t * (PATH_SAMPLES.length - 1)));
   const a = PATH_SAMPLES[index]!, b = PATH_SAMPLES[index + 1]!;
-  let nx = a.z - b.z, nz = b.x - a.x;
-  if (nz < 0) { nx = -nx; nz = -nz; }
+  const nx = b.z - a.z, nz = a.x - b.x;
   return ((x - path.x) * nx + (z - path.z) * nz) / Math.hypot(nx, nz);
 }
 
@@ -77,9 +76,23 @@ export function isFoliageExcluded(x: number, z: number): boolean {
     || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < BRIDGE_CLEARANCE);
 }
 
-interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number; growth?: "shrub" }
+interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number; growth?: "shrub"; canopy?: true }
 interface Clump { x: number; z: number; radius: number }
 const CLUMP_SIZE = TILE_SIZE / 2;
+const coastalPoints = PATH_SAMPLES.filter(point => point.t >= 0.82);
+const coastalTiles = {
+  minX: Math.floor((Math.min(...coastalPoints.map(p => p.x)) - 260) / TILE_SIZE),
+  maxX: Math.floor((Math.max(...coastalPoints.map(p => p.x)) + 260) / TILE_SIZE),
+  minZ: Math.floor((Math.min(...coastalPoints.map(p => p.z)) - 260) / TILE_SIZE),
+  maxZ: Math.floor((Math.max(...coastalPoints.map(p => p.z)) + 260) / TILE_SIZE),
+};
+
+function onCoastalSlope(x: number, z: number, far = 260, path = nearestPath(x, z)): boolean {
+  if (path.t < 0.82 || path.distance > far || coastInlandDistance(x, z, path) < 22) return false;
+  // Do not spend the canopy budget on the unseen fan beyond the route's end.
+  const end = PATH_SAMPLES[PATH_SAMPLES.length - 1]!, before = PATH_SAMPLES[PATH_SAMPLES.length - 2]!;
+  return path.t < 1 || (x - end.x) * (end.x - before.x) + (z - end.z) * (end.z - before.z) <= 0;
+}
 
 function clumpsFor(ix: number, iz: number, width: number): Clump[] {
   const result: Clump[] = [];
@@ -112,7 +125,8 @@ function candidates(ix: number, iz: number): Candidate[] {
     x: (ix + random()) * TILE_SIZE, z: (iz + random()) * TILE_SIZE, radius: 9 + random() * 6,
   }));
   const result: Candidate[] = [];
-  for (let i = 0; i < 180; i++) {
+  const coastalTile = ix >= coastalTiles.minX && ix <= coastalTiles.maxX && iz >= coastalTiles.minZ && iz <= coastalTiles.maxZ;
+  for (let i = 0; i < (coastalTile ? 720 : 180); i++) {
     const x = (ix + random()) * TILE_SIZE;
     const z = (iz + random()) * TILE_SIZE;
     const densityRoll = random();
@@ -124,23 +138,26 @@ function candidates(ix: number, iz: number): Candidate[] {
     const biome = biomeAtProgress(path.t);
     const clump = clumpDensity(x, z, clumps);
     const distance = path.distance;
-    const inland = biome === "coast-dusk" ? coastInlandDistance(x, z, path) : 0;
-    const canopy = biome === "coast-dusk" && inland > 0 && distance >= 22 && distance <= 160;
-    // Spend the existing candidate pool on the visible coastal slope. Cull hidden
-    // forest interiors, leaving the ordinary forest beside the road unchanged.
-    const forestWeight = distance > 40 ? 0.48 : distance > 22 ? 0.85 : 1;
+    const inland = path.t >= 0.82 ? coastInlandDistance(x, z, path) : 0;
+    const canopy = onCoastalSlope(x, z, 260, path);
+    if (i >= 180 && !canopy) continue;
+    // Extra proposals are confined to the coastal slope. Cull hidden forest
+    // interiors while retaining ordinary forest beside the road.
+    const forestWeight = distance > 40 ? 0.32 : distance > 22 ? 0.85 : 1;
     // Colour comes from the renderer's position hash: favour its deep buckets
     // without another material, mesh, colour override or extra random draws.
-    const density = biome === "forest-dawn" ? clump * forestWeight : biome === "hill" ? clump * 0.2
-      : canopy ? (isDeepCrown(x, z) ? 0.98 : 0.12) : inland > 160 ? clump * 0.01 : clump * 0.25;
+    const density = canopy ? (isDeepCrown(x, z) ? 0.98 : 0.2) * (distance > 200 ? 0.25 : 1)
+      : biome === "forest-dawn" ? clump * forestWeight : biome === "hill" ? clump * 0.2
+        : inland > 260 ? clump * 0.01 : clump * 0.25;
     if (densityRoll >= density || isFoliageExcluded(x, z)) continue;
     if (biome === "forest-dawn" && clearings.some(c => Math.hypot(x - c.x, z - c.z) < c.radius)) continue;
     const shrub = biome === "coast-dusk" && !canopy;
-    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 1.1 + scaleRoll * 0.2 : 0.8 + scaleRoll * 0.5,
+    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 0.9 + scaleRoll * 0.6 : 0.8 + scaleRoll * 0.5,
       // Broad crowns overlap in projection up the slope and reuse the coastal
       // shrub species, so the denser coast does not activate extra draw calls.
       kind: shrub || canopy ? "broadleaf" : kindRoll < (biome === "forest-dawn" ? 0.88 : 0.6) ? "pine" : "broadleaf", lean,
       ...(shrub ? { growth: "shrub" as const } : {}),
+      ...(canopy ? { canopy: true as const } : {}),
     });
   }
   return result;
@@ -149,21 +166,110 @@ function candidates(ix: number, iz: number): Candidate[] {
 /**
  * Seeded Poisson candidates with Matérn-II hard-core thinning. The 8-neighbour
  * halo makes the 4 m disk constraint independent of tile loading order, even
- * across seams. No global cache, quality input, or mutable random state.
+ * across seams, independently of quality and mutable random state.
  */
+function poissonCandidates(ix: number, iz: number, getCandidates = candidates): Candidate[] {
+  const own = getCandidates(ix, iz);
+  const halo: Candidate[] = [...own];
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+    if (dx || dz) halo.push(...getCandidates(ix + dx, iz + dz));
+  }
+  return own.filter(a => !halo.some(b => b !== a
+    && (b.priority < a.priority || (b.priority === a.priority && (b.x < a.x || (b.x === a.x && b.z < a.z))))
+    && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 < MIN_TREE_DISTANCE ** 2));
+}
+
+const candidateKey = (tree: Candidate) => `${tree.x}:${tree.z}`;
+let coastalSelection: ReadonlySet<string> | undefined;
+
+/** A fixed, finite coastal field keeps the row veto independent of tile order.
+ * Only selected position keys survive initialization; candidate/coverage working
+ * sets are released. Neither quality nor loaded tiles can change this field.
+ */
+function selectedCoastalCanopy(): ReadonlySet<string> {
+  if (coastalSelection) return coastalSelection;
+  const cache = new Map<string, Candidate[]>();
+  const getCandidates = (ix: number, iz: number) => {
+    const key = tileKey(ix, iz);
+    if (!cache.has(key)) cache.set(key, candidates(ix, iz));
+    return cache.get(key)!;
+  };
+  const pool: { tree: Candidate; cells: string[]; farBand: number }[] = [];
+  for (let ix = coastalTiles.minX; ix <= coastalTiles.maxX; ix++) for (let iz = coastalTiles.minZ; iz <= coastalTiles.maxZ; iz++) {
+    for (const tree of poissonCandidates(ix, iz, getCandidates).filter(tree => tree.canopy)) {
+      const cells: string[] = [];
+      // Rank existing random positions by new broad-crown footprint, rather
+      // than putting trunks on a grid. Two phases avoid favouring grid seams.
+      const radius = 2.1 * tree.scale;
+      for (const phase of [0, 5]) {
+        for (let x = Math.floor((tree.x - radius - phase) / 10) * 10 + phase; x <= tree.x + radius; x += 10) {
+          for (let z = Math.floor((tree.z - radius - phase) / 10) * 10 + phase; z <= tree.z + radius; z += 10) {
+            if (onCoastalSlope(x + 5, z + 5, 200)
+              && Math.hypot(Math.max(x - tree.x, 0, tree.x - x - 10), Math.max(z - tree.z, 0, tree.z - z - 10)) <= radius) {
+              cells.push(`${phase}:${x},${z}`);
+            }
+          }
+        }
+      }
+      const path = nearestPath(tree.x, tree.z);
+      pool.push({ tree, cells, farBand: path.distance >= 200 ? Math.min(2, Math.floor((path.t - 0.82) / 0.06)) : -1 });
+    }
+  }
+  const buckets = new Map<string, Candidate[]>();
+  const selected: Candidate[] = [];
+  const occupied = new Set<string>();
+  const farBands = new Set<number>();
+  const following = (a: Candidate, b: Candidate): Candidate[] => {
+    const dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
+    const x = b.x + dx, z = b.z + dz, reach = length * 0.18;
+    const result: Candidate[] = [];
+    for (let ix = Math.floor((x - reach) / 16); ix <= Math.floor((x + reach) / 16); ix++) {
+      for (let iz = Math.floor((z - reach) / 16); iz <= Math.floor((z + reach) / 16); iz++) {
+        for (const c of buckets.get(tileKey(ix, iz)) ?? []) {
+          const cx = c.x - b.x, cz = c.z - b.z, distance = Math.hypot(cx, cz);
+          // 11.2% also catches the reverse of a step shortened by 10%.
+          if (Math.abs(distance / length - 1) < 0.112
+            && (dx * cx + dz * cz) / (length * distance) > Math.cos(Math.PI / 60)) result.push(c);
+        }
+      }
+    }
+    return result;
+  };
+  while (pool.length) {
+    let best = 0, score = -1;
+    for (let i = 0; i < pool.length; i++) {
+      const { cells, farBand } = pool[i]!;
+      // Reserve a far-shoulder tree in each available third before filling gaps.
+      const value = cells.filter(key => !occupied.has(key)).length + (farBand >= 0 && !farBands.has(farBand) ? 10 : 0);
+      if (value > score) { score = value; best = i; }
+    }
+    const { tree, cells, farBand } = pool.splice(best, 1)[0]!;
+    // A new tree can finish a row or lie inside it. Reversing the row covers
+    // the other two positions, including rows spanning multiple terrain tiles.
+    if (selected.some(b => {
+      const before = following(tree, b);
+      return before.some(a => following(b, a).length > 0)
+        || (before.length > 0 && following(b, tree).length > 0);
+    })) continue;
+    selected.push(tree);
+    if (farBand >= 0) farBands.add(farBand);
+    for (const key of cells) occupied.add(key);
+    const key = tileKey(Math.floor(tree.x / 16), Math.floor(tree.z / 16));
+    const bucket = buckets.get(key) ?? [];
+    bucket.push(tree);
+    buckets.set(key, bucket);
+  }
+  coastalSelection = new Set(selected.map(candidateKey));
+  return coastalSelection;
+}
+
 export function scatterTile(tile: TileAddress | TerrainTile): FoliageTree[] {
   const ix = "ix" in tile ? tile.ix : tile.origin.x / TILE_SIZE;
   const iz = "iz" in tile ? tile.iz : tile.origin.z / TILE_SIZE;
   tileKey(ix, iz);
   if ("size" in tile && tile.size !== TILE_SIZE) throw new RangeError("Foliage requires standard terrain tiles");
-  const own = candidates(ix, iz);
-  const halo: Candidate[] = [...own];
-  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
-    if (dx || dz) halo.push(...candidates(ix + dx, iz + dz));
-  }
-  return own.filter(a => !halo.some(b => b !== a
-    && (b.priority < a.priority || (b.priority === a.priority && (b.x < a.x || (b.x === a.x && b.z < a.z))))
-    && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 < MIN_TREE_DISTANCE ** 2))
+  return poissonCandidates(ix, iz)
+    .filter(tree => !tree.canopy || selectedCoastalCanopy().has(candidateKey(tree)))
     .map(({ x, z, scale, kind, lean, growth }) => ({ x, z, y: worldHeight(x, z), scale, kind, lean,
       ...(growth ? { growth } : {}),
     }));
