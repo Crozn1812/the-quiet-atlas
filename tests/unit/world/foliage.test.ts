@@ -2,7 +2,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import { Matrix4, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createFoliageColliders, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
-import { createFoliage } from "../../../src/features/world/foliage/instances";
+import { createFoliage, foliageVariantAt } from "../../../src/features/world/foliage/instances";
 import { foliageBiomeAt, MIN_TREE_DISTANCE, scatterTile, SHORE_MIN_HEIGHT, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
 import { riverPointAt } from "../../../src/features/world/layout/river";
@@ -103,18 +103,29 @@ describe("foliage instances and colliders", () => {
       for (const quality of ["Low", "Balanced", "High", "Low"] as Quality[]) {
         foliage.setQuality(quality);
         const count = Math.round(trees.length * PRESETS[quality].density);
-        const indices = { pine: 0, broadleaf: 0 };
-        expect(Object.values(foliage.species).reduce((n, s) => n + s.trunks.count, 0)).toBe(count);
+        const indices = { pine: foliage.species.pine.variants.map(() => 0), broadleaf: foliage.species.broadleaf.variants.map(() => 0) };
+        const variants = Object.values(foliage.species).flatMap(s => s.variants);
+        expect(variants.reduce((n, s) => n + s.trunks.count, 0)).toBe(count);
+        expect(variants.reduce((n, s) => n + s.crowns.count, 0)).toBe(count);
         for (let i = 0; i < count; i++) {
           const index = Math.floor((i + 0.5) * trees.length / count);
           const tree = trees[index]!;
           const species = foliage.species[tree.kind];
-          species.trunks.getMatrixAt(indices[tree.kind]++, matrix);
+          const variantIndex = foliageVariantAt(tree.x, tree.z, species.variants.length);
+          const variant = species.variants[variantIndex]!;
+          const instanceIndex = indices[tree.kind][variantIndex]!;
+          indices[tree.kind][variantIndex] = instanceIndex + 1;
+          variant.trunks.getMatrixAt(instanceIndex, matrix);
           const center = new Vector3().setFromMatrixPosition(matrix);
           expect(center.x).toBeCloseTo(colliders[index]!.x, 4);
           expect(center.y).toBeCloseTo(colliders[index]!.y, 4);
           expect(center.z).toBeCloseTo(colliders[index]!.z, 4);
-          expect(species.crowns.count).toBe(species.trunks.count);
+          variant.crowns.getMatrixAt(instanceIndex, matrix);
+          center.setFromMatrixPosition(matrix);
+          expect(center.x).toBeCloseTo(tree.x - Math.sin(tree.lean) * 5 * tree.scale, 4);
+          expect(center.y).toBeCloseTo(tree.y + Math.cos(tree.lean) * 5 * tree.scale, 4);
+          expect(center.z).toBeCloseTo(tree.z, 4);
+          expect(variant.crowns.count).toBe(variant.trunks.count);
         }
         expect(createFoliageColliders(trees)).toEqual(colliders);
         expect(world.colliders.len()).toBe(trees.length);
@@ -122,7 +133,7 @@ describe("foliage instances and colliders", () => {
         expect(colliders.every(c => c.radius === TRUNK_RADIUS)).toBe(true);
       }
       foliage.setTiles([]);
-      expect(Object.values(foliage.species).every(s => s.trunks.count === 0 && s.crowns.count === 0)).toBe(true);
+      expect(Object.values(foliage.species).flatMap(s => s.variants).every(s => s.trunks.count === 0 && s.crowns.count === 0)).toBe(true);
     } finally { world.free(); foliage.dispose(); }
   });
 
@@ -131,11 +142,14 @@ describe("foliage instances and colliders", () => {
     const tree = tenForests.flat()[0]!;
     foliage.setTiles([tree]);
     expect(() => foliage.setTiles([tree, tree])).toThrow(RangeError);
-    expect(foliage.species[tree.kind].trunks.count).toBe(1);
-    const resources = new Set(Object.values(foliage.species).flatMap(s => [s.trunks.geometry, s.trunks.material, s.crowns.geometry, s.crowns.material]).flat());
+    expect(foliage.species[tree.kind].variants.reduce((count, variant) => count + variant.trunks.count, 0)).toBe(1);
+    const variants = Object.values(foliage.species).flatMap(s => s.variants);
+    const resources = new Set(variants.flatMap(s => [s.trunks.geometry, s.trunks.material, s.crowns.geometry, s.crowns.material]).flat());
+    const meshSpies = variants.flatMap(s => [vi.spyOn(s.trunks, "dispose"), vi.spyOn(s.crowns, "dispose")]);
     const spies = [...resources].map(resource => vi.spyOn(resource, "dispose"));
     foliage.dispose(); foliage.dispose();
     for (const spy of spies) expect(spy).toHaveBeenCalledTimes(1);
+    for (const spy of meshSpies) expect(spy).toHaveBeenCalledTimes(1);
     expect(foliage.group.children).toHaveLength(0);
     expect(() => foliage.setTiles([])).toThrow("disposed");
     expect(() => foliage.setQuality("Low")).toThrow("disposed");
@@ -143,6 +157,69 @@ describe("foliage instances and colliders", () => {
     const empty = createFoliage(0);
     empty.setTiles([]); empty.setQuality("Low"); empty.dispose();
     expect(new Set(tenTiles.map(t => tileKey(t.ix, t.iz))).size).toBe(10);
+  });
+});
+
+describe("procedural foliage variants", () => {
+  const trees: FoliageTree[] = (["pine", "broadleaf"] as const).flatMap(kind => Array.from({ length: 2000 }, (_, i) => ({
+    kind, x: (i % 50) * 4.23 - 110, z: Math.floor(i / 50) * -5.17 + 80,
+    y: 0, scale: 1, lean: 0,
+  })));
+
+  it("shares materials through the legacy handles and uses at most ten draw calls", () => {
+    const foliage = createFoliage(2000);
+    try {
+      expect(foliage.species.pine.variants.length).toBeGreaterThanOrEqual(3);
+      expect(foliage.species.broadleaf.variants.length).toBeGreaterThanOrEqual(2);
+      for (const species of Object.values(foliage.species)) {
+        expect(species.trunks).toBe(species.variants[0]!.trunks);
+        expect(species.crowns).toBe(species.variants[0]!.crowns);
+        expect(species.crowns.material.vertexColors).toBe(true);
+        species.crowns.material.color.setHex(0x5e8c6a);
+        for (const variant of species.variants) {
+          expect(variant.crowns.material).toBe(species.crowns.material);
+          expect(variant.trunks.material).toBe(species.trunks.material);
+          expect(variant.crowns.material.color.getHex()).toBe(0x5e8c6a);
+        }
+      }
+      foliage.setTiles(trees);
+      const meshes = Object.values(foliage.species).flatMap(s => s.variants.flatMap(v => [v.trunks, v.crowns]));
+      expect(foliage.group.children).toEqual(meshes);
+      expect(meshes.filter(mesh => mesh.count > 0)).toHaveLength(10);
+    } finally { foliage.dispose(); }
+  });
+
+  it("assigns each variant >=10% of 2000 trees, stably across quality and input order", () => {
+    const foliage = createFoliage(2000);
+    const matrix = new Matrix4();
+    const assignment = () => Object.values(foliage.species).flatMap(species => species.variants.map(variant => {
+      const positions: string[] = [];
+      for (let i = 0; i < variant.crowns.count; i++) {
+        variant.crowns.getMatrixAt(i, matrix);
+        const center = new Vector3().setFromMatrixPosition(matrix);
+        positions.push(`${center.x}:${center.z}`);
+      }
+      return positions.sort();
+    }));
+    try {
+      foliage.setTiles(trees);
+      const initial = assignment();
+      for (const species of Object.values(foliage.species)) {
+        expect(species.variants.reduce((n, variant) => n + variant.crowns.count, 0)).toBe(2000);
+        for (const variant of species.variants) expect(variant.crowns.count).toBeGreaterThanOrEqual(200);
+      }
+      for (const quality of ["Low", "Balanced", "High"] as const) {
+        foliage.setQuality(quality);
+        const variants = Object.values(foliage.species).flatMap(s => s.variants);
+        const count = Math.round(trees.length * PRESETS[quality].density);
+        expect(variants.reduce((n, variant) => n + variant.crowns.count, 0)).toBe(count);
+        expect(variants.reduce((n, variant) => n + variant.trunks.count, 0)).toBe(count);
+        assignment().forEach((positions, i) => expect(positions.every(position => initial[i]!.includes(position))).toBe(true));
+      }
+      expect(assignment()).toEqual(initial);
+      foliage.setTiles([...trees].reverse());
+      expect(assignment()).toEqual(initial);
+    } finally { foliage.dispose(); }
   });
 });
 

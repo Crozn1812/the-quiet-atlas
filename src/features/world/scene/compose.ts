@@ -2,7 +2,7 @@ import { Color, CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, 
 import type RAPIER from "@dimforge/rapier3d-compat";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
-import { createFoliage } from "../foliage/instances";
+import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
 import { createCrownFade } from "../crown-fade";
@@ -101,24 +101,35 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
 
   function createCell(trees: FoliageTree[]) {
     const foliage = createFoliage(trees.length);
-    // The two species share their initial crown material. Give each its own fade hook.
-    const pine = foliage.species.pine.crowns;
-    const broadleaf = foliage.species.broadleaf.crowns;
-    broadleaf.material = (pine.material as MeshToonMaterial).clone();
-    broadleaf.material.onBeforeCompile = pine.material.onBeforeCompile;
-    broadleaf.material.customProgramCacheKey = pine.material.customProgramCacheKey;
-    const fades = [createCrownFade(pine, trees.length), createCrownFade(broadleaf, trees.length)];
+    // B2-039a: every crown variant shares one material. Each fade hook wraps its material, so give each
+    // variant after the first its own clone carrying the pristine ramp hook (never a hook already faded).
+    const kinds = ["pine", "broadleaf"] as const;
+    const crowns = kinds.flatMap(kind => foliage.species[kind].variants.map((variant, index) => ({ kind, index, mesh: variant.crowns })));
+    const shared = crowns[0]!.mesh.material as MeshToonMaterial;
+    const pristine = { onBeforeCompile: shared.onBeforeCompile, key: shared.customProgramCacheKey };
+    const clones: MeshToonMaterial[] = [];
+    for (const { mesh } of crowns.slice(1)) {
+      const material = shared.clone();
+      material.onBeforeCompile = pristine.onBeforeCompile;
+      material.customProgramCacheKey = pristine.key;
+      mesh.material = material;
+      clones.push(material);
+    }
+    const fades = crowns.map(({ mesh }) => createCrownFade(mesh, trees.length));
     const colliders: RAPIER.Collider[] = [];
     const trunks: Mesh[] = [];
     let visibleTrees: ReturnType<typeof crownTrees>[] = [];
-    function crownTrees(kind: FoliageTree["kind"], selected: FoliageTree[]) {
-      return selected.filter(tree => tree.kind === kind).map(tree => ({ ...tree, height: TRUNK_HEIGHT * tree.scale, radius: 0.28 }));
+    // Same order as instances.ts: stratified selection, then per kind and variant.
+    function crownTrees(kind: FoliageTree["kind"], variant: number, selected: FoliageTree[]) {
+      const count = foliage.species[kind].variants.length;
+      return selected.filter(tree => tree.kind === kind && foliageVariantAt(tree.x, tree.z, count) === variant)
+        .map(tree => ({ ...tree, height: TRUNK_HEIGHT * tree.scale, radius: 0.28 }));
     }
     function setCellQuality(next: Quality) {
       foliage.setQuality(next);
       const count = Math.round(trees.length * PRESETS[next].density);
       const selected = Array.from({ length: count }, (_, i) => trees[Math.floor((i + 0.5) * trees.length / count)]!);
-      visibleTrees = [crownTrees("pine", selected), crownTrees("broadleaf", selected)];
+      visibleTrees = crowns.map(({ kind, index }) => crownTrees(kind, index, selected));
     }
     try {
       for (const trunk of createFoliageColliders(trees)) {
@@ -137,7 +148,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     } catch (error) {
       for (const collider of colliders) world.removeCollider(collider, true);
       foliage.dispose();
-      broadleaf.material.dispose();
+      for (const material of clones) material.dispose();
       throw error;
     }
     return {
@@ -154,7 +165,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       dispose() {
         for (const collider of colliders) world.removeCollider(collider, true);
         foliage.dispose();
-        broadleaf.material.dispose();
+        for (const material of clones) material.dispose();
       },
     };
   }
@@ -167,7 +178,9 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
     for (const cell of cells.values()) {
       collisionMeshes.push(...cell.trunks);
-      for (const species of Object.values(cell.foliage.species)) foliageMeshes.push(species.trunks, species.crowns);
+      for (const species of Object.values(cell.foliage.species)) {
+        for (const variant of species.variants) foliageMeshes.push(variant.trunks, variant.crowns);
+      }
     }
     visibleMeshes.push(...foliageMeshes);
   }

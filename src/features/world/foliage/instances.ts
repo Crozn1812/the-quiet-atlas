@@ -1,54 +1,45 @@
-import { ConeGeometry, CylinderGeometry, Group, IcosahedronGeometry, InstancedMesh, Object3D, type BufferGeometry } from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { Group, InstancedMesh, Object3D } from "three";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
-import { TRUNK_HEIGHT, TRUNK_RADIUS } from "./colliders";
+import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
+import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, PINE_VARIANT_SEEDS } from "./shapes";
 
-function merged(parts: BufferGeometry[]): BufferGeometry {
-  const geometry = mergeGeometries(parts.map(part => part.index ? part.toNonIndexed() : part));
-  for (const part of parts) part.dispose();
-  if (!geometry) throw new Error("Crown parts must share attributes");
-  return geometry;
-}
+export { createBroadleafCrown, createPineCrown } from "./shapes";
 
-/** B2-031: three stacked tiers read as a painted fir, not a single cone (same -2..2 m extent, 42 triangles). */
-export function createPineCrown(): BufferGeometry {
-  return merged([
-    new ConeGeometry(1.85, 2.3, 7).translate(0, -0.85, 0),
-    new ConeGeometry(1.45, 2.1, 7).rotateY(0.45).translate(0, 0.45, 0),
-    new ConeGeometry(0.95, 1.8, 7).rotateY(0.9).translate(0, 1.1, 0),
-  ]);
-}
-
-/** B2-031: a cluster of four lumps reads as a broadleaf canopy (80 triangles). */
-export function createBroadleafCrown(): BufferGeometry {
-  return merged([
-    new IcosahedronGeometry(1.55, 0),
-    new IcosahedronGeometry(1.15, 0).rotateY(0.7).translate(1.15, -0.35, 0.35),
-    new IcosahedronGeometry(1.1, 0).rotateY(1.3).translate(-1.0, -0.2, -0.55),
-    new IcosahedronGeometry(1.0, 0).rotateY(2.1).translate(0.15, 1.05, 0.25),
-  ]);
+/** Position-only hash: selection survives input ordering, streaming and quality changes. */
+export function foliageVariantAt(x: number, z: number, count: number): number {
+  let hash = 2166136261;
+  const key = `${x}:${z}`;
+  for (let i = 0; i < key.length; i++) hash = Math.imul(hash ^ key.charCodeAt(i), 16777619);
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x7feb352d);
+  hash ^= hash >>> 15;
+  return (hash >>> 0) % count;
 }
 
 /** Capacity is per species. Overflow throws before changing the current scene. */
 export function createFoliage(maxPerKind: number) {
   if (!Number.isSafeInteger(maxPerKind) || maxPerKind < 0) throw new RangeError("Foliage capacity must be a non-negative integer");
   const group = new Group();
-  const trunkGeometry = new CylinderGeometry(TRUNK_RADIUS, TRUNK_RADIUS, 1, 6);
+  const trunkGeometry = createTreeTrunk();
   const trunkMaterial = createRampMaterial(RAMP_PRESETS.trunk);
   const crownMaterial = createRampMaterial(RAMP_PRESETS.crown);
+  crownMaterial.vertexColors = true;
+  function createSpecies(seeds: readonly number[], createCrown: (seed: number) => ReturnType<typeof createPineCrown>) {
+    const variants = seeds.map(seed => ({
+      seed,
+      trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind),
+      crowns: new InstancedMesh(createCrown(seed), crownMaterial, maxPerKind),
+    }));
+    // Legacy material access targets variant zero; all variants share those materials.
+    return { trunks: variants[0]!.trunks, crowns: variants[0]!.crowns, variants };
+  }
   const species = {
-    pine: {
-      trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind),
-      crowns: new InstancedMesh(createPineCrown(), crownMaterial, maxPerKind),
-    },
-    broadleaf: {
-      trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind),
-      crowns: new InstancedMesh(createBroadleafCrown(), crownMaterial, maxPerKind),
-    },
+    pine: createSpecies(PINE_VARIANT_SEEDS, createPineCrown),
+    broadleaf: createSpecies(BROADLEAF_VARIANT_SEEDS, createBroadleafCrown),
   };
-  const meshes = Object.values(species).flatMap(({ trunks, crowns }) => [trunks, crowns]);
+  const meshes = Object.values(species).flatMap(({ variants }) => variants.flatMap(({ trunks, crowns }) => [trunks, crowns]));
   for (const mesh of meshes) {
     mesh.count = 0;
     mesh.castShadow = mesh.receiveShadow = true;
@@ -65,7 +56,8 @@ export function createFoliage(maxPerKind: number) {
     // Stratified selection spans all tiles and species; total count is exact.
     for (let i = 0; i < count; i++) {
       const tree = trees[Math.floor((i + 0.5) * trees.length / count)]!;
-      const { trunks, crowns } = species[tree.kind];
+      const { variants } = species[tree.kind];
+      const { trunks, crowns } = variants[foliageVariantAt(tree.x, tree.z, variants.length)]!;
       const index = trunks.count++;
       crowns.count++;
       const height = TRUNK_HEIGHT * tree.scale;
@@ -109,8 +101,9 @@ export function createFoliage(maxPerKind: number) {
       group.clear();
       for (const mesh of meshes) { mesh.count = 0; mesh.dispose(); }
       trunkGeometry.dispose();
-      species.pine.crowns.geometry.dispose();
-      species.broadleaf.crowns.geometry.dispose();
+      for (const { variants } of Object.values(species)) {
+        for (const { crowns } of variants) crowns.geometry.dispose();
+      }
       trunkMaterial.dispose();
       crownMaterial.dispose();
       // Ramp gradients are shared and owned by the world, not this factory.
