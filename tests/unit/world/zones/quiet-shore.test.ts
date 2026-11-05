@@ -38,6 +38,21 @@ function vertices(scene: ZoneScene) {
       .fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld));
   });
 }
+function propVertices(scene: ZoneScene, name: string, batch?: string) {
+  const node = scene.group.getObjectByName(name)!;
+  expect(node).toBeDefined();
+  scene.group.updateMatrixWorld(true);
+  const ranges = node.userData.batches as { mesh: string; start: number; count: number }[];
+  return ranges.filter(range => !batch || range.mesh === `quiet-shore-${batch}`).flatMap(range => {
+    const mesh = scene.group.getObjectByName(range.mesh) as PaintedMesh;
+    const positions = mesh.geometry.getAttribute("position");
+    expect(range.start % 3).toBe(0);
+    expect(range.count % 3).toBe(0);
+    expect(range.start + range.count).toBeLessThanOrEqual(positions.count);
+    return Array.from({ length: range.count }, (_, i) => new Vector3()
+      .fromBufferAttribute(positions, range.start + i).applyMatrix4(mesh.matrixWorld));
+  });
+}
 function signature(scene: ZoneScene) {
   return {
     zoneId: scene.zoneId, interactable: scene.interactable, colliders: scene.colliders,
@@ -64,6 +79,8 @@ describe("quiet-shore procedural place", () => {
       const shore = placed.find(zone => zone.zoneId === "quiet-shore")!;
       expect(shore).toBeDefined();
       expect(shore.group.getObjectByName("quiet-shore-cream")).toBeDefined();
+      expect(propVertices(shore, "piano").length).toBeGreaterThan(0);
+      expect(propVertices(shore, "dog").length).toBeGreaterThan(0);
       const anchor = shore.group.position;
       const forward = new Vector3(shore.layout.lookDirection.x, 0, shore.layout.lookDirection.z).normalize();
       const right = new Vector3(forward.z, 0, -forward.x);
@@ -152,8 +169,14 @@ describe("quiet-shore procedural place", () => {
       expect(triangles).toBeLessThanOrEqual(600);
       const cream = scene.group.getObjectByName("quiet-shore-cream") as PaintedMesh;
       const creamPositions = cream.geometry.getAttribute("position");
+      // Cream now also paints the piano keys; keep the bike check within its own envelope.
+      const bikeCream = Array.from({ length: creamPositions.count }, (_, i) =>
+        new Vector3().fromBufferAttribute(creamPositions, i)).filter(p => envelope.containsPoint(p));
+      expect(bikeCream.length).toBeGreaterThan(0);
+      const keys = new Box3().setFromPoints(propVertices(scene, "piano", "cream")).expandByScalar(0.0001);
       for (let i = 0; i < creamPositions.count; i++) {
-        expect(envelope.containsPoint(new Vector3().fromBufferAttribute(creamPositions, i))).toBe(true);
+        const p = new Vector3().fromBufferAttribute(creamPositions, i);
+        expect(envelope.containsPoint(p) || keys.containsPoint(p)).toBe(true);
       }
       const box = new Box3().setFromPoints(bike);
       expect(box.getSize(new Vector3()).z).toBeGreaterThan(1.8);
@@ -232,7 +255,7 @@ describe("quiet-shore procedural place", () => {
     }
   });
 
-  it("keeps the guitar target two metres from the corridor and within E reach at its edge", () => {
+  it("keeps the piano target two metres from the corridor and within E reach at its edge", () => {
     for (const underWater of [flat.underWater, (x: number) => x > 3]) {
       const scene = create({ underWater });
       const p = scene.interactable.position;
@@ -242,9 +265,9 @@ describe("quiet-shore procedural place", () => {
       expect(p.distanceTo(new Vector3(Math.sign(p.x) * PATH_CLEARANCE, 1.6, p.z))).toBeLessThanOrEqual(2.5);
       expect(underWater(p.x, p.z)).toBe(false);
       expect(scene.zoneId).toBe("quiet-shore");
-      expect(scene.interactable.label).toEqual({ vi: "Hiên gỗ có cây đàn", en: "Porch with a guitar" });
+      expect(scene.interactable.label).toEqual({ vi: "Piano trên hiên hướng biển", en: "Piano on the seaside porch" });
     }
-    expect(create().interactable.position.toArray()).toEqual([4.75, 1.47, 9.36]);
+    expect(create().interactable.position.toArray()).toEqual([4.79, 1.05, 9.35]);
   });
 
   it("has an open straight roof, hanging guitar and radio on a step, with no second bench", () => {
@@ -258,10 +281,11 @@ describe("quiet-shore procedural place", () => {
     const guitarPositions = body.geometry.getAttribute("position");
     for (let i = 0; i < guitarPositions.count; i++) {
       const p = new Vector3().fromBufferAttribute(guitarPositions, i);
-      if (p.x > 4.5 && p.x < 4.9) bodyBounds.expandByPoint(p);
+      if (p.x > 4.5 && p.x < 4.9 && p.z > 7.8 && p.z < 8.3) bodyBounds.expandByPoint(p);
     }
-    expect(bodyBounds.min.y).toBeGreaterThan(0.9);
-    expect(bodyBounds.max.y).toBeGreaterThan(2.3);
+    expect(bodyBounds.min.y).toBeGreaterThan(0.8);
+    expect(bodyBounds.max.y).toBeGreaterThan(1.7);
+    expect(bodyBounds.getSize(new Vector3()).y).toBeLessThan(1);
     const radio = new Box3();
     const inkPositions = ink.geometry.getAttribute("position");
     for (let i = 0; i < inkPositions.count; i++) {
@@ -273,6 +297,51 @@ describe("quiet-shore procedural place", () => {
     expect(scene.group.getObjectByName("quiet-shore-vine")).toBeDefined();
     expect(scene.group.getObjectByName("quiet-shore-flower")).toBeDefined();
     scene.group.traverse(node => expect(node.name).not.toMatch(/bench|seat|text|logo/i));
+  });
+
+  it("makes an upright piano with an open lid and light/dark keys the main instrument on either bank", () => {
+    for (const underWater of [flat.underWater, (x: number) => x > 3]) {
+      const scene = create({ underWater });
+      const piano = new Box3().setFromPoints(propVertices(scene, "piano"));
+      const size = piano.getSize(new Vector3());
+      expect(size.y).toBeGreaterThan(1.4);
+      expect(size.z).toBeGreaterThan(1.25);
+      expect(size.x).toBeLessThan(0.7);
+      expect(piano.min.y).toBeCloseTo(0.25);
+      const collider = scene.colliders.find(box => Math.abs(box.size.y - 1.46) < 0.001)!;
+      expect(new Box3().setFromCenterAndSize(collider.center, collider.size)
+        .expandByScalar(0.0001).containsBox(piano)).toBe(true);
+      const keys = new Box3().setFromPoints(propVertices(scene, "piano", "cream"));
+      expect(keys.getSize(new Vector3()).z).toBeGreaterThan(1);
+      expect(keys.getSize(new Vector3()).y).toBeLessThan(0.04);
+      const darkKeys = propVertices(scene, "piano", "ink").filter(p => p.y > keys.max.y && p.y < 1.08);
+      expect(darkKeys.length).toBeGreaterThan(0);
+      const lid = propVertices(scene, "piano", "wood").filter(p => p.y > 1.48);
+      const lidBounds = new Box3().setFromPoints(lid);
+      expect(lidBounds.getSize(new Vector3()).y).toBeGreaterThan(0.18);
+      expect(lidBounds.getSize(new Vector3()).z).toBeGreaterThan(1.25);
+    }
+  });
+
+  it("sleeps one low-poly dog on the step beside the unchanged radio, with head resting on paws", () => {
+    for (const underWater of [flat.underWater, (x: number) => x > 3]) {
+      const scene = create({ underWater });
+      const points = propVertices(scene, "dog");
+      const triangles = points.length / 3;
+      const dog = new Box3().setFromPoints(points);
+      expect(triangles).toBeGreaterThan(100);
+      expect(triangles).toBeLessThanOrEqual(400);
+      expect(dog.min.y).toBeCloseTo(0.15);
+      expect(dog.getSize(new Vector3()).y).toBeLessThan(0.35);
+      expect(dog.getSize(new Vector3()).z).toBeGreaterThan(0.7);
+      const ink = new Box3().setFromPoints(propVertices(scene, "dog", "ink"));
+      expect(ink.max.y).toBeLessThan(0.36); // Closed eyelids and nose stay close to the paws.
+      expect(scene.group.children.filter(node => node.name === "dog")).toHaveLength(1);
+      const collider = scene.colliders.find(box => Math.abs(box.size.x - 0.56) < 0.001)!;
+      expect(new Box3().setFromCenterAndSize(collider.center, collider.size)
+        .expandByScalar(0.0001).containsBox(dog)).toBe(true);
+      console.info(`quiet-shore sleeping dog: ${triangles} triangles`);
+    }
   });
 
   it("shows twelve 0.25 m flowers clear of foliage and porch from either path edge", () => {
@@ -300,7 +369,7 @@ describe("quiet-shore procedural place", () => {
     }
   });
 
-  it("enlarges the whole radio by 1.5, grounds it on the step and keeps the guitar visible", () => {
+  it("preserves the whole radio at 1.5 scale on the step and keeps the piano target visible", () => {
     for (const underWater of [flat.underWater, (x: number) => x > 3]) {
       const scene = create({ underWater });
       const side = Math.sign(scene.interactable.position.x);
@@ -324,9 +393,9 @@ describe("quiet-shore procedural place", () => {
       const eye = new Vector3(side * PATH_CLEARANCE, 1.6, target.z);
       const ray = new Raycaster(eye, target.clone().sub(eye).normalize());
       const hit = ray.intersectObjects(meshes(scene))[0]!;
-      // The sound hole is the first visible surface at the target centre.
-      expect(hit.object.name).toBe("quiet-shore-ink");
-      expect(hit.point.distanceTo(target)).toBeLessThan(0.15);
+      const piano = new Box3().setFromPoints(propVertices(scene, "piano"));
+      expect(piano.expandByScalar(0.0001).containsPoint(hit.point)).toBe(true);
+      expect(hit.point.distanceTo(target)).toBeLessThan(0.25);
     }
   });
 

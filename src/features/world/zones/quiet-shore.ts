@@ -1,6 +1,6 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry,
-  Float32BufferAttribute, Group, Mesh, OctahedronGeometry, Quaternion, Shape, TorusGeometry, Vector3,
+  Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, OctahedronGeometry, Quaternion, Shape, TorusGeometry, Vector3,
   type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -135,6 +135,21 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   const collider = (center: Point, size: Point) => colliders.push({
     center: new Vector3(...localPoint(...center)), size: new Vector3(...size),
   });
+  // Semantic anchors retain their vertex ranges in the shared pigment batches (no extra draws).
+  const batchedProp = (name: string, center: Point, build: () => void) => {
+    const count = (surface: Surface) => (parts.get(surface) ?? [])
+      .reduce((sum, geometry) => sum + geometry.getAttribute("position").count, 0);
+    const starts = new Map(Array.from(parts.keys(), surface => [surface, count(surface)]));
+    build();
+    const node = new Group();
+    node.name = name;
+    node.position.set(...localPoint(...center));
+    node.userData.batches = Array.from(parts.keys()).flatMap(surface => {
+      const start = starts.get(surface) ?? 0, added = count(surface) - start;
+      return added ? [{ mesh: `quiet-shore-${surface}`, start, count: added }] : [];
+    });
+    group.add(node);
+  };
 
   let highest = -Infinity;
   for (let x = -1.5; x <= 1.5; x += 0.25) {
@@ -151,7 +166,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     }
     board([0.15, 0.16, 3.08], [x, floor + 2.32 + x * 0.06, 0]);
   }
-  // Straight mono-pitch, green-grey timber roof; open sides and an unoccupied deck.
+  // Straight mono-pitch, green-grey timber roof; open sides preserve the sea vista.
   for (let i = 0; i < 8; i++) {
     const plank = timber(3.65, 0.12, 0.46).rotateZ(0.06)
       .translate(0, floor + 2.53, (i - 3.5) * 0.465);
@@ -190,7 +205,33 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     }
   }
 
-  // An acoustic waist, sound hole, bridge, six strings and a hanging loop, all facing the path.
+  // The small upright is the main instrument: raised top lid and a simple light/dark keyboard.
+  batchedProp("piano", [-0.85, floor, 0.35], () => {
+    const pianoPart = (part: BufferGeometry, surface: Surface) =>
+      add(part.rotateY(-Math.PI / 2).translate(-0.85, floor, 0.35), surface);
+    const pianoBox = (size: Point, center: Point, surface: Surface = "wood") =>
+      pianoPart(new BoxGeometry(...size).translate(...center), surface);
+    pianoBox([1.28, 1.12, 0.31], [0, 0.66, -0.04]);
+    for (const x of [-0.57, 0.57]) {
+      pianoBox([0.11, 0.16, 0.48], [x, 0.08, 0.04]);
+      pianoBox([0.09, 0.74, 0.14], [x, 0.53, 0.24]);
+    }
+    pianoBox([1.3, 0.07, 0.33], [0, 0.72, 0.19]);
+    pianoBox([1.1, 0.07, 0.05], [0, 0.83, 0.16], "ink");
+    // Open hinge at the rear; the raised front exposes a dark interior below the lid.
+    pianoBox([1.15, 0.025, 0.25], [0, 1.225, -0.04], "ink");
+    pianoPart(new BoxGeometry(1.3, 0.045, 0.36).translate(0, 0, 0.18)
+      .rotateX(-0.55).translate(0, 1.24, -0.21), "wood");
+    for (let i = 0; i < 14; i++) {
+      pianoBox([0.073, 0.035, 0.23], [(i - 6.5) * 0.078, 0.773, 0.23], "cream");
+      if ([0, 1, 3, 4, 5].includes(i % 7)) {
+        pianoBox([0.043, 0.035, 0.13], [(i - 6) * 0.078, 0.807, 0.18], "ink");
+      }
+    }
+    collider([-0.85, floor + 0.73, 0.35], [0.72, 1.46, 1.3]);
+  });
+
+  // A smaller hanging acoustic beside the piano, with its waist, hole and six strings retained.
   const guitarShape = new Shape();
   const outline = [[0, -0.39], [0.22, -0.35], [0.29, -0.17], [0.23, -0.02], [0.14, 0.08],
     [0.23, 0.23], [0.18, 0.36], [0, 0.39], [-0.18, 0.36], [-0.23, 0.23], [-0.14, 0.08],
@@ -198,7 +239,8 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   outline.forEach(([x, y], i) => { if (i === 0) guitarShape.moveTo(x, y); else guitarShape.lineTo(x, y); });
   guitarShape.closePath();
   const guitarPart = (part: BufferGeometry, surface: Surface) =>
-    add(part.rotateY(-Math.PI / 2).translate(-1.25, floor + 1.12, 0.36), surface);
+    add(part.scale(0.65, 0.65, 0.65).rotateY(-Math.PI / 2)
+      .translate(-1.16, floor + 0.85, -0.98), surface);
   guitarPart(new ExtrudeGeometry(guitarShape, {
     depth: 0.1, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.012,
     bevelSegments: 1, steps: 1, curveSegments: 1,
@@ -211,7 +253,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     const x = (i - 2.5) * 0.009;
     guitarPart(rod([x, -0.2, 0.133], [x, 0.94, 0.133], 0.0018), "guitar");
   }
-  add(rod([-1.25, floor + 2.17, 0.36], [-1.25, floor + 2.4, 0.36], 0.008), "wood");
+  add(rod([-1.16, floor + 1.54, -0.98], [-1.16, floor + 2.4, -0.98], 0.008), "wood");
 
   // Old portable radio resting on the broad step: woven grille, blank dial, two knobs.
   const radioScale = 1.5, radioZ = -0.48;
@@ -232,9 +274,28 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   collider([-1.76, stepTop + 0.305 * radioScale, radioZ],
     [0.39 * radioScale, 0.61 * radioScale, 0.7 * radioScale]);
 
+  // One anonymous sleeping dog: low body, head on forepaws, floppy ears and closed eyes.
+  batchedProp("dog", [-1.76, stepTop, 0.54], () => {
+    const dogPart = (part: BufferGeometry, surface: Surface = "guitar") =>
+      add(part.translate(-1.76, stepTop, 0.54), surface);
+    dogPart(new IcosahedronGeometry(1, 0).scale(0.22, 0.16, 0.3).translate(0, 0.17, -0.04));
+    for (const x of [-0.095, 0.095]) {
+      dogPart(new BoxGeometry(0.11, 0.07, 0.23).translate(x, 0.035, 0.28));
+      dogPart(new OctahedronGeometry(1, 0).scale(0.065, 0.11, 0.09)
+        .rotateZ(x < 0 ? -0.35 : 0.35).translate(x * 1.6, 0.17, 0.23), "wood");
+      dogPart(new BoxGeometry(0.055, 0.012, 0.018).translate(x * 0.8, 0.195, 0.363), "ink");
+    }
+    dogPart(new IcosahedronGeometry(1, 0).scale(0.18, 0.12, 0.15).translate(0, 0.18, 0.25));
+    dogPart(new BoxGeometry(0.12, 0.065, 0.11).translate(0, 0.105, 0.35));
+    dogPart(new BoxGeometry(0.065, 0.04, 0.025).translate(0, 0.13, 0.415), "ink");
+    dogPart(rod([0.08, 0.12, -0.26], [0.2, 0.08, -0.3], 0.045));
+    dogPart(rod([0.2, 0.08, -0.3], [0.24, 0.07, -0.15], 0.035));
+    collider([-1.76, stepTop + 0.17, 0.58], [0.56, 0.34, 0.8]);
+  });
+
   // A small, anonymous old step-through, parked alongside the porch rather than the player's GD110.
   // Chunky cast wheels, a low leg shield and one long saddle give it a different silhouette.
-  // Every part joins the existing pigment batches; this prop adds only the cream draw call.
+  // Every part joins the existing pigment batches, including the cream piano-key pigment.
   const bikeX = -0.65, bikeZ = site.side > 0 ? -3.15 : 3.15;
   const bikeCenter = localPoint(bikeX, 0, bikeZ);
   if (dryFootprint(context, bikeCenter[0], bikeCenter[2], 0.64, 1.18)) {
@@ -363,8 +424,8 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   return {
     zoneId: "quiet-shore", group, colliders,
     interactable: {
-      position: new Vector3(...localPoint(-1.25, floor + 1.22, 0.36)),
-      label: { vi: "Hiên gỗ có cây đàn", en: "Porch with a guitar" },
+      position: new Vector3(...localPoint(-1.21, floor + 0.8, 0.35)),
+      label: { vi: "Piano trên hiên hướng biển", en: "Piano on the seaside porch" },
     },
     update() { /* This quiet, static scene also stays still with reduced motion. */ },
     dispose() {
