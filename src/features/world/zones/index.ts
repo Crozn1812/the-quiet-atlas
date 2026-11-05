@@ -1,5 +1,5 @@
 import { Box3, BoxGeometry, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3 } from "three";
-import { ZONE_IDS, type ZoneId } from "../../interaction/targets";
+import { ZONE_CONTENT_REACH, ZONE_IDS, type ZoneId } from "../../interaction/targets";
 import { ZONES } from "../layout/zones";
 import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt } from "../terrain/height";
 import { nearestPath } from "../terrain/samples";
@@ -52,7 +52,7 @@ export function placeZoneScenes(height: (x: number, z: number) => number) {
     });
     return {
       ...zone, layout, boxes,
-      target: { id: `content-${zone.zoneId}`, kind: "content" as const, zoneId: zone.zoneId,
+      target: { id: `content-${zone.zoneId}`, kind: "content" as const, zoneId: zone.zoneId, reach: ZONE_CONTENT_REACH,
         position: new Vector3().copy(zone.interactable.position).applyMatrix4(transform), label: zone.interactable.label, root: zone.group },
       dispose() {
         zone.dispose();

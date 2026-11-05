@@ -3,6 +3,7 @@ import { arrivalPoint } from "../../../src/features/navigation/signposts";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { afterEach, expect, it, vi } from "vitest";
+import { Box3, Vector3 } from "three";
 
 const harness = vi.hoisted(() => ({
   canvas: undefined as unknown,
@@ -151,18 +152,24 @@ it.each([
     const sign = scene.getObjectByName("first-light-clearing")!;
     const desk = scene.getObjectByName("workshop")!;
     const clickObject = (object: import("three").Object3D) => {
-      const point = object.position.clone().project(camera);
+      // Aim at the set-piece itself (its bounds centre), not the group origin on the path.
+      const point = new Box3().setFromObject(object).getCenter(new Vector3()).project(camera);
       send(canvas, "click", {
         button: 0,
         clientX: (point.x + 1) * 500,
         clientY: (1 - point.y) * 400,
       });
     };
-    expect(container.dataset.worldHint).toBeUndefined();
+    // B2-150: zone content objects stand ~4.7 m off the path, so their E reach is 6.5 m — the First Light
+    // notebook is hinted and clickable from the spawn; the Workshop desk is far away.
+    expect(container.dataset.worldHint).toBe("first-light");
     clickObject(desk);
     expect(opened).not.toHaveBeenCalled();
-    clickObject(sign);
-    expect(opened).not.toHaveBeenCalled();
+    // Per-zone click targeting is covered in zones-wiring.test.ts; here the spawn hint answers to E.
+    send(window, "keydown", { code: "KeyE" });
+    send(window, "keyup", { code: "KeyE" });
+    expect(opened).toHaveBeenCalledOnce();
+    expect(opened.mock.calls[0]![0].detail).toEqual({ zoneId: "first-light" });
     const position = camera.position.clone();
     const stateCount = states.length;
     expect(container.dataset.worldLocale).toBe(locale ?? "en");
@@ -171,7 +178,7 @@ it.each([
       expect(container.dataset.worldLocale).toBe(next);
       expect(canvas.attributes["aria-label"]).toBe(WORLD_COPY[next].canvas);
       expect(container.children.some(child => child.textContent === WORLD_COPY[next].signpost + " · " + WORLD_COPY[next].desk)).toBe(false);
-      expect(container.children[2]!.textContent).toBe("");
+      expect(container.children[2]!.textContent).toMatch(/^E — ./); // B2-150: First Light is hinted at the spawn
       expect(scene.getObjectByName("first-light-clearing")).toBe(sign);
       expect(container.children[0]).toBe(canvas);
       expect(camera.position.distanceTo(position)).toBe(0);
@@ -184,8 +191,9 @@ it.each([
     send(container, "tqa:pause", { detail: { reason: "overlay", paused: true } });
     send(container, "tqa:content-closed", { detail: { zoneId: "first-light" } });
     expect(container.dataset.worldHint).toBeUndefined();
-    clickObject(sign);
-    expect(opened).not.toHaveBeenCalled();
+    send(window, "keydown", { code: "KeyE" });
+    send(window, "keyup", { code: "KeyE" });
+    expect(opened).toHaveBeenCalledOnce(); // paused: no second open
     expect(container.dataset.worldPaused).toBe("true");
     // Return uses the nearest safe route point while preserving the overlay pause.
     send(container, "tqa:return-to-path", {});

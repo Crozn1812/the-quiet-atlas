@@ -12,7 +12,12 @@ export interface InteractionTarget {
   zoneId: ZoneId;
   position: Position;
   label?: Readonly<Record<WorldLocale, string>>;
+  /** Per-target E reach in metres (default INTERACTION_RADIUS). Zone set-pieces stand off the path (B2-150). */
+  reach?: number;
 }
+
+/** Zone content objects sit ~4.7 m from the path centre (zones/types.ts); a 6.5 m reach shows their hint on the path. */
+export const ZONE_CONTENT_REACH = 6.5;
 
 export function pickTarget<T extends InteractionTarget>(
   player: Position,
@@ -22,12 +27,13 @@ export function pickTarget<T extends InteractionTarget>(
 ): T | null {
   if (!Number.isFinite(radius) || radius < 0) return null;
   let chosen: T | null = null;
-  let nearest = radius * radius;
+  let nearest = Infinity;
   for (const target of targets) {
+    const reach = target.reach !== undefined && Number.isFinite(target.reach) && target.reach >= 0 ? target.reach : radius;
     const distance = (player.x - target.position.x) ** 2
       + (player.y - target.position.y) ** 2
       + (player.z - target.position.z) ** 2;
-    if (distance > nearest || !Number.isFinite(distance) || !lineOfSight(target)) continue;
+    if (distance > reach * reach || distance > nearest || !Number.isFinite(distance) || !lineOfSight(target)) continue;
     if (distance === nearest && chosen && target.id >= chosen.id) continue;
     nearest = distance;
     chosen = target;
