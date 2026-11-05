@@ -20,3 +20,9 @@
 - Tam giác, draw call, collider không đổi vị trí (±0,1 m).
 - Không vật nào có đáy cao hơn terrain > 0,05 m tại tâm chân (lấy mẫu `heightAt`).
 - Màu thuộc PALETTE; tất định; fingerprint đổi thì cập nhật và ghi lý do.
+
+### Bổ sung trước khi giao (Lead)
+
+- Cây thông trong khu: dùng `createPineCrownV2(seed)` từ `foliage/pine.ts` (B2-191), không dùng `createPineCrown` cũ.
+- Cây lá rộng đã là v3 (B2-182), tán có ánh sáng xuyên lá (B2-183). Không vẽ lại cây trong khu.
+- Dương xỉ: `createFern` có thể đang đổi bởi B2-185b; đừng phụ thuộc số tam giác của nó trong test khu (đo tổng khu, không khóa cứng phần dương xỉ).
