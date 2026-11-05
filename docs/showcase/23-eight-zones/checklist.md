@@ -26,7 +26,7 @@ Duy chấm từng dòng: **giữ / sửa / bỏ**. Nếu chọn sửa, ghi chú 
 - Sườn đồi dưới Milestones không còn vách đứng. Nét mực không còn chạy theo các cạnh tam giác của địa hình.
 - Bấm E được ngay khi đứng trên đường. Trước đây phải rời đường mới thấy gợi ý; ở điểm xuất phát giờ thấy "E — Lời chào đầu".
 
-## Đã biết, đang sửa (B2-151)
+## Đã sửa sau khi chụp (B2-151, `86e4a66`)
 
 - Vệt nắng ở First Light còn đặc, trông như tấm ván.
 - Mép suối đoạn ven biển còn răng cưa.

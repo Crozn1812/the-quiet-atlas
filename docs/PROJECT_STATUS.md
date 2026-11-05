@@ -438,7 +438,7 @@ Showcase: `docs/showcase/23-eight-zones/checklist.md`. Chưa push.
 
 ### Ticket tiếp theo
 
-1. B2-151: vệt nắng ở First Light, mép suối ven biển (đang chạy).
+1. ~~B2-151~~ đã xong (`86e4a66`): vệt nắng First Light trong suốt, mép suối ven biển mượt (kiểm bằng tour).
 2. Nhập nội dung khi Duy trả lời Q-34…37.
 3. B2-034: đo T08/T09 trên Iris Xe.
 4. Theo dõi thời gian tới playable (4,96 s).
