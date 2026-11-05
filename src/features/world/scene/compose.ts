@@ -5,6 +5,7 @@ import { PALETTE } from "../art/palette";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
+import { createGroundDetails, scatterGround, type GroundDetail } from "../foliage/ground";
 import { createCrownFade } from "../crown-fade";
 import { selectOccludingCrowns } from "../camera";
 import { timeOfDayAt } from "../layout/lighting";
@@ -100,6 +101,24 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   const visibleMeshes: Mesh[] = [];
   const foliageMeshes: Mesh[] = [];
   let streamingError: unknown;
+  // B2-047: one shared set of grass/rock instances (<= 5 draw calls) for every resident tile.
+  const groundCache = new Map<string, GroundDetail[]>();
+  let ground = createGroundDetails(4096);
+  let groundCapacity = 4096;
+  function syncGround() {
+    for (const key of groundCache.keys()) if (!pool.tiles.has(key)) groundCache.delete(key);
+    for (const [key, resident] of pool.tiles) if (!groundCache.has(key)) groundCache.set(key, scatterGround(resident.tile));
+    const items = [...groundCache.values()].flat();
+    if (items.length > groundCapacity) {
+      ground.group.removeFromParent();
+      ground.dispose();
+      groundCapacity = Math.ceil(items.length * 1.5);
+      ground = createGroundDetails(groundCapacity);
+      scene.add(ground.group);
+    }
+    ground.setQuality(quality);
+    ground.setTiles(items);
+  }
 
   function createCell(trees: FoliageTree[]) {
     const foliage = createFoliage(trees.length);
@@ -191,6 +210,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     if (disposed) return;
     quality = next;
     for (const cell of cells.values()) cell.setQuality(next);
+    ground.setQuality(next);
     for (const surface of water) {
       if (surface.mesh.material.quality === next) continue;
       const previous = surface.mesh.material;
@@ -214,6 +234,9 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     for (const cell of cells.values()) cell.dispose();
     cells.clear();
     pool.dispose();
+    ground.group.removeFromParent();
+    ground.dispose();
+    groundCache.clear();
     terrainMaterial.dispose();
     trunkGeometry.dispose();
     trunkMaterial.dispose();
@@ -235,6 +258,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
         pool.update(t, Math.max(120, preloadAhead));
         for (const [key, resident] of pool.tiles) if (!cells.has(key)) cells.set(key, createCell(scatterTile(resident.tile)));
         for (const [key, cell] of cells) if (!pool.tiles.has(key)) { cell.dispose(); cells.delete(key); }
+        syncGround();
         lastT = t;
         streamingError = undefined;
       } catch (error) {
@@ -272,7 +296,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
   }
 
-  scene.add(pool.group, sky.mesh, sun, sun.target, hemisphere, ...water.map(surface => surface.mesh));
+  scene.add(ground.group, pool.group, sky.mesh, sun, sun.target, hemisphere, ...water.map(surface => surface.mesh));
   try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
   return {
     update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,

@@ -154,8 +154,8 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
   expect(() => createWorldScene({ ...backend, scene, quality: "Balanced" })).toThrow("initial allocation failed");
   expect(scene.children).toHaveLength(0);
   // Failed tile, sky, river, sea and the shared camera trunk geometry.
-  expect(geometryDispose).toHaveBeenCalledTimes(5);
-  expect(materialDispose).toHaveBeenCalledTimes(5);
+  expect(geometryDispose).toHaveBeenCalledTimes(10); // +5 ground-detail variants (B2-047)
+  expect(materialDispose).toHaveBeenCalledTimes(6); // +1 shared ground material (B2-047)
 });
 
 it("grades paper fog without changing the paper pigment, across Low and High reallocations", async () => {
