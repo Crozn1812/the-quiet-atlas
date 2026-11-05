@@ -110,9 +110,35 @@ const B: StylePreset = {
   },
 };
 
+/**
+ * R · Tranh chân thật (Q-44, Duy 2026-11-05; ADR 0013 bổ sung). Clear air, natural saturated colours, real light and
+ * shadow, soft painterly shading kept. No cream paper wash, no ink outlines on terrain. Starting values by Lead;
+ * B2-161 tunes post/fog/mist, other A-wave tickets use these palette keys only.
+ */
+const R: StylePreset = {
+  label: "R · Tranh chân thật",
+  background: {
+    terrain: recipe("grass", "grassDry", 0.25, 1, 1),
+    ramp: { steps: 4, soft: true },
+    fog: { near: 120, far: 700, coastFar: 900, coastNear: 160 },
+    mist: { bands: [160, 320, 600], strength: 0.12, warmth: 0.3 },
+    edges: { ink: false, bleed: 0.1 },
+    sky: {
+      dawn: { top: recipe("skyHigh", "skyLow", 0.15), horizon: recipe("skyLow", "cloud", 0.35) },
+      dusk: { top: recipe("skyHigh", "indigo", 0.25), horizon: recipe("sunGold", "skyLow", 0.35) },
+    },
+  },
+  foliage: {
+    crown: recipe("forestLight", "grass", 0.25, 1, 0.95),
+    trunk: recipe("rockDark", "ink", 0.3, 0.9),
+    ramp: { steps: 4, soft: true },
+    density: 1,
+  },
+};
+
 /** C literally shares B's background and A's foliage parameters; no shader forks. */
-export const STYLE_PRESETS: Record<"A" | "B" | "C", StylePreset> = {
-  A, B, C: { label: "C · Kết hợp", background: B.background, foliage: A.foliage },
+export const STYLE_PRESETS: Record<"A" | "B" | "C" | "R", StylePreset> = {
+  A, B, C: { label: "C · Kết hợp", background: B.background, foliage: A.foliage }, R,
 };
 export type PresetId = keyof typeof STYLE_PRESETS;
 

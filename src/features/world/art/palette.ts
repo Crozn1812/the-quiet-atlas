@@ -11,6 +11,22 @@ export const PALETTE = {
   dusk: "#E2B65C",
   flower: "#D9822B",
   vermilion: "#B5432F",
+  // Q-44 (Duy, 2026-11-05): hướng A "Tranh chân thật". Màu tự nhiên, trong, bão hoà vừa (Lead chọn; ảnh tham chiếu
+  // của Duy chỉ để lấy cảm hứng, không lấy mẫu pixel). Tên là hợp đồng chung cho mọi ticket hướng A.
+  skyHigh: "#3F7FBF",
+  skyLow: "#9CC6E4",
+  cloud: "#F5F2EA",
+  sunGold: "#F2C46D",
+  seaShallow: "#3AAFA9",
+  seaDeep: "#1E6F8E",
+  grass: "#7BA44A",
+  grassDry: "#C4B866",
+  rock: "#8C8476",
+  rockDark: "#5A554E",
+  sand: "#DCCDA6",
+  asphalt: "#4B4D52",
+  laneYellow: "#E4C24C",
+  laneWhite: "#EDEDE6",
 } as const;
 export type PaletteKey = keyof typeof PALETTE;
 /** Accents allowed only in small doses (taste brief §5.3). */

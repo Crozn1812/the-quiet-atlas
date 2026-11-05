@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { PALETTE, RARE_ACCENTS, hex, rgb } from "../../../src/features/world/art/palette";
 
 describe("B2-001 palette (taste brief §5.3)", () => {
-  it("keeps the ten taste-brief colours", () => {
-    expect(Object.keys(PALETTE)).toHaveLength(10);
+  // Q-44: direction A "Tranh chân thật" adds 14 natural colours; the ten taste-brief colours stay unchanged.
+  it("keeps the ten taste-brief colours and the direction-A natural colours", () => {
+    expect(Object.keys(PALETTE)).toHaveLength(24);
+    expect(Object.keys(PALETTE).slice(0, 10)).toEqual(["paper", "ink", "forestLight", "forestDeep", "mist", "water", "indigo", "dusk", "flower", "vermilion"]);
     for (const value of Object.values(PALETTE)) expect(value).toMatch(/^#[0-9A-F]{6}$/);
     expect(PALETTE.paper).toBe("#EEE8D8");
     expect(PALETTE.ink).toBe("#2B2A26");

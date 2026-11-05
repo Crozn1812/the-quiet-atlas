@@ -41,3 +41,35 @@
 - Duy xem 6 style frame + video đợt 16 (`docs/showcase/16-styleframes/`), đánh giá "chốt sơ khai như vậy là ổn", không chọn hướng riêng.
 - Lead chốt **hướng C (Kết hợp)**: nền, sương, trời của B (nhiều khoảng trống kem, sương 3 lớp, nét mực ở High); tán cây của A (ngọc đầy). Lý do: Art Director đánh giá C gần taste brief nhất (§5.2–5.4).
 - **Sơ khởi**: tham số preset C (`tools/styleframes/presets.ts`) là điểm xuất phát cho world (B2-038); khóa cuối khi Duy duyệt cảnh chuẩn T10. Asset cây vẽ tay (B2-039) làm theo C.
+
+## Bổ sung 2026-11-05: đổi sang hướng "Tranh chân thật" (Q-44, Duy chọn phương án A)
+
+- **Bối cảnh:** Duy xem ảnh world đợt 24 và nhận xét "sơ sài, không chân thật". Duy gửi kèm 2 ảnh đường ven biển (lưu ở `refs/`, chỉ để lấy cảm hứng), muốn bối cảnh rõ, chân thật và thực tế hơn.
+- **Phương án Lead đưa ra:**
+  - A: tranh chân thật.
+  - B: bán tả thực dùng texture vật liệu. Nặng, có rủi ro vượt gate §8 và tụt FPS trên Iris Xe.
+- **Duy chọn A.**
+
+### Quyết định
+
+1. **Thế giới 3D không còn là "tranh trên giấy kem".**
+   - Bỏ: nền giấy, màn sương sữa, nét mực trên địa hình.
+   - Thay bằng:
+     - trời xanh có mây;
+     - nắng trong, bóng đổ rõ;
+     - màu tự nhiên, bão hoà vừa (cỏ xanh vàng, biển xanh ngọc, đá xám nâu, đường nhựa).
+   - Vẫn giữ shading mềm kiểu vẽ tay (ramp 4 bậc mềm). Không PBR kim loại, không texture ảnh chụp.
+2. **Sương chỉ giữ ở 3 chỗ có ý nghĩa:**
+   - mây vờn đỉnh núi;
+   - rừng núi bên trái đoạn biển (Duy tả "mù mờ, bí ẩn");
+   - hơi nước xa ở chân trời.
+3. **Ký ức vẫn là ảnh film** (overlay, Atlas Journal, bưu thiếp), giữ nguyên mục 1.
+4. **Bảng màu:** giữ nguyên 10 màu gốc, thêm 14 màu tự nhiên trong `palette.ts`. Mọi ticket chỉ dùng PALETTE.
+5. **Preset `R · Tranh chân thật`** (`art/direction.ts`) thay C làm `WORLD_DIRECTION`. Ticket B2-161 chuyển preset và chỉnh hậu kỳ.
+6. **Ngân sách §8 giữ nguyên:**
+   - ≤ 8 MB để bắt đầu chơi, ≤ 30 MB cho cả world;
+   - FPS trên Iris Xe (ADR 0007).
+   - Chi tiết thêm làm bằng hình học thủ tục + instancing, không thêm texture ảnh lớn.
+7. **Asset làm kỹ** (đá, đường, cột tiêu, cột điện, mây, cây) sản xuất theo hướng này từ đợt 25. Đây chính là vòng duyệt gu của mục 4, coi như đã chốt.
+
+**Thay thế:** mục "Bổ sung 2026-11-05: chốt sơ khởi hướng C" ở trên. Từ nay C chỉ còn là preset lịch sử trong bench style frame.
