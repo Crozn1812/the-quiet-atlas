@@ -35,3 +35,9 @@
 - **Âm thanh**: không có bản thu của Duy → chỉ nhạc CC0/giấy phép rõ ràng (piano chậm, chill).
 - **Ảnh thật trên web**: ảnh có credit rõ → dùng (khung ảnh film, xóa EXIF/GPS, che/loại logo); ảnh không rõ người chụp → minh họa màu nước do Lead vẽ dựa trên ảnh gốc. Mọi ảnh dùng trên web: ghi nguồn trong `assets/LICENSES.csv`.
 - **Ảnh tham chiếu đã có trên đĩa** (`refs/`, gitignore) — chỉ mục ở `refs/README.md`.
+
+## Bổ sung 2026-11-05: chốt sơ khởi hướng C (Q-29)
+
+- Duy xem 6 style frame + video đợt 16 (`docs/showcase/16-styleframes/`), đánh giá "chốt sơ khai như vậy là ổn", không chọn hướng riêng.
+- Lead chốt **hướng C (Kết hợp)**: nền, sương, trời của B (nhiều khoảng trống kem, sương 3 lớp, nét mực ở High); tán cây của A (ngọc đầy). Lý do: Art Director đánh giá C gần taste brief nhất (§5.2–5.4).
+- **Sơ khởi**: tham số preset C (`tools/styleframes/presets.ts`) là điểm xuất phát cho world (B2-038); khóa cuối khi Duy duyệt cảnh chuẩn T10. Asset cây vẽ tay (B2-039) làm theo C.

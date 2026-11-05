@@ -6,7 +6,6 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
-| Q-29 | **Chọn hướng art A / B / C** từ 6 ảnh + 6 video, rồi chấm checklist giữ/sửa/bỏ. Art Director đề xuất C | L3 (B2-038, B2-039) | B2 (cảnh chuẩn T10) | Sớm nhất có thể | `docs/showcase/16-styleframes/checklist.md` |
 | Q-30 | **Chấm turnaround nhân vật + GD110** (giữ/sửa/bỏ) | L3 (rig/animation) | B2 | Cùng lúc Q-29 | `docs/showcase/15-turnaround/checklist.md` |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
@@ -58,3 +57,4 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | D-19 | Q-26: **không** thu được piano → chỉ dùng nhạc có giấy phép rõ ràng, bỏ slot bản thu | 2026-11-04 |
 | D-20 | Q-27: ảnh nào dùng cũng được. Ảnh **biết người chụp** → dùng ảnh thật kèm credit, xóa EXIF/GPS; ảnh **không rõ người chụp** → Lead tự thiết kế minh họa dựa trên ảnh gốc (không đăng ảnh gốc). Không logo Chiefs/Suzuki trên bất kỳ bản nào | 2026-11-04 |
 | D-21 | Q-28: Duy đã lưu 16 ảnh vào `docs/art-bible/refs/` (6 ảnh cá nhân + 10 ảnh tham chiếu; gitignore, không commit) | 2026-11-04 |
+| D-22 | Q-29: Duy xem style frame đợt 16, **chốt sơ khởi là ổn**, không chọn hướng cụ thể → Lead (toàn quyền art, ADR 0012) chốt sơ khởi **hướng C** theo đề xuất Art Director; Duy có thể đổi khi xem cảnh chuẩn T10 | 2026-11-05 |

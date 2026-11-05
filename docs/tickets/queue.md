@@ -54,8 +54,8 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-043 | Nối Journal (J), cinematic vào world | B2-040, B2-060 |
 | B2-041 | Nối teleport vào world (E tại bảng, sương) | B2-013, 016 |
 | B2-042 | Xe GD110 graybox nối collider + phím E/C | B2-015, 016 |
-| B2-038 | Áp hướng Duy chọn vào world: fog/sương cỡ thế giới (world vẫn dùng fog 15/65 m), màu tán/đất/trời theo preset | Duy chọn hướng |
-| B2-039 | Asset cây vẽ tay (Blender, 2–3 dáng thông + 2 cây lá rộng, ≤ 300 tam giác) thay khối hình học | Duy chọn hướng |
+| B2-038 | Áp **hướng C** (chốt sơ khởi, D-22) vào world: fog/sương cỡ thế giới (world vẫn dùng fog 15/65 m), màu tán/đất/trời theo preset C | sẵn sàng |
+| B2-039 | Asset cây vẽ tay (Blender, 2–3 dáng thông + 2 cây lá rộng, ≤ 300 tam giác) thay khối hình học, theo hướng C | sẵn sàng |
 
 ## Sau khi Duy chọn hướng
 
