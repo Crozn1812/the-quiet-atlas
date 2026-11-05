@@ -81,3 +81,16 @@ E tại bảng mở hộp chọn khu ở phía giao diện (dialog có focus tra
 | UI → world | `tqa:teleport-cancel` | không có | Đóng hộp mà không chọn |
 
 Pause lý do `journal` (B2-043a) cũng được world nhận như `overlay`.
+
+### Bổ sung 2026-11-05 (đợt 18–20): xe, secrets, ending, mascot, âm thanh
+
+| Hướng | Sự kiện / thuộc tính | `detail` | Ý nghĩa |
+|---|---|---|---|
+| World → UI | `tqa:secret-found` | `{ id: SecretId, count: number }` | Tìm thấy một secret (Set ID, không đếm trùng); journal hiện trang trắng sau secret đầu |
+| World → UI | `tqa:ending` | `{ state: "playing" \| "seen" }` | Ending 36 s bắt đầu / hoàn tất hợp lệ (kể cả Skip) |
+| UI → world | `tqa:set-mascot` | `{ enabled: boolean }` | Bật/tắt mascot (menu); memory-only |
+| World → UI | `tqa:ambience` | `{ stream, wind, birds, sea }` ∈ [0,1] | Mix âm môi trường ≤ 4 Hz, im khi pause; shell chỉ phát khi người xem bật Sound |
+| World (thuộc tính) | `data-world-vehicle` | `parked \| manual \| cruise` | Trạng thái xe GD110 |
+| World (thuộc tính) | `data-world-ending`, `data-world-mascot`, `data-world-teleport`, `data-world-intro` | — | Trạng thái cho e2e/a11y |
+
+Mọi sự kiện world → UI phát trên container, `bubbles: false`. Không sự kiện nào gửi trạng thái secret ra ngoài trình duyệt (§7.5).
