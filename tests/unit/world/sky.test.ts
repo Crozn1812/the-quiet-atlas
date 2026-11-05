@@ -2,11 +2,11 @@ import { Color, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "th
 import { describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
-import { pathPointAt } from "../../../src/features/world/layout/path";
+import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
-import { fogAt, STYLE_PRESETS } from "../../../src/features/world/art/direction";
+import { fogAt, FOREST_ATMOSPHERE_TRANSITION, paletteColor, STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { directGrade } from "../../../src/features/world/scene/compose";
-import { applyCoastAtmosphere, cloneGrade, coastAtmosphereWeight, GRADE_COLORS, lightingAt } from "../../../src/features/world/sky/grade";
+import { applyCoastAtmosphere, cloneGrade, coastAtmosphereWeight, GRADE_COLORS, lightingAt, type LightingGrade } from "../../../src/features/world/sky/grade";
 import { createGradeFollower } from "../../../src/features/world/sky/smoothing";
 import { createCoastMountainMist, createSkyDome } from "../../../src/features/world/sky/dome";
 
@@ -55,46 +55,120 @@ function placedGrade(t: number) {
   return applyCoastAtmosphere(directGrade(lightingAt(tod), tod), t);
 }
 
-function tint(key: keyof typeof PALETTE, amount: number) {
-  return new Color(PALETTE.paper).lerp(new Color(PALETTE[key]), amount);
+const dawnTop = new Color(paletteColor(STYLE_PRESETS.R.background.sky.dawn.top));
+const dawnHorizon = new Color(paletteColor(STYLE_PRESETS.R.background.sky.dawn.horizon));
+const coastHorizon = new Color(paletteColor(STYLE_PRESETS.R.background.sky.dusk.horizon));
+const coastTop = new Color(paletteColor(STYLE_PRESETS.R.background.sky.dusk.top));
+const coastFog = coastTop.clone().lerp(coastHorizon, 0.55);
+
+// Fixed 40% linear matte reference, no exposure/tone mapping/fog. Compare the mean of
+// an upward plane and a wall facing the sun's azimuth. This is an illumination proxy,
+// not a rendered-scene average; the separate shaded-prop check uses real palette finishes.
+function referenceLuma(grade: LightingGrade) {
+  const horizontalSun = Math.hypot(grade.sunDirection.x, grade.sunDirection.z);
+  const floor = 0.4 * luma(grade.sunColor.clone().multiplyScalar(grade.sunIntensity * Math.max(0, grade.sunDirection.y))
+    .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)));
+  const wall = 0.4 * luma(grade.sunColor.clone().multiplyScalar(grade.sunIntensity * horizontalSun)
+    .add(grade.hemiGround.clone().lerp(grade.hemiSky, 0.5).multiplyScalar(grade.hemiIntensity)));
+  return { floor, wall, mean: (floor + wall) / 2 };
 }
 
-const coastHorizon = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.sunGold), 0.55);
-const coastTop = new Color(PALETTE.skyHigh);
-const coastFog = tint("mist", 0.18).lerp(coastHorizon, 0.2);
+describe("V6 dawn to dusk CPU reference", () => {
+  it.each([
+    { t: 0.15, min: 0.26, max: 0.32, low: 3, high: 7 },
+    { t: 0.93, min: 0.24, max: 0.30, low: 2, high: 5 },
+  ])("keeps the two-plane mean and sun elevation within the $t target", ({ t, min, max, low, high }) => {
+    const grade = placedGrade(t);
+    const estimate = referenceLuma(grade);
+    expect(estimate.mean).toBeGreaterThanOrEqual(min);
+    expect(estimate.mean).toBeLessThanOrEqual(max);
+    const elevation = Math.asin(grade.sunDirection.y) * 180 / Math.PI;
+    expect(elevation).toBeGreaterThanOrEqual(low);
+    expect(elevation).toBeLessThanOrEqual(high);
+    if (t === 0.93) expect(grade.sunColor.r / grade.sunColor.b).toBeGreaterThanOrEqual(1.5);
+    expect(referenceLuma(placedGrade(0.55)).mean).toBeGreaterThan(estimate.mean);
+  });
+
+  it("bounds each plane and the mean by 0.02 per 0.005 path step, including reversal", () => {
+    // Offset the 0.005 windows by 0.001 as well, catching a peak between the main samples.
+    for (let i = 5; i <= 1000; i++) {
+      const a = referenceLuma(placedGrade((i - 5) / 1000));
+      const b = referenceLuma(placedGrade(i / 1000));
+      for (const key of ["floor", "wall", "mean"] as const) expect(Math.abs(b[key] - a[key])).toBeLessThanOrEqual(0.02);
+      expect(referenceLuma(placedGrade((i - 5) / 1000))).toEqual(a);
+    }
+  });
+
+  it("releases forest sky/fog over the same 40 m in both directions, independently of light following", () => {
+    const { start, end } = FOREST_ATMOSPHERE_TRANSITION;
+    expect((end - start) * pathLength()).toBeCloseTo(40, 10);
+    const dawn = placedGrade(start);
+    const hill = placedGrade(end);
+    const mid = placedGrade((start + end) / 2);
+    expect(dawn.skyTop).toEqual(dawnTop);
+    expect(hill.skyTop).toEqual(new Color(PALETTE.skyHigh));
+    for (const key of ["skyTop", "skyHorizon", "fogColor"] as const) {
+      expect(mid[key].toArray()).toEqual(dawn[key].clone().lerp(hill[key], 0.5).toArray().map(v => expect.closeTo(v, 12)));
+      for (const boundary of [start, end]) {
+        const before = placedGrade(boundary - 1e-7)[key];
+        const after = placedGrade(boundary + 1e-7)[key];
+        expect(Math.hypot(...before.toArray().map((v, i) => v - after.toArray()[i]!))).toBeLessThan(1e-6);
+      }
+    }
+    placedGrade(end);
+    expect(placedGrade(start)).toEqual(dawn);
+  });
+
+  it("retains >=0.12 displayed luma on shaded prop finishes at 15 m without direct sun", () => {
+    const finishes = [new Color(PALETTE.rock), new Color(PALETTE.rockDark),
+      new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62)];
+    for (const t of [0.15, 0.55, 0.93]) {
+      const grade = placedGrade(t);
+      expect(fogAt(t).near).toBeGreaterThan(15); // Native distance fog has not started.
+      for (const normalY of [0, 1]) {
+        const fill = grade.hemiGround.clone().lerp(grade.hemiSky, (normalY + 1) / 2).multiplyScalar(grade.hemiIntensity);
+        for (const finish of finishes) {
+          expect(luma(finish.clone().multiply(fill).convertLinearToSRGB())).toBeGreaterThanOrEqual(0.12);
+        }
+      }
+    }
+  });
+
+  it("shares the opening dawn and final ending sunset grade with the walking scene", () => {
+    const opening = directGrade(lightingAt(0), 0);
+    const ending = applyCoastAtmosphere(directGrade(lightingAt(1), 1), 1);
+    for (const key of GRADE_COLORS) {
+      expect(placedGrade(0)[key].toArray()).toEqual(opening[key].toArray().map(v => expect.closeTo(v, 12)));
+      expect(placedGrade(0.93)[key].toArray()).toEqual(ending[key].toArray().map(v => expect.closeTo(v, 12)));
+    }
+    expect(ending.sunDirection).toEqual(placedGrade(0.93).sunDirection);
+    expect(ending.sunIntensity).toBe(placedGrade(0.93).sunIntensity);
+  });
+});
 
 describe("position-driven sky grade", () => {
-  it.each([
-    { tod: 0, sun: 0.24, intensity: 2.3, direction: [-0.9, 0.2, 0.4], hemi: 0,
-      ground: 0.25, ambient: 1, shadow: 0.2 },
-    { tod: 0.5, sun: 0.08, intensity: 2.8, direction: [0, 0.94, 0.34], hemi: 0.15,
-      ground: 0.3, ambient: 2, shadow: 0.26 },
-    { tod: 1, sun: 0.4, intensity: 1.7, direction: [0.8, 0.14, -0.6], hemi: 0,
-      ground: 0.2, ambient: 0.95, shadow: 0.16 },
-  ])("matches the palette-derived direction A keyframe at $tod", spec => {
-    const grade = lightingAt(spec.tod);
-    const expected = {
-      sunColor: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), spec.sun),
-      hemiSky: new Color(PALETTE.skyLow).lerp(new Color(PALETTE.skyHigh), spec.hemi),
-      hemiGround: new Color(PALETTE.grassDry).lerp(new Color(PALETTE.skyLow), spec.ground).multiplyScalar(0.88),
-      fogColor: spec.tod === 1 ? coastFog : new Color(PALETTE.skyLow),
-      skyHorizon: spec.tod === 1 ? coastHorizon : new Color(PALETTE.skyLow), skyTop: coastTop,
-      shadowTint: new Color(PALETTE.skyHigh).lerp(new Color(PALETTE.cloud), spec.shadow),
-    };
-    for (const key of GRADE_COLORS) {
-      expect(grade[key].toArray()).toEqual(expected[key].toArray().map(v => expect.closeTo(v, 12)));
-    }
-    expect(grade.sunIntensity).toBe(spec.intensity);
-    expect(grade.hemiIntensity).toBe(spec.ambient);
-    expect(grade.sunDirection.distanceTo(new Vector3(...spec.direction).normalize())).toBeLessThan(1e-12);
+  // B2-180 replaces the noon-like A snapshots with low, warm dawn/dusk and reduced fill.
+  it.each([0, 0.5, 1])("keeps palette-derived warm light and cool shadows at %s", tod => {
+    const grade = lightingAt(tod);
     expect(grade.sunColor.r).toBeGreaterThan(grade.sunColor.g);
     expect(grade.sunColor.g).toBeGreaterThan(grade.sunColor.b);
-    expect(grade.sunColor.r - grade.sunColor.g).toBeLessThan(0.16); // Warm white, never red dawn.
     expect(grade.hemiSky.b).toBeGreaterThan(grade.hemiSky.g);
-    expect(grade.hemiGround.g).toBeGreaterThan(grade.hemiGround.b);
     expect(grade.shadowTint.b).toBeGreaterThan(grade.shadowTint.g);
     expect(grade.shadowTint.g).toBeGreaterThan(grade.shadowTint.r);
-    expect(luma(grade.shadowTint)).toBeGreaterThan(0.2);
+    expect(grade.sunDirection.length()).toBeCloseTo(1, 12);
+    if (tod === 0) {
+      expect(grade.sunIntensity / 2.3).toBeCloseTo(0.6);
+      expect(grade.hemiIntensity).toBe(0.55);
+      expect(grade.sunColor).toEqual(new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.6).lerp(new Color(PALETTE.flower), 0.03));
+      expect(grade.sunDirection.x).toBeLessThan(0);
+      expect(grade.sunDirection.z).toBeGreaterThan(0);
+    } else if (tod === 0.5) {
+      expect(grade.sunIntensity).toBe(2.2); // Softer late morning avoids ground glare and large luma steps.
+      expect(grade.hemiIntensity / 2).toBe(0.8);
+    } else {
+      expect(grade.hemiIntensity / 0.95).toBeCloseTo(0.6);
+      expect(grade.sunColor).toEqual(new Color(PALETTE.sunGold).lerp(new Color(PALETTE.flower), 0.3));
+    }
   });
 
   it("uses smoothstep between the frames, with continuous muted colors throughout", () => {
@@ -130,7 +204,7 @@ describe("position-driven sky grade", () => {
     const grade = lightingAt(timeOfDayAt(0.2));
     grade.skyTop.set(0);
     grade.sunDirection.set(0, 0, 0);
-    expect(lightingAt(0).skyTop).toEqual(new Color(PALETTE.skyHigh));
+    expect(lightingAt(0).skyTop).toEqual(dawnTop);
     expect(lightingAt(0).sunDirection.length()).toBeCloseTo(1);
     expect(lightingAt(timeOfDayAt(0.9))).toEqual(lightingAt(1));
   });
@@ -152,12 +226,12 @@ describe("coast dusk atmosphere", () => {
     }
   });
 
-  it("keeps a gold/blue horizon brighter and warmer than forest with blue overhead and 400 m fog", () => {
+  it("keeps an orange horizon warmer than forest, with deep blue overhead and legacy 400 m fog", () => {
     const grade = placedGrade(0.9);
     const forest = placedGrade(0.3);
     expect(grade.skyHorizon.toArray()).toEqual(coastHorizon.toArray().map(v => expect.closeTo(v, 12)));
     expect(grade.skyHorizon.r - grade.skyHorizon.b).toBeGreaterThan(forest.skyHorizon.r - forest.skyHorizon.b);
-    expect(grade.skyTop).toEqual(new Color(PALETTE.skyHigh));
+    expect(grade.skyTop).toEqual(coastTop);
     expect(luma(grade.skyHorizon)).toBeGreaterThan(luma(grade.skyTop));
     for (const zone of ZONES.filter(zone => zone.biome === "coast-dusk")) {
       expect(fogAt(zone.t, STYLE_PRESETS.C)).toEqual({ near: 100, far: 400 });
@@ -172,8 +246,9 @@ describe("coast dusk atmosphere", () => {
       return applyCoastAtmosphere(directGrade(lightingAt(tod), tod), t);
     };
     let previous = sample(0.76);
-    for (let i = 1; i <= 100; i++) {
-      const t = 0.76 + (0.89 - 0.76) * i / 100;
+    // Twice the samples preserve the old per-sample colour bound with the stronger sunset hue.
+    for (let i = 1; i <= 200; i++) {
+      const t = 0.76 + (0.89 - 0.76) * i / 200;
       const grade = sample(t);
       for (const key of GRADE_COLORS) {
         expect(Math.hypot(...grade[key].toArray().map((v, j) => v - previous[key].toArray()[j]!))).toBeLessThan(0.01);
@@ -219,7 +294,7 @@ describe("coast mountain mist without a GPU", () => {
     expect(mesh.visible).toBe(true);
     expect(material.uniforms.strength!.value).toBe(0.42);
     expect(material.uniforms.mistColor!.value).toBe(color);
-    expect(color).toEqual(tint("mist", 0.24).lerp(grade.fogColor, 0.2));
+    expect(color).toEqual(grade.fogColor); // Dusk air no longer mixes back toward white paper.
     expect(mesh.position).toEqual(anchor);
     mesh.updateMatrixWorld(true);
     const positions = mesh.geometry.getAttribute("position");
@@ -261,7 +336,7 @@ describe("grade follower", () => {
     const dusk = lightingAt(1);
     expect(follower.update(dusk, 0)).toEqual(dawn);
     const first = follower.update(dusk, 0.1);
-    expect(first.sunIntensity).toBeCloseTo(2.3 + (1.7 - 2.3) * (1 - Math.exp(-0.3)), 12);
+    expect(first.sunIntensity).toBeCloseTo(dawn.sunIntensity + (dusk.sunIntensity - dawn.sunIntensity) * (1 - Math.exp(-0.3)), 12);
     expect(first.sunDirection.length()).toBeCloseTo(1);
     for (let i = 0; i < 120; i++) follower.update(dusk, 1 / 30);
     expect(follower.update(dusk, 0).skyTop.r).toBeCloseTo(dusk.skyTop.r, 5);
@@ -295,6 +370,35 @@ describe("grade follower", () => {
 });
 
 describe("sky dome without a GPU", () => {
+  it("makes the dusk halo warmer than dawn and gives dusk clouds orange undersides", () => {
+    const grades = [placedGrade(0.15), placedGrade(0.93)];
+    const domes = grades.map(grade => createSkyDome(grade));
+    try {
+      const warmth = domes.map((dome, i) => {
+        const sun = grades[i]!.sunDirection;
+        const ray = new Vector3(sun.x, 0, sun.z).normalize()
+          .multiplyScalar(Math.cos(3 * Math.PI / 180)).setY(Math.sin(3 * Math.PI / 180))
+          .applyAxisAngle(new Vector3(0, 1, 0), 20 * Math.PI / 180);
+        const lit = sampleDome(dome, ray);
+        dome.mesh.material.uniforms.sunGlow!.value.setRGB(0, 0, 0);
+        const unlit = sampleDome(dome, ray);
+        const halo = lit.sub(unlit);
+        expect(luma(halo)).toBeGreaterThan(0.01);
+        return (halo.r - halo.b) / luma(halo);
+      });
+      expect(warmth[1]).toBeGreaterThan(warmth[0]!);
+      const base = domes[1]!.mesh.material.uniforms.cloudBase!.value as Color;
+      expect(base.r).toBeGreaterThan(base.b);
+      const dawnBase = domes[0]!.mesh.material.uniforms.cloudBase!.value as Color;
+      expect(base.r - base.b).toBeGreaterThan(dawnBase.r - dawnBase.b);
+      domes[0]!.update(grades[1]!);
+      domes[1]!.update(grades[1]!); // Restore the glow disabled for the halo reference.
+      for (const key of ["sunGlow", "cloud", "cloudBase"] as const) {
+        expect(domes[0]!.mesh.material.uniforms[key]!.value).toEqual(domes[1]!.mesh.material.uniforms[key]!.value);
+      }
+    } finally { domes.forEach(dome => dome.dispose()); }
+  });
+
   it.each([0.3, 0.9])("keeps 15–35 percent solid-angle cloud cover in the 5–35 degree band at path %s", pathT => {
     const dome = createSkyDome(placedGrade(pathT));
     const reference = createSkyDome(placedGrade(pathT));
@@ -328,7 +432,8 @@ describe("sky dome without a GPU", () => {
         const coverage = cloudy / (48 * 192);
         expect(coverage).toBeGreaterThanOrEqual(0.15);
         expect(coverage).toBeLessThanOrEqual(0.35);
-        expect(minimumContrast).toBeGreaterThanOrEqual(0.15);
+        // Dawn's warm cloud edges have softer contrast than the old white noon clouds.
+        expect(minimumContrast).toBeGreaterThanOrEqual(0.14);
         expect(densities.some(value => value > 0 && value < 0.5)).toBe(true); // Soft painted edges.
         expect(densities.some(value => value > 0.99)).toBe(true); // White opaque cores.
       }
@@ -398,7 +503,7 @@ describe("sky dome without a GPU", () => {
       const cool = sampleDome(dome, away);
       const luma = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
       expect(luma(warm) - luma(cool)).toBeGreaterThanOrEqual(0.08);
-      expect(dome.mesh.material.uniforms.sunGlow!.value).toEqual(new Color(PALETTE.sunGold));
+      expect(dome.mesh.material.uniforms.sunGlow!.value).toEqual(grade.sunColor);
       expect(warm.r - warm.b).toBeGreaterThan(cool.r - cool.b);
       const azimuth = new Vector3(0, 1, 0).cross(grade.sunDirection).normalize();
       const atAngle = (degrees: number) => sampleDome(dome, grade.sunDirection.clone().applyAxisAngle(azimuth, degrees * Math.PI / 180));
@@ -411,7 +516,6 @@ describe("sky dome without a GPU", () => {
         const glow = dome.mesh.material.uniforms.sunGlow!.value as Color;
         const saved = glow.clone();
         glow.setRGB(0, 0, 0);
-        dome.update(grade);
         const unlit = sampleDome(dome, ray);
         glow.copy(saved);
         return luma(lit) - luma(unlit);
@@ -443,14 +547,15 @@ describe("sky dome without a GPU", () => {
     } finally { dome.dispose(); }
   });
 
-  it("uses skyHigh overhead and brighter skyLow at the forest horizon without a paper wash", () => {
+  it("uses pale blue-grey overhead and a peach/gold forest horizon without a paper wash", () => {
     const dome = createSkyDome(placedGrade(0.3));
     try {
       dome.mesh.material.uniforms.sunGlow!.value.setRGB(0, 0, 0);
       const horizon = sampleDome(dome, new Vector3(1, 0, 0));
       const zenith = sampleDome(dome, new Vector3(0, 1, 0));
-      expect(horizon).toEqual(new Color(PALETTE.skyLow));
-      expect(zenith.toArray()).toEqual(new Color(PALETTE.skyHigh).toArray().map(v => expect.closeTo(v, 12)));
+      expect(horizon).toEqual(dawnHorizon);
+      expect(horizon.r).toBeGreaterThan(horizon.b);
+      expect(zenith.toArray()).toEqual(dawnTop.toArray().map(v => expect.closeTo(v, 12)));
       expect(luma(horizon)).toBeGreaterThan(luma(zenith));
       expect(dome.mesh.material.fragmentShader).not.toContain("paperBand");
     } finally { dome.dispose(); }
@@ -469,8 +574,8 @@ describe("sky dome without a GPU", () => {
     expect(material.fragmentShader).toContain("cloudDensity");
     expect(mesh.geometry.index!.count / 3).toBe(528); // One draw, no extra cloud geometry/pass.
     expect(Object.values(material.uniforms).some(u => u.value?.isTexture)).toBe(false);
-    expect(material.uniforms.cloud!.value).toEqual(new Color(PALETTE.cloud));
-    expect(material.uniforms.cloudBase!.value).toEqual(new Color(PALETTE.cloud).lerp(new Color(PALETTE.skyLow), 0.28));
+    expect(material.uniforms.cloud!.value).toEqual(new Color(PALETTE.cloud).lerp(lightingAt(0).sunColor, 0.12));
+    expect(material.uniforms.cloudBase!.value).toEqual(new Color(PALETTE.cloud).lerp(dawnHorizon, 0.28).lerp(lightingAt(0).sunColor, 0.25));
     expect(material.fragmentShader).toContain("#include <colorspace_fragment>");
     expect(material.uniforms.sunDirection!.value).toBeInstanceOf(Vector3);
     expect(material.uniforms.coastWeight!.value).toBe(0);

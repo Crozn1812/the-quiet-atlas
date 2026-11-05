@@ -1,6 +1,6 @@
 import { STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { afterEach, expect, it, vi } from "vitest";
-import { BufferGeometry, Fog, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
+import { BufferGeometry, Fog, HemisphereLight, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
 import { createController } from "../../../src/features/world/rapier";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
@@ -39,6 +39,14 @@ it("shares biome fog distances between native fog and paper at every quality, in
         expect(paper.setFog.mock.lastCall![0].near).toBe(expected.near);
         expect(paper.setFog.mock.lastCall![0].far).toBeCloseTo(expected.far, 8);
         expect(paper.setFog.mock.lastCall![0].forestWeight).toBe(zone.biome === "forest-dawn" ? 1 : 0);
+        const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(zone.t)), timeOfDayAt(zone.t)), zone.t);
+        // nearestPath's sampled projection differs slightly from the authored zone t.
+        expect(composed.sun.intensity).toBeCloseTo(grade.sunIntensity, 6);
+        expect(composed.sun.color.toArray()).toEqual(grade.sunColor.toArray().map(v => expect.closeTo(v, 6)));
+        const hemi = scene.children.find(child => child instanceof HemisphereLight) as HemisphereLight;
+        expect(hemi.intensity).toBeCloseTo(grade.hemiIntensity, 6);
+        expect((scene.fog as Fog).color.toArray()).toEqual(grade.fogColor.toArray().map(v => expect.closeTo(v, 6)));
+        expect(paper.setGrade.mock.lastCall![0].sunIntensity).toBeCloseTo(grade.sunIntensity, 6);
       }
     }
   } finally { composed.dispose(); }

@@ -130,14 +130,15 @@ const R: StylePreset = {
     fog: { near: 120, far: 700, coastFar: 900, coastNear: 160 },
     mist: { bands: [160, 320, 600], strength: 0.02, warmth: 1 },
     forest: {
-      color: recipe("mist", "skyLow", 0.3),
+      color: recipe("mist", "sunGold", 0.18),
       fog: { near: 25, far: 145 },
       mist: { bands: [40, 75, 115], strength: 0.16 },
     },
     edges: { ink: false, bleed: 0.04 },
     sky: {
-      dawn: { top: recipe("skyHigh", "skyLow", 0.15), horizon: recipe("skyLow", "cloud", 0.35) },
-      dusk: { top: recipe("skyHigh", "indigo", 0.25), horizon: recipe("sunGold", "skyLow", 0.35) },
+      // B2-180: pale blue-grey above a peach/gold dawn, deeper blue above orange dusk.
+      dawn: { top: recipe("skyHigh", "mist", 0.45, 0.65, 0.9), horizon: recipe("sunGold", "cloud", 0.5, 0.85, 0.9) },
+      dusk: { top: recipe("skyHigh", "indigo", 0.65, 0.85, 0.85), horizon: recipe("sunGold", "flower", 0.3, 0.9, 0.9) },
     },
   },
   foliage: {

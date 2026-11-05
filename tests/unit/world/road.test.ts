@@ -241,7 +241,8 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       const plain = luma(asphaltColorAt(x, z, 1.1));
       expect(luma(asphaltColorAt(x, z, 0.65))).toBeGreaterThan(plain * 1.07);
       expect(luma(asphaltColorAt(x, z, 1.55))).toBeGreaterThan(plain * 1.07);
-      if (plain < 0.98 * luma(new Color(PALETTE.asphalt).lerp(new Color(PALETTE.laneWhite), 0.36))) patches++;
+      // Base mix follows road/surface.ts (0.46 since B2-180 dusk light).
+      if (plain < 0.98 * luma(new Color(PALETTE.asphalt).lerp(new Color(PALETTE.laneWhite), 0.46))) patches++;
     }
     expect(patches).toBeGreaterThan(10);
     const colors = surface.geometry.getAttribute("color");

@@ -4,7 +4,7 @@ import { coastAtmosphereWeight, lightingAt, type LightingGrade } from "./grade";
 
 /** One sloping, texture-free mist shelf inland (+Z); never covers the seaward half-space. */
 export function createCoastMountainMist() {
-  const mistColor = new Color(PALETTE.paper).lerp(new Color(PALETTE.mist), 0.24);
+  const mistColor = new Color(PALETTE.mist);
   const geometry = new BufferGeometry();
   // A single plane rises over the distant canopy; nearby trees remain in front of it.
   geometry.setAttribute("position", new Float32BufferAttribute([
@@ -65,7 +65,7 @@ export function createCoastMountainMist() {
       mesh.position.copy(anchor);
       mesh.visible = weight > 0;
       material.uniforms.strength!.value = 0.42 * weight;
-      material.uniforms.mistColor!.value.copy(mistColor).lerp(grade.fogColor, 0.2);
+      material.uniforms.mistColor!.value.copy(grade.fogColor);
     },
     dispose(): void {
       if (disposed) return;
@@ -84,11 +84,11 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
     uniforms: {
       skyTop: { value: initial.skyTop.clone() },
       skyHorizon: { value: initial.skyHorizon.clone() },
-      cloud: { value: new Color(PALETTE.cloud) },
-      cloudBase: { value: new Color(PALETTE.cloud).lerp(new Color(PALETTE.skyLow), 0.28) },
+      cloud: { value: new Color(PALETTE.cloud).lerp(initial.sunColor, 0.12) },
+      cloudBase: { value: new Color(PALETTE.cloud).lerp(initial.skyHorizon, 0.28).lerp(initial.sunColor, 0.25) },
       cloudTime: { value: 0 },
       sunDirection: { value: initial.sunDirection.clone() },
-      sunGlow: { value: new Color(PALETTE.sunGold) },
+      sunGlow: { value: initial.sunColor.clone() },
       coastWeight: { value: initial.coastWeight ?? 0 },
     },
     vertexShader: `
@@ -181,6 +181,9 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
       material.uniforms.skyTop!.value.copy(grade.skyTop);
       material.uniforms.skyHorizon!.value.copy(grade.skyHorizon);
       material.uniforms.sunDirection!.value.copy(grade.sunDirection);
+      material.uniforms.sunGlow!.value.copy(grade.sunColor);
+      material.uniforms.cloud!.value.set(PALETTE.cloud).lerp(grade.sunColor, 0.12);
+      material.uniforms.cloudBase!.value.set(PALETTE.cloud).lerp(grade.skyHorizon, 0.28).lerp(grade.sunColor, 0.25);
       material.uniforms.coastWeight!.value = grade.coastWeight ?? 0;
     },
     dispose(): void {

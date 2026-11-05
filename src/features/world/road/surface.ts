@@ -8,7 +8,8 @@ export const EDGE_LINE_WIDTH = 0.1;
 export const SHOULDER_WIDTH = 0.8;
 
 // Palette-only aggregate wash compensates for the soft ramp's dark coastal light.
-const asphalt = new Color(PALETTE.asphalt).lerp(new Color(PALETTE.laneWhite), 0.36);
+// B2-180: the coast is now dusk-lit; a lighter, older tarmac keeps the road readable (display luma ≥ 0.22).
+const asphalt = new Color(PALETTE.asphalt).lerp(new Color(PALETTE.laneWhite), 0.46);
 const rock = new Color(PALETTE.rock), sand = new Color(PALETTE.sand);
 const grass = new Color(PALETTE.grass), grassDry = new Color(PALETTE.grassDry);
 const clamp = (n: number) => Math.max(0, Math.min(1, n));

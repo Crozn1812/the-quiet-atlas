@@ -31,8 +31,11 @@ const DIRECTED_SKY = {
   dawn: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.horizon)) },
   dusk: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dusk.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dusk.horizon)) },
 };
-/** R distance fog stays blue at dusk; only the cloud fraction changes. */
-const FOG_HORIZON = { dawn: 0.25, dusk: 0.35, low: new Color(PALETTE.skyLow), cloud: new Color(PALETTE.cloud) };
+/** Coloured air follows the same dawn/dusk endpoints as the sky, without a paper wash. */
+const FOG_HORIZON = {
+  dawn: new Color(paletteColor(WORLD_DIRECTION.background.forest!.color)),
+  dusk: DIRECTED_SKY.dusk.top.clone().lerp(DIRECTED_SKY.dusk.horizon, 0.55),
+};
 /** Sea mirror of the dusk sky; the bench's coast frame uses 0.35. */
 const SEA_SKY_MIX = 0.35;
 
@@ -48,7 +51,7 @@ export function directGrade(grade: LightingGrade, timeOfDay: number, preset = WO
   }
   grade.skyTop.copy(DIRECTED_SKY.dawn.top).lerp(DIRECTED_SKY.dusk.top, t);
   grade.skyHorizon.copy(DIRECTED_SKY.dawn.horizon).lerp(DIRECTED_SKY.dusk.horizon, t);
-  grade.fogColor.copy(FOG_HORIZON.low).lerp(FOG_HORIZON.cloud, FOG_HORIZON.dawn + (FOG_HORIZON.dusk - FOG_HORIZON.dawn) * t);
+  grade.fogColor.copy(FOG_HORIZON.dawn).lerp(FOG_HORIZON.dusk, t);
   return grade;
 }
 import { createGradeFollower } from "../sky/smoothing";
