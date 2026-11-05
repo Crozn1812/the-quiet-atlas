@@ -143,9 +143,9 @@ describe("terrain tile mesh", () => {
     expect(colorDistance(below, above)).toBeLessThan(0.001);
   });
 
-  it("uses sand with a little rock from 0 to 1.2 m above the sea, and stone on the stream bank", () => {
+  it("uses sand with a little rock from 0 to 0.5 m above the sea, and stone on the stream bank", () => {
     const sand = paletteColor("sand"), rock = paletteColor("rock");
-    for (const rise of [0, 0.02, 0.6, 1.2]) {
+    for (const rise of [0, 0.02, 0.3, 0.5]) {
       const color = sampleColor(400, -1000, waterLevelAt(-1000) + rise);
       const t = (color.r - sand.r) / (rock.r - sand.r);
       expect(t).toBeGreaterThan(0.07);

@@ -92,7 +92,8 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const sea = 1 - smoothstep(-720, -680, wz);
     const wet = Math.max(bank, sea);
     tint.copy(sand).lerp(rock, 0.08 + 0.12 * detail + 0.25 * (1 - sea));
-    color.lerp(tint, wet * (1 - smoothstep(1.2, 2.2, aboveWater)));
+    // Sea beach is a narrow band (Duy's refs: grass runs down to the stones); the stream bank keeps 1.2–2.2 m.
+    color.lerp(tint, Math.max(bank * (1 - smoothstep(1.2, 2.2, aboveWater)), sea * (1 - smoothstep(0.5, 1.1, aboveWater))));
     tint.copy(rockDark).lerp(seaDeep, 0.2 + 0.45 * smoothstep(0, 3, -aboveWater));
     color.lerp(tint, sea * (1 - smoothstep(-0.3, 0, aboveWater)));
 
