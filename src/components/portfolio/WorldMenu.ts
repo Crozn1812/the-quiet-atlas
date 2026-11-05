@@ -54,6 +54,24 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     close();
     removeJournal.toggle();
   });
+  let mascotEnabled = container.getAttribute("data-world-mascot") !== "off";
+  function mascotLabel() {
+    const status = language === "vi" ? mascotEnabled ? "Bật" : "Tắt" : mascotEnabled ? "On" : "Off";
+    return `Mascot: ${status}`;
+  }
+  const mascotToggle = button(mascotLabel, () => {
+    mascotEnabled = !mascotEnabled;
+    syncMascot();
+    container.dispatchEvent(new CustomEvent("tqa:set-mascot", {
+      bubbles: false,
+      detail: { enabled: mascotEnabled },
+    }));
+  });
+  function syncMascot() {
+    mascotToggle.textContent = mascotLabel();
+    mascotToggle.setAttribute("aria-pressed", String(mascotEnabled));
+  }
+  translations.push(syncMascot);
   const label = document.createElement("label");
   const qualityText = document.createElement("span");
   translations.push(() => {

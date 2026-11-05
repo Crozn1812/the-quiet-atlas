@@ -136,6 +136,15 @@ it.each([
     tick(100);
     const camera = harness.camera as import("three").Camera;
     const scene = harness.scene as import("three").Scene;
+    const mascot = scene.getObjectByName("mascot")!;
+    expect(container.dataset.worldMascot).toBe("on");
+    expect(mascot.visible).toBe(true);
+    send(container, "tqa:set-mascot", { detail: { enabled: false } });
+    expect(container.dataset.worldMascot).toBe("off");
+    expect(mascot.visible).toBe(false);
+    send(container, "tqa:set-mascot", { detail: { enabled: true } });
+    expect(container.dataset.worldMascot).toBe("on");
+    expect(mascot.visible).toBe(true);
     const opened = vi.fn();
     container.addEventListener("tqa:open-content", opened);
     const sign = scene.getObjectByName(WORLD_COPY[locale ?? "en"].signpost)!;
@@ -297,6 +306,9 @@ it.each([
   expect(container.dataset.worldPaused).toBeUndefined();
   expect(container.dataset.worldVehicle).toBeUndefined();
   expect(container.dataset.worldEnding).toBeUndefined();
+  expect(container.dataset.worldMascot).toBeUndefined();
+  send(container, "tqa:set-mascot", { detail: { enabled: false } });
+  expect(container.dataset.worldMascot).toBeUndefined();
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
   expect(container.dataset.worldLocale).toBeUndefined();
   const count = states.length;
