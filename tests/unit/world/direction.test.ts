@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Color, LinearFilter, SRGBColorSpace, type DataTexture } from "three";
-import { fogAt as directedFogAt, paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
+import { fogAt as directedFogAt, forestAtmosphereWeight, FOREST_ATMOSPHERE_TRANSITION, paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { pathLength } from "../../../src/features/world/layout/path";
 import { createRampMaterial, disposeRampGradients, RAMP_PRESETS, RAMP_STEPS } from "../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { placeZoneScenes } from "../../../src/features/world/zones";
@@ -79,10 +80,31 @@ describe("R clear-air world direction", () => {
     expect(WORLD_DIRECTION.foliage.ramp).toEqual({ steps: 4, soft: true });
     expect(WORLD_DIRECTION.background.edges).toEqual({ ink: false, bleed: 0.04 });
     expect(WORLD_DIRECTION.background.mist.strength).toBeLessThanOrEqual(0.02);
-    for (const t of [0, 0.3, 0.9, 1]) expect(directedFogAt(t).near).toBeGreaterThanOrEqual(120);
-    expect(directedFogAt(0.3)).toEqual({ near: 120, far: 700 });
-    expect(directedFogAt(0.9)).toEqual({ near: 160, far: 900 });
+    // B2-169: clear hills/coast retain R; only the humid forest uses closer fog.
+    for (const t of [0.5, 0.76, 0.9, 1]) expect(directedFogAt(t).near).toBeGreaterThanOrEqual(120);
+    expect(directedFogAt(0.3)).toEqual({ near: 25, far: 145, forestWeight: 1 });
+    expect(directedFogAt(0.5)).toEqual({ near: 120, far: 700, forestWeight: 0 });
+    expect(directedFogAt(0.9)).toEqual({ near: 160, far: 900, forestWeight: 0 });
     expect(directedFogAt(NaN)).toEqual(directedFogAt(0));
     expect(directedFogAt(Infinity)).toEqual(directedFogAt(1));
+  });
+
+  it("blends forest into hills over 40 m at the nearest-zone biome boundary, in either direction", () => {
+    const { start, end } = FOREST_ATMOSPHERE_TRANSITION;
+    const hill = ZONES.findIndex(zone => zone.biome === "hill");
+    expect((end - start) * pathLength()).toBeCloseTo(40, 10);
+    expect((start + end) / 2).toBeCloseTo((ZONES[hill - 1]!.t + ZONES[hill]!.t) / 2);
+    expect(forestAtmosphereWeight(start)).toBe(1);
+    expect(forestAtmosphereWeight(end)).toBe(0);
+    expect(forestAtmosphereWeight((start + end) / 2)).toBeCloseTo(0.5);
+    const samples = Array.from({ length: 101 }, (_, i) => directedFogAt(start + (end - start) * i / 100));
+    samples.slice(1).forEach((fog, i) => {
+      expect(fog.near).toBeGreaterThanOrEqual(samples[i]!.near);
+      expect(fog.far).toBeGreaterThanOrEqual(samples[i]!.far);
+      expect(fog.far - samples[i]!.far).toBeLessThan(8.4);
+    });
+    expect(directedFogAt(start - 0.000001).far).toBeCloseTo(directedFogAt(start + 0.000001).far, 4);
+    expect(directedFogAt(end - 0.000001).far).toBeCloseTo(directedFogAt(end + 0.000001).far, 4);
+    samples.reverse().forEach((fog, i) => expect(directedFogAt(end - (end - start) * i / 100).far).toBeCloseTo(fog.far));
   });
 });

@@ -3,6 +3,7 @@
 import { Color, SRGBColorSpace } from "three";
 import { PALETTE, type PaletteKey } from "./palette";
 import { ZONES } from "../layout/zones";
+import { pathLength } from "../layout/path";
 
 /** A traceable palette recipe, never an independent colour swatch. */
 export interface PaletteRecipe {
@@ -39,6 +40,12 @@ export interface StylePreset {
     fog: { near: number; far: number; coastFar?: number; coastNear?: number };
     /** warmth: 0 = palette mist (cool jade), 1 = the shot's painted horizon colour. */
     mist: { bands: [number, number, number]; strength: number; warmth: number };
+    /** Humid forest air; hill/coast keep the direction's clear-air profile. */
+    forest?: {
+      color: PaletteRecipe;
+      fog: { near: number; far: number };
+      mist: { bands: [number, number, number]; strength: number };
+    };
     edges: { ink: boolean; bleed: number };
     sky: Record<"dawn" | "dusk", { top: PaletteRecipe; horizon: PaletteRecipe }>;
   };
@@ -122,6 +129,11 @@ const R: StylePreset = {
     ramp: { steps: 4, soft: true },
     fog: { near: 120, far: 700, coastFar: 900, coastNear: 160 },
     mist: { bands: [160, 320, 600], strength: 0.02, warmth: 1 },
+    forest: {
+      color: recipe("mist", "skyLow", 0.3),
+      fog: { near: 25, far: 145 },
+      mist: { bands: [40, 75, 115], strength: 0.16 },
+    },
     edges: { ink: false, bleed: 0.04 },
     sky: {
       dawn: { top: recipe("skyHigh", "skyLow", 0.15), horizon: recipe("skyLow", "cloud", 0.35) },
@@ -145,13 +157,42 @@ export type PresetId = keyof typeof STYLE_PRESETS;
 /** The direction the world renders (provisional, D-22). */
 export const WORLD_DIRECTION: StylePreset = STYLE_PRESETS.R;
 
-/** Open the sea horizon from the last hill to the first coast zone; forest fog stays intact. */
-export function fogAt(pathT: number, preset: StylePreset = WORLD_DIRECTION): { near: number; far: number } {
+// Match the nearest-zone biome boundary used by foliage; t is walking distance.
+const firstHill = ZONES.findIndex(zone => zone.biome === "hill");
+const forestEdge = (ZONES[firstHill - 1]!.t + ZONES[firstHill]!.t) / 2;
+export const FOREST_ATMOSPHERE_TRANSITION = Object.freeze({
+  start: forestEdge - 20 / pathLength(), end: forestEdge + 20 / pathLength(),
+});
+
+/** Smoothly release the forest over exactly 40 m, including reverse travel/teleports. */
+export function forestAtmosphereWeight(pathT: number): number {
+  const { start, end } = FOREST_ATMOSPHERE_TRANSITION;
+  const u = Number.isNaN(pathT) ? 0 : Math.max(0, Math.min(1, (pathT - start) / (end - start)));
+  return 1 - u * u * (3 - 2 * u);
+}
+
+export interface DirectedFog {
+  near: number;
+  far: number;
+  /** Carried through compose's existing setFog call, keeping colour and mist in step. */
+  forestWeight?: number;
+}
+
+/** Forest depth layers, clear hills, then the existing open sea horizon. */
+export function fogAt(pathT: number, preset: StylePreset = WORLD_DIRECTION): DirectedFog {
   const { near, far, coastFar = far, coastNear = near } = preset.background.fog;
   const coastIndex = ZONES.findIndex(zone => zone.biome === "coast-dusk");
   const start = ZONES[coastIndex - 1]!.t;
   const end = ZONES[coastIndex]!.t;
   const u = Number.isNaN(pathT) ? 0 : Math.max(0, Math.min(1, (pathT - start) / (end - start)));
   const weight = u * u * (3 - 2 * u);
-  return { near: near + (coastNear - near) * weight, far: far + (coastFar - far) * weight };
+  const clear = { near: near + (coastNear - near) * weight, far: far + (coastFar - far) * weight };
+  const forest = preset.background.forest;
+  if (!forest) return clear;
+  const forestWeight = forestAtmosphereWeight(pathT);
+  return {
+    near: clear.near + (forest.fog.near - clear.near) * forestWeight,
+    far: clear.far + (forest.fog.far - clear.far) * forestWeight,
+    forestWeight,
+  };
 }

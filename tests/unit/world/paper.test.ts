@@ -5,7 +5,7 @@ import {
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
-import { fogAt as directedFogAt, STYLE_PRESETS } from "../../../src/features/world/art/direction";
+import { fogAt as directedFogAt, FOREST_ATMOSPHERE_TRANSITION, paletteColor, STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { createGradedPaperPass } from "../../../src/features/world/scene/paper";
 import { directGrade } from "../../../src/features/world/scene/compose";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
@@ -106,7 +106,7 @@ describe("R clear post", () => {
       return (Math.max(rgb.r, rgb.g, rgb.b) - Math.min(rgb.r, rgb.g, rgb.b)) / Math.max(rgb.r, rgb.g, rgb.b);
     };
     try {
-      for (const t of [0.3, 0.9]) {
+      for (const t of [0.5, 0.9]) {
         paper.setFog(directedFogAt(t));
         paper.setGrade(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)));
         paper.render(new Scene(), new PerspectiveCamera());
@@ -163,7 +163,7 @@ describe("R clear post", () => {
     } finally { paper.dispose(); }
   });
 
-  it("keeps actual coast/forest fog blue in both native Low and post rendering", () => {
+  it("keeps actual coast/hill fog blue in both native Low and post rendering", () => {
     const { renderer, gpu } = mockRenderer();
     const pass = createGradedPaperPass(gpu, "Balanced");
     const scene = new Scene();
@@ -173,7 +173,7 @@ describe("R clear post", () => {
     try {
       for (const quality of ["Balanced", "High", "Low", "High"] as const) {
         pass.setQuality(quality);
-        for (const t of [0.3, 0.9, 0.3]) {
+        for (const t of [0.5, 0.9, 0.5]) {
           const distances = directedFogAt(t);
           const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t);
           native.color.copy(grade.fogColor); // Composer sets this before paper.render.
@@ -205,6 +205,78 @@ describe("R clear post", () => {
       expect(activeShader(material)).toContain("float vignette =");
       expect(material.uniforms.inkEnabled!.value).toBe(STYLE_PRESETS[id].background.edges.ink);
     } finally { pass.dispose(); }
+  });
+});
+
+describe("forest depth atmosphere (B2-169)", () => {
+  const smoothstep = (a: number, b: number, x: number) => {
+    const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return u * u * (3 - 2 * u);
+  };
+  const distance = (a: Color, b: Color) => new Vector3(...a.toArray()).distanceTo(new Vector3(...b.toArray()));
+
+  it.each(["Low", "Balanced", "High"] as const)("%s keeps near trees clear, fades depth layers and restores clear hills", quality => {
+    const { renderer, gpu } = mockRenderer();
+    const paper = createGradedPaperPass(gpu, quality);
+    const scene = new Scene();
+    const native = new Fog(PALETTE.paper, 1, 2);
+    scene.fog = native;
+    const forestColor = new Color(paletteColor(STYLE_PRESETS.R.background.forest!.color));
+    const { start, end } = FOREST_ATMOSPHERE_TRANSITION;
+    const samples = [0.1, (start + end) / 2, 0.5, 0.9, 0.1];
+    const readings: number[] = [];
+    try {
+      for (const t of samples) {
+        const fog = directedFogAt(t);
+        paper.setFog(fog);
+        paper.setGrade(applyCoastAtmosphere(lightingAt(1), t));
+        paper.setMist({ height: 100 }); // Worst-case ground mist, also at elevated forest terrain.
+        paper.render(scene, new PerspectiveCamera());
+        expect(native.near).toBe(fog.near);
+        expect(native.far).toBe(fog.far);
+        const u = quality === "Low" ? undefined : screenMaterial(renderer).material.uniforms;
+        const amount = (depth: number) => {
+          if (!u) return smoothstep(native.near, native.far, depth);
+          const source = screenMaterial(renderer).material.fragmentShader;
+          const expression = source.match(/float layeredMist = ([\s\S]*?);/)![1]!;
+          const bands = (u.mistBands!.value as Vector3).toArray().map(d => smoothstep(d - 1.2, d + 1.2, depth));
+          const layered = new Function("bands", "lowMist", `return ${expression}`)({ x: bands[0], y: bands[1], z: bands[2] }, 1) as number;
+          const mist = layered * u.mistStrength!.value * smoothstep(8, 12, depth);
+          const fogAlpha = smoothstep(u.fogNear!.value, u.fogFar!.value, depth);
+          return 1 - (1 - mist) * (1 - fogAlpha);
+        };
+        if (t === 0.1) {
+          for (const depth of [0, 8, 12, 24.99]) expect(amount(depth)).toBeLessThanOrEqual(0.03);
+          expect(amount(30)).toBeLessThanOrEqual(0.15);
+          expect(amount(100)).toBeGreaterThanOrEqual(0.45);
+          const depths = [40, 60, 80, 100, 120].map(amount);
+          depths.slice(1).forEach((value, i) => expect(value).toBeGreaterThan(depths[i]!));
+          expect(native.color).toEqual(forestColor);
+          for (const color of [native.color, ...(u ? [u.fogColor!.value as Color, u.mistColor!.value as Color] : [])]) {
+            expect(distance(color, new Color(PALETTE.mist))).toBeLessThan(distance(color, new Color(PALETTE.paper)));
+            expect(distance(color, new Color(PALETTE.skyLow))).toBeLessThan(distance(color, new Color(PALETTE.paper)));
+            expect(color.g).toBeGreaterThan(color.r);
+          }
+        } else if (t >= 0.5) expect(amount(100)).toBeLessThanOrEqual(0.15);
+        if (u) {
+          expect(u.fogNear!.value).toBe(native.near);
+          expect(u.fogFar!.value).toBe(native.far);
+          expect(u.fogColor!.value).toEqual(native.color);
+          expect(renderer.render.mock.calls.at(-1)![0].children).toHaveLength(1);
+        }
+        readings.push(amount(100));
+      }
+      expect(readings[0]).toBe(readings.at(-1));
+      expect(readings[1]).toBeLessThan(readings[0]!);
+      expect(readings[1]).toBeGreaterThan(readings[2]!);
+      // Forest parameters and its palette tint survive Low -> High allocation.
+      paper.setQuality("Low");
+      paper.setQuality("High");
+      paper.render(scene, new PerspectiveCamera());
+      const u = screenMaterial(renderer).material.uniforms;
+      expect(u.fogColor!.value).toEqual(forestColor);
+      expect(u.mistStrength!.value).toBe(STYLE_PRESETS.R.background.forest!.mist.strength);
+    } finally { paper.dispose(); }
   });
 });
 

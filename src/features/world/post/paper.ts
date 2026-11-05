@@ -329,7 +329,10 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       if (disposed) return;
       // R's native Low fallback must use the same clear air as the merged pass,
       // even when the caller's legacy coast grade still supplies paper fog.
-      if (clearAir && scene.fog) scene.fog.color.copy(fog.color);
+      if (clearAir && scene.fog) {
+        scene.fog.color.copy(fog.color);
+        if ("near" in scene.fog) Object.assign(scene.fog, { near: fog.near, far: fog.far });
+      }
       if (!resources) {
         renderer.render(scene, camera);
         return;

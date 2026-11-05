@@ -1,6 +1,7 @@
 import {
   Box3, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute,
-  Group, IcosahedronGeometry, Mesh, PlaneGeometry, Vector3,
+  Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, PlaneGeometry, Vector3,
+  type DirectionalLight, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
@@ -8,6 +9,11 @@ import type { PaletteKey } from "../art/palette";
 import { createPineCrown, createTreeTrunk } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
 import { createPropMaterial } from "../props/materials";
+import { pathPointAt } from "../layout/path";
+import { ZONES } from "../layout/zones";
+import { lightingAt } from "../sky/grade";
+import { waterLevelAt } from "../terrain/height";
+import { nearestRiver } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
 type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower";
@@ -15,6 +21,118 @@ type Part = { geometry: BufferGeometry; surface: Surface };
 const part = (geometry: BufferGeometry, surface: Surface): Part => ({ geometry, surface });
 const tint = (base: PaletteKey, mix: PaletteKey, amount: number) =>
   paletteColor({ base, mix, amount, saturation: 1, brightness: 1 });
+
+/** 96 triangles, feathered on every edge; shared by the three route instances. */
+function sunVeil(width: number): PlaneGeometry {
+  const veil = new PlaneGeometry(width, 6, 6, 8);
+  const positions = veil.getAttribute("position");
+  const colors: number[] = [];
+  for (let i = 0; i < positions.count; i++) {
+    const across = Math.max(0, 1 - Math.abs(positions.getX(i)) / (width / 2));
+    const along = Math.max(0, 1 - Math.abs(positions.getY(i)) / 3);
+    colors.push(1, 1, 1, Math.min(1, across * 2) * Math.min(1, along * 4));
+  }
+  veil.setAttribute("color", new Float32BufferAttribute(colors, 4));
+  return veil;
+}
+
+/** Keep the existing soft ramp, adding only an angular alpha mask (no pass/texture). */
+function backlitVeil(mesh: Mesh<BufferGeometry, MeshToonMaterial>): void {
+  const material = mesh.material;
+  Object.assign(material, {
+    transparent: true, opacity: 0.15, depthWrite: false, side: DoubleSide, forceSinglePass: true,
+    vertexColors: true,
+  });
+  material.emissive.copy(material.color).multiplyScalar(0.35);
+  const sunDirection = lightingAt(0).sunDirection;
+  const target = new Vector3();
+  const rampCompile = material.onBeforeCompile;
+  material.onBeforeCompile = (shader, renderer) => {
+    rampCompile(shader, renderer);
+    shader.uniforms.shaftSunDirection = { value: sunDirection };
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec3 shaftSunDirection;")
+      .replace("#include <opaque_fragment>", `
+float shaftAlignment = dot( normalize( -vViewPosition ), normalize( mat3( viewMatrix ) * shaftSunDirection ) );
+diffuseColor.a *= smoothstep( 0.55, 0.9, shaftAlignment );
+#include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => "painted-toon-backlit-veil-v1";
+  // Compose owns the world-space sun. Follow it even when a zone is rotated/reflected.
+  mesh.onBeforeRender = (_renderer, scene) => {
+    const sun = scene.children.find((child): child is DirectionalLight =>
+      "isDirectionalLight" in child && child.isDirectionalLight === true);
+    if (sun) {
+      sun.getWorldPosition(sunDirection);
+      sun.target.getWorldPosition(target);
+      sunDirection.sub(target).normalize();
+    }
+  };
+}
+
+export const FOREST_SUN_SHAFT_PROGRESS = Object.freeze([0.065, 0.105, 0.29]);
+
+/** Three dry path-side canopy gaps: 288 rendered triangles, one additional draw call. */
+export function createForestSunShafts(heightAt: (x: number, z: number) => number) {
+  const group = new Group();
+  group.name = "forest-sun-shafts";
+  const geometry = sunVeil(0.9).translate(0, 3, 0);
+  const material = createRampMaterial(tint("sunGold", "cloud", 0.7));
+  const mesh = new InstancedMesh(geometry, material, FOREST_SUN_SHAFT_PROGRESS.length);
+  mesh.name = "forest-path-sun";
+  backlitVeil(mesh);
+  const sun = lightingAt(0).sunDirection;
+  const across = new Vector3(-sun.z, 0, sun.x).normalize();
+  const along = new Vector3(sun.x * 0.35, 1, sun.z * 0.35).normalize();
+  const normal = new Vector3().crossVectors(across, along).normalize();
+  const transform = new Matrix4().makeBasis(across, along, normal);
+  const sites: { t: number; position: Vector3 }[] = [];
+  for (const t of FOREST_SUN_SHAFT_PROGRESS) {
+    const point = pathPointAt(t);
+    const forward = pathPointAt(t + 0.001).sub(pathPointAt(t - 0.001)).normalize();
+    const right = new Vector3(-forward.z, 0, forward.x);
+    const river = nearestRiver(point.x, point.z);
+    const drySide = (point.x - river.x) * right.x + (point.z - river.z) * right.z >= 0 ? 1 : -1;
+    // Stay in the canopy-free path shoulder; widen out only if a sloping wet bank requires it.
+    for (const offset of [3, 4.5, 6]) {
+      const position = point.clone().addScaledVector(right, offset * drySide);
+      position.y = heightAt(position.x, position.z) + 0.3;
+      transform.setPosition(position);
+      const vertices = geometry.getAttribute("position");
+      let valid = true;
+      const vertex = new Vector3();
+      for (let i = 0; i < vertices.count && valid; i++) {
+        vertex.fromBufferAttribute(vertices, i).applyMatrix4(transform);
+        const ground = heightAt(vertex.x, vertex.z);
+        valid = Number.isFinite(ground) && ground > waterLevelAt(vertex.z)
+          && vertex.y >= ground
+          && ZONES.every(zone => Math.hypot(vertex.x - zone.position.x, vertex.z - zone.position.z) > zone.radius + 4);
+      }
+      if (!valid) continue;
+      mesh.setMatrixAt(sites.length, transform);
+      sites.push({ t, position });
+      break;
+    }
+  }
+  mesh.count = sites.length;
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.computeBoundingBox();
+  mesh.computeBoundingSphere();
+  mesh.raycast = () => {};
+  group.add(mesh);
+  let disposed = false;
+  return {
+    group, sites,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      geometry.dispose();
+      material.dispose();
+      group.clear();
+      group.removeFromParent();
+    },
+  };
+}
 
 /** An uneven octagonal plank, with one small bevel around both caps. */
 function plank(width: number, height: number, depth: number): BufferGeometry {
@@ -244,16 +362,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   }
 
   for (const [x, z, width] of [[6.8, 8, 0.65], [-8.5, 10, 0.95]]) {
-    const veil = new PlaneGeometry(width!, 6, 6, 8);
-    const positions = veil.getAttribute("position");
-    const colors: number[] = [];
-    for (let i = 0; i < positions.count; i++) {
-      const across = Math.max(0, 1 - Math.abs(positions.getX(i)) / (width! / 2));
-      const along = Math.max(0, 1 - Math.abs(positions.getY(i)) / 3);
-      // Feather all four edges, retaining one translucent draw call for both veils.
-      colors.push(1, 1, 1, Math.min(1, across * 2) * Math.min(1, along * 4));
-    }
-    veil.setAttribute("color", new Float32BufferAttribute(colors, 4));
+    const veil = sunVeil(width!);
     place([part(veil.rotateZ(-0.28).rotateY(0.35).translate(0, 4.2, 0), "sun")], x!, z!);
   }
 
@@ -261,14 +370,11 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     wood: createPropMaterial("wood"), paper: createPropMaterial("paper"),
     green: createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.crown), WORLD_DIRECTION.foliage.ramp),
     stone: createRampMaterial(tint("mist", "paper", 0.25), WORLD_DIRECTION.foliage.ramp),
-    sun: createRampMaterial(tint("dusk", "paper", 0.7)),
+    sun: createRampMaterial(tint("sunGold", "cloud", 0.7)),
     ink: createRampMaterial(tint("ink", "forestDeep", 0.3), WORLD_DIRECTION.foliage.ramp),
     flower: createRampMaterial(tint("flower", "paper", 0), WORLD_DIRECTION.foliage.ramp),
   };
   materials.green.side = DoubleSide;
-  Object.assign(materials.sun, {
-    transparent: true, opacity: 0.15, depthWrite: false, side: DoubleSide, forceSinglePass: true,
-  });
   for (const surface of Object.keys(buckets) as Surface[]) {
     const material = materials[surface];
     material.vertexColors = true;
@@ -280,6 +386,10 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     const mesh = new Mesh(geometry, material);
     mesh.name = `first-light-${surface}`;
     mesh.castShadow = false;
+    if (surface === "sun") {
+      backlitVeil(mesh);
+      mesh.raycast = () => {};
+    }
     group.add(mesh);
   }
 

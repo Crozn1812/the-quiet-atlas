@@ -229,7 +229,8 @@ describe("First Light pine clearing", () => {
         .lerp(new Color(PALETTE.paper), 0.12).getHex(),
       paper: new Color(PALETTE.paper).getHex(),
       green: paletteColor(WORLD_DIRECTION.foliage.crown),
-      stone: tint("mist", 0.25), sun: tint("dusk", 0.7), // B2-151: paler, translucent dawn veil (dusk 70 % toward paper)
+      stone: tint("mist", 0.25),
+      sun: paletteColor({ base: "sunGold", mix: "cloud", amount: 0.7, saturation: 1, brightness: 1 }),
       ink: new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
       flower: new Color(PALETTE.flower).getHex(),
     };
