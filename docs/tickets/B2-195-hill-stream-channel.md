@@ -18,3 +18,9 @@
 - Lấy mẫu dọc suối t 0,4–0,75: chênh cao mép nước → mép cỏ (3 m) 0,2–0,5 m; độ dốc lớn nhất trong dải bờ ≤ 35°.
 - Lối đi và nền khu không thay đổi độ cao quá 0,05 m.
 - Test terrain/river/bridges cũ pass.
+
+### Bổ sung (Lead, cùng file `height.ts`): mặt đất trồi qua đường nhựa ven biển
+
+- Ảnh `docs/showcase/26-asset-ky/lead-review/road-verge-terrain-through-asphalt.webp` (đường tô hồng để dò): dọc mép phải đường đoạn Quiet Shore, **terrain cao hơn mặt đường** nên các mảng đất màu be đâm xuyên qua nhựa thành vết lở hình răng cưa.
+- Việc: dưới mặt đường nhựa + lề (bề rộng thật trong `road/layout.ts`) terrain phải thấp hơn mặt đường ≥ 0,05 m; chuyển tiếp ra ngoài lề mượt trong 2–4 m (taluy), không tạo vách.
+- Test: lấy mẫu dày (0,5 m) dọc đường t 0,8–1, ngang toàn bề rộng nhựa + lề: `terrain ≤ roadSurface − 0,05` ở mọi điểm.
