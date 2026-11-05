@@ -998,6 +998,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       const uniforms = (sky.material as ShaderMaterial).uniforms;
       uniforms.skyTop!.value.copy(grade.skyTop);
       uniforms.skyHorizon!.value.copy(grade.skyHorizon);
+      // B2-162: the sky dome draws the sun disc/glow; keep it on the ending's sun.
+      uniforms.sunDirection?.value.copy(grade.sunDirection);
     }
     for (const light of scene.children) if (light instanceof HemisphereLight) {
       light.color.copy(grade.hemiSky);

@@ -329,7 +329,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     fog.near = distances.near;
     fog.far = distances.far;
     paper?.setFog?.(distances);
-    sky.update(grade);
+    // B2-162: clouds drift with dt and stop under reduced motion.
+    sky.update(grade, dt, reducedMotion);
     coastMist.update(t, player, grade);
     paper?.setGrade(grade);
     paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });
