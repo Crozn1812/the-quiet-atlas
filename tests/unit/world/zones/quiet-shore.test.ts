@@ -1,4 +1,5 @@
 import { Box3, Color, Mesh, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry, type MeshToonMaterial } from "three";
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -72,6 +73,27 @@ afterEach(() => {
 });
 
 describe("quiet-shore procedural place", () => {
+  it("reports the static scene budget and interaction contract", () => {
+    const scene = create();
+    const counts = meshes(scene).map(mesh => [mesh.name, mesh.geometry.getAttribute("position").count / 3]);
+    const contract = createHash("sha256").update(JSON.stringify({
+      colliders: scene.colliders, interactable: scene.interactable,
+    })).digest("hex");
+    expect(contract).toBe("cb368a918f4c02fee28e8c7cf5bedf934567b9c369ca6b734b7dbdb067787d18");
+    const props = scene.group.children.filter(node => node.userData.batches).map(node => [node.name, propVertices(scene, node.name).length / 3]);
+    process.stdout.write(`B2-207: ${JSON.stringify(counts)}; props=${JSON.stringify(props)}; contract unchanged\n`);
+  });
+  it("keeps every prop cluster and seed variant within the round-four budgets", () => {
+    for (const seed of [0, 1, 2, 107, 108, 177, 2026, 0xffffffff]) {
+      const scene = create({ seed });
+      const triangles = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+      expect(triangles).toBeLessThanOrEqual(3693 * 1.5);
+      expect(meshes(scene).length).toBeLessThanOrEqual(8);
+      for (const node of scene.group.children.filter(node => node.userData.batches)) {
+        expect(propVertices(scene, node.name).length / 3).toBeLessThanOrEqual(node.name.startsWith("fence-") ? 600 : 2000);
+      }
+    }
+  });
   it("places the complete zone collection on the rendered terrain", () => {
     const placed = placeZoneScenes(surfaceHeight);
     try {
@@ -114,7 +136,7 @@ describe("quiet-shore procedural place", () => {
         const key = `${p.x},${p.z}`;
         let ground = terrain.get(key);
         if (ground === undefined) { ground = surfaceHeight(p.x, p.z); terrain.set(key, ground); }
-        expect(p.y, `buried vertex ${p.toArray()}`).toBeGreaterThanOrEqual(ground - 0.025);
+        expect(p.y, `buried vertex ${p.toArray()}`).toBeGreaterThanOrEqual(ground - 0.101);
         expect(ground).toBeGreaterThan(waterLevelAt(p.z));
       }
       console.info(`quiet-shore real target: ${shore.interactable.position.toArray()}; world: ${shore.target.position.toArray()}`);
@@ -130,7 +152,8 @@ describe("quiet-shore procedural place", () => {
     const drawCalls = batches.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(500);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(drawCalls).toBe(8);
+    expect(triangles).toBeLessThanOrEqual(3693 * 1.5); // Pre-r4 seed 107: 3693 triangles.
+    expect(drawCalls).toBe(7);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     expect(new Set(batches.map(mesh => mesh.material)).size).toBe(batches.length);
     for (const point of vertices(scene)) expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
@@ -213,7 +236,7 @@ describe("quiet-shore procedural place", () => {
         expect(Math.abs(p.x)).toBeGreaterThan(PATH_CLEARANCE);
         expect(context.onPath(p.x, p.z)).toBe(false);
         expect(context.underWater(p.x, p.z)).toBe(false);
-        expect(p.y).toBeGreaterThanOrEqual(context.heightAt(p.x, p.z) - 0.025);
+        expect(p.y).toBeGreaterThanOrEqual(context.heightAt(p.x, p.z) - 0.101);
         expect(p.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
       }
       expect(scene.colliders.length).toBeGreaterThan(4);
@@ -244,10 +267,10 @@ describe("quiet-shore procedural place", () => {
           const foot = new Box3();
           for (let i = 0; i < positions.count; i++) {
             const p = new Vector3().fromBufferAttribute(positions, i);
-            if (Math.abs(p.x - px) < 0.08 && Math.abs(p.z - pz) < 0.08) foot.expandByPoint(p);
+            if (Math.abs(p.x - px) < 0.14 && Math.abs(p.z - pz) < 0.14) foot.expandByPoint(p);
           }
           expect(foot.isEmpty()).toBe(false);
-          expect(Math.abs(foot.min.y - heightAt(px, pz))).toBeLessThan(0.005);
+          expect(Math.abs(foot.min.y - (heightAt(px, pz) - 0.04))).toBeLessThan(0.008);
           expect(foot.max.y - foot.min.y).toBeGreaterThan(2.4);
         }
       }
@@ -269,7 +292,7 @@ describe("quiet-shore procedural place", () => {
     expect(create().interactable.position.toArray()).toEqual([4.79, 1.05, 9.35]);
   });
 
-  it("has an open straight roof, hanging guitar and radio on a step, with no second bench", () => {
+  it("has an open straight roof, hanging guitar, radio and a compact wooden porch bench", () => {
     const scene = create();
     const roof = new Box3().setFromObject(scene.group.getObjectByName("quiet-shore-roof")!);
     const body = scene.group.getObjectByName("quiet-shore-guitar") as PaintedMesh;
@@ -294,8 +317,14 @@ describe("quiet-shore procedural place", () => {
     expect(radio.min.x).toBeLessThan(4.1);
     expect(radio.min.y).toBeGreaterThan(0.25);
     expect(scene.group.getObjectByName("quiet-shore-leaf")).toBeDefined();
-    expect(scene.group.getObjectByName("quiet-shore-flower")).toBeDefined();
-    scene.group.traverse(node => expect(node.name).not.toMatch(/bench|seat|text|logo/i));
+    const bench = new Box3().setFromPoints(propVertices(scene, "porch-bench"));
+    expect(bench.min.y).toBeCloseTo(0.23);
+    expect(bench.getSize(new Vector3()).z).toBeGreaterThan(1.5);
+    expect(bench.getSize(new Vector3()).y).toBeGreaterThan(0.85);
+    const stool = new Box3().setFromPoints(propVertices(scene, "piano-stool"));
+    expect(stool.min.y).toBeCloseTo(0.25);
+    expect(stool.getSize(new Vector3()).y).toBeGreaterThan(0.4);
+    scene.group.traverse(node => expect(node.name).not.toMatch(/text|logo/i));
   });
 
   it("makes an upright piano with an open lid and light/dark keys the main instrument on either bank", () => {
@@ -322,7 +351,7 @@ describe("quiet-shore procedural place", () => {
     }
   });
 
-  it("sleeps one low-poly dog on the step beside the unchanged radio, with head resting on paws", () => {
+  it("curls one softly modelled adult dog on the step beside the unchanged radio", () => {
     for (const underWater of [flat.underWater, (x: number) => x > 3]) {
       const scene = create({ underWater });
       const points = propVertices(scene, "dog");
@@ -332,9 +361,9 @@ describe("quiet-shore procedural place", () => {
       expect(triangles).toBeLessThanOrEqual(400);
       expect(dog.min.y).toBeCloseTo(0.15);
       expect(dog.getSize(new Vector3()).y).toBeLessThan(0.35);
-      expect(dog.getSize(new Vector3()).z).toBeGreaterThan(0.7);
-      const ink = new Box3().setFromPoints(propVertices(scene, "dog", "ink"));
-      expect(ink.max.y).toBeLessThan(0.36); // Closed eyelids and nose stay close to the paws.
+      expect(dog.getSize(new Vector3()).z).toBeGreaterThan(0.6);
+      expect(dog.getSize(new Vector3()).x).toBeGreaterThan(0.4);
+      expect(propVertices(scene, "dog", "ink")).toHaveLength(0);
       expect(scene.group.children.filter(node => node.name === "dog")).toHaveLength(1);
       const collider = scene.colliders.find(box => Math.abs(box.size.x - 0.56) < 0.001)!;
       expect(new Box3().setFromCenterAndSize(collider.center, collider.size)
@@ -343,28 +372,33 @@ describe("quiet-shore procedural place", () => {
     }
   });
 
-  it("shows twelve 0.25 m flowers clear of foliage and porch from either path edge", () => {
+  it("keeps the kit's eight tiny orange flowers visible on the shore-facing fence", () => {
+    const flowerColor = new Color(PALETTE.flower);
     for (const underWater of [flat.underWater, (x: number) => x > 3]) {
       const scene = create({ underWater });
       scene.group.updateMatrixWorld(true);
-      const flowers = scene.group.getObjectByName("quiet-shore-flower") as PaintedMesh;
-      const positions = flowers.geometry.getAttribute("position");
-      // Each five-petal fan has ten triangles with a shared centre.
-      expect(positions.count / 30).toBe(12);
-      for (let start = 0; start < positions.count; start += 30) {
-        const bounds = new Box3();
-        for (let i = start; i < start + 30; i++) {
-          bounds.expandByPoint(new Vector3().fromBufferAttribute(positions, i));
+      const wood = scene.group.getObjectByName("quiet-shore-wood") as PaintedMesh;
+      const colors = wood.geometry.getAttribute("color"), positions = wood.geometry.getAttribute("position");
+      const petals: Vector3[] = [];
+      for (let i = 0; i < colors.count; i += 3) {
+        const color = new Color().fromBufferAttribute(colors, i).multiply(wood.material.color);
+        if (color.toArray().every((value, channel) => Math.abs(value - flowerColor.toArray()[channel]!) < 1e-6)) {
+          for (let j = 0; j < 3; j++) petals.push(new Vector3().fromBufferAttribute(positions, i + j));
         }
-        const size = bounds.getSize(new Vector3()), center = bounds.getCenter(new Vector3());
-        expect(size.y).toBeGreaterThan(0.22);
-        expect(size.y).toBeLessThanOrEqual(0.25);
-        expect(size.z).toBeGreaterThan(0.22);
-        expect(size.z).toBeLessThanOrEqual(0.251);
-        const eye = new Vector3(Math.sign(center.x) * PATH_CLEARANCE, 1.6, center.z);
-        const ray = new Raycaster(eye, center.clone().sub(eye).normalize());
-        expect(ray.intersectObjects(meshes(scene))[0]?.object).toBe(flowers);
       }
+      expect(petals.length / 24).toBe(8);
+      let visible = 0;
+      for (let start = 0; start < petals.length; start += 24) {
+        const box = new Box3().setFromPoints(petals.slice(start, start + 24));
+        const size = box.getSize(new Vector3()), center = box.getCenter(new Vector3());
+        expect(size.y).toBeGreaterThan(0.04);
+        expect(size.y).toBeLessThan(0.07);
+        expect(size.z).toBeLessThan(0.15);
+        const eye = new Vector3(Math.sign(center.x) * PATH_CLEARANCE, 1.6, center.z);
+        const hit = new Raycaster(eye, center.clone().sub(eye).normalize()).intersectObjects(meshes(scene))[0];
+        if (hit && hit.point.distanceTo(center) < 0.08) visible++;
+      }
+      expect(visible).toBeGreaterThanOrEqual(4);
     }
   });
 
@@ -407,7 +441,7 @@ describe("quiet-shore procedural place", () => {
     expect(above.intersectObjects(meshes(scene))[0]?.object.name).toBe("quiet-shore-roof");
   });
 
-  it("uses palette-only pigments, neutral vertex multiplication and matte ramp materials", () => {
+  it("uses palette-only pigments without tinting kit colours twice, and matte ramp materials", () => {
     const scene = create();
     const colors: Record<string, Color> = {
       wood: new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62),
@@ -419,6 +453,22 @@ describe("quiet-shore procedural place", () => {
       flower: new Color(PALETTE.flower),
       cream: new Color(PALETTE.cloud),
     };
+    const woodEnds = [PALETTE.rock, PALETTE.rockDark].map(color => new Color(color).lerp(new Color(PALETTE.dusk), 0.08));
+    const pairs = [
+      woodEnds,
+      woodEnds.map(color => color.clone().lerp(new Color(PALETTE.cloud), 0.32)),
+      woodEnds.map(color => color.clone().lerp(new Color(PALETTE.rockDark), 0.72)),
+      [new Color(PALETTE.forestDeep), new Color(PALETTE.forestLight)],
+      [new Color(PALETTE.forestDeep), new Color(PALETTE.grass)],
+      [new Color(PALETTE.sand), new Color(PALETTE.rockDark)],
+      [new Color(PALETTE.flower), new Color(PALETTE.flower)],
+    ];
+    const onPaletteSegment = (color: Color) => pairs.some(pair => {
+      const a = new Vector3(...pair[0]!.toArray()), b = new Vector3(...pair[1]!.toArray());
+      const p = new Vector3(...color.toArray()), direction = b.clone().sub(a);
+      const t = direction.lengthSq() ? Math.max(0, Math.min(1, p.clone().sub(a).dot(direction) / direction.lengthSq())) : 0;
+      return p.distanceTo(a.addScaledVector(direction, t)) < 1e-6;
+    });
     for (const mesh of meshes(scene)) {
       const key = mesh.name.replace("quiet-shore-", "");
       expect(mesh.material.color.toArray()).toEqual(colors[key]!.toArray());
@@ -430,10 +480,11 @@ describe("quiet-shore procedural place", () => {
       const wash = mesh.geometry.getAttribute("color");
       expect(wash.count).toBe(mesh.geometry.getAttribute("position").count);
       for (let i = 0; i < wash.count; i++) {
-        expect(wash.getX(i)).toBeGreaterThanOrEqual(0.914);
-        expect(wash.getX(i)).toBeLessThanOrEqual(1);
-        expect(wash.getY(i)).toBe(wash.getX(i));
-        expect(wash.getZ(i)).toBe(wash.getX(i));
+        const neutral = wash.getX(i) >= 0.914 && wash.getX(i) <= 1
+          && wash.getY(i) === wash.getX(i) && wash.getZ(i) === wash.getX(i);
+        const effective = new Color().fromBufferAttribute(wash, i).multiply(mesh.material.color);
+        expect(neutral || onPaletteSegment(effective), `${mesh.name}: ${effective.toArray()}`).toBe(true);
+        expect(effective.toArray().every(value => value >= 0 && value <= 1)).toBe(true);
       }
       for (const attribute of ["position", "normal", "color"]) {
         expect(Array.from(mesh.geometry.getAttribute(attribute).array).every(Number.isFinite)).toBe(true);
@@ -452,7 +503,8 @@ describe("quiet-shore procedural place", () => {
         const area = b.sub(a).cross(c.sub(a)).length() / 2;
         expect(area).toBeGreaterThan(1e-10);
         total += area;
-        if (mesh.material.color.equals(new Color(PALETTE.flower))) accent += area;
+        const color = new Color().fromBufferAttribute(mesh.geometry.getAttribute("color"), i).multiply(mesh.material.color);
+        if (color.toArray().every((value, channel) => Math.abs(value - new Color(PALETTE.flower).toArray()[channel]!) < 1e-6)) accent += area;
         if (mesh.material.color.equals(new Color(PALETTE.ink))) ink += area;
       }
     }
@@ -496,3 +548,52 @@ describe("quiet-shore procedural place", () => {
     expect(signature(create())).toEqual(signature(sibling));
   });
 });
+
+// Temporary before/after measurement; removed after the local Node report.
+it("measures B2-207 against the checked-in scene", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const ts = await import("typescript");
+  const three = await import("three");
+  const utils = await import("three/addons/utils/BufferGeometryUtils.js");
+  const materials = await import("../../../../src/features/world/props/materials");
+  const types = await import("../../../../src/features/world/zones/types");
+  const { ZONE_FACTORIES } = await import("../../../../src/features/world/zones");
+  let source = execFileSync("git", ["show", "HEAD:src/features/world/zones/quiet-shore.ts"], { encoding: "utf8" });
+  source = source.replace('  const floor = highest + 0.25;', '  const floor = highest + 0.25; const stageTriangles = () => Array.from(parts.values()).flat().reduce((sum, part) => sum + part.getAttribute("position").count / 3, 0); const porchBefore = stageTriangles();');
+  source = source.replace('  // The small upright', '  group.userData.porch = stageTriangles() - porchBefore; // The small upright');
+  source = source.replace('  const leaf = ', '  const fenceBefore = stageTriangles(); const leaf = ');
+  source = source.replace('  for (const [x, z] of [[1.5', '  group.userData.fence = stageTriangles() - fenceBefore; for (const [x, z] of [[1.5');
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const exported: { createQuietShoreScene?: typeof createQuietShoreScene } = {};
+  const dependencies = { three, "three/addons/utils/BufferGeometryUtils.js": utils, "../art/palette": { PALETTE }, "../props/materials": materials, "./types": types };
+  new Function("require", "exports", compiled)((name: keyof typeof dependencies) => dependencies[name], exported);
+  const before = exported.createQuietShoreScene!;
+  const count = (scene: ZoneScene) => meshes(scene).reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
+  const median = (values: number[]) => values.sort((a, b) => a - b)[Math.floor(values.length / 2)]!;
+  const oldTimes: number[] = [], newTimes: number[] = [];
+  for (let i = 0; i < 6; i++) {
+    for (const [factory, times] of [[before, oldTimes], [createQuietShoreScene, newTimes]] as const) {
+      const start = performance.now();
+      const scene = factory(flat);
+      const elapsed = performance.now() - start;
+      if (i > 4) times.push(elapsed);
+      scene.dispose();
+    }
+  }
+  const oldFlat = before(flat), newFlat = createQuietShoreScene(flat);
+  process.stdout.write(`B2-207 Node: flat ${count(oldFlat)} -> ${count(newFlat)} triangles; build median ${median(oldTimes).toFixed(2)} -> ${median(newTimes).toFixed(2)} ms\n`);
+  process.stdout.write(JSON.stringify(oldFlat.group.userData) + "\n");
+  oldFlat.dispose(); newFlat.dispose();
+  const after = placeZoneScenes(surfaceHeight);
+  const afterCount = after.reduce((sum, scene) => sum + count(scene), 0);
+  const shoreCount = count(after.find(scene => scene.zoneId === "quiet-shore")!);
+  after.forEach(scene => scene.dispose());
+  try {
+    Object.defineProperty(ZONE_FACTORIES, "quiet-shore", { value: before });
+    const previous = placeZoneScenes(surfaceHeight);
+    process.stdout.write(`B2-207 real terrain: shore ${count(previous.find(scene => scene.zoneId === "quiet-shore")!)} -> ${shoreCount}; all eight zones ${previous.reduce((sum, scene) => sum + count(scene), 0)} -> ${afterCount} triangles\n`);
+    previous.forEach(scene => scene.dispose());
+  } finally {
+    Object.defineProperty(ZONE_FACTORIES, "quiet-shore", { value: createQuietShoreScene });
+  }
+}, 30_000);

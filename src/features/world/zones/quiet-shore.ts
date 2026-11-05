@@ -1,11 +1,12 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry,
-  Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, OctahedronGeometry, Quaternion, Shape, TorusGeometry, Vector3,
+  Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Quaternion, Shape, TorusGeometry, Vector3,
   type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
+import { createBenchGeometry, createFenceSpanGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
   type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
@@ -14,21 +15,23 @@ import {
 type Point = readonly [number, number, number];
 type Surface = "wood" | "roof" | "leaf" | "piano" | "guitar" | "ink" | "flower" | "cream";
 
+function pigmentColor(surface: Surface): Color {
+  switch (surface) {
+    case "wood": return new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62);
+    case "roof": return new Color(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.32);
+    case "leaf": return new Color(PALETTE.grass);
+    case "piano": return new Color(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.45);
+    case "guitar": return new Color(PALETTE.dusk).lerp(new Color(PALETTE.sand), 0.45);
+    case "ink": return new Color(PALETTE.ink);
+    case "flower": return new Color(PALETTE.flower);
+    case "cream": return new Color(PALETTE.cloud);
+  }
+}
+
 function pigment(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
-  switch (surface) {
-    case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62); break;
-    case "roof": material.color.set(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.32); break;
-    case "leaf":
-      material.color.set(PALETTE.grass);
-      material.side = DoubleSide;
-      break;
-    case "piano": material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.45); break;
-    case "guitar": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.sand), 0.45); break;
-    case "ink": material.color.set(PALETTE.ink); break;
-    case "flower": material.color.set(PALETTE.flower); material.side = DoubleSide; break;
-    case "cream": material.color.set(PALETTE.cloud); break;
-  }
+  material.color.copy(pigmentColor(surface));
+  if (surface === "leaf" || surface === "flower") material.side = DoubleSide;
   return material;
 }
 
@@ -46,6 +49,20 @@ function timber(width: number, height: number, depth: number): BufferGeometry {
     depth: depth - 2 * bevel, bevelEnabled: true, bevelSize: bevel,
     bevelThickness: bevel, bevelSegments: 1, steps: 1, curveSegments: 1,
   }).translate(0, 0, -depth / 2 + bevel);
+}
+
+/** Fit the shared chamfer/grain kit to joinery; its length and face colours survive. */
+function fitPlank(size: Point, template: BufferGeometry): BufferGeometry {
+  const axis = size[1] > Math.max(size[0], size[2]) ? 1 : size[2] > size[0] ? 2 : 0;
+  const geometry = template.clone();
+  if (axis === 1) geometry.rotateZ(Math.PI / 2);
+  if (axis === 2) geometry.rotateY(Math.PI / 2);
+  geometry.computeBoundingBox();
+  const bounds = geometry.boundingBox!;
+  const center = bounds.getCenter(new Vector3());
+  const extent = bounds.getSize(new Vector3());
+  return geometry.translate(-center.x, -center.y, -center.z)
+    .scale(size[0] / extent.x, size[1] / extent.y, size[2] / extent.z);
 }
 
 function rod(start: Point, end: Point, radius: number): BufferGeometry {
@@ -81,12 +98,17 @@ function porchSite(context: ZoneSceneContext) {
   throw new RangeError("quiet-shore needs a dry porch footprint beside the walking corridor");
 }
 
-/** Eight static pigment batches. No bench: the nearby Unwritten Page owns that silhouette. */
+/** Static joinery and instruments, sharing the original eight pigment batches. */
 export const createQuietShoreScene: ZoneSceneFactory = context => {
   const site = porchSite(context);
   const group = new Group();
   group.name = "quiet-shore";
   const parts = new Map<Surface, BufferGeometry[]>();
+  const tints = new Map<Surface, Color>();
+  // Three shared kit variants retain bows/grain without rebuilding the kit for every board.
+  const plankVariants = Array.from({ length: 3 }, (_, i) => createPlankGeometry(1, context.seed + i * 101));
+  const joinery = (size: Point, seed: number) => fitPlank(size, plankVariants[((seed % 3) + 3) % 3]!);
+  const darkWood = new Color(PALETTE.rockDark);
   const colliders: ZoneCollider[] = [];
   let state = context.seed >>> 0;
   const random = () => {
@@ -105,8 +127,25 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     if (normalized !== geometry) geometry.dispose();
     normalized.deleteAttribute("uv");
     const positions = normalized.getAttribute("position");
+    const kitColors = normalized.getAttribute("color");
+    let tint = tints.get(surface);
+    if (kitColors && !tint) {
+      tint = pigmentColor(surface);
+      tints.set(surface, tint);
+    }
     const colors: number[] = [];
     for (let i = 0; i < positions.count; i++) {
+      if (kitColors && tint) {
+        let r = kitColors.getX(i), g = kitColors.getY(i), b = kitColors.getZ(i);
+        if (surface === "piano") {
+          r = r * 0.28 + darkWood.r * 0.72;
+          g = g * 0.28 + darkWood.g * 0.72;
+          b = b * 0.28 + darkWood.b * 0.72;
+        }
+        // Undo the legacy batch tint, so shared kit wood/vine pigments are not tinted twice.
+        colors.push(r / tint.r, g / tint.g, b / tint.b);
+        continue;
+      }
       const wash = surface === "flower" ? 1
         : 0.955 + Math.sin(positions.getX(i) * 7 + positions.getZ(i) * 9) * 0.025
           + Math.sin(positions.getY(i) * 17) * 0.015;
@@ -117,10 +156,8 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     batch.push(normalized);
     parts.set(surface, batch);
   };
-  const board = (size: Point, center: Point, surface: Surface = "wood", tilt = 0) =>
-    add(timber(...size).rotateZ(tilt).translate(...center), surface);
   const groundedBoard = (size: Point, center: Point) => {
-    const geometry = timber(...size).translate(...center);
+    const geometry = joinery(size, context.seed + Math.round(center[0] * 31 + center[2] * 79)).translate(...center);
     const positions = geometry.getAttribute("position");
     const ground = new Map<string, number>();
     // Scribe the foot/step to the rendered slope, including its uphill corners.
@@ -128,7 +165,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
       const x = positions.getX(i), z = positions.getZ(i), key = `${x},${z}`;
       let y = ground.get(key);
       if (y === undefined) { y = height(x, z); ground.set(key, y); }
-      positions.setY(i, Math.max(positions.getY(i), y));
+      positions.setY(i, Math.max(positions.getY(i), y - 0.04));
     }
     geometry.computeVertexNormals();
     add(geometry, "wood");
@@ -157,46 +194,80 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     for (let z = -1.8; z <= 1.8; z += 0.25) highest = Math.max(highest, height(x, z));
   }
   const floor = highest + 0.25;
-  for (let i = 0; i < 9; i++) {
-    board([2.9 - (i % 3) * 0.015, 0.11, 0.35], [0, floor - 0.055, (i - 4) * 0.37]);
-  }
-  for (const x of [-1.24, 1.24]) {
-    for (const z of [-1.42, 1.42]) {
-      const bottom = height(x, z), top = floor + 2.48 + x * 0.06;
-      groundedBoard([0.14, top - bottom, 0.14], [x, (top + bottom) / 2, z]);
+  const moss = (center: Point, size: Point, seed: number) => {
+    const geometry = new IcosahedronGeometry(1, 0).scale(...size).translate(...center);
+    const color = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), (seed % 3) * 0.14 + 0.2);
+    geometry.setAttribute("color", new Float32BufferAttribute(
+      Array.from({ length: geometry.getAttribute("position").count }, () => color.toArray()).flat(), 3));
+    const positions = geometry.getAttribute("position");
+    // Ground moss sinks into the slope while roof moss sits on its supporting planks.
+    if (center[1] < floor) {
+      for (let i = 0; i < positions.count; i++) {
+        positions.setY(i, Math.max(positions.getY(i), height(positions.getX(i), positions.getZ(i)) - 0.03));
+      }
+      geometry.computeVertexNormals();
     }
-    board([0.15, 0.16, 3.08], [x, floor + 2.32 + x * 0.06, 0]);
-  }
-  // Straight mono-pitch, weathered white timber roof; open sides preserve the sea vista.
-  for (let i = 0; i < 8; i++) {
-    const plank = timber(3.65, 0.12, 0.46).rotateZ(0.06)
-      .translate(0, floor + 2.53, (i - 3.5) * 0.465);
-    const positions = plank.getAttribute("position"), normals = plank.getAttribute("normal");
-    const faces = { roof: { position: [] as number[], normal: [] as number[] },
-      ink: { position: [] as number[], normal: [] as number[] } };
-    // Repaint existing downward faces, including their bevels: no overlapping ceiling mesh.
-    for (let j = 0; j < positions.count; j += 3) {
-      const face = faces[normals.getY(j) + normals.getY(j + 1) + normals.getY(j + 2) < -1.5 ? "ink" : "roof"];
-      for (let k = j; k < j + 3; k++) {
-        face.position.push(positions.getX(k), positions.getY(k), positions.getZ(k));
-        face.normal.push(normals.getX(k), normals.getY(k), normals.getZ(k));
+    add(geometry, "leaf");
+  };
+  batchedProp("porch", [0, highest, 0], () => {
+    for (let i = 0; i < 6; i++) {
+      add(joinery([2.9 - (i % 3) * 0.015, 0.11, 0.54], context.seed + i)
+        .translate(0, floor - 0.055, (i - 2.5) * 0.55), "wood");
+    }
+    for (const x of [-1.24, 1.24]) {
+      for (const z of [-1.42, 1.42]) {
+        const bottom = height(x, z) - 0.04, top = floor + 2.48 + x * 0.06;
+        groundedBoard([0.24, top - bottom, 0.24], [x, (top + bottom) / 2, z]);
+        for (const offset of [-0.15, 0.15]) {
+          const mx = x + offset, mz = z + 0.13;
+          moss([mx, height(mx, mz) - 0.015, mz], [0.13, 0.045, 0.1], context.seed + Math.round((x + z) * 100));
+        }
+      }
+      add(joinery([0.2, 0.2, 3.08], context.seed + Math.round(x * 100))
+        .translate(x, floor + 2.32 + x * 0.06, 0), "wood");
+    }
+    for (let i = 0; i < 3; i++) {
+      const x = 0.8 + (i % 3) * 0.31, z = (i - 2) * 0.53;
+      moss([x, floor + 2.61 + x * 0.06, z], [0.28, 0.045, 0.17], context.seed + i);
+    }
+    // Straight mono-pitch, weathered white timber roof; open sides preserve the sea vista.
+    for (let i = 0; i < 5; i++) {
+      const plank = joinery([3.65, 0.12, 0.738], context.seed + 101 + i).rotateZ(0.06)
+        .translate(0, floor + 2.53, (i - 2) * 0.744);
+      const positions = plank.getAttribute("position"), normals = plank.getAttribute("normal");
+      const grain = plank.getAttribute("color");
+      const faces = { roof: { position: [] as number[], normal: [] as number[], color: [] as number[] },
+        ink: { position: [] as number[], normal: [] as number[], color: [] as number[] } };
+      // Repaint existing downward faces, including their bevels: no overlapping ceiling mesh.
+      for (let j = 0; j < positions.count; j += 3) {
+        const face = faces[normals.getY(j) + normals.getY(j + 1) + normals.getY(j + 2) < -1.5 ? "ink" : "roof"];
+        for (let k = j; k < j + 3; k++) {
+          face.position.push(positions.getX(k), positions.getY(k), positions.getZ(k));
+          face.normal.push(normals.getX(k), normals.getY(k), normals.getZ(k));
+          const color = new Color().fromBufferAttribute(grain, k).lerp(new Color(PALETTE.cloud), 0.32);
+          face.color.push(color.r, color.g, color.b);
+        }
+      }
+      plank.dispose();
+      for (const surface of ["roof", "ink"] as const) {
+        const geometry = new BufferGeometry();
+        geometry.setAttribute("position", new Float32BufferAttribute(faces[surface].position, 3));
+        geometry.setAttribute("normal", new Float32BufferAttribute(faces[surface].normal, 3));
+        if (surface === "roof") geometry.setAttribute("color", new Float32BufferAttribute(faces[surface].color, 3));
+        add(geometry, surface);
       }
     }
-    plank.dispose();
-    for (const surface of ["roof", "ink"] as const) {
-      const geometry = new BufferGeometry();
-      geometry.setAttribute("position", new Float32BufferAttribute(faces[surface].position, 3));
-      geometry.setAttribute("normal", new Float32BufferAttribute(faces[surface].normal, 3));
-      add(geometry, surface);
+    for (const z of [-1.42, 1.42]) {
+      add(joinery([2.65, 0.18, 0.16], context.seed + Math.round(z * 100))
+        .rotateZ(0.06).translate(0, floor + 2.31, z), "wood");
+      add(rod([0.65, floor + 2.35, z], [1.24, floor + 1.76, z], 0.045), "wood");
     }
-  }
-  for (const z of [-1.42, 1.42]) {
-    board([2.65, 0.12, 0.12], [0, floor + 2.31, z], "wood", 0.06);
-    add(rod([0.65, floor + 2.35, z], [1.24, floor + 1.76, z], 0.045), "wood");
-  }
+    const stepGround = Math.max(height(-1.79, -0.9), height(-1.79, 0.9));
+    const stepTop = Math.max(floor - 0.1, stepGround + 0.08);
+    groundedBoard([0.68, stepTop - stepGround, 2.0], [-1.76, (stepTop + stepGround) / 2, 0]);
+  });
   const stepGround = Math.max(height(-1.79, -0.9), height(-1.79, 0.9));
   const stepTop = Math.max(floor - 0.1, stepGround + 0.08);
-  groundedBoard([0.68, stepTop - stepGround, 2.0], [-1.76, (stepTop + stepGround) / 2, 0]);
   collider([0, (floor + highest) / 2, 0], [2.9, floor - highest, 3.32]);
   collider([-1.76, (stepTop + stepGround) / 2, 0], [0.68, stepTop - stepGround, 2]);
   for (const x of [-1.24, 1.24]) {
@@ -211,18 +282,23 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     const pianoPart = (part: BufferGeometry, surface: Surface) =>
       add(part.rotateY(-Math.PI / 2).translate(-0.85, floor, 0.35), surface);
     const pianoBox = (size: Point, center: Point, surface: Surface = "piano") =>
-      pianoPart(new BoxGeometry(...size).translate(...center), surface);
+      pianoPart((surface === "piano" ? joinery(size, context.seed + Math.round(center[1] * 100 + center[0] * 51))
+        : new BoxGeometry(...size)).translate(...center), surface);
     pianoBox([1.28, 1.12, 0.31], [0, 0.66, -0.04]);
     for (const x of [-0.57, 0.57]) {
       pianoBox([0.11, 0.16, 0.48], [x, 0.08, 0.04]);
-      pianoBox([0.09, 0.74, 0.14], [x, 0.53, 0.24]);
+      pianoPart(createPostGeometry(0.74, (context.seed + (x < 0 ? 5 : 17)) * 3)
+        .scale(0.55, 1, 0.8).translate(x, 0.16, 0.24), "piano");
     }
     pianoBox([1.3, 0.07, 0.33], [0, 0.72, 0.19]);
     pianoBox([1.1, 0.07, 0.05], [0, 0.83, 0.16], "ink");
     // Open hinge at the rear; the raised front exposes a dark interior below the lid.
     pianoBox([1.15, 0.025, 0.25], [0, 1.225, -0.04], "ink");
-    pianoPart(new BoxGeometry(1.3, 0.045, 0.36).translate(0, 0, 0.18)
+    pianoPart(joinery([1.3, 0.045, 0.36], context.seed + 213).translate(0, 0, 0.18)
       .rotateX(-0.55).translate(0, 1.24, -0.21), "piano");
+    // Raised fallboard above the keys, distinct from the cabinet's top lid.
+    pianoPart(joinery([1.11, 0.19, 0.035], context.seed + 214)
+      .rotateX(-0.16).translate(0, 0.92, 0.13), "piano");
     for (let i = 0; i < 14; i++) {
       pianoBox([0.073, 0.035, 0.23], [(i - 6.5) * 0.078, 0.773, 0.23], "cream");
       if ([0, 1, 3, 4, 5].includes(i % 7)) {
@@ -230,6 +306,18 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
       }
     }
     collider([-0.85, floor + 0.73, 0.35], [0.72, 1.46, 1.3]);
+  });
+  // A tucked-in stool and a compact porch bench stay within the existing deck collider.
+  batchedProp("piano-stool", [-0.35, floor, 0.35], () => {
+    add(joinery([0.32, 0.075, 0.47], context.seed + 220).translate(-0.35, floor + 0.39, 0.35), "piano");
+    for (const x of [-0.45, -0.25]) for (const z of [0.2, 0.5]) {
+      add(createPostGeometry(0.36, (context.seed + Math.round((x + z) * 100)) * 3)
+        .scale(0.36, 1, 0.36).translate(x, floor, z), "piano");
+    }
+  });
+  batchedProp("porch-bench", [0.7, floor, 0], () => {
+    add(createBenchGeometry(context.seed + 230).rotateY(-Math.PI / 2)
+      .translate(0.7, floor - 0.02, 0), "wood");
   });
 
   // A smaller hanging acoustic beside the piano, with its waist, hole and six strings retained.
@@ -275,22 +363,24 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   collider([-1.76, stepTop + 0.305 * radioScale, radioZ],
     [0.39 * radioScale, 0.61 * radioScale, 0.7 * radioScale]);
 
-  // One anonymous sleeping dog: low body, head on forepaws, floppy ears and closed eyes.
+  // A sand-coloured adult dog curled into its tail; no oversized eyes or graphic face.
   batchedProp("dog", [-1.76, stepTop, 0.54], () => {
-    const dogPart = (part: BufferGeometry, surface: Surface = "guitar") =>
-      add(part.translate(-1.76, stepTop, 0.54), surface);
-    dogPart(new IcosahedronGeometry(1, 0).scale(0.22, 0.16, 0.3).translate(0, 0.17, -0.04));
-    for (const x of [-0.095, 0.095]) {
-      dogPart(new BoxGeometry(0.11, 0.07, 0.23).translate(x, 0.035, 0.28));
-      dogPart(new OctahedronGeometry(1, 0).scale(0.065, 0.11, 0.09)
-        .rotateZ(x < 0 ? -0.35 : 0.35).translate(x * 1.6, 0.17, 0.23), "wood");
-      dogPart(new BoxGeometry(0.055, 0.012, 0.018).translate(x * 0.8, 0.195, 0.363), "ink");
-    }
-    dogPart(new IcosahedronGeometry(1, 0).scale(0.18, 0.12, 0.15).translate(0, 0.18, 0.25));
-    dogPart(new BoxGeometry(0.12, 0.065, 0.11).translate(0, 0.105, 0.35));
-    dogPart(new BoxGeometry(0.065, 0.04, 0.025).translate(0, 0.13, 0.415), "ink");
-    dogPart(rod([0.08, 0.12, -0.26], [0.2, 0.08, -0.3], 0.045));
-    dogPart(rod([0.2, 0.08, -0.3], [0.24, 0.07, -0.15], 0.035));
+    const dogPart = (part: BufferGeometry, shade = 0.35) => {
+      const color = new Color(PALETTE.sand).lerp(new Color(PALETTE.rockDark), shade);
+      part.setAttribute("color", new Float32BufferAttribute(
+        Array.from({ length: part.getAttribute("position").count }, () => color.toArray()).flat(), 3));
+      add(part.translate(-1.76, stepTop, 0.54), "guitar");
+    };
+    dogPart(new IcosahedronGeometry(1, 1).scale(0.235, 0.14, 0.29).translate(0.01, 0.14, -0.025));
+    dogPart(new TorusGeometry(0.17, 0.045, 4, 8, Math.PI * 1.65).rotateX(Math.PI / 2)
+      .scale(1, 1, 1.35).rotateY(-0.4).translate(0, 0.065, 0.025), 0.48);
+    dogPart(new IcosahedronGeometry(1, 1).scale(0.125, 0.085, 0.13).rotateY(-0.45)
+      .translate(-0.08, 0.105, 0.2));
+    dogPart(new IcosahedronGeometry(1, 0).scale(0.065, 0.04, 0.095).translate(-0.12, 0.04, 0.29));
+    dogPart(new IcosahedronGeometry(1, 0).scale(0.06, 0.075, 0.08).rotateZ(-0.4)
+      .translate(-0.18, 0.11, 0.19), 0.62);
+    dogPart(new IcosahedronGeometry(1, 0).scale(0.06, 0.045, 0.07).translate(-0.07, 0.08, 0.29), 0.4);
+    dogPart(new IcosahedronGeometry(1, 0).scale(0.025, 0.018, 0.023).translate(-0.085, 0.09, 0.343), 0.85);
     collider([-1.76, stepTop + 0.17, 0.58], [0.56, 0.34, 0.8]);
   });
 
@@ -337,56 +427,38 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     collider([bikeX, (bottom + top) / 2, bikeZ], [0.9, top - bottom, 2.15]);
   }
 
-  const leaf = (x: number, y: number, z: number, angle: number) => add(
-    new OctahedronGeometry(1, 0).scale(0.09, 0.18, 0.035).rotateZ(angle).rotateY(0.4).translate(x, y, z), "leaf");
   const fencePoint = (i: number): Point => [3.15 + Math.sin(i * 0.65) * 0.16, 0, (i - 3) * 2.4];
-  const posts = new Set<number>();
   for (let i = 0; i < 6; i++) {
     const a = fencePoint(i), b = fencePoint(i + 1);
     const center = localPoint((a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2);
     const halfX = Math.abs(a[0] - b[0]) / 2 + 0.28;
     if (!dryFootprint(context, center[0], center[2], halfX, 1.44)) continue;
-    for (const index of [i, i + 1]) {
-      if (posts.has(index)) continue;
-      posts.add(index);
-      const p = fencePoint(index), y = height(p[0], p[2]);
-      groundedBoard([0.13, 1.16, 0.14], [p[0], y + 0.58, p[2]]);
-    }
     const ay = height(a[0], a[2]), by = height(b[0], b[2]);
-    for (const y of [0.48, 0.93]) {
-      // Narrow five-sided rails retain the handmade fence silhouette.
-      add(rod([a[0], ay + y, a[2]], [b[0], by + y, b[2]], 0.052), "wood");
-    }
     const low = Math.min(ay, by), high = Math.max(ay, by) + 1.18;
     collider([(a[0] + b[0]) / 2, (low + high) / 2, (a[2] + b[2]) / 2],
       [halfX * 2, high - low, 2.56]);
-    // Two broad climbing patches, each with six path-facing orange flowers.
-    if (i !== 1 && i !== 4) continue;
-    for (let j = 0; j < 7; j++) {
-      const t = j / 6, x = a[0] + (b[0] - a[0]) * t - 0.09;
-      const z = a[2] + (b[2] - a[2]) * t, y = ay + (by - ay) * t + 0.6 + Math.sin(t * Math.PI) * 0.38;
-      if (j > 0) {
-        const previous = (j - 1) / 6;
-        add(rod([a[0] + (b[0] - a[0]) * previous - 0.09,
-          ay + (by - ay) * previous + 0.6 + Math.sin(previous * Math.PI) * 0.38,
-          a[2] + (b[2] - a[2]) * previous], [x, y, z], 0.012), "leaf");
+    if (i % 2 !== 0) continue;
+    const end = fencePoint(i + 2);
+    const spanX = (a[0] + end[0]) / 2, spanZ = (a[2] + end[2]) / 2;
+    const spanCenter = localPoint(spanX, 0, spanZ);
+    if (!dryFootprint(context, spanCenter[0], spanCenter[2],
+      Math.abs(a[0] - end[0]) / 2 + 0.28, 2.64)) continue;
+    batchedProp(`fence-${i}`, [spanX, low, spanZ], () => {
+      // X-long kit spans rotate along the shore; positive kit Z faces the walking path.
+      // Pair collision spans into long shore rails; two flowering patches remain small accents.
+      const span = createFenceSpanGeometry((context.seed + i * 17) * 6 + 4, { flowers: i !== 2 });
+      span.computeBoundingBox();
+      const length = span.boundingBox!.getSize(new Vector3()).x;
+      span.scale(4.92 / length, 1, 1).rotateY(-Math.atan2(end[2] - a[2], end[0] - a[0]))
+        .translate(spanX, 0, spanZ);
+      const positions = span.getAttribute("position");
+      for (let j = 0; j < positions.count; j++) {
+        const x = positions.getX(j), z = positions.getZ(j);
+        positions.setY(j, positions.getY(j) + height(x, z) - 0.04);
       }
-      leaf(x - 0.025, y, z, (j % 2 ? 1 : -1) * 0.75);
-      leaf(x - 0.025, y - 0.17, z + 0.09, (j % 2 ? -1 : 1) * 0.85);
-      if (j > 0) {
-        const positions: number[] = [];
-        for (let k = 0; k < 10; k++) {
-          const a = k * Math.PI / 5, b = (k + 1) * Math.PI / 5;
-          const ra = k % 2 ? 0.0625 : 0.125, rb = k % 2 ? 0.125 : 0.0625;
-          positions.push(0, 0, 0, 0, Math.cos(a) * ra, Math.sin(a) * ra, 0, Math.cos(b) * rb, Math.sin(b) * rb);
-        }
-        const flower = new BufferGeometry();
-        flower.setAttribute("position", new Float32BufferAttribute(positions, 3));
-        flower.computeVertexNormals();
-        // Stand clear of the leaves and rails on the side facing the walking corridor.
-        add(flower.translate(x - 0.16, y + 0.04, z), "flower");
-      }
-    }
+      span.computeVertexNormals();
+      add(span, "wood");
+    });
   }
 
   for (const [x, z] of [[1.5, -4.4], [3, 5.4], [-0.6, 4.9]] as const) {
@@ -408,6 +480,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   }
 
   const owned: { geometry: BufferGeometry; material: MeshToonMaterial }[] = [];
+  plankVariants.forEach(geometry => geometry.dispose());
   for (const [surface, geometries] of parts) {
     const geometry = mergeGeometries(geometries, false)!;
     geometries.forEach(part => part.dispose());
