@@ -27,17 +27,23 @@ describe("world journal session", () => {
     vi.unstubAllGlobals();
   });
 
+  // CI (Node 24, 2-core runner): resolving the lazy AtlasJournal chunk can take a macrotask, which act() alone
+  // does not wait for. Each interaction therefore also yields one event-loop turn inside act (run #41955505444).
+  // Fake-timer tests drive time themselves.
+  const settle = () => vi.isFakeTimers() ? Promise.resolve() : act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
   async function mount() {
     await act(async () => { dispose = mountWorldJournal(dom.container as unknown as HTMLElement, "en"); });
+    await settle();
   }
   async function key(key: string, options: Record<string, unknown> = {}) {
     const event = new Event("keydown", { cancelable: true });
     Object.assign(event, { key, ...options });
     Object.defineProperty(event, "target", { value: dom.document.activeElement });
     await act(async () => { dom.document.dispatchEvent(event); });
+    await settle();
     return event;
   }
-  async function click(button: TestElement) { await act(async () => { button.click(); }); }
+  async function click(button: TestElement) { await act(async () => { button.click(); }); await settle(); }
   function journal() { return dom.document.querySelector("dialog[open]"); }
   function button(label: string) {
     const found = dom.shell.querySelectorAll("button").find(node => node.textContent === label);
