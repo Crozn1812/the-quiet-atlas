@@ -48,7 +48,8 @@ function randomFor(seed: number): () => number {
 
 function grassColor(): Color {
   const recipe = WORLD_DIRECTION.background.terrain;
-  return new Color(paletteColor({ ...recipe, base: "forestLight", mix: "paper" }));
+  // Lead (batch 20 review): less paper than the ground itself, or the tufts vanish into it under mist.
+  return new Color(paletteColor({ ...recipe, base: "forestLight", mix: "paper", amount: recipe.amount * 0.45 }));
 }
 
 /** 5–9 flat, tapered blades; two bent segments use 3 triangles/blade (at most 27). */
