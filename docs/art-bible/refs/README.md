@@ -19,3 +19,11 @@ Lead không truy cập được ảnh trong chat Claude Windows — chỉ đọc
 - `…07_55_18 AM.jpg` — GD110 trong công trình bê tông, ánh sáng qua song sắt, short đen, tất trắng, giày vải xanh lá, mũ + kính phi công, tote treo ghi đông → Unmarked Road, xe, trang phục chính. **Bỏ graffiti, bỏ chữ Suzuki.**
 
 Ảnh tham chiếu (Pinterest/AI — chỉ lấy cảm hứng, không dùng pixel): `…07_53_44` → `…07_54_41` (10 file .png).
+
+## Đợt 24 (2026-11-05): bờ biển, Duy gửi
+
+Nguồn ảnh: tìm trên mạng, không rõ tác giả. **Chỉ lấy cảm hứng**: không chép bố cục/khung hình, không dùng pixel.
+
+- `coast-ref-duy-2026-11-05-a.webp`: đường ven biển giờ vàng. Núi xanh cao có mây vờn đỉnh; sườn cỏ vàng xanh; bãi đá cuội, cát; đá xếp chồng; cột điện gỗ. Ánh nắng ấm, trong.
+- `coast-ref-duy-2026-11-05-b.png`: đường nhựa ven biển có vạch vàng, cột tiêu trắng đỏ phía biển. Biển xanh ngọc, trời xanh có mây trắng; núi đá dốc phủ cây xanh; mũi đất đá xa; bãi đá ven bờ.
+- Ý Duy: muốn bối cảnh **rõ, chân thật, thực tế hơn**. Hiện tại thấy sơ sài.
