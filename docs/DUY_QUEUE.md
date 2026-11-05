@@ -27,6 +27,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | Q-41 | "PRE" là chứng chỉ đánh giá năng lực đầu vào Thạc sĩ, được các trường châu Âu ưa chuộng | Web ghi chung "chứng chỉ đánh giá năng lực đầu vào", chưa ghi tên viết tắt (khi chắc tên thì gửi lại) |
 | Q-42 | Duyệt cách viết phần tính cách | Giữ nguyên |
 | Q-43 | Chỉ dùng `duybao09012004@gmail.com`, không dùng email theo tên miền | Đóng; không tạo email forwarding |
+| Q-44 | Chọn hướng **A "Tranh chân thật"** (sau khi xem ảnh đợt 24 và gửi 2 ảnh đường ven biển) | ADR 0013 bổ sung; bảng màu +14 màu tự nhiên, preset R; đợt 25 (B2-161…165) đang làm |
 
 ## Câu trả lời ngày 2026-11-04 (lượt 2) — Lead đã ghi nhận
 
