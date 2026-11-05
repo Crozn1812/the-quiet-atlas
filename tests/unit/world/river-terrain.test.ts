@@ -13,6 +13,27 @@ import {
 const keys = (tiles: Iterable<TileAddress>) => new Set(Array.from(tiles, tile => tileKey(tile.ix, tile.iz)));
 
 describe("river terrain heightmap", () => {
+  it.each(["milestones", "horizon"])("keeps the 2 m grid around %s within 35 degrees on both river banks", id => {
+    const zone = ZONES.find(zone => zone.id === id)!;
+    let maxStep = 0;
+    let maxSlope = 0;
+    // Align to the actual tile lattice, covering each landmark's full river reach,
+    // both banks, the path foundation and cells crossing the 30 m boundary.
+    for (let x = Math.floor(zone.position.x / 2) * 2 - 110; x <= zone.position.x + 110; x += 2) {
+      for (let z = Math.floor(zone.position.z / 2) * 2 - 120; z <= zone.position.z + 120; z += 2) {
+        const corners = [[x, z], [x + 2, z], [x, z + 2], [x + 2, z + 2]] as const;
+        if (corners.every(([x, z]) => nearestRiver(x, z).distance > 30)) continue;
+        const [a, b, c, d] = corners.map(([x, z]) => Math.fround(worldHeight(x, z))) as [number, number, number, number];
+        maxStep = Math.max(maxStep, Math.abs(b - a), Math.abs(c - a), Math.abs(d - b), Math.abs(d - c));
+        // Actual rendered/collider triangles use the b-c diagonal. Bounding
+        // edges alone would miss slopes combining X and Z on the same face.
+        maxSlope = Math.max(maxSlope, Math.hypot(b - a, c - a) / 2, Math.hypot(d - c, d - b) / 2);
+      }
+    }
+    expect(maxStep).toBeLessThanOrEqual(1.4);
+    expect(maxSlope).toBeLessThanOrEqual(0.7);
+  });
+
   it("is deterministic across interleaved queries and independently built tiles", () => {
     const points = Array.from({ length: 501 }, (_, i) => ({ x: -140 + i * 0.6, z: -i * 2 }));
     const first = points.map(p => worldHeight(p.x, p.z));

@@ -1,8 +1,11 @@
 import { Color, Scene, ShaderMaterial, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
+import { PATH_BRIDGES, pathLength } from "../../../src/features/world/layout/path";
 import { riverLength, riverPointAt } from "../../../src/features/world/layout/river";
+import { ZONES } from "../../../src/features/world/layout/zones";
 import { worldHeight } from "../../../src/features/world/terrain/height";
+import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createWaterMaterial, WATER_FLOW_SPEED } from "../../../src/features/world/water/material";
 import {
   createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
@@ -10,6 +13,44 @@ import {
 import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
 
 describe("river ribbon", () => {
+  it.each(["milestones", "horizon"])("keeps the triangulated %s channel at least 1 m wider than the ribbon", id => {
+    const zone = ZONES.find(zone => zone.id === id)!;
+    const station = nearestRiver(zone.position.x, zone.position.z).t;
+    const geometry = createRibbonGeometry();
+    const positions = geometry.getAttribute("position");
+    const renderedHeight = (x: number, z: number) => {
+      const gx = Math.floor(x / 2) * 2;
+      const gz = Math.floor(z / 2) * 2;
+      const tx = (x - gx) / 2;
+      const tz = (z - gz) / 2;
+      const a = Math.fround(worldHeight(gx, gz));
+      const b = Math.fround(worldHeight(gx + 2, gz));
+      const c = Math.fround(worldHeight(gx, gz + 2));
+      const d = Math.fround(worldHeight(gx + 2, gz + 2));
+      return tx + tz <= 1 ? a + (b - a) * tx + (c - a) * tz : d + (c - d) * (1 - tx) + (b - d) * (1 - tz);
+    };
+    try {
+      for (let row = 0; row <= RIBBON_SEGMENTS; row++) {
+        if (Math.abs(row / RIBBON_SEGMENTS - station) > 0.08) continue;
+        const a = new Vector3().fromBufferAttribute(positions, row * 2);
+        const b = new Vector3().fromBufferAttribute(positions, row * 2 + 1);
+        const centre = a.clone().add(b).multiplyScalar(0.5);
+        // Existing ford approaches intentionally blend the walking surface
+        // through the water; this gate measures the open channel beside them.
+        const path = nearestPath(centre.x, centre.z);
+        if (PATH_BRIDGES.some(bridge => Math.abs(path.t - bridge.t) * pathLength() < 18)) continue;
+        const normal = b.clone().sub(a).normalize();
+        for (const across of [-1, -0.5, 0, 0.5, 1]) {
+          // Half a metre on each bank gives one metre of extra channel width.
+          const point = centre.clone().addScaledVector(normal, across * (a.distanceTo(b) / 2 + 0.5));
+          const context = `${id}, row=${row}, across=${across}`;
+          expect(worldHeight(point.x, point.z), context).toBeLessThan(point.y);
+          expect(renderedHeight(point.x, point.z), context).toBeLessThan(point.y);
+        }
+      }
+    } finally { geometry.dispose(); }
+  });
+
   it("follows the arc-length spline within 5 cm at 50 samples, including between rows", () => {
     const geometry = createRibbonGeometry();
     const positions = geometry.getAttribute("position");

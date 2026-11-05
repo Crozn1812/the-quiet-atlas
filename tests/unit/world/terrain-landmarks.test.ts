@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pathLength, pathPointAt, PATH_BRIDGES } from "../../../src/features/world/layout/path";
-import { riverPointAt } from "../../../src/features/world/layout/river";
+import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
@@ -14,33 +14,61 @@ function anchor(id: "milestones" | "horizon" | "workshop", offset: number, seawa
 }
 
 describe("zone terrain landmarks", () => {
-  // Heights captured before B2-109 at the layout-derived crests, outside the
-  // old path/zone blends. These measure added relief, not absolute sea height.
+  it.each(["milestones", "horizon"])("leaves the full 18 m river corridor below the %s relief", id => {
+    const zone = ZONES.find(zone => zone.id === id)!;
+    const station = nearestRiver(zone.position.x, zone.position.z).t;
+    for (let i = -40; i <= 40; i++) {
+      const t = station + i / 1000;
+      const point = riverPointAt(t);
+      const tangent = riverTangentAt(t);
+      for (const side of [-1, 1]) for (const distance of [6, 10, 14, 16, 18]) {
+        const x = point.x - tangent.z * distance * side;
+        const z = point.z + tangent.x * distance * side;
+        // The original seeded valley contributes at most 0.2 m at 18 m;
+        // neither a raised path foundation nor landmark relief belongs here.
+        expect(worldHeight(x, z) - waterLevelAt(z)).toBeLessThanOrEqual(0.65);
+      }
+    }
+  });
+
+  it("keeps every zone footprint dry outside the open river channel", () => {
+    for (const zone of ZONES) for (let radius = 0; radius <= zone.radius; radius += 2) {
+      for (let i = 0; i < 32; i++) {
+        const x = zone.position.x + radius * Math.cos(i * Math.PI / 16);
+        const z = zone.position.z + radius * Math.sin(i * Math.PI / 16);
+        if (nearestRiver(x, z).distance < 14) continue;
+        const height = worldHeight(x, z);
+        expect(height, zone.id).toBeGreaterThanOrEqual(0.4);
+        expect(height - waterLevelAt(z), zone.id).toBeGreaterThanOrEqual(0.4);
+      }
+    }
+  });
+
+  // Keep B2-109's absolute crest heights after moving the summits inland to
+  // make room for the 18 m setback and the gentle river-facing shoulders.
   it.each([
-    { id: "milestones" as const, baseline: 6.015667885798044, minimum: 6, maximum: 9, seaward: 0 },
-    { id: "horizon" as const, baseline: 2.2010590279883053, minimum: 10, maximum: 14, seaward: 18 },
-  ])("raises the $id crest above the previous surrounding ground", ({ id, baseline, minimum, maximum, seaward }) => {
-    const crest = anchor(id, 20, seaward);
-    const rise = worldHeight(crest.x, crest.z) - baseline;
-    expect(rise).toBeGreaterThanOrEqual(minimum);
-    expect(rise).toBeLessThanOrEqual(maximum);
+    { id: "milestones" as const, height: 13.515667885798045, offset: 42, seaward: 0 },
+    { id: "horizon" as const, height: 14.201059027988306, offset: 58, seaward: 40 },
+  ])("preserves the $id crest elevation beyond the low river bank", ({ id, height, offset, seaward }) => {
+    const crest = anchor(id, offset, seaward);
+    expect(worldHeight(crest.x, crest.z)).toBeCloseTo(height, 10);
+    expect(nearestRiver(crest.x, crest.z).distance).toBeGreaterThan(42);
     expect(worldHeight(crest.zone.position.x, crest.zone.position.z)).toBeLessThan(worldHeight(crest.x, crest.z));
     if (id === "milestones") {
-      expect(nearestPath(crest.x, crest.z).distance).toBeGreaterThanOrEqual(15);
-      expect(nearestPath(crest.x, crest.z).distance).toBeLessThanOrEqual(25);
-      expect(nearestRiver(crest.x, crest.z).distance).toBeGreaterThan(20);
+      expect(nearestPath(crest.x, crest.z).distance).toBeGreaterThanOrEqual(40);
+      expect(nearestPath(crest.x, crest.z).distance).toBeLessThanOrEqual(45);
     } else {
       expect(crest.z).toBeLessThan(crest.zone.position.z);
     }
   });
 
   it("rounds the Milestones hill equally in all four directions", () => {
-    const crest = anchor("milestones", 20);
+    const crest = anchor("milestones", 42);
     const rises = [
-      [10, 0, 6.557847820641761], [-10, 0, 5.655139700023217],
-      [0, 10, 5.70633114638939], [0, -10, 6.544345707694063],
+      [10, 0, 10.775717091361535], [-10, 0, 7.556700319396303],
+      [0, 10, 7.556172715992713], [0, -10, 10.493412618941836],
     ].map(([dx, dz, baseline]) => worldHeight(crest.x + dx!, crest.z + dz!) - baseline!);
-    expect(Math.min(...rises)).toBeGreaterThan(7);
+    expect(Math.min(...rises)).toBeGreaterThan(4.5);
     expect(Math.max(...rises) - Math.min(...rises)).toBeLessThan(0.01);
   });
 
@@ -60,7 +88,7 @@ describe("zone terrain landmarks", () => {
   });
 
   it("keeps the sea-facing Horizon nose continuous and steeper than its inland shoulder", () => {
-    const crest = anchor("horizon", 20, 18);
+    const crest = anchor("horizon", 58, 40);
     const summit = worldHeight(crest.x, crest.z);
     const seawardDrop = summit - worldHeight(crest.x, crest.z - 20);
     const inlandDrop = summit - worldHeight(crest.x, crest.z + 20);
@@ -81,8 +109,8 @@ describe("zone terrain landmarks", () => {
   });
 
   it("has no height jumps at landmark, pad or path blend boundaries", () => {
-    const hill = anchor("milestones", 20);
-    const headland = anchor("horizon", 20, 18);
+    const hill = anchor("milestones", 42);
+    const headland = anchor("horizon", 58, 40);
     const pad = anchor("workshop", 8);
     const points: { x: number; z: number }[] = [];
     for (let i = 0; i < 32; i++) {
@@ -97,6 +125,11 @@ describe("zone terrain landmarks", () => {
       for (const offset of [1.5, 3, 4]) {
         points.push({ x: feature.zone.position.x + feature.nx * offset * side, z: feature.zone.position.z + feature.nz * offset * side });
       }
+    }
+    // The new bank setback and the end of its smooth shoulder must be continuous too.
+    for (const feature of [hill, headland]) for (const distance of [18, 42]) {
+      const river = nearestRiver(feature.x, feature.z);
+      points.push({ x: river.x + feature.nx * distance, z: river.z + feature.nz * distance });
     }
     for (const { x, z } of points) {
       for (const [ox, oz] of [[0.00001, 0], [0, 0.00001]] as const) {
