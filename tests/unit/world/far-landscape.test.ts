@@ -72,7 +72,8 @@ it("constructs in small steps and matches the original mesh byte for byte", () =
     const expected = {
       position: "9136626728d0fdc18c8c49c4d2087818f0c7bd78ff725488444ec7972399e38a",
       normal: "fbcd5177abd405f8857a1446b8c5b3f196ca81bc6f0b804a37c83246f7e802eb",
-      color: "dbc592165cab5ab896db1b5c1c654be0919117e63f77d1c9c347324a8c033bb3",
+      // B2-190 repainted the forest floor (moss islands, damp soil, leaf flecks, trail); the far mesh shares that paint.
+      color: "6802c90c69d9c12932ee102cae46bb27b88da196b7fbbb9fa3fef508e5f36949",
       index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
     };
     for (const [name, digest] of Object.entries(expected)) {

@@ -13,6 +13,8 @@ const rockDark = new Color(hex("rockDark"));
 const sand = new Color(hex("sand"));
 const seaDeep = new Color(hex("seaDeep"));
 const dirt = grassDry.clone().lerp(rockDark, 0.32);
+const leafLitter = grassDry.clone().lerp(new Color(hex("dusk")), 0.08);
+const dampSoil = rockDark.clone().lerp(forestDeep, 0.25);
 const cliffStart = Math.tan(35 * Math.PI / 180);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -71,36 +73,54 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     normals.set([-dx / length, 1 / length, -dz / length], offset);
 
     const aboveWater = origin.y + height - waterLevelAt(wz);
+    const path = nearestPath(wx, wz);
+    const river = nearestRiver(wx, wz);
+    // Preserve the old pigment under the 5 m asphalt and its gravel shoulders.
+    const groundDetail = 1 - smoothstep(0.76, 0.78, path.t) * (1 - smoothstep(4, 7, path.distance));
+    const patch = pigmentNoise(wx, wz, 8);
+    const fleck = pigmentNoise(wx, wz, 1.5);
     const broad = 0.7 * pigmentNoise(wx, wz, 64) + 0.3 * pigmentNoise(wx, wz, 32);
     // Bake a slight golden bias on slopes facing the coastal sun (+X, -Z).
     const sunward = Math.max(0, (-0.8 * dx + 0.6 * dz) / length);
     const dryness = clamp(smoothstep(0.2, 0.8, broad)
-      + 0.16 * smoothstep(3, 45, aboveWater) + 0.1 * sunward);
+      + 0.16 * smoothstep(3, 45, aboveWater) + 0.1 * sunward
+      + 0.25 * smoothstep(550, 850, -wz) * groundDetail);
     color.copy(grass).lerp(grassDry, dryness);
 
     // Share the biome edge with forest air: a 40 m fade in walking distance.
-    // Pigment stays world-seeded and continuous across tiles, with damp moss patches.
-    const path = nearestPath(wx, wz);
-    const forest = forestAtmosphereWeight(path.t)
-      * smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance);
+    // 8 m moss islands and 1.5 m leaf/soil flecks stay continuous across tiles.
+    const forest = forestAtmosphereWeight(path.t);
+    const bankDistance = river.distance - riverWidthAt(river.t) / 2;
     if (forest > 0) {
-      const moss = 0.65 * pigmentNoise(wx, wz, 28) + 0.35 * pigmentNoise(wx, wz, 12);
-      tint.copy(forestDeep).lerp(grass, 0.18 + 0.3 * moss).lerp(rockDark, 0.08);
+      const moss = smoothstep(0.2, 0.8, 0.65 * patch + 0.35 * fleck);
+      tint.copy(forestDeep).lerp(grass, 0.14 + 0.58 * moss).lerp(rockDark, 0.08);
+      // Damp soil fades out beyond the stream; it never changes the water masks below.
+      const damp = (1 - smoothstep(2, 9, bankDistance)) * (0.3 + 0.2 * patch);
+      tint.lerp(dampSoil, damp);
+      const leaves = smoothstep(0.62, 0.85, fleck) * smoothstep(0.45, 0.7, patch);
+      tint.lerp(leafLitter, leaves * 0.22 * (1 - damp));
       color.lerp(tint, forest);
+    }
+
+    // Broken soil on grassy slopes, before the existing fully rocky cliff ramp.
+    const slope = Math.hypot(dx, dz);
+    const exposed = smoothstep(0.25, 0.65, slope) * smoothstep(0.35, 0.75, patch);
+    if (exposed > 0) {
+      tint.copy(sand).lerp(rockDark, 0.68 + 0.1 * fleck);
+      color.lerp(tint, 0.45 * exposed * (1 - forest) * groundDetail);
     }
 
     // Rock starts above 35 degrees. Fine noise breaks up the soft cliff edge;
     // every 45-degree face is fully rocky, with darker seams rather than a hard band.
     const detail = pigmentNoise(wx, wz, 6);
     const cliffEnd = Math.tan((41 + detail * 4) * Math.PI / 180);
-    const cliff = smoothstep(cliffStart, cliffEnd, Math.hypot(dx, dz));
+    const cliff = smoothstep(cliffStart, cliffEnd, slope);
     tint.copy(rock).lerp(rockDark, 0.08 + 0.2 * detail);
     color.lerp(tint, cliff);
 
     // Lead fix: sand and seabed belong to real water only. waterLevelAt() is the valley's river level, so low meadow
     // ground far from the stream must stay grass. Sea: south of z −700 (the bay reaches −680). Stream: within ~3 m of
     // the ribbon edge, where the bed reads as light wet stone, not the dark seabed (no black halo beside the ribbon).
-    const river = nearestRiver(wx, wz);
     const bank = 1 - smoothstep(riverWidthAt(river.t) / 2 + 0.5, riverWidthAt(river.t) / 2 + 3, river.distance);
     const sea = 1 - smoothstep(-720, -680, wz);
     tint.copy(sand).lerp(rock, 0.08 + 0.12 * detail + 0.25 * (1 - sea));
@@ -112,7 +132,17 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     // The unpaved forest route stays light brown, including its low river-bank stretches.
     const trail = (1 - smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance))
       * (1 - smoothstep(0.8, 0.82, path.t)) * smoothstep(0, 0.15, aboveWater) * (1 - cliff);
-    color.lerp(dirt, trail);
+    color.lerp(dirt, trail * (1 - forest));
+    // A 1.2–2 m warm trail: wandering soft edges and occasional grass fingers.
+    const trailRadius = 0.6 + 0.4 * patch;
+    // A small pigment footprint keeps a sub-cell trail visible on the existing 2 m grid.
+    const trailFeather = Math.min(0.5, step * 0.25);
+    const trailEdge = smoothstep(trailRadius - trailFeather, trailRadius + trailFeather, path.distance);
+    const encroachment = smoothstep(0.55, 0.8, fleck) * smoothstep(0.2, trailRadius, path.distance);
+    const forestTrail = (1 - trailEdge) * (1 - 0.65 * encroachment)
+      * forest * smoothstep(0, 0.15, aboveWater) * (1 - cliff);
+    tint.copy(sand).lerp(rockDark, 0.62 + 0.1 * fleck);
+    color.lerp(tint, forestTrail);
     colors.set([color.r, color.g, color.b], offset);
 
     if (x < cells && z < cells) {

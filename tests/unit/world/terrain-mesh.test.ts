@@ -7,6 +7,7 @@ import { pathLength, pathPointAt } from "../../../src/features/world/layout/path
 import { createTileCollider, removeTileCollider, type TileRapier } from "../../../src/features/world/terrain/collider";
 import { riverWidthAt, waterLevelAt } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
+import * as samples from "../../../src/features/world/terrain/samples";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { createTilePool } from "../../../src/features/world/terrain/pool";
 import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
@@ -29,9 +30,21 @@ const paletteColor = (key: Parameters<typeof hex>[0]) => new Color(hex(key));
 const colorDistance = (a: Color, b: Color) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
 const luma = (color: Color) => 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 
-function besidePath(t: number): Vector3 {
+function besidePath(t: number, distance = 30): Vector3 {
   const tangent = pathPointAt(t + 0.0001).sub(pathPointAt(t - 0.0001));
-  return pathPointAt(t).addScaledVector(new Vector3(-tangent.z, 0, tangent.x).normalize(), 30);
+  return pathPointAt(t).addScaledVector(new Vector3(-tangent.z, 0, tangent.x).normalize(), distance);
+}
+
+function roadColorSignature(): number {
+  let hash = 2166136261;
+  for (let i = 80; i <= 100; i++) for (const offset of [-3.5, -2.5, -1.25, 0, 1.25, 2.5, 3.5]) {
+    const p = besidePath(i / 100, offset);
+    for (const rise of [0.4, 5, 20]) for (const slope of [0, 0.5, 1]) {
+      const bytes = new Uint8Array(Float32Array.from(sampleColor(p.x, p.z, waterLevelAt(p.z) + rise, slope).toArray()).buffer);
+      for (const byte of bytes) hash = Math.imul(hash ^ byte, 16777619) >>> 0;
+    }
+  }
+  return hash;
 }
 
 /** Interior vertex of a known plane, independent of the procedural heightfield at tile edges. */
@@ -59,17 +72,32 @@ describe("terrain tile mesh", () => {
       const color = sampleColor(p.x, p.z, waterLevelAt(p.z) + 20);
       luminances.push(luma(color));
       expect(darkestHill - luma(color)).toBeGreaterThanOrEqual(0.05);
-      // A forest floor is made only from forestDeep, grass and 8% rockDark.
-      const low = paletteColor("forestDeep").lerp(paletteColor("grass"), 0.18).lerp(paletteColor("rockDark"), 0.08);
-      const high = paletteColor("forestDeep").lerp(paletteColor("grass"), 0.48).lerp(paletteColor("rockDark"), 0.08);
-      const mix = (color.r - low.r) / (high.r - low.r);
-      expect(mix).toBeGreaterThanOrEqual(0);
-      expect(mix).toBeLessThanOrEqual(1);
-      expect(colorDistance(color, low.lerp(high, mix))).toBeLessThan(1e-6);
+      expect(luma(color)).toBeGreaterThanOrEqual(0.06);
       expect(Math.abs(luma(color) - luma(sampleColor(p.x + 0.25, p.z, waterLevelAt(p.z) + 20))))
-        .toBeLessThan(0.01);
+        .toBeLessThan(0.04);
     }
     expect(Math.max(...luminances) - Math.min(...luminances)).toBeGreaterThan(0.01);
+  });
+
+  it("doubles forest luma deviation in 20 m cells without lowering the old mean", () => {
+    // Measured from the pre-B2-190 mesh at these same 2 m-spaced, off-trail probes.
+    const baselines = [
+      { t: 0.1, mean: 0.13523578809194334, deviation: 0.00388752955005909 },
+      { t: 0.2, mean: 0.15291177342167075, deviation: 0.004104783954060965 },
+      { t: 0.3, mean: 0.15522943340511608, deviation: 0.00827696072527966 },
+    ];
+    for (const baseline of baselines) {
+      const p = besidePath(baseline.t);
+      const values: number[] = [];
+      for (let x = -10; x <= 10; x += 2) for (let z = -10; z <= 10; z += 2) {
+        const color = sampleColor(p.x + x, p.z + z, waterLevelAt(p.z + z) + 20);
+        values.push(luma(color));
+      }
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const deviation = Math.sqrt(values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length);
+      expect(mean, `forest t=${baseline.t}`).toBeGreaterThanOrEqual(baseline.mean);
+      expect(deviation, `forest t=${baseline.t}`).toBeGreaterThanOrEqual(2 * baseline.deviation);
+    }
   });
 
   it("blends forest pigment into hills smoothly over the shared 40 m biome edge", () => {
@@ -98,14 +126,12 @@ describe("terrain tile mesh", () => {
     } finally { weight.mockRestore(); }
   });
 
-  it("leaves forest cliffs, stream banks and the trail unchanged by moss", () => {
+  it("leaves fully rocky forest cliffs and sandy stream banks unchanged by moss", () => {
     const p = besidePath(0.14);
     const river = nearestRiver(p.x, p.z);
-    const trail = pathPointAt(0.14);
     const locations = [
       { x: p.x, z: p.z, height: waterLevelAt(p.z) + 20, slope: 1 },
       { x: river.x, z: river.z, height: waterLevelAt(river.z) + 0.4, slope: 0 },
-      { x: trail.x, z: trail.z, height: waterLevelAt(trail.z) + 20, slope: 0 },
     ];
     const before = locations.map(p => sampleColor(p.x, p.z, p.height, p.slope));
     const weight = vi.spyOn(direction, "forestAtmosphereWeight").mockReturnValue(0);
@@ -113,6 +139,21 @@ describe("terrain tile mesh", () => {
       locations.forEach((p, i) => expect(colorDistance(before[i]!, sampleColor(p.x, p.z, p.height, p.slope)))
         .toBeLessThan(1e-6));
     } finally { weight.mockRestore(); }
+  });
+
+  it("darkens damp forest soil near the stream without painting a sand halo", () => {
+    for (const t of [0.1, 0.2, 0.3]) {
+      const p = besidePath(t, -3);
+      const height = waterLevelAt(p.z) + 4;
+      const wet = sampleColor(p.x, p.z, height);
+      const river = nearestRiver(p.x, p.z);
+      const nearest = vi.spyOn(samples, "nearestRiver").mockReturnValue({ ...river, distance: 1000 });
+      try {
+        const dry = sampleColor(p.x, p.z, height);
+        expect(luma(wet)).toBeLessThan(luma(dry) - 0.003);
+        expect(colorDistance(wet, paletteColor("sand"))).toBeGreaterThan(0.5);
+      } finally { nearest.mockRestore(); }
+    }
   });
 
   it("builds 1089 vertices and 2048 upward triangles from the original heightfield", () => {
@@ -206,6 +247,27 @@ describe("terrain tile mesh", () => {
       .toBeLessThan(colorDistance(sampleColor(400, -400, 20, 0.4, -0.3), dry));
   });
 
+  it("gradually dries coastal grass and breaks grassy slopes with exposed soil", () => {
+    const grass = paletteColor("grass"), dry = paletteColor("grassDry");
+    const dryness = (color: Color) => (color.r - grass.r) / (dry.r - grass.r);
+    const means = [-550, -700, -850].map(z => {
+      let sum = 0;
+      for (let x = 300; x <= 900; x += 10) sum += dryness(sampleColor(x, z, waterLevelAt(z) + 20));
+      return sum / 61;
+    });
+    expect(means[1]!).toBeGreaterThan(means[0]!);
+    expect(means[2]!).toBeGreaterThan(means[1]!);
+    let exposed = 0;
+    for (let x = 300; x <= 500; x += 10) {
+      const flat = sampleColor(x, -700, 20);
+      expect(colorDistance(flat, grass.clone().lerp(dry, dryness(flat)))).toBeLessThan(1e-6);
+      const slope = sampleColor(x, -700, 20, 0.6);
+      const grassBlend = grass.clone().lerp(dry, dryness(slope));
+      if (colorDistance(slope, grassBlend) > 0.01) exposed++;
+    }
+    expect(exposed).toBeGreaterThanOrEqual(5);
+  });
+
   it("softly exposes rock above 35 degrees instead of changing colour in one step", () => {
     const rock = sampleColor(400, -400, 20, 1);
     const distances = [35, 38, 41, 45].map(degrees =>
@@ -258,15 +320,68 @@ describe("terrain tile mesh", () => {
     }
   });
 
-  it("keeps the forest trail light brown and leaves the coastal road terrain untinted by dirt", () => {
+  it("makes the forest trail R/G at least 15% warmer than the forest floor 6 m away", () => {
+    for (const t of [0.1, 0.2, 0.3]) {
+      const p = pathPointAt(t), beside = besidePath(t, 6);
+      const trail = sampleColor(p.x, p.z, waterLevelAt(p.z) + 0.4);
+      const floor = sampleColor(beside.x, beside.z, waterLevelAt(beside.z) + 0.4);
+      expect(trail.r / trail.g).toBeGreaterThanOrEqual(1.15 * floor.r / floor.g);
+      const low = paletteColor("sand").lerp(paletteColor("rockDark"), 0.62);
+      const high = paletteColor("sand").lerp(paletteColor("rockDark"), 0.72);
+      const mix = (trail.r - low.r) / (high.r - low.r);
+      expect(mix).toBeGreaterThanOrEqual(0);
+      expect(mix).toBeLessThanOrEqual(1);
+      expect(colorDistance(trail, low.lerp(high, mix))).toBeLessThan(1e-6);
+      // The soft fringe outside a 1 m radius stays cooler than the trail centre.
+      for (const offset of [-1.1, 1.1]) {
+        const edge = besidePath(t, offset);
+        const color = sampleColor(edge.x, edge.z, waterLevelAt(edge.z) + 4);
+        expect(color.r / color.g).toBeLessThan(trail.r / trail.g / 1.15);
+      }
+    }
+  });
+
+  it("keeps the trail at least 15% warmer after interpolation on the original two-metre grid", () => {
+    const material = new MeshToonMaterial();
+    const at = (p: Vector3) => {
+      const tile = buildTile(Math.floor(p.x / TILE_SIZE), Math.floor(p.z / TILE_SIZE));
+      const mesh = createTileMesh(tile, material);
+      try {
+        const x = (p.x - tile.origin.x) / 2, z = (p.z - tile.origin.z) / 2;
+        const u = x - Math.floor(x), v = z - Math.floor(z);
+        const a = Math.floor(z) + Math.floor(x) * 33;
+        const colors = mesh.geometry.getAttribute("color");
+        const indices = u + v <= 1 ? [a, a + 33, a + 1] : [a + 34, a + 1, a + 33];
+        const weights = u + v <= 1 ? [1 - u - v, u, v] : [u + v - 1, 1 - u, 1 - v];
+        const color = new Color(0);
+        indices.forEach((index, i) => {
+          color.r += colors.getX(index) * weights[i]!;
+          color.g += colors.getY(index) * weights[i]!;
+          color.b += colors.getZ(index) * weights[i]!;
+        });
+        return color;
+      } finally { mesh.geometry.dispose(); }
+    };
+    try {
+      for (const t of [0.1, 0.2, 0.3]) {
+        const trail = at(pathPointAt(t)), floor = at(besidePath(t, 6));
+        expect(trail.r / trail.g).toBeGreaterThanOrEqual(1.15 * floor.r / floor.g);
+      }
+    } finally { material.dispose(); }
+  });
+
+  it("retains old hill trails and all sampled coastal road colours byte for byte", () => {
     const dirt = paletteColor("grassDry").lerp(paletteColor("rockDark"), 0.32);
-    for (const t of [0.1, 0.3, 0.6, 0.79]) {
+    for (const t of [0.6, 0.79]) {
       const p = pathPointAt(t);
       expect(colorDistance(sampleColor(p.x, p.z, waterLevelAt(p.z) + 0.4), dirt)).toBeLessThan(1e-6);
     }
     const coast = pathPointAt(0.9);
     expect(colorDistance(sampleColor(coast.x, coast.z, waterLevelAt(coast.z) + 0.4), paletteColor("sand")))
       .toBeLessThan(0.12);
+    // FNV-1a over Float32 RGB before B2-190: t=.80..1, centre/edges/shoulders,
+    // three elevations and three slopes (1323 colour samples).
+    expect(roadColorSignature()).toBe(3827333170);
   });
 
   it("varies meadow luma by at least 0.03 over 200 m with smooth large-scale patches", () => {
