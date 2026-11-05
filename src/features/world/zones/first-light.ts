@@ -4,15 +4,16 @@ import {
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
+import type { PaletteKey } from "../art/palette";
 import { createPineCrown, createTreeTrunk } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
 import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
-type Surface = "wood" | "paper" | "green" | "stone" | "sun";
+type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower";
 type Part = { geometry: BufferGeometry; surface: Surface };
 const part = (geometry: BufferGeometry, surface: Surface): Part => ({ geometry, surface });
-const tint = (base: "forestLight" | "mist" | "dusk", mix: "forestDeep" | "paper", amount: number) =>
+const tint = (base: PaletteKey, mix: PaletteKey, amount: number) =>
   paletteColor({ base, mix, amount, saturation: 1, brightness: 1 });
 
 /** An uneven octagonal plank, with one small bevel around both caps. */
@@ -50,7 +51,7 @@ function plank(width: number, height: number, depth: number): BufferGeometry {
 
 function notebook(): Part[] {
   return [
-    part(plank(0.19, 1.02, 0.18).translate(0, 0.51, 0), "wood"),
+    part(plank(0.19, 1.02, 0.18).translate(0, 0.51, 0), "ink"),
     part(plank(0.82, 0.12, 0.61).rotateZ(-0.025).translate(0, 1.04, 0), "wood"),
     part(plank(0.52, 0.035, 0.38).rotateY(0.08).translate(0, 1.122, 0), "wood"),
     part(new BoxGeometry(0.48, 0.025, 0.34).rotateY(0.08).translate(0, 1.152, 0), "paper"),
@@ -95,7 +96,9 @@ function fern(): BufferGeometry {
 export const createFirstLightScene: ZoneSceneFactory = (context) => {
   const group = new Group();
   group.name = "first-light-clearing";
-  const buckets: Record<Surface, BufferGeometry[]> = { wood: [], paper: [], green: [], stone: [], sun: [] };
+  const buckets: Record<Surface, BufferGeometry[]> = {
+    wood: [], paper: [], green: [], stone: [], sun: [], ink: [], flower: [],
+  };
   const colliders: ZoneCollider[] = [];
 
   /** Check the whole conservative footprint, including overhanging foliage and box corners. */
@@ -164,12 +167,26 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   const [greetingX, greetingZ] = greeting as [number, number];
 
   // Fallen pine seat: low bark cylinder, exposed end grain, one broad moss wash.
-  place([
+  const logPlaced = place([
     part(new CylinderGeometry(0.39, 0.46, 3.7, 9).rotateZ(Math.PI / 2).rotateY(-0.18).translate(0, 0.46, 0), "wood"),
     ...[-1, 1].map(side => part(new CylinderGeometry(0.34, 0.34, 0.018, 9)
       .rotateZ(Math.PI / 2).translate(side * 1.86, 0, 0).rotateY(-0.18).translate(0, 0.46, 0), "paper")),
     part(new IcosahedronGeometry(1, 0).scale(1.45, 0.09, 0.29).rotateY(-0.18).translate(0, 0.84, 0), "green"),
   ], -7.2, 3.8, true);
+
+  // Three pin-sized orange blooms along the open edge of the fallen pine.
+  if (logPlaced) {
+    for (const [x, z, height] of [[-5.45, 4.7, 0.25], [-6.25, 3.05, 0.29], [-7.65, 3, 0.27]]) {
+      const flowers = [part(new CylinderGeometry(0.009, 0.013, height!, 4)
+        .translate(0, height! / 2, 0), "green")];
+      for (let petal = 0; petal < 5; petal++) {
+        const angle = petal * Math.PI * 2 / 5;
+        flowers.push(part(new IcosahedronGeometry(1, 0).scale(0.036, 0.012, 0.026).rotateY(-angle)
+          .translate(Math.cos(angle) * 0.026, height!, Math.sin(angle) * 0.026), "flower"));
+      }
+      place(flowers, x!, z!);
+    }
+  }
 
   for (const [x, z, scale] of [[-6.7, 7.2, 1], [-8.3, 7.9, 0.7], [7.5, -2.8, 0.85]]) {
     const rock = new IcosahedronGeometry(1, 0);
@@ -190,7 +207,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
 
   for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9], [12.5, -5.5]].entries()) {
     place([
-      part(createTreeTrunk().scale(1, 5, 1).translate(0, 2.5, 0), "wood"),
+      part(createTreeTrunk().scale(1, 5, 1).translate(0, 2.5, 0), "ink"),
       part(createPineCrown((context.seed + index) >>> 0).translate(0, 5, 0), "green"),
     ], x!, z!, true);
   }
@@ -219,11 +236,14 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     wood: createPropMaterial("wood"), paper: createPropMaterial("paper"),
     green: createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.crown), WORLD_DIRECTION.foliage.ramp),
     stone: createRampMaterial(tint("mist", "paper", 0.25), WORLD_DIRECTION.foliage.ramp),
-    sun: createRampMaterial(tint("dusk", "paper", 0.8)),
+    // 40% dawn gold diluted with 60% paper, rather than an independent swatch.
+    sun: createRampMaterial(tint("dusk", "paper", 0.6)),
+    ink: createRampMaterial(tint("ink", "forestDeep", 0.3), WORLD_DIRECTION.foliage.ramp),
+    flower: createRampMaterial(tint("flower", "paper", 0), WORLD_DIRECTION.foliage.ramp),
   };
   materials.green.side = DoubleSide;
   Object.assign(materials.sun, {
-    transparent: true, opacity: 0.055, depthWrite: false, side: DoubleSide, forceSinglePass: true,
+    transparent: true, opacity: 0.25, depthWrite: false, side: DoubleSide, forceSinglePass: true,
   });
   for (const surface of Object.keys(buckets) as Surface[]) {
     const material = materials[surface];

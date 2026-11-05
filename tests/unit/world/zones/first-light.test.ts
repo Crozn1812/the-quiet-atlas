@@ -1,4 +1,4 @@
-import { Box3, Color, Mesh, MeshToonMaterial, Vector3, type BufferGeometry } from "three";
+import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { paletteColor, WORLD_DIRECTION } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -81,7 +81,7 @@ describe("First Light pine clearing", () => {
     const count = objects.reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
     expect(count).toBeGreaterThan(1000);
     expect(count).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(objects).toHaveLength(5);
+    expect(objects).toHaveLength(7);
     expect(objects.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     expect(new Set(objects.map(mesh => mesh.material)).size).toBe(objects.length);
     for (const mesh of objects) {
@@ -190,14 +190,16 @@ describe("First Light pine clearing", () => {
     }
   });
 
-  it("uses palette recipes, matte ramps, neutral vertex multiplication and faint dawn veils", () => {
+  it("uses palette recipes, matte ramps, neutral vertex multiplication and translucent dawn veils", () => {
     const scene = create();
     const colors: Record<string, number> = {
       wood: new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38)
         .lerp(new Color(PALETTE.paper), 0.12).getHex(),
       paper: new Color(PALETTE.paper).getHex(),
       green: paletteColor(WORLD_DIRECTION.foliage.crown),
-      stone: tint("mist", 0.25), sun: tint("dusk", 0.8),
+      stone: tint("mist", 0.25), sun: tint("dusk", 0.6),
+      ink: new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
+      flower: new Color(PALETTE.flower).getHex(),
     };
     for (const mesh of meshes(scene)) {
       const surface = mesh.name.replace("first-light-", "");
@@ -217,10 +219,78 @@ describe("First Light pine clearing", () => {
       if (surface === "sun") {
         expect(triangles(mesh.geometry)).toBe(4);
         expect(mesh.material.transparent).toBe(true);
-        expect(mesh.material.opacity).toBeLessThanOrEqual(0.08);
+        expect(mesh.material.opacity).toBeCloseTo(0.25);
         expect(mesh.material.depthWrite).toBe(false);
         expect(mesh.material.forceSinglePass).toBe(true);
       }
+    }
+  });
+
+  it("keeps three 0.1–0.15 m orange blooms beside the log, omitting them when the log is flooded", () => {
+    const scene = create();
+    const flowers = meshes(scene).find(mesh => mesh.name === "first-light-flower")!;
+    const positions = flowers.geometry.getAttribute("position");
+    const centres = [new Vector3(-5.45, 0.25, 4.7), new Vector3(-6.25, 0.29, 3.05), new Vector3(-7.65, 0.27, 3)];
+    const bounds = centres.map(() => new Box3());
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new Vector3().fromBufferAttribute(positions, i);
+      const index = centres.findIndex(centre => centre.distanceTo(vertex) < 0.1);
+      expect(index).toBeGreaterThanOrEqual(0);
+      bounds[index]!.expandByPoint(vertex);
+    }
+    for (const box of bounds) {
+      const size = box.getSize(new Vector3());
+      expect(Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.1);
+      expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(0.15);
+    }
+    expect(meshes(create(context({ underWater: x => x < -6 })))
+      .some(mesh => mesh.name === "first-light-flower")).toBe(false);
+  });
+
+  it("anchors the notebook post and pine silhouettes in dark ink", () => {
+    const scene = create();
+    const ink = meshes(scene).find(mesh => mesh.name === "first-light-ink")!;
+    const positions = ink.geometry.getAttribute("position");
+    const post = new Box3();
+    for (let i = 0; i < positions.count; i++) {
+      if (positions.getX(i) > 4 && positions.getX(i) < 6) {
+        post.expandByPoint(new Vector3().fromBufferAttribute(positions, i));
+      }
+    }
+    expect(post.min.y).toBeCloseTo(0);
+    expect(post.max.y).toBeCloseTo(1.02);
+    expect(post.getCenter(new Vector3()).x).toBeCloseTo(scene.interactable.position.x);
+    const area = (mesh: Mesh<BufferGeometry, MeshToonMaterial>) => {
+      const vertices = mesh.geometry.getAttribute("position");
+      const a = new Vector3(), b = new Vector3(), c = new Vector3();
+      let total = 0;
+      for (let i = 0; i < vertices.count; i += 3) {
+        a.fromBufferAttribute(vertices, i);
+        b.fromBufferAttribute(vertices, i + 1);
+        c.fromBufferAttribute(vertices, i + 2);
+        total += b.sub(a).cross(c.sub(a)).length() / 2;
+      }
+      return total;
+    };
+    const opaqueArea = meshes(scene).filter(mesh => !mesh.material.transparent)
+      .reduce((sum, mesh) => sum + area(mesh), 0);
+    expect(area(ink) / opaqueArea).toBeGreaterThanOrEqual(0.05);
+    expect(area(ink) / opaqueArea).toBeLessThanOrEqual(0.15);
+  });
+
+  it("leaves the open notebook visible from the path edge at either greeting site", () => {
+    for (const ctx of [context(), context({ underWater: x => x > 0 })]) {
+      const scene = create(ctx);
+      const { x, z } = scene.interactable.position;
+      const edgeX = Math.sign(x) * PATH_CLEARANCE;
+      const eye = new Vector3(edgeX, ctx.heightAt(edgeX, z) + 1.6, z);
+      const page = new Vector3(x - 0.12, ctx.heightAt(x, z) + 1.18, z);
+      const ray = new Raycaster(eye, page.clone().sub(eye).normalize(), 0, eye.distanceTo(page) + 0.1);
+      scene.group.updateMatrixWorld(true);
+      const hits = ray.intersectObjects(scene.group.children);
+      expect(hits.length).toBeGreaterThan(0);
+      expect(hits[0]!.object.name).toBe("first-light-paper");
+      expect(hits[0]!.point.distanceTo(page)).toBeLessThan(0.1);
     }
   });
 
