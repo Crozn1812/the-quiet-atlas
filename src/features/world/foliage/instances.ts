@@ -1,4 +1,4 @@
-import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
+import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, type Mesh, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
@@ -9,6 +9,26 @@ import type { FoliageTree } from "./scatter";
 import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
+
+type FoliageWind = { value: Vector2 };
+const foliageWinds = new WeakMap<Material, FoliageWind>();
+
+function advanceWind(wind: FoliageWind, dt: number, reducedMotion: boolean) {
+  wind.value.y = reducedMotion ? 0 : 1;
+  if (!reducedMotion && Number.isFinite(dt)) wind.value.x += Math.max(0, dt);
+}
+
+/** Index can animate compose's public mesh list without accessing tile internals. */
+export function updateFoliageWind(meshes: readonly Mesh[], dt: number, reducedMotion: boolean): void {
+  const updated = new Set<FoliageWind>();
+  for (const mesh of meshes) for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+    const wind = foliageWinds.get(material);
+    if (wind && !updated.has(wind)) {
+      advanceWind(wind, dt, reducedMotion);
+      updated.add(wind);
+    }
+  }
+}
 
 /** Position-only hash: selection survives input ordering, streaming and quality changes. */
 export function foliageVariantAt(x: number, z: number, count: number): number {
@@ -63,17 +83,63 @@ outgoingLight *= clamp(barkLuma, forestBarkLuma.x, forestBarkLuma.y) / max(barkL
   material.customProgramCacheKey = () => previousKey() + `|forest-bark-bounded-v2:${branches}`;
 }
 
-/** Use the same geometry selection in the colour and existing shadow passes.
- * Two absolute shape deltas avoid extra batches or morph textures. */
-function installTreeShapes(material: Material) {
+/** Reuse Three's graded sun/hemi uniforms; no light copies or extra pass. */
+function installLeafLighting(material: Material) {
   const previous = material.onBeforeCompile.bind(material);
   const previousKey = material.customProgramCacheKey.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>", `
+if (vForestWood < 0.5) {
+  bool leafBacklit = true;
+  #if NUM_DIR_LIGHTS > 0
+    float leafNL = clamp(dot(normal, directionalLights[0].direction), -1.0, 1.0);
+    leafBacklit = leafNL < 0.0;
+    float leafEdge = pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 2.0);
+    if (leafBacklit) {
+      outgoingLight += diffuseColor.rgb * directionalLights[0].color
+        * mix(0.15, 0.25, leafEdge) * (1.0 - leafNL);
+    }
+  #endif
+  // The existing front-lit ramp is retained; rescue only backlit/no-sun leaves.
+  // Add only missing ambient luma, preserving relief above the floor.
+  if (leafBacklit) {
+    vec3 leafShade = rampShadowTint;
+    #if NUM_HEMI_LIGHTS > 0
+      leafShade = mix(leafShade, hemisphereLights[0].skyColor, 0.5);
+    #endif
+    float leafLuma = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
+    outgoingLight += leafShade * (max(0.06 - leafLuma, 0.0)
+      / max(dot(leafShade, vec3(0.2126, 0.7152, 0.0722)), 0.00001));
+  }
+}
+#include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => previousKey() + "|forest-leaf-light-v1";
+}
+
+/** Palette-derived hue wash and independent +/-8% linear brightness. */
+function instanceLeafColor(x: number, z: number, base: Color): Color {
+  const hue = foliageVariantAt(x + 13.17, z - 7.91, 2001) / 1000 - 1;
+  const brightness = 1 + 0.08 * (foliageVariantAt(z + 3.79, x - 29.13, 2001) / 1000 - 1);
+  const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+  const color = base.clone().lerp(new Color(hue < 0 ? PALETTE.grass : PALETTE.indigo), Math.abs(hue) * 0.04);
+  return color.multiplyScalar(luma(base) * brightness / luma(color));
+}
+
+/** Use the same geometry selection in the colour and existing shadow passes.
+ * Two absolute shape deltas avoid extra batches or morph textures. */
+function installTreeShapes(material: Material, wind: FoliageWind) {
+  const previous = material.onBeforeCompile.bind(material);
+  const previousKey = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    previous(shader, renderer);
+    shader.uniforms.forestWind = wind;
     // Lead (batch 25): WebGL guarantees only 16 vertex attributes and instancing already spends 5 (matrix + colour).
     // Variant normals are dropped (base normals light all three silhouettes) and "hanging" is surface == 2.
     if (!shader.vertexShader.includes("attribute float surface;")) shader.vertexShader = "attribute float surface;\n" + shader.vertexShader;
-    shader.vertexShader = `attribute vec2 treeStyle;
+    shader.vertexShader = `uniform vec2 forestWind;
+attribute vec2 treeStyle;
 attribute vec3 shapeA; attribute vec3 shapeB;
 float treeA() { return step(0.5, treeStyle.x) - step(1.5, treeStyle.x); }
 float treeB() { return step(1.5, treeStyle.x); }
@@ -94,9 +160,19 @@ transformedNormal = -transformedNormal;
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 transformed += shapeA * treeA() + shapeB * treeB();
 // Collapse every ribbon vertex to the same point on trees without vines.
-transformed *= 1.0 - step(1.5, surface) * (1.0 - treeStyle.y);`);
+transformed *= 1.0 - step(1.5, surface) * (1.0 - treeStyle.y);
+#ifdef USE_INSTANCING
+float forestPhase = dot(instanceMatrix[3].xz, vec2(0.73, 0.37));
+float forestPeriod = 4.0 + 3.0 * (0.5 + 0.5 * sin(forestPhase));
+float forestTip = smoothstep(0.0, 6.0, transformed.y);
+float forestLeaf = 1.0 - step(0.5, surface) * (1.0 - step(1.5, surface));
+float forestSway = 0.08 * forestWind.y * forestTip * forestLeaf
+  * sin(forestWind.x * 6.28318530718 / forestPeriod + forestPhase);
+// Convert metres back into crown space, including mature scales and limb shear.
+transformed += inverse(mat3(modelMatrix) * mat3(instanceMatrix)) * vec3(forestSway, 0.0, 0.0);
+#endif`);
   };
-  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v2|affine-normals-v1";
+  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v2|affine-normals-v1|forest-wind-v1";
 }
 
 /**
@@ -155,12 +231,13 @@ export function createFoliage(maxPerKind: number) {
   crownMaterial.vertexColors = true;
   const depthMaterial = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
   const distanceMaterial = new MeshDistanceMaterial();
-  for (const material of [crownMaterial, depthMaterial, distanceMaterial]) installTreeShapes(material);
+  // Disabled until the owner supplies its motion preference through update().
+  const wind = { value: new Vector2(0, 0) };
+  foliageWinds.set(crownMaterial, wind);
+  for (const material of [crownMaterial, depthMaterial, distanceMaterial]) installTreeShapes(material, wind);
   installBarkLighting(crownMaterial, true);
-  const neutral = new Color(1, 1, 1);
-  // Instance colours multiply the shared ramp colour; compensate in linear RGB.
+  installLeafLighting(crownMaterial);
   const deep = new Color(PALETTE.forestDeep);
-  deep.setRGB(deep.r / crownMaterial.color.r, deep.g / crownMaterial.color.g, deep.b / crownMaterial.color.b);
   function createSpecies(seeds: readonly number[], broadleaf: boolean) {
     const variants = seeds.map(seed => {
       const geometry = broadleaf ? createBroadleafCrown() : createPineCrown(seed);
@@ -246,7 +323,10 @@ export function createFoliage(maxPerKind: number) {
       transform.updateMatrix();
       if (tree.trailCanopy && tree.kind === "broadleaf") transform.matrix.multiply(reachingLimbs);
       crowns.setMatrixAt(index, transform.matrix);
-      crowns.setColorAt(index, isDeepCrown(tree.x, tree.z) ? deep : neutral);
+      const pigment = instanceLeafColor(tree.x, tree.z, isDeepCrown(tree.x, tree.z) ? deep : crownMaterial.color);
+      // Instance colours multiply the shared ramp colour; compensate in linear RGB.
+      pigment.setRGB(pigment.r / crownMaterial.color.r, pigment.g / crownMaterial.color.g, pigment.b / crownMaterial.color.b);
+      crowns.setColorAt(index, pigment);
       const style = crowns.geometry.getAttribute("treeStyle");
       style.setXY(index, tree.kind === "broadleaf" ? foliageVariantAt(tree.x, tree.z, BROADLEAF_VARIANT_SEEDS.length) : 0,
         tree.kind === "broadleaf" && hasHangingFoliage(tree.x, tree.z) ? 1 : 0);
@@ -261,11 +341,20 @@ export function createFoliage(maxPerKind: number) {
       // Box-derived bounds remain conservative for inward-sheared crowns;
       // max-column sphere scaling alone underestimates a shear's stretch.
       if (species.broadleaf.variants.some(variant => variant.crowns === mesh)) mesh.boundingBox!.getBoundingSphere(mesh.boundingSphere!);
+      if (style) {
+        // Conservative at rest too, so toggling motion cannot cause edge culling.
+        mesh.boundingBox!.expandByScalar(0.08);
+        mesh.boundingSphere!.radius += 0.08;
+      }
     }
   }
   return {
     group,
     species,
+    update(dt: number, reducedMotion: boolean) {
+      if (disposed) throw new Error("Foliage has been disposed");
+      advanceWind(wind, dt, reducedMotion);
+    },
     setTiles(next: readonly FoliageTree[]) {
       if (disposed) throw new Error("Foliage has been disposed");
       for (const kind of ["pine", "broadleaf"] as const) {
@@ -282,6 +371,7 @@ export function createFoliage(maxPerKind: number) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      foliageWinds.delete(crownMaterial);
       trees = [];
       group.removeFromParent();
       group.clear();

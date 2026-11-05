@@ -168,7 +168,8 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
       for (const { crowns } of foliage.species.broadleaf.variants) for (let i = 0; i < crowns.count; i++) {
         crowns.getColorAt(i, actual);
         actual.multiply(crowns.material.color);
-        if (Math.hypot(actual.r - deep.r, actual.g - deep.g, actual.b - deep.b) < 1e-5) deepCount++;
+        const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+        if (Math.abs(luma(actual) / luma(deep) - 1) <= 0.080001) deepCount++;
         total++;
       }
       expect(total).toBeGreaterThan(0);
@@ -189,6 +190,7 @@ it("assigns about 30% forestDeep crowns, preserving per-position colour through 
   expect(proportion).toBeLessThan(0.32);
   const foliage = createFoliage(trees.length);
   const actual = new Color();
+  const colors = new Map<string, Color>();
   try {
     for (const input of [trees, [...trees].reverse(), trees.slice(50, 70)]) {
       foliage.setTiles(input);
@@ -205,9 +207,13 @@ it("assigns about 30% forestDeep crowns, preserving per-position colour through 
           variant.crowns.getColorAt(index, actual);
           const expected = isDeepCrown(tree.x, tree.z) ? new Color(PALETTE.forestDeep) : variant.crowns.material.color;
           actual.multiply(variant.crowns.material.color);
-          expect(actual.r).toBeCloseTo(expected.r, 6);
-          expect(actual.g).toBeCloseTo(expected.g, 6);
-          expect(actual.b).toBeCloseTo(expected.b, 6);
+          const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+          expect(Math.abs(luma(actual) / luma(expected) - 1)).toBeLessThanOrEqual(0.080001);
+          const hue = (color: Color) => color.getHSL({ h: 0, s: 0, l: 0 }).h;
+          expect(Math.abs(hue(actual) / hue(expected) - 1)).toBeLessThanOrEqual(0.08);
+          const key = `${tree.x}:${tree.z}`;
+          if (!colors.has(key)) colors.set(key, actual.clone());
+          expect(actual).toEqual(colors.get(key));
         }
         expect(foliage.group.children).toHaveLength(10);
       }
