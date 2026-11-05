@@ -73,7 +73,8 @@ export function createIntro(gameplayPose: CameraPose) {
   const overviewTarget = overWater(0.3, 0);
   const close = overWater(0.002, 1.5);
   const leaf = overWater(0, 1.5).add(new Vector3(-1, 0, 1));
-  const closeTarget = overWater(0, 0);
+  // Lead (B2-043b review): look downstream; the ribbon's cut source at t=0 must stay behind the camera.
+  const closeTarget = overWater(0.025, 0);
   const leafTarget = closeTarget.clone().add(new Vector3(-0.5, 0.1, 0));
   const detailCurve = spline(close, leaf);
   const revealCurve = spline(leaf, end.position);

@@ -16,6 +16,7 @@ const MIST_CLEAR_DISTANCE = 8;
 const MIST_FADE_DISTANCE = 12;
 const MIST_BAND_HALF_WIDTH = 1.2;
 const MIST_HEIGHT_FALLOFF = 2.4;
+export const CORRIDOR_POINTS = 48;
 
 type MistOptions = {
   bands?: [number, number, number];
@@ -57,6 +58,22 @@ const fragmentShader = /* glsl */ `
   uniform bool perspective;
   uniform float fogNear;
   uniform float fogFar;
+  // Corridor mask (opening cinematic only): geometry farther than corridorRadius from the path polyline
+  // dissolves into paper with a fibrous edge, so streamed tile borders never read as rectangles.
+  uniform vec2 corridorPoints[CORRIDOR_POINTS];
+  uniform int corridorCount;
+  uniform float corridorRadius;
+  float corridorDistance(vec2 p) {
+    float best = 1e9;
+    for (int i = 1; i < CORRIDOR_POINTS; i++) {
+      if (i >= corridorCount) break;
+      vec2 a = corridorPoints[i - 1];
+      vec2 ab = corridorPoints[i] - a;
+      float h = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+      best = min(best, length(p - a - ab * h));
+    }
+    return best;
+  }
   uniform vec3 fogColor;
   varying vec2 vUv;
   #include <packing>
@@ -172,6 +189,14 @@ const fragmentShader = /* glsl */ `
     // Depth fog dissolves into the horizon wash (paper by default), with the same near guard.
     color.rgb = mix(color.rgb, fogColor, smoothstep(fogNear, fogFar, viewDepth) * nearVisibility);
 
+    // After mist/fog: masked ground must end as plain paper, not mist-tinted paper.
+    if (corridorCount > 1) {
+      // Fibrous edge +/-4 m; fully paper by 0.8 R + 4 m, inside the streamed 32 m guarantee.
+      float edge = corridorDistance(worldPosition.xz) + (fibers(worldPosition.xz * 0.05) - 0.5) * 8.0;
+      // Sky pixels go to the same paper too, so the dome never outlines streamed tiles.
+      float washed = mix(1.0, smoothstep(corridorRadius * 0.35, corridorRadius * 0.8, edge), geometry);
+      color.rgb = mix(color.rgb, paperColor, washed);
+    }
     // Pixel-locked, time-independent grain. Both noises are in [0, 1],
     // so their weighted sum gives at most +/-2% multiplicative variation.
     float grain = (hash(pixel) - 0.5) * 0.028
@@ -193,6 +218,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
   let resources: ReturnType<typeof allocate> | undefined;
   const edges: { bleed: number; ink?: boolean } = { bleed: 0.5 };
   const fog = { near: 15, far: 65, color: new Color(PALETTE.paper) };
+  const corridor = { points: Array.from({ length: CORRIDOR_POINTS }, () => new Vector2()), count: 0, radius: 1 };
   const mist = {
     bands: new Vector3(...DEFAULT_MIST_BANDS),
     height: DEFAULT_MIST_HEIGHT,
@@ -216,7 +242,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     const material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
-      defines: quality === "High" ? { MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 } : {},
+      defines: { CORRIDOR_POINTS, ...(quality === "High" ? { MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 } : {}) },
       uniforms: {
         tColor: { value: target.texture },
         tDepth: { value: depth },
@@ -237,6 +263,9 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         fogNear: { value: fog.near },
         fogFar: { value: fog.far },
         fogColor: { value: fog.color },
+        corridorPoints: { value: corridor.points },
+        corridorCount: { value: corridor.count },
+        corridorRadius: { value: corridor.radius },
       },
       depthTest: false,
       depthWrite: false,
@@ -341,6 +370,21 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       if (resources) {
         resources.material.uniforms.bleedStrength!.value = edges.bleed;
         resources.material.uniforms.inkEnabled!.value = quality === "High" && (edges.ink ?? true);
+      }
+    },
+    /** Opening-cinematic mask: XZ path polyline (<= CORRIDOR_POINTS) and radius in metres; null turns it off. */
+    setCorridor(points: readonly { x: number; z: number }[] | null, radius = 32): void {
+      if (disposed) return;
+      if (points && (points.length > CORRIDOR_POINTS || !points.every(p => Number.isFinite(p.x) && Number.isFinite(p.z))
+        || !Number.isFinite(radius) || radius <= 0)) {
+        throw new RangeError(`Corridor needs <= ${CORRIDOR_POINTS} finite points and a positive radius`);
+      }
+      corridor.count = points ? points.length : 0;
+      corridor.radius = radius;
+      points?.forEach((point, i) => corridor.points[i]!.set(point.x, point.z));
+      if (resources) {
+        resources.material.uniforms.corridorCount!.value = corridor.count;
+        resources.material.uniforms.corridorRadius!.value = corridor.radius;
       }
     },
     /** Distances/heights are metres; strength in [0, 1] scales added mist, preserving depth fog. */

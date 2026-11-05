@@ -6,7 +6,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import {
-  createPaperPass, DEFAULT_MIST_BANDS, DEFAULT_MIST_HEIGHT, DEFAULT_MIST_STRENGTH,
+  CORRIDOR_POINTS, createPaperPass, DEFAULT_MIST_BANDS, DEFAULT_MIST_HEIGHT, DEFAULT_MIST_STRENGTH,
 } from "../../../src/features/world/post/paper";
 
 // Real CPU-side three.js resources, with only the renderer mocked. No canvas/GPU.
@@ -173,8 +173,8 @@ describe("paper post pass", () => {
     highPass.render(new Scene(), new PerspectiveCamera());
     const b = screenMaterial(balanced.renderer).material;
     const h = screenMaterial(high.renderer).material;
-    expect(b.defines).toEqual({});
-    expect(h.defines).toEqual({ MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 });
+    expect(b.defines).toEqual({ CORRIDOR_POINTS });
+    expect(h.defines).toEqual({ CORRIDOR_POINTS, MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 });
     expect(b.uniforms.inkEnabled!.value).toBe(false);
     expect(h.uniforms.inkEnabled!.value).toBe(true);
     expect(h.vertexShader).toBe(b.vertexShader);
@@ -192,7 +192,7 @@ describe("paper post pass", () => {
     expect(b.uniforms.inkEnabled!.value).toBe(true);
     expect(b.version).toBe(version + 1);
     balancedPass.setQuality("Balanced");
-    expect(b.defines).toEqual({});
+    expect(b.defines).toEqual({ CORRIDOR_POINTS });
     expect(b.uniforms.inkEnabled!.value).toBe(false);
     expect(b.version).toBe(version + 2);
     expect(WebGLRenderTarget).toHaveBeenCalledTimes(2);
@@ -438,5 +438,38 @@ describe("paper post pass", () => {
     expect(scene.fog).toBe(fog);
     expect(renderer.getRenderTarget()).toBeNull();
     pass.dispose();
+  });
+});
+
+describe("opening-cinematic corridor mask (B2-043b review)", () => {
+  it("is off by default, uploads up to CORRIDOR_POINTS path points with a radius, and validates input", async () => {
+    const { PerspectiveCamera, Scene } = await import("three");
+    const shaders: import("three").ShaderMaterial[] = [];
+    const renderer = {
+      autoClear: true,
+      getSize: (out: import("three").Vector2) => out.set(100, 100),
+      getPixelRatio: () => 1,
+      getRenderTarget: () => null,
+      setRenderTarget() {},
+      render(scene: import("three").Scene) {
+        const material = (scene.children[0] as import("three").Mesh | undefined)?.material;
+        if (material && "uniforms" in material) shaders.push(material as import("three").ShaderMaterial);
+      },
+    } as unknown as import("three").WebGLRenderer;
+    const pass = createPaperPass(renderer, { quality: "Balanced" });
+    try {
+      pass.render(new Scene(), new PerspectiveCamera());
+      const material = shaders.at(-1)!;
+      expect(material.uniforms.corridorCount!.value).toBe(0);
+      expect(material.fragmentShader).toContain("corridorDistance(worldPosition.xz)");
+      pass.setCorridor([{ x: 0, z: 0 }, { x: 0, z: -50 }, { x: 10, z: -90 }], 40);
+      expect(material.uniforms.corridorCount!.value).toBe(3);
+      expect(material.uniforms.corridorRadius!.value).toBe(40);
+      expect(material.uniforms.corridorPoints!.value[2].toArray()).toEqual([10, -90]);
+      expect(() => pass.setCorridor(Array.from({ length: CORRIDOR_POINTS + 1 }, () => ({ x: 0, z: 0 })))).toThrow(RangeError);
+      expect(() => pass.setCorridor([{ x: Number.NaN, z: 0 }])).toThrow(RangeError);
+      pass.setCorridor(null);
+      expect(material.uniforms.corridorCount!.value).toBe(0);
+    } finally { pass.dispose(); }
   });
 });

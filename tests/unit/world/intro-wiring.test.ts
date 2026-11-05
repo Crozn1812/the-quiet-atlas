@@ -11,6 +11,9 @@ const harness = vi.hoisted(() => ({
   firstPose: undefined as { position: import("three").Vector3; direction: import("three").Vector3; fov: number; far: number } | undefined,
   render: vi.fn(),
   mist: vi.fn(),
+  fog: vi.fn(),
+  preload: vi.fn(),
+  corridor: vi.fn(),
   reduced: vi.fn(),
   dispose: vi.fn(),
 }));
@@ -29,6 +32,8 @@ vi.mock("three", async importOriginal => {
 vi.mock("../../../src/features/world/scene/paper", () => ({
   createGradedPaperPass: () => ({
     setMist: harness.mist,
+    setFog: harness.fog,
+    setCorridor: harness.corridor,
     setQuality() {},
     setSize() {},
     dispose: harness.dispose,
@@ -46,7 +51,7 @@ vi.mock("../../../src/features/world/scene/compose", () => ({
   surfaceHeight: () => 100,
   createWorldScene: () => ({
     sun: { castShadow: false }, collisionMeshes: [], visibleMeshes: [], foliageMeshes: [],
-    update() {}, contains: () => true, fadeCrowns() {}, setQuality() {},
+    update() {}, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
     setReducedMotion: harness.reduced, dispose: harness.dispose,
   }),
 }));
@@ -187,6 +192,8 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
   expect(opened).not.toHaveBeenCalled();
   expect(harness.mist.mock.calls.some(([value]) => value.strength > DIRECTED_MIST)).toBe(true);
   expect(harness.mist.mock.calls.every(([value]) => value.strength <= 1)).toBe(true);
+  // Lead review: the 460 m overview stretches fog beyond the directed 260 m so the river is visible.
+  expect(harness.fog.mock.calls.some(([value]) => value.far > WORLD_DIRECTION.background.fog.far)).toBe(true);
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
   expect(skip.textContent).toBe("Bỏ qua");
   send(skip, "click");
@@ -196,6 +203,11 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
   expect(camera().position.distanceTo(harness.firstPose!.position)).toBeLessThan(1e-3);
   expect(camera().getWorldDirection(new Vector3()).distanceTo(harness.firstPose!.direction)).toBeLessThan(1e-3);
   expect(camera().fov).toBe(harness.firstPose!.fov);
+  // Lead review: the overview streams the river bends, then the reach returns to normal at handoff.
+  expect(harness.preload.mock.calls.map(([value]) => value)).toEqual([600, 0]);
+  expect(harness.corridor.mock.calls[0]![0]).toHaveLength(48);
+  expect(harness.corridor).toHaveBeenLastCalledWith(null);
+  expect(harness.fog).toHaveBeenLastCalledWith({ near: WORLD_DIRECTION.background.fog.near, far: WORLD_DIRECTION.background.fog.far });
   expect(camera().far).toBe(harness.firstPose!.far);
   expect(harness.mist).toHaveBeenLastCalledWith({ strength: DIRECTED_MIST });
   expect(doc.activeElement).toBe(canvas);

@@ -75,6 +75,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let elapsed = 0;
   let reducedMotion = false;
   let lastT = -Infinity;
+  // Extra streaming reach (m ahead) while the opening cinematic overlooks the river (Lead, B2-043b review).
+  let preloadAhead = 0;
   let previousPosition: Vector3 | undefined;
   const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
   const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
@@ -230,7 +232,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     const { t } = nearestPath(player.x, player.z);
     if (Math.abs(t - lastT) * pathLength() >= 8) {
       try {
-        pool.update(t);
+        pool.update(t, Math.max(120, preloadAhead));
         for (const [key, resident] of pool.tiles) if (!cells.has(key)) cells.set(key, createCell(scatterTile(resident.tile)));
         for (const [key, cell] of cells) if (!pool.tiles.has(key)) { cell.dispose(); cells.delete(key); }
         lastT = t;
@@ -274,6 +276,13 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
   return {
     update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,
+    /** Stream `aheadM` metres of path ahead (0 = normal). Raising it forces a stream on the next update;
+     * lowering it lets distant tiles unload on the player's next 8 m of movement (no hitch at handoff). */
+    setPreload(aheadM: number) {
+      if (disposed || !Number.isFinite(aheadM) || aheadM < 0) return;
+      if (aheadM > preloadAhead) lastT = -Infinity;
+      preloadAhead = aheadM;
+    },
     setReducedMotion(reduced: boolean) {
       if (disposed) return;
       reducedMotion = reduced;

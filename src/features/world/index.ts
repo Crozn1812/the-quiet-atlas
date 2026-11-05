@@ -18,11 +18,26 @@ import { PALETTE } from "./art/palette";
 import { disposeRampGradients } from "./materials/ramp";
 import { createGradedPaperPass } from "./scene/paper";
 import { WORLD_DIRECTION } from "./art/direction";
+import { pathLength, pathPointAt } from "./layout/path";
+import { CORRIDOR_POINTS } from "./post/paper";
+import { nearestPath } from "./terrain/samples";
+import { TERRAIN_RADIUS } from "./terrain/tiles";
 import { createIntroController } from "./cinematic/controller";
 import type { IntroFrame } from "./cinematic/intro";
 
 declare global {
   interface Window { __tqaSkipIntro?: boolean }
+}
+/** Path metres streamed ahead during the opening overview (covers the river bends it shows). */
+const INTRO_PRELOAD_M = 600;
+
+/** Path polyline (XZ) over the streamed intro range, for the paper corridor mask. */
+function introCorridor(position: { x: number; z: number }) {
+  const length = pathLength();
+  const start = nearestPath(position.x, position.z).t * length;
+  const from = Math.max(0, start - 60);
+  const to = Math.min(length, start + INTRO_PRELOAD_M);
+  return Array.from({ length: CORRIDOR_POINTS }, (_, i) => pathPointAt((from + (to - from) * i / (CORRIDOR_POINTS - 1)) / length));
 }
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
@@ -337,11 +352,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     camera.updateProjectionMatrix();
     // Lead: boost on top of direction C's mist (B2-038), not the pass default.
     paper.setMist({ strength: Math.min(1, WORLD_DIRECTION.background.mist.strength + pose.mistBoost) });
+    // Lead: world-scale fog (260 m) would dissolve the 460 m overview into blank paper; stretch it with
+    // the camera-to-target distance during the flight and restore the directed distances at handoff.
+    const { near, far } = WORLD_DIRECTION.background.fog;
+    const reach = intro?.state === "done" ? 0 : pose.position.distanceTo(pose.target);
+    paper.setFog({ near: Math.max(near, reach * 0.6), far: Math.max(far, reach * 1.8) });
     if (introUI) {
       for (const bar of introUI.bars) bar.style.height = `${pose.letterbox * 12}%`;
       introUI.fade.style.opacity = String(pose.paperOpacity);
     }
     if (intro?.state === "done") {
+      composed.setPreload(0);
+      paper.setCorridor(null);
       removeIntroUI();
       clear();
       gpu.domElement.focus({ preventScroll: true });
@@ -375,6 +397,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     skip.addEventListener("click", skipIntro);
     container.appendChild(skip);
     introUI = { skip, bars, fade };
+    // The overview shows the first bends of the river: stream them before the first intro frame.
+    composed.setPreload(INTRO_PRELOAD_M);
+    composed.update(physics.position, 0);
+    // Paper wash outside the streamed corridor: tile borders never show in the overview.
+    paper.setCorridor(introCorridor(physics.position), TERRAIN_RADIUS);
     applyIntro(intro.start());
     const active = document.activeElement;
     if (!active || active === document.body || active === gpu.domElement) skip.focus({ preventScroll: true });

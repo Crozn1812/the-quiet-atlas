@@ -192,3 +192,21 @@ it("grades paper fog without changing the paper pigment, across Low and High rea
     }
   } finally { paper.dispose(); }
 });
+
+it("streams the river ahead while the intro overlooks it, then unloads after the player moves (B2-043b review)", async () => {
+  const physics = await createController(undefined, [], { streamed: true });
+  const composed = createWorldScene({ ...physics, scene: new Scene(), quality: "Low", paper: { setGrade: vi.fn(), setMist: vi.fn() } });
+  try {
+    const spawn = worldSpawn();
+    const far = pathPointAt(500 / pathLength());
+    expect(composed.contains(far)).toBe(false);
+    composed.setPreload(600);
+    composed.update(spawn, 0);
+    expect(composed.contains(far)).toBe(true);
+    composed.setPreload(0);
+    composed.update(spawn, 0);
+    expect(composed.contains(far)).toBe(true); // no unload hitch at handoff
+    composed.update(nearestSafePath(pathPointAt(20 / pathLength())), 0);
+    expect(composed.contains(far)).toBe(false);
+  } finally { composed.dispose(); physics.dispose?.(); }
+}, 60_000);
