@@ -4,7 +4,7 @@ import { PATH_WIDTH, TERRAIN_SEED, worldHeight } from "../terrain/height";
 import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
 import { TILE_SIZE, tileKey, type TerrainTile, type TileAddress } from "../terrain/tiles";
 import { isDeepCrown } from "./instances";
-import { FOREST_SUN_SHAFT_PROGRESS } from "../zones/first-light";
+import { FOREST_SUN_SHAFT_PROGRESS } from "../layout/sun-shafts";
 
 export interface FoliageTree {
   readonly x: number;

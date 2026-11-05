@@ -1,14 +1,19 @@
 import {
-  Box3, BoxGeometry, BufferGeometry, CylinderGeometry, DoubleSide, Float32BufferAttribute,
+  Box3, BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute,
   Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, PlaneGeometry, Vector3,
   type DirectionalLight, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import type { PaletteKey } from "../art/palette";
-import { createPineCrown, createTreeTrunk } from "../foliage/shapes";
-import { createRampMaterial } from "../materials/ramp";
+import { createFern } from "../foliage/ground";
+import { createPineCrownV2 } from "../foliage/pine";
+import { pineHeight } from "../foliage/shapes";
+import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createLogGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
+import { createRockGeometry } from "../props/rocks";
 import { pathPointAt } from "../layout/path";
+import { FOREST_SUN_SHAFT_PROGRESS } from "../layout/sun-shafts";
 import { ZONES } from "../layout/zones";
 import { lightingAt } from "../sky/grade";
 import { waterLevelAt } from "../terrain/height";
@@ -16,10 +21,19 @@ import { nearestRiver } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
 type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower" | "petal";
-type Part = { geometry: BufferGeometry; surface: Surface };
-const part = (geometry: BufferGeometry, surface: Surface): Part => ({ geometry, surface });
+type Part = { geometry: BufferGeometry; surface: Surface; pigment?: Color };
+const part = (geometry: BufferGeometry, surface: Surface, pigment?: Color): Part => ({ geometry, surface, pigment });
 const tint = (base: PaletteKey, mix: PaletteKey, amount: number) =>
   paletteColor({ base, mix, amount, saturation: 1, brightness: 1 });
+const hues = {
+  wood: tint("dusk", "rockDark", 0.65), paper: tint("cloud", "cloud", 0),
+  green: tint("grass", "forestDeep", 0.6), stone: tint("rock", "rockDark", 0.2),
+  sun: tint("sunGold", "cloud", 0.7), ink: tint("rockDark", "forestDeep", 0.45),
+  flower: tint("flower", "flower", 0), petal: tint("cloud", "sand", 0.12),
+};
+// Kit pigments are linear palette colours; pine pigments are relative to its shared ramp.
+const kit = (geometry: BufferGeometry, surface: Surface, pigment = new Color(1, 1, 1)) =>
+  part(geometry, surface, pigment);
 
 /** 96 triangles, feathered on every edge; shared by the three route instances. */
 function sunVeil(width: number): PlaneGeometry {
@@ -69,7 +83,7 @@ diffuseColor.a *= smoothstep( 0.55, 0.9, shaftAlignment );
   };
 }
 
-export const FOREST_SUN_SHAFT_PROGRESS = Object.freeze([0.065, 0.105, 0.29]);
+export { FOREST_SUN_SHAFT_PROGRESS } from "../layout/sun-shafts";
 
 /** Three dry path-side canopy gaps: 288 rendered triangles, one additional draw call. */
 export function createForestSunShafts(heightAt: (x: number, z: number) => number) {
@@ -133,83 +147,92 @@ export function createForestSunShafts(heightAt: (x: number, z: number) => number
   };
 }
 
-/** An uneven octagonal plank, with one small bevel around both caps. */
-function plank(width: number, height: number, depth: number): BufferGeometry {
-  const cut = Math.min(width, height) * 0.13;
-  const outline = [
-    [-width / 2 + cut, -height / 2], [width / 2 - cut, -height / 2],
-    [width / 2, -height / 2 + cut], [width / 2 - cut * 0.15, height / 2 - cut],
-    [width / 2 - cut, height / 2], [-width / 2 + cut, height / 2 - cut * 0.1],
-    [-width / 2, height / 2 - cut], [-width / 2, -height / 2 + cut],
-  ];
-  const positions: number[] = [];
-  const bevel = Math.min(depth * 0.2, cut * 0.25);
-  const vertex = (ring: number, index: number) => {
-    const [x, y] = outline[index]!;
-    const inset = ring === 0 || ring === 3 ? 0.95 : 1;
-    positions.push(x! * inset, y! * inset,
-      [-depth / 2, -depth / 2 + bevel, depth / 2 - bevel, depth / 2][ring]!);
+/** A hewn post, weathered wooden letter pocket and the original greeting book. */
+function notebook(side: number): Part[] {
+  const board = (width: number, height: number, depth: number, seed: number) => {
+    const geometry = createPlankGeometry(width, seed);
+    geometry.computeBoundingBox();
+    const size = geometry.boundingBox!.getSize(new Vector3());
+    return geometry.scale(1, height / size.y, depth / size.z);
   };
-  for (let i = 1; i < 7; i++) {
-    vertex(0, 0); vertex(0, i + 1); vertex(0, i);
-    vertex(3, 0); vertex(3, i); vertex(3, i + 1);
-  }
-  for (let ring = 0; ring < 3; ring++) {
-    for (let i = 0; i < 8; i++) {
-      const next = (i + 1) % 8;
-      vertex(ring, i); vertex(ring, next); vertex(ring + 1, next);
-      vertex(ring, i); vertex(ring + 1, next); vertex(ring + 1, i);
-    }
-  }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  return geometry;
-}
-
-function notebook(): Part[] {
-  return [
-    part(plank(0.19, 1.4, 0.18).translate(0, 0.7, 0), "ink"),
-    part(plank(0.82, 0.12, 0.61).rotateZ(-0.025).translate(0, 1.42, 0), "wood"),
-    // A broad cover overhang and thick paper block keep the book readable above the shelf.
-    part(plank(0.66, 0.045, 0.48).rotateY(0.08).translate(0, 1.5225, 0), "wood"),
+  const parts = [
+    kit(createPostGeometry(1.45, 201).scale(1.65, 1, 1.65).translate(0, -0.05, 0), "wood"),
+    kit(board(0.82, 0.12, 0.61, 202).rotateZ(-0.025).translate(0, 1.42, 0), "wood"),
+    kit(board(0.66, 0.045, 0.48, 203).rotateY(0.08).translate(0, 1.5225, 0), "wood"),
     part(new BoxGeometry(0.61, 0.075, 0.43).rotateY(0.08).translate(0, 1.5825, 0), "paper"),
-    // Two blank, gently opened pages; all writing belongs to the HTML overlay.
     part(new BoxGeometry(0.295, 0.018, 0.42).rotateZ(0.08).rotateY(0.08).translate(-0.15, 1.64, 0), "paper"),
     part(new BoxGeometry(0.295, 0.018, 0.42).rotateZ(-0.08).rotateY(0.08).translate(0.15, 1.64, 0), "paper"),
   ];
+  // Side-mounted pocket, below the shelf: the book stays visible from either path edge.
+  for (const [x, y, z, w, h, d, seed] of [
+    [0, 1.04, 0.14, 0.48, 0.055, 0.28, 211],
+    [0, 1.24, 0.27, 0.48, 0.36, 0.045, 212],
+    [-0.22, 1.22, 0.14, 0.05, 0.32, 0.28, 213],
+    [0.22, 1.22, 0.14, 0.05, 0.32, 0.28, 214],
+    [0, 1.37, 0.14, 0.52, 0.06, 0.32, 215],
+  ]) {
+    const geometry = board(w!, h!, d!, seed!).translate(x!, y!, z!).rotateY(side * Math.PI / 2);
+    const colors = geometry.getAttribute("color");
+    const silver = new Color(tint("rock", "sand", 0.28));
+    for (let i = 0; i < colors.count; i++) {
+      const grain = 0.86 + colors.getX(i) * 0.25;
+      colors.setXYZ(i, silver.r * grain, silver.g * grain, silver.b * grain);
+    }
+    parts.push(kit(geometry, "wood"));
+  }
+  return parts;
 }
 
-/** Five arched fronds, paired leaflets: a few readable clusters rather than scattered grass. */
-function fern(compact = false): BufferGeometry {
-  const positions: number[] = [];
-  const fronds = compact ? 4 : 5, segments = compact ? 4 : 5, leaflets = compact ? 3 : 5;
-  for (let frond = 0; frond < fronds; frond++) {
-    const angle = frond * Math.PI * 2 / fronds;
-    const point = (r: number, side: number, y: number) => {
-      positions.push(Math.cos(angle) * r - Math.sin(angle) * side, y,
-        Math.sin(angle) * r + Math.cos(angle) * side);
-    };
-    for (let segment = 0; segment < segments; segment++) {
-      const a = segment / 6, b = (segment + 1) / 6;
-      point(a * 0.72, -0.009, Math.sin(a * Math.PI * 0.8) * 0.52);
-      point(a * 0.72, 0.009, Math.sin(a * Math.PI * 0.8) * 0.52);
-      point(b * 0.72, 0, Math.sin(b * Math.PI * 0.8) * 0.52);
-    }
-    for (let leaf = 0; leaf < leaflets; leaf++) {
-      const t = (leaf + 1) / (leaflets + 1);
-      const r = t * 0.72;
-      const y = Math.sin(t * Math.PI * 0.8) * 0.52;
-      const width = 0.16 * (1 - t * 0.6);
-      for (const side of [-1, 1]) {
-        point(r - 0.09, 0, y - 0.035);
-        point(r + 0.035, side * width, y + 0.018);
-        point(r + 0.09, 0, y + 0.025);
-      }
+// Collision envelopes stay at their shipped anchors as the visible assets change.
+const logBox = new Box3(new Vector3(-1.899674, 0, -0.691764), new Vector3(1.897498, 0.909570, 0.783773));
+/** Retain the old seeded collision extents without rendering the old prop geometry. */
+function rockCollisionBox(seed: number, scale: number): Box3 {
+  const bounds = new Box3();
+  const a = Math.fround(0.5257311121191336), b = Math.fround(0.85065080835204);
+  for (const signA of [-1, 1]) for (const signB of [-1, 1]) {
+    for (const [x, y, z] of [[signA * a, signB * b, 0], [0, signA * a, signB * b], [signB * b, 0, signA * a]]) {
+      const wobble = 1 + Math.sin(x! * 9 + z! * 5 + seed) * 0.08;
+      bounds.expandByPoint(new Vector3(Math.fround(x! * wobble) * scale * 1.1,
+        Math.fround(y! * wobble) * scale * 0.57, Math.fround(z! * wobble) * scale * 0.8));
     }
   }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  return geometry;
+  bounds.max.y -= bounds.min.y;
+  bounds.min.y = 0;
+  bounds.max.y = Math.max(bounds.max.y, scale * (1.02 + b * 0.08));
+  return bounds;
+}
+
+/** Collision-only outline of the shipped crown: the visible pine always uses V2. */
+function pineCollisionBox(seed: number): Box3 {
+  let state = seed >>> 0;
+  const random = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  const tiers = 3 + (seed >>> 0) % 3;
+  const lean = (random() < 0.5 ? -1 : 1) * (0.2 + random() * 0.12);
+  const phase = random() * Math.PI * 2;
+  const bounds = new Box3();
+  const point = (x: number, z: number) => bounds.expandByPoint(new Vector3(Math.fround(x), 0, Math.fround(z)));
+  for (let tier = 0; tier < tiers; tier++) {
+    const t = tier / (tiers - 1), radius = (1.82 - t * 1.18) * (0.96 + random() * 0.04);
+    random(); // Legacy tier height; consume its seed step before the outline.
+    const rim = Array.from({ length: 11 }, () => 0.88 + random() * 0.24);
+    const cx = lean * t, cz = Math.sin(phase + t * 2) * 0.07;
+    for (let ring = 0; ring < 2; ring++) for (let j = 0; j < 11; j++) {
+      const angle = phase + tier * 0.37 + j * Math.PI * 2 / 11;
+      const r = radius * rim[j]! * (ring === 0 ? 1 : 0.52);
+      random(); // Legacy rim height.
+      point(cx + Math.cos(angle) * r + ring * lean * 0.12, cz + Math.sin(angle) * r);
+    }
+    point(cx + lean * 0.4, cz + 0.04);
+    point(cx, cz);
+  }
+  const size = bounds.getSize(new Vector3());
+  const fit = Math.min(1, 2.7 / Math.max(size.x, size.z));
+  bounds.min.multiplyScalar(fit);
+  bounds.max.multiplyScalar(fit).setY(pineHeight(seed));
+  return bounds;
 }
 
 export const createFirstLightScene: ZoneSceneFactory = (context) => {
@@ -221,15 +244,16 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   const colliders: ZoneCollider[] = [];
 
   /** Check the whole conservative footprint, including overhanging foliage and box corners. */
-  function place(parts: Part[], x: number, z: number, solid = false): boolean {
+  function place(parts: Part[], x: number, z: number, solid = false, collisionBox?: Box3): boolean {
     const bounds = new Box3();
     for (const { geometry } of parts) {
       geometry.translate(x, 0, z);
       geometry.computeBoundingBox();
       bounds.union(geometry.boundingBox!);
     }
-    // Ground each solid assembly by its lowest foot, then follow terrain across its footprint.
-    if (solid) parts.forEach(({ geometry }) => geometry.translate(0, -bounds.min.y, 0));
+    // Embed feet by 5 cm; the extended greeting post preserves the book's eye-level anchor.
+    if (solid) parts.forEach(({ geometry }) => geometry.translate(0, -bounds.min.y - 0.05, 0));
+    if (collisionBox) bounds.union(collisionBox.clone().translate(new Vector3(x, 0, z)));
     let valid = true;
     const nx = Math.max(1, Math.ceil((bounds.max.x - bounds.min.x) / 0.2));
     const nz = Math.max(1, Math.ceil((bounds.max.z - bounds.min.z) / 0.2));
@@ -258,11 +282,13 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       parts.forEach(({ geometry }) => geometry.dispose());
       return false;
     }
-    for (const { geometry, surface } of parts) {
+    for (const { geometry, surface, pigment } of parts) {
       const flat = geometry.index ? geometry.toNonIndexed() : geometry;
       if (flat !== geometry) geometry.dispose();
-      // Normalize attributes for mergeGeometries; neutral vertex pigment multiplies palette hue.
-      const alpha = surface === "sun" ? flat.getAttribute("color") : undefined;
+      // Rebase kit pigments into each shared material without losing grain or moss colours.
+      const source = flat.getAttribute("color");
+      const alpha = surface === "sun" ? source : undefined;
+      const base = new Color(hues[surface]);
       for (const name of Object.keys(flat.attributes)) {
         if (name !== "position" && !(alpha && name === "color")) flat.deleteAttribute(name);
       }
@@ -270,30 +296,51 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       const colors: number[] = [];
       for (let i = 0; i < positions.count; i++) {
         const wash = 0.94 + Math.sin(positions.getX(i) * 7 + positions.getY(i) * 3 + positions.getZ(i) * 5) * 0.04;
-        colors.push(wash, wash, wash);
+        if (pigment && source) {
+          colors.push(source.getX(i) * pigment.r / base.r * wash,
+            source.getY(i) * pigment.g / base.g * wash, source.getZ(i) * pigment.b / base.b * wash);
+        } else colors.push(wash, wash, wash);
         if (alpha) colors.push(alpha.getW(i));
       }
       flat.setAttribute("color", new Float32BufferAttribute(colors, alpha ? 4 : 3));
       flat.computeVertexNormals();
       buckets[surface].push(flat);
     }
-    if (solid) colliders.push({ center: grounded.getCenter(new Vector3()), size: grounded.getSize(new Vector3()) });
+    if (solid) {
+      if (collisionBox) {
+        grounded.makeEmpty();
+        for (const px of [collisionBox.min.x, collisionBox.max.x]) {
+          for (const py of [collisionBox.min.y, collisionBox.max.y]) {
+            for (const pz of [collisionBox.min.z, collisionBox.max.z]) {
+              grounded.expandByPoint(new Vector3(x + px, py + context.heightAt(x + px, z + pz), z + pz));
+            }
+          }
+        }
+      }
+      colliders.push({ center: grounded.getCenter(new Vector3()), size: grounded.getSize(new Vector3()) });
+    }
     return true;
   }
 
   // Fixed reachable alternatives handle a path bend or a wet bank without moving anything onto the path.
   const greeting = [[4.8, 3.8], [-4.8, 4.2], [4.8, -4.4], [-4.8, -4.4]]
-    .find(([x, z]) => place(notebook(), x!, z!, true));
+    .find(([x, z]) => place(notebook(Math.sign(x!)), x!, z!, true,
+      new Box3(new Vector3(-0.410982, 0, -0.305), new Vector3(0.408762, 1.660759, 0.305))));
   if (!greeting) throw new RangeError("First Light needs a dry greeting footprint beside the path.");
   const [greetingX, greetingZ] = greeting as [number, number];
 
-  // Fallen pine seat: low bark cylinder, exposed end grain, one broad moss wash.
+  // Bark facets, snapped limbs and end-grain rings come from the shared log kit.
+  const log = createLogGeometry(201);
+  log.computeBoundingBox();
+  const logSize = log.boundingBox!.getSize(new Vector3());
   const logPlaced = place([
-    part(new CylinderGeometry(0.39, 0.46, 3.7, 9).rotateZ(Math.PI / 2).rotateY(-0.18).translate(0, 0.46, 0), "ink"),
-    ...[-1, 1].map(side => part(new CylinderGeometry(0.34, 0.34, 0.018, 9)
-      .rotateZ(Math.PI / 2).translate(side * 1.86, 0, 0).rotateY(-0.18).translate(0, 0.46, 0), "wood")),
-    part(new IcosahedronGeometry(1, 0).scale(1.45, 0.09, 0.29).rotateY(-0.18).translate(0, 0.84, 0), "green"),
-  ], -7.2, 3.8, true);
+    kit(log.scale(3.65 / logSize.x, 0.86 / logSize.y, 0.8 / logSize.z).rotateY(-0.18), "wood"),
+  ], -7.2, 3.8, true, logBox);
+  if (logPlaced) {
+    for (const [index, [x, z]] of [[-8.65, 3.12], [-6.1, 4.45]].entries()) {
+      place([kit(createRockGeometry("pebble", 261 + index, true).translate(0, -0.04, 0), "stone")], x!, z!);
+    }
+  }
 
   // Three pin-sized orange blooms along the open edge of the fallen pine.
   if (logPlaced) {
@@ -321,32 +368,28 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     place(cluster, -5.15, 3.2);
   }
 
-  for (const [x, z, scale] of [[-6.7, 7.2, 1], [-8.3, 7.9, 0.7], [7.5, -2.8, 0.85]]) {
-    const rock = new IcosahedronGeometry(1, 0);
-    const vertices = rock.getAttribute("position");
-    for (let i = 0; i < vertices.count; i++) {
-      const wobble = 1 + Math.sin(vertices.getX(i) * 9 + vertices.getZ(i) * 5 + context.seed) * 0.08;
-      vertices.setXYZ(i, vertices.getX(i) * wobble, vertices.getY(i) * wobble, vertices.getZ(i) * wobble);
-    }
-    rock.scale(scale! * 1.1, scale! * 0.57, scale! * 0.8);
+  for (const [index, [x, z, scale]] of [[-6.7, 7.2, 1], [-8.3, 7.9, 0.7], [7.5, -2.8, 0.85]].entries()) {
+    const rock = createRockGeometry("boulder", 201 + index, true);
     rock.computeBoundingBox();
-    rock.translate(0, -rock.boundingBox!.min.y, 0);
-    place([
-      part(rock, "stone"),
-      part(new IcosahedronGeometry(1, 0).scale(scale! * 0.7, scale! * 0.08, scale! * 0.49)
-        .translate(-0.08, scale! * 1.02, 0), "green"),
-    ], x!, z!, true);
+    const size = rock.boundingBox!.getSize(new Vector3());
+    place([kit(rock.scale(1.8 * scale! / size.x, 1.08 * scale! / size.y, 1.25 * scale! / size.z), "stone")],
+      x!, z!, true, rockCollisionBox(context.seed, scale!));
+    // Three chips seat each rock without enlarging its collision box.
+    for (const [chip, [dx, dz]] of [[0.6, -0.36], [-0.58, 0.26], [0.15, 0.55]].entries()) {
+      place([kit(createRockGeometry("pebble", 231 + index * 3 + chip).translate(0, -0.04, 0), "stone")],
+        x! + dx! * scale!, z! + dz! * scale!);
+    }
   }
 
   for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9], [12.5, -5.5]].entries()) {
-    place([
-      part(createTreeTrunk().scale(1, 5, 1).translate(0, 2.5, 0), "ink"),
-      part(createPineCrown((context.seed + index) >>> 0).translate(0, 5, 0), "green"),
-    ], x!, z!, true);
+    const seed = (context.seed + index) >>> 0;
+    const box = pineCollisionBox(seed);
+    place([kit(createPineCrownV2(seed).translate(0, 5, 0), "green", new Color(RAMP_PRESETS.crown))],
+      x!, z!, true, box);
   }
 
   for (const [x, z] of [[-5.8, 6], [-8.8, 2.7], [6.7, 5.8]]) {
-    place([part(fern(), "green")], x!, z!);
+    place([kit(createFern().scale(0.75, 0.6, 0.75).rotateY(context.seed * 0.01 + x!), "green")], x!, z!);
     const flowers: Part[] = [];
     for (let i = 0; i < 3; i++) {
       const fx = 0.8 + i * 0.18, fz = i % 2 * 0.27;
@@ -370,20 +413,22 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   // Independent placement leaves the post footprint, collider and interaction untouched.
   for (const [dx, dz, scale] of [[0.65, 0.35, 0.42], [-0.6, -0.35, 0.36]]) {
     place([
-      part(fern(true).scale(scale!, scale!, scale!).rotateY(context.seed * 0.01 + dx!), "green"),
-      part(new IcosahedronGeometry(1, 0).scale(0.25, 0.055, 0.19).translate(-dx! * 0.5, 0.06, 0), "green"),
+      kit(createFern().scale(scale!, scale!, scale!).rotateY(context.seed * 0.01 + dx!), "green"),
+      kit(createRockGeometry("stone", dx! > 0 ? 251 : 252, true).scale(0.65, 0.55, 0.65).translate(-dx! * 0.5, -0.04, 0), "stone"),
     ], greetingX + dx!, greetingZ + dz!);
   }
 
+  place([kit(createRockGeometry("pebble", 253, true).translate(0, -0.04, 0), "stone")], greetingX + 0.15, greetingZ - 0.42);
+
   const materials = {
-    wood: createRampMaterial(tint("dusk", "rockDark", 0.65), WORLD_DIRECTION.foliage.ramp),
-    paper: createRampMaterial(tint("cloud", "cloud", 0), WORLD_DIRECTION.foliage.ramp),
-    green: createRampMaterial(tint("grass", "forestDeep", 0.6), WORLD_DIRECTION.foliage.ramp),
-    stone: createRampMaterial(tint("rock", "rockDark", 0.2), WORLD_DIRECTION.foliage.ramp),
-    sun: createRampMaterial(tint("sunGold", "cloud", 0.7)),
-    ink: createRampMaterial(tint("rockDark", "forestDeep", 0.45), WORLD_DIRECTION.foliage.ramp),
-    flower: createRampMaterial(tint("flower", "flower", 0), WORLD_DIRECTION.foliage.ramp),
-    petal: createRampMaterial(tint("grassDry", "grassDry", 0), WORLD_DIRECTION.foliage.ramp),
+    wood: createRampMaterial(hues.wood, WORLD_DIRECTION.foliage.ramp),
+    paper: createRampMaterial(hues.paper, WORLD_DIRECTION.foliage.ramp),
+    green: createRampMaterial(hues.green, WORLD_DIRECTION.foliage.ramp),
+    stone: createRampMaterial(hues.stone, WORLD_DIRECTION.foliage.ramp),
+    sun: createRampMaterial(hues.sun),
+    ink: createRampMaterial(hues.ink, WORLD_DIRECTION.foliage.ramp),
+    flower: createRampMaterial(hues.flower, WORLD_DIRECTION.foliage.ramp),
+    petal: createRampMaterial(hues.petal, WORLD_DIRECTION.foliage.ramp),
   };
   materials.green.side = DoubleSide;
   for (const surface of Object.keys(buckets) as Surface[]) {
