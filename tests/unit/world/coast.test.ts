@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
-import { worldHeight } from "../../../src/features/world/terrain/height";
+import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
 
 /** Zones stay dry except the open river channel (not walkable ground; Lead B2-037 review). */
@@ -11,6 +11,18 @@ const inChannel = (x: number, z: number) => nearestRiver(x, z).distance < 14;
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 
 describe("organic coast", () => {
+  it("retains pre-landmark shoreline zero crossings, including the protected headland", () => {
+    // B2-109 adds clearance above water without moving the existing coastline.
+    for (const [x, baseline] of [
+      [-30, -877.7984410158824], [-10, -853.156918200897], [0, -875.1729319540318],
+      [10, -915.606637014309], [20, -910.1774243644904], [30, -869.0726099351887],
+    ] as const) {
+      expect(Math.abs(worldHeight(x, baseline))).toBeLessThan(1e-8);
+      expect(worldHeight(x, baseline - 0.01)).toBeLessThan(0);
+      expect(worldHeight(x, baseline + 0.01)).toBeGreaterThan(0);
+    }
+  });
+
   it("has at least 8 m shoreline variation across 40 zero crossings", () => {
     const shore = Array.from({ length: 40 }, (_, i) => {
       const x = -390 + i * 20;
@@ -44,10 +56,13 @@ describe("organic coast", () => {
     }
     for (const zone of ZONES) {
       let minimum = Infinity;
+      let clearance = Infinity;
       for (let x = -zone.radius; x <= zone.radius; x += 0.5) {
         for (let z = -zone.radius; z <= zone.radius; z += 0.5) {
           if (Math.hypot(x, z) > zone.radius || inChannel(zone.position.x + x, zone.position.z + z)) continue;
-          minimum = Math.min(minimum, worldHeight(zone.position.x + x, zone.position.z + z));
+          const height = worldHeight(zone.position.x + x, zone.position.z + z);
+          minimum = Math.min(minimum, height);
+          clearance = Math.min(clearance, height - waterLevelAt(zone.position.z + z));
         }
       }
       // Include the circular boundary between grid intersections, too.
@@ -55,9 +70,15 @@ describe("organic coast", () => {
         const angle = i * Math.PI / 180;
         const px = zone.position.x + zone.radius * Math.cos(angle);
         const pz = zone.position.z + zone.radius * Math.sin(angle);
-        if (!inChannel(px, pz)) minimum = Math.min(minimum, worldHeight(px, pz));
+        if (!inChannel(px, pz)) {
+          const height = worldHeight(px, pz);
+          minimum = Math.min(minimum, height);
+          clearance = Math.min(clearance, height - waterLevelAt(pz));
+        }
       }
       expect(minimum, zone.id).toBeGreaterThanOrEqual(0.4);
+      // Subtraction can round an exact 0.4 m clearance down by one ULP.
+      expect(clearance, zone.id).toBeGreaterThanOrEqual(0.4 - 1e-12);
     }
   });
 

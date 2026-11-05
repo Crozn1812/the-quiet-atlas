@@ -22,24 +22,26 @@ describe("river terrain heightmap", () => {
     expect(buildTile(-1, -7).heights).toEqual(buildTile(-1, -7).heights);
   });
 
-  it("keeps the walking grade below 20% at 500 samples including bridge approaches", () => {
+  // B2-109 tightens the old 20% / 500-sample gate to 13% at <= 0.5 m spacing.
+  it("keeps the walking grade below 13% every half metre including bridge approaches", () => {
+    const samples = Math.ceil(pathLength() / 0.5);
     let previous = pathPointAt(0);
     let previousHeight = worldHeight(previous.x, previous.z);
     let maxGrade = 0;
-    for (let i = 1; i <= 500; i++) {
-      const point = pathPointAt(i / 500);
+    for (let i = 1; i <= samples; i++) {
+      const point = pathPointAt(i / samples);
       const height = worldHeight(point.x, point.z);
       maxGrade = Math.max(maxGrade, Math.abs(height - previousHeight) / point.distanceTo(previous));
       previous = point;
       previousHeight = height;
     }
-    expect(maxGrade).toBeLessThanOrEqual(0.2);
+    expect(maxGrade).toBeLessThanOrEqual(0.13);
     // Probe the ford transitions at much finer spacing than the required sweep.
     for (const bridge of PATH_BRIDGES) for (let i = -200; i <= 200; i++) {
       const t = bridge.t + i * 0.05 / pathLength();
       const a = pathPointAt(t);
       const b = pathPointAt(t + 0.05 / pathLength());
-      expect(Math.abs(worldHeight(b.x, b.z) - worldHeight(a.x, a.z)) / a.distanceTo(b)).toBeLessThanOrEqual(0.2);
+      expect(Math.abs(worldHeight(b.x, b.z) - worldHeight(a.x, a.z)) / a.distanceTo(b)).toBeLessThanOrEqual(0.13);
     }
   });
 
@@ -60,7 +62,7 @@ describe("river terrain heightmap", () => {
     }
   });
 
-  it("also keeps walking grade below 20% on the triangulated 2 m heightfield", () => {
+  it("also keeps walking grade below 13% every half metre on the triangulated 2 m heightfield", () => {
     const cache = new Map<string, ReturnType<typeof buildTile>>();
     const heightAt = (x: number, z: number) => {
       const ix = Math.floor(x / TILE_SIZE);
@@ -82,10 +84,11 @@ describe("river terrain heightmap", () => {
     };
     let previous = pathPointAt(0);
     let previousHeight = heightAt(previous.x, previous.z);
-    for (let i = 1; i <= 500; i++) {
-      const point = pathPointAt(i / 500);
+    const samples = Math.ceil(pathLength() / 0.5);
+    for (let i = 1; i <= samples; i++) {
+      const point = pathPointAt(i / samples);
       const height = heightAt(point.x, point.z);
-      expect(Math.abs(height - previousHeight) / point.distanceTo(previous)).toBeLessThanOrEqual(0.2);
+      expect(Math.abs(height - previousHeight) / point.distanceTo(previous)).toBeLessThanOrEqual(0.13);
       previous = point;
       previousHeight = height;
     }

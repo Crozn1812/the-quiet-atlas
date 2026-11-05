@@ -8,6 +8,19 @@ export const PATH_WIDTH = 3;
 const routeLength = pathLength();
 const source = riverPointAt(0);
 
+// Anchor relief to the layout, with the crest on the dry side of the route.
+function landmark(id: "milestones" | "horizon" | "workshop", offset: number, seaward = 0) {
+  const zone = ZONES.find(zone => zone.id === id)!;
+  const river = nearestRiver(zone.position.x, zone.position.z);
+  const nx = (zone.position.x - river.x) / river.distance;
+  const nz = (zone.position.z - river.z) / river.distance;
+  return { x: zone.position.x + nx * offset, z: zone.position.z + nz * offset - seaward, nx, nz, t: zone.t };
+}
+
+const milestones = landmark("milestones", 20);
+const horizon = landmark("horizon", 20, 18);
+const workshop = landmark("workshop", 8);
+
 function smoothstep(start: number, end: number, value: number): number {
   const t = Math.max(0, Math.min(1, (value - start) / (end - start)));
   return t * t * (3 - 2 * t);
@@ -37,6 +50,24 @@ function riverLevel(z: number): number {
   return Math.max(0, z + 900) * 0.008;
 }
 
+function routeLift(t: number): number {
+  const hill = 6 * (1 - smoothstep(0, 90, Math.abs(t - milestones.t) * routeLength));
+  // Begin beyond the second ford; the summit stays beside the path, leaving
+  // the zone on its accessible shoulder. A longer descent reaches the beach.
+  const headland = 6 * smoothstep(horizon.t - 0.058, horizon.t + 0.025, t)
+    * (1 - smoothstep(horizon.t + 0.025, horizon.t + 0.11, t));
+  return hill + headland;
+}
+
+function landmarkLift(x: number, z: number, riverDistance: number): number {
+  const hill = 7.5 * (1 - smoothstep(0, 75, Math.hypot(x - milestones.x, z - milestones.z)));
+  // Negative Z faces the sea: the 45 m nose is steeper than the 100 m inland shoulder.
+  const dz = z - horizon.z;
+  const headland = 12 * (1 - smoothstep(0, 1, Math.hypot((x - horizon.x) / 65, dz / (dz < 0 ? 45 : 100))));
+  // Leave the channel, spring, estuary and the spawn's downstream water view open.
+  return (hill + headland) * smoothstep(6, 14, riverDistance);
+}
+
 /** Seeded 90 m coastal undulations, independent of query order and tile boundaries. */
 function shoreHeight(x: number, z: number): number {
   const shoreZ = -880 + 30 * noise(x / 90, 0);
@@ -63,7 +94,16 @@ export function worldHeight(x: number, z: number): number {
     * (1 - smoothstep(0, 24, river.distance));
   // A compact spring hollow; the zero-slope rim leaves the bank/path beyond 4 m untouched.
   const sourcePool = 0.45 * (1 - smoothstep(0, 4, Math.hypot(x - source.x, z - source.z)));
-  const land = valley + (estuary - valley) * smoothstep(760, 840, -z) - sourcePool;
+  let land = valley + (estuary - valley) * smoothstep(760, 840, -z) - sourcePool
+    + landmarkLift(x, z, river.distance);
+  // A 10 x 8 m pad aligned with the bank, with a 6 m rounded transition.
+  const dx = x - workshop.x;
+  const dz = z - workshop.z;
+  const across = dx * workshop.nx + dz * workshop.nz;
+  const along = -dx * workshop.nz + dz * workshop.nx;
+  const pad = 1 - smoothstep(0, 6, Math.hypot(Math.max(0, Math.abs(along) - 5), Math.max(0, Math.abs(across) - 4)));
+  const padHeight = riverLevel(workshop.z) + 0.13;
+  land += (padHeight - land) * pad * smoothstep(6, 10, river.distance);
 
   // The heightfield follows a shallow ford under each future bridge. These
   // 36 m approaches keep the analytic path grade below 13%, including descent.
@@ -71,16 +111,28 @@ export function worldHeight(x: number, z: number): number {
   for (const bridge of PATH_BRIDGES) {
     pathOffset -= 1.2 * (1 - smoothstep(0, 18, Math.abs(path.t - bridge.t) * routeLength));
   }
-  const pathHeight = Math.max(0.4, riverLevel(path.z) + coastWeight(path.z) * pathOffset);
+  // Coastal walking ground needs clearance above local water as well as sea
+  // level. Fade this addition out at the channel axis to preserve the estuary.
+  const coastalClearance = 0.43 * (1 - coastWeight(path.z)) * smoothstep(0, 6, river.distance);
+  const lift = routeLift(path.t);
+  const pathHeight = Math.max(0.4, riverLevel(path.z) + coastWeight(path.z) * pathOffset) + lift;
   // Keep the 3 m walking strip flat, with broader, gentle beach approaches.
-  const pathBlend = 1 - smoothstep(PATH_WIDTH / 2, 4 + 12 * (1 - coastal), path.distance);
+  // Under raised sections a 3 m foundation on either side also keeps the
+  // triangulated 2 m collider from sampling a steep shoulder underfoot.
+  const foundation = 1.5 * smoothstep(0, 1, lift);
+  const pathBlend = 1 - smoothstep(PATH_WIDTH / 2 + foundation, 4 + 12 * (1 - coastal), path.distance);
   let height = pathBlend === 1 ? pathHeight : land + (pathHeight - land) * pathBlend;
+  // Extra dry clearance has zero influence at/below the old waterline, so
+  // raising the walking surface cannot move any shoreline zero crossing.
+  height += coastalClearance * pathBlend * smoothstep(0, 0.4, height);
   for (const zone of ZONES) {
     const distance = Math.hypot(x - zone.position.x, z - zone.position.z);
     // Lead (B2-037 review): the dry terrace never dams the river channel; the estuary stays open to the sea.
     const protection = (1 - smoothstep(zone.radius, zone.radius + 16, distance)) * smoothstep(6, 14, river.distance);
     height = protection === 1 ? Math.max(0.4, height)
       : height + Math.max(0, 0.4 - height) * protection;
+    const dryHeight = Math.max(0.4, waterLevelAt(z) + 0.4);
+    height += Math.max(0, dryHeight - height) * protection * smoothstep(0, 0.4, height);
   }
   return height;
 }
