@@ -1,4 +1,7 @@
 import { WORLD_COPY } from "../../../src/features/world/copy";
+import { arrivalPoint } from "../../../src/features/navigation/signposts";
+import { surfaceHeight } from "../../../src/features/world/scene/compose";
+import { HEIGHT } from "../../../src/features/world/scene";
 import { afterEach, expect, it, vi } from "vitest";
 
 const harness = vi.hoisted(() => ({
@@ -52,6 +55,7 @@ vi.mock("three", async importOriginal => {
 
 class Element extends EventTarget {
   dataset: Record<string, string> = {};
+  style: Record<string, string> = {};
   clientWidth = 1000;
   clientHeight = 800;
   textContent = "";
@@ -201,6 +205,50 @@ it.each([
     expect(perf.info()).toEqual({ drawCalls: 3, triangles: 42, geometries: 4, textures: 0, programs: 0 });
     for (let now = 600; now < 30000; now += 100) tick(now);
     expect(container.dataset.worldQuality).toBe("high");
+    // Exercise the adapter with both real physics backends and streamed destination terrain.
+    const player = scene.children.find(object => (object as import("three").Mesh).geometry?.type === "CapsuleGeometry")!;
+    const teleportSign = scene.getObjectByName("teleport-first-light")!;
+    let now = 30000;
+    for (let i = 0; i < 40 && player.position.distanceTo(teleportSign.position) > 0.8; i++) {
+      const dx = teleportSign.position.x - player.position.x;
+      const dz = teleportSign.position.z - player.position.z;
+      const offset = camera.position.clone().sub(player.position);
+      const yaw = Math.atan2(offset.x, offset.z);
+      const directions = [
+        { code: "KeyW", x: -Math.sin(yaw), z: -Math.cos(yaw) },
+        { code: "KeyS", x: Math.sin(yaw), z: Math.cos(yaw) },
+        { code: "KeyA", x: -Math.cos(yaw), z: Math.sin(yaw) },
+        { code: "KeyD", x: Math.cos(yaw), z: -Math.sin(yaw) },
+      ];
+      const direction = directions.sort((a, b) => (b.x - a.x) * dx + (b.z - a.z) * dz)[0]!;
+      send(window, "keydown", { code: direction.code });
+      tick(now += 100);
+      send(window, "keyup", { code: direction.code });
+    }
+    const chosen = vi.fn();
+    const journeys: CustomEvent[] = [];
+    container.addEventListener("tqa:teleport-choose", chosen);
+    for (const name of ["tqa:teleport-start", "tqa:teleport-end"]) {
+      container.addEventListener(name, event => journeys.push(event as CustomEvent));
+    }
+    send(window, "keydown", { code: "KeyE" });
+    expect(chosen).toHaveBeenCalledOnce();
+    expect(chosen.mock.calls[0]![0].detail).toEqual({ from: "first-light" });
+    for (const to of ["roots", "last-postcard"] as const) {
+      if (to === "last-postcard") send(window, "keydown", { code: "KeyE" });
+      send(container, "tqa:teleport-to", { detail: { to } });
+      send(window, "keydown", { code: "KeyW" });
+      for (let i = 0; i < 14; i++) tick(now += 100);
+      const arrival = arrivalPoint(to).position;
+      expect(Math.hypot(player.position.x - arrival.x, player.position.z - arrival.z)).toBeLessThan(0.1);
+      expect(Math.abs(player.position.y - (surfaceHeight(arrival.x, arrival.z) + HEIGHT + 0.02))).toBeLessThan(0.1);
+      expect(container.dataset.worldTeleport).toBe("idle");
+    }
+    expect(journeys.map(event => event.type)).toEqual([
+      "tqa:teleport-start", "tqa:teleport-end", "tqa:teleport-start", "tqa:teleport-end",
+    ]);
+    expect(journeys[2]!.detail).toEqual({ from: "roots", to: "last-postcard" });
+    expect(journeys.every(event => !event.bubbles)).toBe(true);
     const errors = vi.fn();
     container.addEventListener("tqa:world-error", errors);
     send(canvas, "webglcontextlost", {});
@@ -211,7 +259,7 @@ it.each([
     const stopped = perf.frames().length;
     send(document, "visibilitychange", {});
     send(container, "tqa:pause", { detail: { reason: "error", paused: false } });
-    tick(31000);
+    tick(now + 100);
     send(canvas, "webglcontextlost", {});
     expect(errors).toHaveBeenCalledOnce();
     expect(perf.frames()).toHaveLength(stopped);

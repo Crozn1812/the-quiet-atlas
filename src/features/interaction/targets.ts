@@ -1,12 +1,14 @@
 import { interactionHint, type WorldLocale } from "../world/copy";
 import { isInputTarget, type KeyEventLike } from "./input";
 import type { Position } from "../../state/session";
+import { TELEPORT_CHOOSE_EVENT } from "../navigation/events";
 
 export const INTERACTION_RADIUS = 2.5;
 export const ZONE_IDS = ["first-light", "roots", "workshop", "milestones", "old-trail", "horizon", "quiet-shore", "last-postcard"] as const;
 export type ZoneId = typeof ZONE_IDS[number];
 export interface InteractionTarget {
   id: string;
+  kind?: "content" | "teleport";
   zoneId: ZoneId;
   position: Position;
 }
@@ -40,6 +42,7 @@ export function createInteraction(options: {
   lineOfSight?: (target: InteractionTarget) => boolean;
   locale?: () => WorldLocale;
   visit: (zoneId: ZoneId) => void;
+  chooseTeleport?: (from: ZoneId) => boolean;
 }) {
   const { container } = options;
   const hint = document.createElement("p");
@@ -55,11 +58,19 @@ export function createInteraction(options: {
     const target = select();
     if (target) container.dataset.worldHint = target.zoneId;
     else delete container.dataset.worldHint;
-    const text = target ? interactionHint(options.locale?.() ?? "en", target.zoneId) : "";
+    const text = target ? interactionHint(options.locale?.() ?? "en", target.zoneId, target.kind) : "";
     if (hint.textContent !== text) hint.textContent = text;
   }
   function open(target: InteractionTarget | null) {
     if (!target) return false;
+    if (target.kind === "teleport") {
+      if (options.chooseTeleport?.(target.zoneId) === false) return false;
+      container.dispatchEvent(new CustomEvent(TELEPORT_CHOOSE_EVENT, {
+        bubbles: false,
+        detail: { from: target.zoneId },
+      }));
+      return true;
+    }
     container.dispatchEvent(new CustomEvent("tqa:open-content", {
       bubbles: false,
       detail: { zoneId: target.zoneId },
