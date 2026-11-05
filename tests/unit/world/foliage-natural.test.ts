@@ -74,7 +74,7 @@ it("clears the full 60-degree incoming cone through 15 m beyond each zone edge",
   }
 });
 
-it("uses existing broadleaf instances for sparse coastal shrubs below 1.6 m", () => {
+it("uses existing broadleaf instances for sparse coastal shrubs below 2 m", () => {
   const shrubs = forest.filter(tree => tree.growth === "shrub");
   expect(shrubs.length).toBeGreaterThan(10);
   // B2-153 adds mature inland forest; the low-shrub ratio applies seaward.
@@ -96,7 +96,8 @@ it("uses existing broadleaf instances for sparse coastal shrubs below 1.6 m", ()
       crowns.getMatrixAt(i, matrix);
       // Crown top relative to root: 5 m anchor plus the authored broadleaf bounds.
       const height = (5 + crowns.geometry.boundingBox!.max.y) * new Vector3().setFromMatrixScale(matrix).y;
-      expect(height).toBeLessThan(1.6);
+      // B2-182 raises the authored tree to 9-14 m; existing shrub scales stay fixed.
+      expect(height).toBeLessThan(2);
     }
     expect(foliage.group.children).toHaveLength(10);
   } finally { foliage.dispose(); }

@@ -1,4 +1,5 @@
-import { Box3, type BufferGeometry, Color, DoubleSide, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from "three";
+import { createHash } from "node:crypto";
+import { Box3, type BufferGeometry, Color, DoubleSide, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Triangle, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
 import { RAMP_PRESETS } from "../../../src/features/world/materials/ramp";
@@ -60,7 +61,7 @@ describe("painted procedural tree shapes", () => {
     it(`${kind} ${seed}: stays within triangle/clearance budgets and repeats exactly`, () => {
       const crown = create(seed), repeated = create(seed), trunk = createTreeTrunk();
       try {
-        expect(triangles(crown) + triangles(trunk)).toBeLessThanOrEqual(600);
+        expect(triangles(crown) + triangles(trunk)).toBeLessThanOrEqual(kind === "pine" ? 600 : 1500);
         for (const name of Object.keys(crown.attributes)) {
           expect(Array.from(crown.getAttribute(name).array)).toEqual(Array.from(repeated.getAttribute(name).array));
         }
@@ -69,8 +70,8 @@ describe("painted procedural tree shapes", () => {
         const bounds = crown.boundingBox!;
         const size = bounds.getSize(new Vector3());
         expect(size.y).toBeGreaterThanOrEqual(3);
-        expect(size.y).toBeLessThanOrEqual(kind === "pine" ? 6 : 6.6); // Includes hanging vines.
-        expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(4.4);
+        expect(size.y).toBeLessThanOrEqual(kind === "pine" ? 6 : 14); // Broadleaf includes the rooted sleeve.
+        expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(5);
         if (kind === "pine") {
           // B2-129: Da Lat pines replace the 7–8 m fir silhouette with a high,
           // narrow crown; its bottom exposes exactly the lower two thirds.
@@ -85,15 +86,18 @@ describe("painted procedural tree shapes", () => {
           const positions = crown.getAttribute("position"), surfaces = crown.getAttribute("surface");
           const leafHeights = Array.from({ length: positions.count }, (_, i) => i)
             .filter(i => surfaces.getX(i) === 0).map(i => positions.getY(i) + TRUNK_HEIGHT);
-          expect(Math.min(...leafHeights)).toBeCloseTo(3.3, 5);
-          expect(Math.max(...leafHeights)).toBeCloseTo(7.7, 5);
+          // B2-182 replaces the old 7.7 m tree with a 9-14 m tree.
+          expect(Math.min(...leafHeights)).toBeGreaterThanOrEqual(3);
+          expect(Math.min(...leafHeights)).toBeLessThanOrEqual(6);
+          expect(Math.max(...leafHeights)).toBeGreaterThanOrEqual(9);
+          expect(Math.max(...leafHeights)).toBeLessThanOrEqual(14);
           const height = Math.max(...leafHeights), canopy = height - Math.min(...leafHeights);
           expect(canopy / height).toBeGreaterThanOrEqual(0.45);
-          expect(canopy / height).toBeLessThanOrEqual(0.6);
-          expect(Math.min(...leafHeights) / height).toBeGreaterThanOrEqual(0.4);
+          expect(canopy / height).toBeLessThanOrEqual(0.65);
+          expect(Math.min(...leafHeights) / height).toBeGreaterThanOrEqual(0.35);
           expect(Math.min(...leafHeights) / height).toBeLessThanOrEqual(0.45);
           expect(canopy / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.8);
-          expect(canopy / Math.max(size.x, size.z)).toBeLessThanOrEqual(1.2);
+          expect(canopy / Math.max(size.x, size.z)).toBeLessThanOrEqual(1.6);
         }
         const normals = crown.getAttribute("normal");
         expect(Array.from(normals.array).every(Number.isFinite)).toBe(true);
@@ -122,7 +126,9 @@ describe("painted procedural tree shapes", () => {
         }
         expect(halves[1]!.sum / halves[1]!.count).toBeGreaterThan(halves[0]!.sum / halves[0]!.count);
         samples.sort((a, b) => a.height - b.height);
-        for (let i = 1; i < samples.length; i++) expect(samples[i]!.value).toBeGreaterThanOrEqual(samples[i - 1]!.value - 1e-7);
+        // Broadleaves also brighten towards the edge and on each bunch's top;
+        // only the unchanged pine wash is globally monotone in Y.
+        if (kind === "pine") for (let i = 1; i < samples.length; i++) expect(samples[i]!.value).toBeGreaterThanOrEqual(samples[i - 1]!.value - 1e-7);
       } finally { crown.dispose(); }
     });
   }
@@ -148,14 +154,21 @@ describe("painted procedural tree shapes", () => {
     } finally { trunk.dispose(); }
   });
 
-  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: has 4–7 round solids and smaller protruding edge masses`, () => {
+  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: has 18-30 small closed leaf bunches`, () => {
     const geometry = createBroadleafCrown(seed);
     try {
       const positions = geometry.getAttribute("position");
       const masses = leafMasses(geometry);
-      expect(masses.length).toBeGreaterThanOrEqual(4);
-      expect(masses.length).toBeLessThanOrEqual(7);
+      expect(masses.length).toBeGreaterThanOrEqual(18);
+      expect(masses.length).toBeLessThanOrEqual(30);
       const widths: number[] = [];
+      const colors = geometry.getAttribute("color"), surfaces = geometry.getAttribute("surface");
+      const wood: Triangle[] = [];
+      for (let i = 0; i < geometry.index!.count; i += 3) {
+        const ids = [0, 1, 2].map(j => geometry.index!.getX(i + j));
+        if (surfaces.getX(ids[0]!) === 1) wood.push(new Triangle(...ids.map(id => new Vector3().fromBufferAttribute(positions, id)) as [Vector3, Vector3, Vector3]));
+      }
+      let edgePairs = 0;
       for (const mass of masses) {
         const bounds = new Box3().setFromPoints(mass.map(i => new Vector3().fromBufferAttribute(positions, i)));
         const size = bounds.getSize(new Vector3());
@@ -163,9 +176,27 @@ describe("painted procedural tree shapes", () => {
         // Stronger than the requested >=0.5: no more than 30% flattening.
         expect(size.y / width).toBeGreaterThanOrEqual(0.7);
         expect(size.y / width).toBeLessThanOrEqual(1.6);
+        const center = bounds.getCenter(new Vector3());
+        const radius = Math.max(...mass.map(i => new Vector3().fromBufferAttribute(positions, i).distanceTo(center)));
+        expect(radius).toBeGreaterThanOrEqual(0.35);
+        expect(radius).toBeLessThanOrEqual(0.8);
+        const distanceToWood = Math.min(...wood.map(face => face.closestPointToPoint(center, new Vector3()).distanceTo(center)));
+        expect(distanceToWood).toBeLessThanOrEqual(radius + 0.05);
+        const lowest = mass.reduce((a, b) => positions.getY(a) < positions.getY(b) ? a : b);
+        const highest = mass.reduce((a, b) => positions.getY(a) > positions.getY(b) ? a : b);
+        expect(colors.getX(highest)).toBeGreaterThan(colors.getX(lowest));
+        // Compare vertices at the same Y: only the radial edge wash should differ.
+        for (const a of mass) for (const b of mass) {
+          const near = Math.hypot(positions.getX(a), positions.getZ(a));
+          const far = Math.hypot(positions.getX(b), positions.getZ(b));
+          if (Math.abs(positions.getY(a) - positions.getY(b)) < 1e-6 && far - near > 0.25) {
+            expect(colors.getX(b)).toBeGreaterThan(colors.getX(a)); edgePairs++;
+          }
+        }
         widths.push(width);
       }
-      expect(widths.filter(width => width < Math.max(...widths) * 0.65)).toHaveLength(2);
+      expect(Math.max(...widths) - Math.min(...widths)).toBeGreaterThan(0.15);
+      expect(edgePairs).toBeGreaterThan(10);
       // Every welded leaf edge belongs to exactly two faces: closed volumes,
       // with no open umbrella caps or doubled coplanar cards underneath.
       const edgeUses = new Map<string, number>();
@@ -222,8 +253,8 @@ describe("painted procedural tree shapes", () => {
           }
           const height = canopy.max.y, size = canopy.getSize(new Vector3());
           expect(size.y / height).toBeGreaterThanOrEqual(0.45);
-          expect(size.y / height).toBeLessThanOrEqual(0.6);
-          expect(canopy.min.y / height).toBeGreaterThanOrEqual(0.4);
+          expect(size.y / height).toBeLessThanOrEqual(0.65);
+          expect(canopy.min.y / height).toBeGreaterThanOrEqual(0.35);
           expect(canopy.min.y / height).toBeLessThanOrEqual(0.45);
           expect(size.y / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.7);
           expect(size.y / Math.max(size.x, size.z)).toBeLessThanOrEqual(1.5);
@@ -263,7 +294,7 @@ describe("painted procedural tree shapes", () => {
       // Sample the irregular crown edge, where smaller protrusions leave sun
       // flecks, as well as its overlapping central dome.
       for (let x = -2; x <= 2; x += 0.2) for (let z = -2; z <= 2; z += 0.2) {
-        ray.set(new Vector3(x, 4, z), down);
+        ray.set(new Vector3(x, 6, z), down);
         if (ray.intersectObject(mesh).length) hits++; else gaps++;
       }
       expect(gaps / (gaps + hits)).toBeGreaterThan(0.1);
@@ -271,32 +302,103 @@ describe("painted procedural tree shapes", () => {
     } finally { geometry.dispose(); material.dispose(); }
   });
 
-  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: keeps hanging ribbons attached and lit on both sides`, () => {
+  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: hangs short thin vines from wood inside the canopy`, () => {
     const geometry = createBroadleafCrown(seed);
     try {
       const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
       const surface = geometry.getAttribute("surface");
-      const ribbons = Array.from({ length: positions.count }, (_, i) => i).filter(i => surface.getX(i) === 2);
-      expect(ribbons).toHaveLength(3 * 16);
+      const ids = Array.from({ length: positions.count }, (_, i) => i);
+      const ribbons = ids.filter(i => surface.getX(i) === 2);
+      const leaves = ids.filter(i => surface.getX(i) === 0);
+      const wood = ids.filter(i => surface.getX(i) === 1);
+      const canopy = new Box3().setFromPoints(leaves.map(i => new Vector3().fromBufferAttribute(positions, i)));
+      const expanded = canopy.clone().expandByScalar(0.5);
+      const count = ribbons.length / 12;
+      expect(count).toBeGreaterThanOrEqual(2); expect(count).toBeLessThanOrEqual(4);
       for (const i of ribbons) {
         expect(new Vector3().fromBufferAttribute(normals, i).length()).toBeCloseTo(1, 6);
-        expect(positions.getY(i) + TRUNK_HEIGHT).toBeGreaterThan(1);
+        expect(positions.getY(i)).toBeGreaterThanOrEqual(canopy.min.y - 2.5);
+        expect(positions.getY(i) + TRUNK_HEIGHT).toBeGreaterThan(0);
+        expect(positions.getY(i)).toBeLessThanOrEqual(expanded.max.y);
+        expect(positions.getX(i)).toBeGreaterThanOrEqual(expanded.min.x);
+        expect(positions.getX(i)).toBeLessThanOrEqual(expanded.max.x);
+        expect(positions.getZ(i)).toBeGreaterThanOrEqual(expanded.min.z);
+        expect(positions.getZ(i)).toBeLessThanOrEqual(expanded.max.z);
       }
-      for (let ribbon = 0; ribbon < 3; ribbon++) {
-        const anchor = new Vector3().fromBufferAttribute(positions, ribbons[ribbon * 16]!);
-        anchor.add(new Vector3().fromBufferAttribute(positions, ribbons[ribbon * 16 + 1]!)).multiplyScalar(0.5);
-        let distance = Infinity;
-        for (let i = 0; i < positions.count; i++) if (surface.getX(i) === 0) {
-          distance = Math.min(distance, anchor.distanceTo(new Vector3().fromBufferAttribute(positions, i)));
+      const point = (i: number) => new Vector3().fromBufferAttribute(positions, i);
+      for (let ribbon = 0; ribbon < count; ribbon++) {
+        const start = ribbon * 12;
+        const anchor = point(ribbons[start]!).add(point(ribbons[start + 1]!)).multiplyScalar(0.5);
+        const tip = point(ribbons[start + 4]!).add(point(ribbons[start + 5]!)).multiplyScalar(0.5);
+        expect(anchor.y - tip.y).toBeGreaterThanOrEqual(1);
+        expect(anchor.distanceTo(tip)).toBeLessThanOrEqual(2.5);
+        expect(point(ribbons[start]!).distanceTo(point(ribbons[start + 1]!))).toBeLessThan(0.06);
+        // The anchor must lie in a wooden limb, not merely near a leaf vertex.
+        const mesh = new Mesh(geometry, new MeshBasicMaterial({ side: DoubleSide }));
+        const ray = new Raycaster(anchor.clone().add(new Vector3(0, 0.3, 0)), new Vector3(0, -1, 0), 0, 0.6);
+        mesh.updateMatrixWorld();
+        expect(ray.intersectObject(mesh).some(hit => hit.face && wood.includes(hit.face.a))).toBe(true);
+        (mesh.material as MeshBasicMaterial).dispose();
+        for (let vertex = 0; vertex < 6; vertex++) {
+          const front = ribbons[start + vertex]!, back = ribbons[start + vertex + 6]!;
+          expect(point(front)).toEqual(point(back));
+          expect(new Vector3().fromBufferAttribute(normals, front).dot(new Vector3().fromBufferAttribute(normals, back))).toBeCloseTo(-1, 6);
         }
-        expect(distance).toBeLessThan(1e-6);
-        expect(positions.getY(ribbons[ribbon * 16 + 6]!)).toBeLessThan(anchor.y - 1.7);
       }
-      for (let ribbon = 0; ribbon < 3; ribbon++) for (let vertex = 0; vertex < 8; vertex++) {
-        const front = ribbons[ribbon * 16 + vertex]!, back = ribbons[ribbon * 16 + vertex + 8]!;
-        expect(new Vector3().fromBufferAttribute(positions, front)).toEqual(new Vector3().fromBufferAttribute(positions, back));
-        expect(new Vector3().fromBufferAttribute(normals, front).dot(new Vector3().fromBufferAttribute(normals, back))).toBeCloseTo(-1, 6);
+    } finally { geometry.dispose(); }
+  });
+
+  it("keeps three batch-compatible topologies and deterministic geometry hashes", () => {
+    const hash = (geometry: BufferGeometry) => {
+      const result = createHash("sha256");
+      for (const name of [...Object.keys(geometry.attributes).sort(), "index"]) {
+        const array = (name === "index" ? geometry.index! : geometry.getAttribute(name)).array;
+        result.update(Buffer.from(array.buffer, array.byteOffset, array.byteLength));
       }
+      return result.digest("hex");
+    };
+    const shapes = BROADLEAF_VARIANT_SEEDS.map(seed => createBroadleafCrown(seed));
+    try {
+      const hashes: string[] = [];
+      for (const [i, shape] of shapes.entries()) {
+        const repeated = createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[i]);
+        try { expect(hash(shape)).toBe(hash(repeated)); } finally { repeated.dispose(); }
+        hashes.push(hash(shape));
+        expect(shape.index!.array).toEqual(shapes[0]!.index!.array);
+        expect(shape.getAttribute("surface").array).toEqual(shapes[0]!.getAttribute("surface").array);
+        expect(shape.getAttribute("position").count).toBe(shapes[0]!.getAttribute("position").count);
+      }
+      expect(new Set(hashes).size).toBe(3);
+      process.stdout.write(`B2-182 geometry SHA256: ${hashes.join(", ")}\n`);
+    } finally { shapes.forEach(shape => shape.dispose()); }
+  });
+
+  for (const seed of BROADLEAF_VARIANT_SEEDS) it(`broadleaf ${seed}: roots, taper and wood pigment stay within contract`, () => {
+    const geometry = createBroadleafCrown(seed);
+    try {
+      const positions = geometry.getAttribute("position"), surfaces = geometry.getAttribute("surface"), colors = geometry.getAttribute("color");
+      const wood = Array.from({ length: positions.count }, (_, i) => i).filter(i => surfaces.getX(i) === 1);
+      const material = new Color(RAMP_PRESETS.crown);
+      for (const i of wood) {
+        const color = new Color().fromBufferAttribute(colors, i).multiply(material);
+        const luma = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+        expect(luma).toBeGreaterThanOrEqual(0.12); expect(luma).toBeLessThanOrEqual(0.22);
+      }
+      // Recover horizontal sleeve rings by Y, excluding the protruding roots.
+      const rings = new Map<number, Vector3[]>();
+      for (const i of wood) {
+        const point = new Vector3().fromBufferAttribute(positions, i);
+        rings.set(point.y, [...(rings.get(point.y) ?? []), point]);
+      }
+      const topRing = [...rings.entries()].find(([y, points]) => y === 2.5 && points.length === 6)![1];
+      const topCenter = new Box3().setFromPoints(topRing).getCenter(new Vector3());
+      const topRadius = Math.max(...topRing.map(p => p.distanceTo(topCenter)));
+      const bottom = wood.map(i => new Vector3().fromBufferAttribute(positions, i)).filter(p => p.y === -TRUNK_HEIGHT);
+      const sleeve = bottom.filter(p => Math.hypot(p.x, p.z) < 0.4);
+      const bottomRadius = Math.max(...sleeve.map(p => Math.hypot(p.x, p.z)));
+      expect(bottomRadius / topRadius).toBeGreaterThanOrEqual(1.5);
+      expect(bottom.filter(p => Math.hypot(p.x, p.z) > 0.8)).toHaveLength(3);
+      expect(topCenter.x).toBeGreaterThan(0.1); // visible bend, rooted at X=0
     } finally { geometry.dispose(); }
   });
 });

@@ -276,8 +276,8 @@ describe("procedural foliage variants", () => {
           const variants = foliage.species[tree.kind].variants;
           const batch = foliageVariantAt(tree.x, tree.z, variants.length);
           const { seed } = variants[batch]!;
-          // B2-175 starts from B2-166's six leaf masses, limbs and ribbons.
-          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 294;
+          // B2-182 baseline: B2-175's seven masses, limbs and ribbons (314/tree).
+          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 314;
           batches.add(`${tree.kind}:${batch}`);
         }
         beforeDraws += 2 * batches.size;
@@ -290,8 +290,9 @@ describe("procedural foliage variants", () => {
         }
       }
       expect(afterDraws).toBe(beforeDraws);
+      expect(after).toBeLessThanOrEqual(before * 1.25);
       expect(forests.flat().length).toBeGreaterThan(1000);
-      process.stdout.write(`B2-175 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=314/tree, pine<=262/tree (limit=600; includes collapsed ribbons)\n`);
+      process.stdout.write(`B2-182 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=391/tree, pine<=262/tree (broadleaf limit=1500; includes collapsed ribbons)\n`);
     } finally { foliage.dispose(); }
   });
 

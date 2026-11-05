@@ -222,7 +222,7 @@ it("uses natural palette wood/moss and bounds both shaded and sunlit bark after 
     expect(pigments.some(color => color.g > color.r && color.g > color.b)).toBe(true);
     expect(new Set(pigments.map(color => color.getHex())).size).toBeGreaterThan(5);
     expect(pigments.every(color => color.r > new Color(PALETTE.ink).r)).toBe(true);
-    const wood = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.45).lerp(new Color(PALETTE.dusk), 0.06);
+    const wood = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.32).lerp(new Color(PALETTE.forestDeep), 0.05);
     const positions = trunks.geometry.getAttribute("position");
     for (let i = 0; i < positions.count; i++) if (positions.getY(i) === 0.5) {
       expect(pigments[i]!.r).toBeCloseTo(wood.r, 6);

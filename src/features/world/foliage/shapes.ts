@@ -106,111 +106,134 @@ export function createPineCrown(seed: number = PINE_VARIANT_SEEDS[0]): BufferGeo
   return paintCrown(geometryFrom(positions, indices), height / 3, 2.7, height * 2 / 3 - TRUNK_HEIGHT);
 }
 
-/** Natural grey-brown wood, with green moss concentrated around the roots.
- * Ratios keep this same pigment on the trunk and the crown's shared material. */
+/** Palette bark/moss encoded relative to either existing shared material. */
 export function mossColor(height: number, upward: number, damp: number, material = RAMP_PRESETS.trunk): Color {
-  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.45).lerp(new Color(PALETTE.dusk), 0.06);
+  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.32).lerp(new Color(PALETTE.forestDeep), 0.05);
   const moss = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), 0.28);
-  const coverage = (1 - height) ** 2 * Math.min(0.85, 0.5 + Math.max(0, upward) * 0.15 + damp * 0.2);
+  // Bound the root wash so damp moss retains linear pigment luma >= 0.12.
+  const coverage = (1 - Math.max(0, Math.min(1, height))) ** 2
+    * Math.min(0.48, 0.28 + Math.max(0, upward) * 0.1 + damp * 0.1);
   const color = bark.lerp(moss, coverage), base = new Color(material);
   return color.setRGB(color.r / base.r, color.g / base.g, color.b / base.b);
 }
 
-/** Seven overlapping rounded leaf masses, a bent leader and 2–3 limbs. Identical topology
- * lets three silhouettes share the original two batches, including shadows. */
+/** Eighteen small leaf bunches on three rising limbs. Six rounded cores and
+ * twelve pointed tips break up the outline without adding draws. All seeds
+ * retain identical indices/surfaces for the existing GPU shape deltas. */
 export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]): BufferGeometry {
   const variant = Math.max(0, BROADLEAF_VARIANT_SEEDS.indexOf(seed as typeof BROADLEAF_VARIANT_SEEDS[number]));
   const random = randomFor(seed);
-  const positions: number[] = [];
-  const indices: number[] = [];
-  const phase = variant * 0.48;
-  for (let cluster = 0; cluster < 7; cluster++) {
-    const edge = cluster >= 5;
-    const angle = phase + (edge ? 0.6 + (cluster - 5) * Math.PI : (cluster - 1) * Math.PI / 2);
-    const offset = cluster === 0 ? 0.18 : edge ? 1.7 : 1.02 + random() * 0.12;
-    const cx = Math.cos(angle) * offset, cz = Math.sin(angle) * offset;
-    const cy = cluster === 0 ? 1.45 + variant * 0.08 : edge ? 0.25 : (cluster % 2) * 0.3;
-    const radius = edge ? 0.53 + variant * 0.02 : 1.04 + random() * 0.08;
-    const part = new IcosahedronGeometry(1, 0).rotateY(angle);
-    const vertices = part.getAttribute("position");
-    const start = positions.length / 3;
-    for (let i = 0; i < vertices.count; i++) {
-      const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i);
-      // Coordinate noise keeps coincident face vertices coincident (no cracks).
-      const wobble = 1 + Math.sin(x * 7 + y * 5 + z * 9 + phase) * 0.07;
-      // At most 10% vertical flattening before fitting the whole dome. Never
-      // squeeze separate spheres down into the old umbrella-shaped slabs.
-      positions.push(cx + x * radius * wobble, cy + y * radius * 0.9 * wobble, cz + z * radius * wobble);
-      indices.push(start + i);
+  const positions: number[] = [], indices: number[] = [], colors: number[] = [], surfaces: number[] = [];
+  const phase = variant * 0.42 + (random() - 0.5) * 0.12;
+  const branchEnds: Vector3[] = [], branchStarts: Vector3[] = [], tips: Vector3[] = [];
+  const core = new IcosahedronGeometry(1, 0);
+  const pointed = geometryFrom([1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 0, 0, 0, -1, 0, -1, 0],
+    [0, 1, 2, 2, 1, 3, 3, 1, 4, 4, 1, 0, 0, 2, 5, 2, 3, 5, 3, 4, 5, 4, 0, 5]);
+  for (let branch = 0; branch < 3; branch++) {
+    const angle = phase + branch * Math.PI * 2 / 3;
+    const radial = new Vector3(Math.cos(angle), 0, Math.sin(angle));
+    const side = new Vector3(-radial.z, 0, radial.x);
+    const end = radial.clone().multiplyScalar(1.22 + random() * 0.12).setY(0.18 + branch * 0.06);
+    branchStarts.push(new Vector3(0.04, -0.85 + branch * 0.3, -0.02));
+    branchEnds.push(end);
+    tips.push(radial.clone().multiplyScalar(0.72).setY(3.65 + branch * 0.05));
+    for (let bunch = 0; bunch < 6; bunch++) {
+      const offset = [-0.48, 0.48, -0.38, 0.38, -0.25, 0.12][bunch]!;
+      const reach = [1.25, 1.55, 1.12, 1.28, 0.74, 0.72][bunch]!;
+      const center = radial.clone().multiplyScalar(reach).addScaledVector(side, offset + (random() - 0.5) * 0.16);
+      center.y = [-0.55, 0.42, 1.14, 2.02, 2.92, 3.65][bunch]! + branch * 0.05 + (random() - 0.5) * 0.12;
+      const radius = (bunch % 3 === 0 ? 0.71 : 0.58) + random() * 0.055;
+      const source = bunch % 3 === 0 ? core : pointed;
+      const vertices = source.getAttribute("position"), start = positions.length / 3;
+      for (let i = 0; i < vertices.count; i++) {
+        const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i);
+        const wobble = 1 + Math.sin(x * 7 + y * 5 + z * 9 + angle) * 0.035;
+        const point = center.clone().addScaledVector(radial, x * radius * wobble).addScaledVector(side, z * radius * wobble);
+        point.y += y * radius * wobble;
+        positions.push(point.x, point.y, point.z); surfaces.push(0);
+        // Local undersides are darker; radial tips are brighter than the core.
+        const heightWash = (point.y + 1.4) / 6;
+        const edgeWash = Math.min(1, Math.hypot(point.x, point.z) / 2.25);
+        const value = Math.min(0.995, 0.825 + heightWash * 0.07 + (y + 1) * 0.025 + edgeWash * 0.05);
+        colors.push(value, value, value);
+      }
+      const faces = source.index ? Array.from(source.index.array) : Array.from({ length: vertices.count }, (_, i) => i);
+      indices.push(...faces.map(index => start + index));
     }
-    part.dispose();
   }
-  // Root-relative leaves span 3.3–7.7 m: 57% of the tree, starting at 43%.
-  const leaves = paintCrown(geometryFrom(positions, indices), 4.4, 4.3, -1.7);
-  positions.splice(0, positions.length, ...leaves.getAttribute("position").array);
-  const colors = Array.from(leaves.getAttribute("color").array);
-  leaves.dispose();
-  // Leaves=0, wood=1, hanging greenery=2; one material, no groups.
-  const surfaces = Array<number>(positions.length / 3).fill(0);
-  // Real bottom vertices keep B2-166's vines attached to the selected mass.
-  const vineRoots = [1, 2, 3].map(cluster => {
-    let lowest = cluster * 60;
-    for (let i = lowest + 1; i < (cluster + 1) * 60; i++) {
-      if (positions[i * 3 + 1]! < positions[lowest * 3 + 1]!) lowest = i;
-    }
-    return new Vector3().fromArray(positions, lowest * 3);
-  });
+  core.dispose(); pointed.dispose();
   function vertex(point: Vector3, surface: number) {
-    positions.push(point.x, point.y, point.z);
-    surfaces.push(surface);
+    positions.push(point.x, point.y, point.z); surfaces.push(surface);
+    const base = new Color(RAMP_PRESETS.crown);
     const color = surface === 1
-      ? mossColor(Math.max(0, Math.min(1, (point.y + 5) / 8)), 0.6, 0.8, RAMP_PRESETS.crown)
+      ? mossColor((point.y + TRUNK_HEIGHT) / 7.5, 0.6, 0.8, RAMP_PRESETS.crown)
       : new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.65);
-    if (surface === 2) {
-      const base = new Color(RAMP_PRESETS.crown);
-      color.setRGB(color.r / base.r, color.g / base.g, color.b / base.b);
-    }
+    if (surface === 2) color.setRGB(color.r / base.r, color.g / base.g, color.b / base.b);
     colors.push(color.r, color.g, color.b);
   }
-  function limb(from: Vector3, to: Vector3, radius: number) {
-    const start = positions.length / 3, segments = 6;
+  function limb(from: Vector3, to: Vector3, bottomRadius: number, topRadius: number) {
+    const start = positions.length / 3, segments = 5;
     const axis = to.clone().sub(from).normalize();
     const side = new Vector3(0, 0, 1).cross(axis).normalize();
     const up = side.clone().cross(axis).normalize();
     for (let ring = 0; ring < 2; ring++) for (let j = 0; j < segments; j++) {
-      const angle = j * Math.PI * 2 / segments, r = radius * (ring === 0 ? 1 : 0.45);
-      vertex((ring === 0 ? from : to).clone()
-        .addScaledVector(side, Math.cos(angle) * r).addScaledVector(up, Math.sin(angle) * r), 1);
+      const angle = j * Math.PI * 2 / segments, radius = ring === 0 ? bottomRadius : topRadius;
+      vertex((ring === 0 ? from : to).clone().addScaledVector(side, Math.cos(angle) * radius)
+        .addScaledVector(up, Math.sin(angle) * radius), 1);
     }
-    vertex(from, 1); vertex(to, 1);
     for (let j = 0; j < segments; j++) {
       const a = start + j, b = start + (j + 1) % segments;
-      indices.push(a, a + segments, b, b, a + segments, b + segments,
-        b, start + segments * 2, a, a + segments, start + segments * 2 + 1, b + segments);
+      indices.push(a, a + segments, b, b, a + segments, b + segments);
     }
+    // Ends sit inside the trunk/leaf bunches, so hidden caps spend no triangles.
   }
-  const leader = new Vector3(0.05, -0.8, 0);
-  const bend = new Vector3(0.12 + variant * 0.1, 1.9, -variant * 0.08);
-  limb(leader, bend, 0.14);
-  for (let branch = 0; branch < 3; branch++) {
-    const angle = phase + branch * Math.PI * 2 / 3;
-    const end = new Vector3(Math.cos(angle) * 1.25, 0.6 + branch * 0.4, Math.sin(angle) * 1.1);
-    const from = leader.clone().lerp(bend, 0.35 + branch * 0.13);
-    const hidden = variant === 0 && branch === 2;
-    limb(from, hidden ? from : end, hidden ? 0 : 0.1);
-    // Three twisted, double-sided low-poly ribbons hanging from the limbs.
+  // A curved sleeve covers the shared straight trunk at the existing 5 m anchor.
+  // Root-relative positions leave physics cylinders and CROWN_BASE untouched.
+  const centers = [new Vector3(0, -TRUNK_HEIGHT, 0), new Vector3(0.035, -2.7, -0.025),
+    new Vector3(0.1 + variant * 0.025, -0.2, -0.04), new Vector3(0.18 + variant * 0.04, 2.5, -0.06)];
+  const radii = [0.36, 0.31, 0.255, 0.225]; // Exactly 1.6 from root to leader tip.
+  const trunkStart = positions.length / 3;
+  for (let ring = 0; ring < centers.length; ring++) for (let j = 0; j < 6; j++) {
+    const angle = j * Math.PI / 3;
+    vertex(centers[ring]!.clone().add(new Vector3(Math.cos(angle) * radii[ring]!, 0, Math.sin(angle) * radii[ring]!)), 1);
+  }
+  for (let ring = 0; ring < 3; ring++) for (let j = 0; j < 6; j++) {
+    const a = trunkStart + ring * 6 + j, b = trunkStart + ring * 6 + (j + 1) % 6;
+    indices.push(a, a + 6, b, b, a + 6, b + 6);
+  }
+  // Close the visible leader tip; its bottom rests on the ground.
+  for (let j = 1; j < 5; j++) indices.push(trunkStart + 18, trunkStart + 19 + j, trunkStart + 18 + j);
+  // Three buttress roots rise out of the sleeve and settle at ground.
+  for (let root = 0; root < 3; root++) {
+    const angle = phase + root * Math.PI * 2 / 3;
+    const radial = new Vector3(Math.cos(angle), 0, Math.sin(angle));
+    const side = new Vector3(-radial.z, 0, radial.x).multiplyScalar(0.16);
     const start = positions.length / 3;
-    // Separate front/back vertices retain opposing normals instead of cancelling.
-    for (let face = 0; face < 2; face++) for (let row = 0; row <= 3; row++) {
-      const t = row / 3, width = 0.07 * (1 - t * 0.65);
-      const center = vineRoots[branch]!.clone().add(new Vector3((Math.sin(t * 3 + branch) - Math.sin(branch)) * 0.12, -t * (1.8 + branch * 0.18), t * 0.1));
+    const foot = radial.clone().multiplyScalar(0.32).setY(-TRUNK_HEIGHT);
+    vertex(foot.clone().add(side), 1); vertex(foot.clone().sub(side), 1);
+    vertex(radial.clone().multiplyScalar(0.9 + root * 0.08).setY(-TRUNK_HEIGHT), 1);
+    vertex(radial.clone().multiplyScalar(0.24).setY(-TRUNK_HEIGHT + 0.85), 1);
+    indices.push(start, start + 3, start + 2, start + 2, start + 3, start + 1, start + 1, start + 3, start);
+  }
+  for (let branch = 0; branch < 3; branch++) {
+    const from = branchStarts[branch]!, end = branchEnds[branch]!;
+    limb(from, end, 0.15, 0.075);
+    limb(end, tips[branch]!, 0.075, 0.025);
+    // Thin double-sided ribbons hang from limbs, away from the crown boundary.
+    // Per-tree selection remains owned by hasHangingFoliage in instances.ts.
+    const anchor = from.clone().lerp(end, 0.75);
+    const length = 1.25 + branch * 0.45 + random() * 0.1;
+    const start = positions.length / 3;
+    for (let face = 0; face < 2; face++) for (let row = 0; row <= 2; row++) {
+      const t = row / 2, width = 0.022 * (1 - t * 0.65);
+      const center = anchor.clone().add(new Vector3(Math.sin(t * 3) * 0.08, -t * length, t * 0.05));
       vertex(center.clone().add(new Vector3(-width, 0, -width * t)), 2);
       vertex(center.clone().add(new Vector3(width, 0, width * t)), 2);
     }
-    for (let row = 0; row < 3; row++) {
+    for (let row = 0; row < 2; row++) {
       const a = start + row * 2;
       indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3,
-        a + 9, a + 10, a + 8, a + 11, a + 10, a + 9);
+        a + 7, a + 8, a + 6, a + 9, a + 8, a + 7);
     }
   }
   const geometry = geometryFrom(positions, indices);
