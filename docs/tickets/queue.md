@@ -70,6 +70,26 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-080 / B2-081 | Âm môi trường tổng hợp + nút Sound | merged `17a8e9a`, `ce1dbcb` |
 | — | Lead: tạm dừng = đứng yên hoàn toàn (e2e bắt) | `abb6c2d` |
 
+## Đợt 21–22 (2026-11-05): 8 khu hoàn chỉnh + UX/UI
+
+| ID | Việc | Trạng thái |
+|---|---|---|
+| B2-101…108 | Dựng cảnh 8 khu (procedural, hợp đồng `zones/types.ts`) | merged |
+| B2-109 | Địa hình dấu mốc (đồi Milestones, mỏm Horizon, thềm Workshop) | merged `73849a1` |
+| B2-111 / B2-112 | Menu đủ mục §6.4; HUD Sổ Atlas, gợi ý phím 10 s, thẻ tên khu | merged `c92092c`, `6510f7e` |
+| B2-115 | Overlay tạp chí cho 8 khu (4 khu chờ nội dung Q-34…37) | merged `b25525f` |
+| B2-100 | Nối 8 khu vào world, interactable mọi khu, zone-enter, set-motion, bỏ chữ tạm (Lead hoàn tất khi Codex hết lượt) | merged `6fb5a54` |
+| B2-121, 122, 123, 124, 125, 127, 128 | Sửa vòng 2 theo Art Director | merged |
+| B2-129 | Thông Đà Lạt cao 14–18 m | merged `34d17c5` |
+| B2-126 | Horizon vòng 2 | **bỏ** (vỡ world trên địa hình thật) → B2-126b |
+
+## Chờ Codex (khi Duy đổi tài khoản)
+
+| ID | Việc |
+|---|---|
+| B2-126b | Horizon vòng 3, test trên địa hình thật |
+| B2-130 | Bờ suối răng cưa dưới Milestones/Horizon (Lead đã thử 1 cách, chưa đạt; xem ghi chú trong thẻ) |
+
 ## Tiếp theo (todo)
 
 | ID | Việc | Phụ thuộc |
