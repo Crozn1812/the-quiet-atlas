@@ -1,6 +1,6 @@
 import {
   BoxGeometry, BufferGeometry, CylinderGeometry, ExtrudeGeometry,
-  Float32BufferAttribute, Group, Mesh, Shape, Vector3, type MeshToonMaterial,
+  Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Shape, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
@@ -92,6 +92,45 @@ function box(size: Point, center: Point): BufferGeometry {
   return new BoxGeometry(...size).translate(...center);
 }
 
+/** A few broad shore clusters, with filled dry footprints and room between their silhouettes. */
+function shoreSite(context: ZoneSceneContext, platform: Site, footprint: Footprint, occupied: Site[]): Site | undefined {
+  for (const shift of [0, -1.6, 1.6, -3.2, 3.2]) {
+    const x = platform.x + platform.sign * footprint.x;
+    const z = platform.z + platform.sign * (footprint.z + shift);
+    if (occupied.some(site => Math.abs(site.x - x) < site.halfX + footprint.halfX + 0.25
+      && Math.abs(site.z - z) < site.halfZ + footprint.halfZ + 0.25)) continue;
+    let bottom = Infinity, top = -Infinity, safe = true;
+    const nx = Math.ceil(footprint.halfX * 2 / 0.1), nz = Math.ceil(footprint.halfZ * 2 / 0.1);
+    for (let ix = 0; safe && ix <= nx; ix++) {
+      for (let iz = 0; safe && iz <= nz; iz++) {
+        const px = x - footprint.halfX + ix / nx * footprint.halfX * 2;
+        const pz = z - footprint.halfZ + iz / nz * footprint.halfZ * 2;
+        const ground = context.heightAt(px, pz);
+        safe = Math.abs(px) > PATH_CLEARANCE && !context.onPath(px, pz)
+          && !context.underWater(px, pz) && Number.isFinite(ground);
+        bottom = Math.min(bottom, ground);
+        top = Math.max(top, ground);
+      }
+    }
+    if (safe && top - bottom <= 0.4
+      && Math.hypot(Math.abs(x) + footprint.halfX, Math.max(Math.abs(bottom), Math.abs(top + footprint.height)),
+        Math.abs(z) + footprint.halfZ) <= ZONE_BUDGET.radius) {
+      return { ...footprint, x, z, base: top, bottom, sign: platform.sign };
+    }
+  }
+}
+
+/** Folded, tapered blades read as coastal grass rather than a scatter of tiny cones. */
+function grassBlade(height: number, width: number): BufferGeometry {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute([
+    -width, 0, 0, width, 0, 0, -width * 0.45, height * 0.55, 0.13,
+    width * 0.45, height * 0.55, 0.13, 0.025, height, 0.3,
+  ], 3));
+  geometry.setIndex([0, 2, 1, 1, 2, 3, 2, 4, 3, 1, 2, 0, 3, 2, 1, 3, 4, 2]);
+  return geometry;
+}
+
 /** All static parts merge by pigment; the single moving lantern has its own batch. */
 export const createLastPostcardScene: ZoneSceneFactory = context => {
   const [platform, mailbox, rack, lamp] = findSites(context) as [Site, Site, Site, Site];
@@ -102,14 +141,30 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
   lantern.position.set(lamp.x - lamp.sign * 0.42, lamp.base + 3, lamp.z);
   group.add(lantern);
   const batches = new Map<Group, Map<Surface, BufferGeometry[]>>();
+  // Bevel faces and folded blades repeat X/Z coordinates; sample the composed terrain once per point.
+  const shoreHeights = new Map<string, number>();
+  const shoreContext: ZoneSceneContext = {
+    ...context,
+    heightAt(x, z) {
+      const key = `${x},${z}`;
+      let height = shoreHeights.get(key);
+      if (height === undefined) {
+        height = context.heightAt(x, z);
+        shoreHeights.set(key, height);
+      }
+      return height;
+    },
+  };
 
-  function add(part: BufferGeometry, surface: Surface, site?: Site, facing = 0, groundBottom = false) {
+  function add(part: BufferGeometry, surface: Surface, site?: Site, facing = 0, groundBottom = false, followTerrain = false) {
     if (site) {
       part.rotateY(facing + (site.sign < 0 ? Math.PI : 0)).translate(site.x, site.base, site.z);
-      // Only the platform underside follows terrain; every prop sits on its level top.
+      // Shore details follow the bank; platform furniture keeps its level deck height.
       const vertices = part.getAttribute("position");
       for (let i = 0; i < vertices.count; i++) {
-        if (groundBottom && vertices.getY(i) < site.base - 0.06) {
+        if (followTerrain) {
+          vertices.setY(i, vertices.getY(i) - site.base + shoreContext.heightAt(vertices.getX(i), vertices.getZ(i)));
+        } else if (groundBottom && vertices.getY(i) < site.base - 0.06) {
           vertices.setY(i, context.heightAt(vertices.getX(i), vertices.getZ(i)));
         }
       }
@@ -184,6 +239,48 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
   add(new CylinderGeometry(0.045, 0.175, 0.085, 6).translate(0, -0.025, 0), "dusk");
   add(new CylinderGeometry(0.12, 0.065, 0.06, 6).translate(0, -0.38, 0), "dusk");
 
+  const solidSites = [platform, mailbox, rack, lamp];
+  const occupied = [platform];
+  // A short two-rail fence behind the deck leaves the mailbox's path-facing side open.
+  const fence = shoreSite(shoreContext, platform, { x: 2.4, z: 0.25, halfX: 0.14, halfZ: 1.7, height: 0.9 }, occupied);
+  if (fence) {
+    solidSites.push(fence);
+    occupied.push(fence);
+    for (const z of [-1.55, 0, 1.55]) {
+      add(bevel([0.18, 0.24, 0.19], [0, 0.12, z]), "ink", fence, 0, false, true);
+      add(bevel([0.16, 0.66, 0.17], [0.015, 0.57, z]), "wood", fence, 0, false, true);
+    }
+    for (const y of [0.36, 0.69]) {
+      add(bevel([0.11, 0.12, 3.4], [-0.025, y, 0]), "wood", fence, 0, false, true);
+    }
+  }
+  for (const [x, z, halfX, halfZ, height] of [
+    [1.65, -2.7, 0.72, 0.55, 0.65], [-0.45, 2.9, 0.55, 0.45, 0.48], [3, 2.75, 0.6, 0.48, 0.55],
+  ] as const) {
+    const site = shoreSite(shoreContext, platform, { x, z, halfX, halfZ, height }, occupied);
+    if (!site) continue;
+    solidSites.push(site);
+    occupied.push(site);
+    const rock = new IcosahedronGeometry(1, 0).rotateY(z);
+    rock.computeBoundingBox();
+    const bounds = rock.boundingBox!, size = bounds.getSize(new Vector3());
+    rock.translate(0, -bounds.min.y, 0).scale(halfX * 2 / size.x, height / size.y, halfZ * 2 / size.z);
+    add(rock, "paper", site, 0, false, true);
+  }
+  for (const [x, z] of [[0.2, -2.5], [1.1, 2.6], [3.2, -1.7]] as const) {
+    const site = shoreSite(shoreContext, platform, { x, z, halfX: 0.58, halfZ: 0.58, height: 0.8 }, occupied);
+    if (!site) continue;
+    occupied.push(site);
+    for (let blade = 0; blade < 9; blade++) {
+      const yaw = blade * 2.39996 + z;
+      const height = 0.48 + (blade % 4) * 0.1;
+      const part = grassBlade(height, 0.065 + (blade % 3) * 0.012)
+        .translate(0, 0, 0.14).rotateY(yaw);
+      add(part, blade % 3 === 0 ? "forestDeep" : "forestLight", site, 0, false, true);
+    }
+  }
+
+  shoreHeights.clear();
   const geometries: BufferGeometry[] = [], materials: MeshToonMaterial[] = [];
   for (const [parent, surfaces] of batches) {
     for (const [surface, parts] of surfaces) {
@@ -212,7 +309,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
       position: new Vector3(mailbox.x, mailbox.base + 1.55 * 1.3, mailbox.z),
       label: { en: "The last mailbox", vi: "Hộp thư cuối đường" },
     },
-    colliders: [platform, mailbox, rack, lamp].map(site => ({
+    colliders: solidSites.map(site => ({
       center: new Vector3(site.x, (site.bottom + site.base + site.height) / 2, site.z),
       size: new Vector3(site.halfX * 2, site.base + site.height - site.bottom, site.halfZ * 2),
     })),

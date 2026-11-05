@@ -2,6 +2,10 @@ import { Box3, Color, Group, Light, Mesh, MeshToonMaterial, Raycaster, Vector3, 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
+import { surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { PATH_WIDTH, waterLevelAt } from "../../../../src/features/world/terrain/height";
+import { nearestPath } from "../../../../src/features/world/terrain/samples";
+import { placeZoneScenes } from "../../../../src/features/world/zones";
 import { createLastPostcardScene } from "../../../../src/features/world/zones/last-postcard";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
@@ -69,13 +73,22 @@ function vertices(scene: ZoneScene): Vector3[] {
 /** Include collider interiors so a shoreline/path cutting through a box cannot pass on corner checks alone. */
 function expectSafe(scene: ZoneScene, context: ZoneSceneContext) {
   const boxes = scene.colliders.map(collider => new Box3().setFromCenterAndSize(collider.center, collider.size));
-  expect(boxes).toHaveLength(4);
-  for (const point of vertices(scene)) {
+  expect(boxes.length).toBeGreaterThanOrEqual(4);
+  scene.group.updateMatrixWorld(true);
+  const points = meshes(scene.group).flatMap(mesh => meshVertices(mesh).map(point => ({
+    point, grassPigment: /forestLight|forestDeep/.test(mesh.name),
+  })));
+  for (const { point, grassPigment } of points) {
     expect(Math.abs(point.x)).toBeGreaterThan(PATH_CLEARANCE);
     expect(context.onPath(point.x, point.z)).toBe(false);
     expect(context.underWater(point.x, point.z)).toBe(false);
     expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
-    expect(boxes.some(box => box.clone().expandByScalar(1e-5).containsPoint(point)), `uncovered vertex ${point.toArray()}`).toBe(true);
+    const covered = boxes.some(box => box.clone().expandByScalar(1e-5).containsPoint(point));
+    // Soft shore grass is walk-through; all furniture, rocks and fence remain boxed.
+    if (!covered) {
+      expect(grassPigment, `unboxed solid vertex ${point.toArray()}`).toBe(true);
+      expect(point.y - context.heightAt(point.x, point.z)).toBeLessThanOrEqual(0.8);
+    }
     expect(point.y).toBeGreaterThanOrEqual(context.heightAt(point.x, point.z) - 1e-5);
   }
   for (const collider of scene.colliders) {
@@ -156,7 +169,8 @@ describe("last-postcard shore scene", () => {
     expect(platform!.size.toArray()).toEqual([2, 0.12, 3]);
     const deckTop = platform!.center.y + platform!.size.y / 2;
     const wood = meshes(scene.group).find(mesh => mesh.name.endsWith("wood"))!;
-    const groundBoards = meshVertices(wood).filter(point => point.y <= deckTop + 1e-5);
+    const platformBounds = new Box3().setFromCenterAndSize(platform!.center, platform!.size).expandByScalar(1e-5);
+    const groundBoards = meshVertices(wood).filter(point => platformBounds.containsPoint(point));
     const deckBounds = new Box3().setFromPoints(groundBoards);
     expect(deckBounds.getSize(new Vector3()).toArray()).toEqual([2, expect.closeTo(0.12, 5), 3]);
     const allPoints = vertices(scene);
@@ -178,7 +192,11 @@ describe("last-postcard shore scene", () => {
     const { scene } = create();
     let totalArea = 0, inkArea = 0;
     for (const mesh of meshes(scene.group)) {
-      const points = meshVertices(mesh);
+      // The round-two ink ratio belongs to the original platform furniture, not the new beach.
+      const platform = scene.colliders[0]!;
+      const points = meshVertices(mesh).filter(point =>
+        Math.abs(point.x - platform.center.x) <= platform.size.x / 2 + 1e-5
+        && Math.abs(point.z - platform.center.z) <= platform.size.z / 2 + 1e-5);
       for (let i = 0; i < points.length; i += 3) {
         const area = points[i + 1]!.clone().sub(points[i]!)
           .cross(points[i + 2]!.clone().sub(points[i]!)).length() / 2;
@@ -269,7 +287,7 @@ describe("last-postcard shore scene", () => {
       const deckTop = platform.center.y + platform.size.y / 2;
       expect(points.filter(point => Math.abs(point.y - context.heightAt(point.x, point.z)) < 1e-5).length)
         .toBeGreaterThanOrEqual(4);
-      for (const collider of scene.colliders.slice(1)) {
+      for (const collider of scene.colliders.slice(1, 4)) {
         expect(collider.center.y - collider.size.y / 2).toBeCloseTo(deckTop, 6);
         expect(Math.abs(collider.center.x - platform.center.x) + collider.size.x / 2)
           .toBeLessThanOrEqual(platform.size.x / 2 + 1e-5);
@@ -278,6 +296,54 @@ describe("last-postcard shore scene", () => {
       }
     });
   }
+
+  it("frames the original platform with three rocks, a low two-rail fence and three grass clumps", () => {
+    const { scene, context } = create();
+    expect(scene.colliders).toHaveLength(8);
+    const [fence, ...rocks] = scene.colliders.slice(4);
+    expect(fence!.size.toArray()).toEqual([0.28, 0.9, 3.4]);
+    expect(rocks).toHaveLength(3);
+    for (const rock of rocks) {
+      expect(rock.size.y).toBeLessThanOrEqual(0.65);
+      expect(rock.center.y - rock.size.y / 2).toBe(0);
+    }
+    const grass = meshes(scene.group).filter(mesh => /forestLight|forestDeep/.test(mesh.name))
+      .flatMap(meshVertices).filter(point => point.y <= 0.8);
+    expect(grass).toHaveLength(3 * 9 * 18);
+    expect(grass.some(point => Math.abs(point.y - context.heightAt(point.x, point.z)) < 1e-5)).toBe(true);
+    expectSafe(scene, context);
+  });
+
+  it("builds through placeZoneScenes on the actual composed terrain with dry grounded shore details", () => {
+    const zones = placeZoneScenes(surfaceHeight);
+    try {
+      const scene = zones.find(zone => zone.zoneId === "last-postcard")!;
+      expect(scene).toBeDefined();
+      expect(scene.colliders).toHaveLength(8);
+      expect(meshes(scene.group)).toHaveLength(8);
+      const heights = new Map<string, number>();
+      const groundAt = (point: Vector3) => {
+        const key = `${point.x},${point.z}`;
+        let ground = heights.get(key);
+        if (ground === undefined) {
+          ground = surfaceHeight(point.x, point.z);
+          heights.set(key, ground);
+          expect(ground).toBeGreaterThan(waterLevelAt(point.z));
+          expect(nearestPath(point.x, point.z).distance).toBeGreaterThan(PATH_WIDTH / 2);
+        }
+        return ground;
+      };
+      for (const point of vertices(scene)) {
+        expect(point.y).toBeGreaterThanOrEqual(groundAt(point) - 1e-4);
+      }
+      const grass = meshes(scene.group).filter(mesh => /forestLight|forestDeep/.test(mesh.name))
+        .flatMap(meshVertices).filter(point => point.y - groundAt(point) <= 0.8);
+      expect(grass).toHaveLength(3 * 9 * 18);
+      console.info(`last-postcard real terrain: interaction ${scene.target.position.toArray().join(", ")}`);
+    } finally {
+      zones.forEach(zone => zone.dispose());
+    }
+  });
 
   it("rejects an entirely flooded or obstructed bank before allocating GPU resources", () => {
     const materialDispose = vi.spyOn(MeshToonMaterial.prototype, "dispose");
