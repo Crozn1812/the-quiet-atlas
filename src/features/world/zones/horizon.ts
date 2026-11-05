@@ -5,23 +5,83 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
+import { createRockGeometry } from "../props/rocks";
+import { createBenchGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
-type Surface = "stone" | "wood" | "paint" | "white" | "iron" | "lens";
+type Surface = "natural" | "paint" | "white" | "iron" | "lens";
 type Point = readonly [number, number, number];
 type Site = readonly [number, number];
 
 function pigment(surface: Surface): MeshToonMaterial {
-  const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
+  const material = createPropMaterial("paper");
   switch (surface) {
-    case "stone": material.color.set(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.14); break;
-    case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62); break;
+    // Kit geometry already carries linear-space palette pigments: avoid tinting twice.
+    case "natural": material.color.setRGB(1, 1, 1); break;
     case "paint": material.color.set(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.22); break;
-    case "white": material.color.set(PALETTE.laneWhite); break;
+    case "white": material.color.set(PALETTE.paper); break;
     case "iron": material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.32); break;
     case "lens": material.color.set(PALETTE.seaDeep); break;
   }
   return material;
+}
+
+/** Six-sided elliptical rings soften both ends of the nacelle (48 triangles). */
+function nacelle(): BufferGeometry {
+  const positions: number[] = [];
+  const rings = [[-0.425, 0.52], [-0.31, 1], [0.28, 1], [0.425, 0.55]].map(([x, radius]) =>
+    Array.from({ length: 6 }, (_, i) => {
+      const angle = i * Math.PI / 3;
+      return [x!, Math.cos(angle) * 0.18 * radius!, Math.sin(angle) * 0.21 * radius!];
+    }));
+  const triangle = (a: number[], b: number[], c: number[]) => positions.push(...a, ...b, ...c);
+  for (let i = 0; i < 6; i++) {
+    const next = (i + 1) % 6;
+    triangle([-0.425, 0, 0], rings[0]![next]!, rings[0]![i]!);
+    triangle([0.425, 0, 0], rings[3]![i]!, rings[3]![next]!);
+    for (let j = 0; j < 3; j++) {
+      const a = rings[j]![i]!, b = rings[j]![next]!, c = rings[j + 1]![next]!, d = rings[j + 1]![i]!;
+      triangle(a, b, c); triangle(a, c, d);
+    }
+  }
+  return new BufferGeometry().setAttribute("position", new Float32BufferAttribute(positions, 3));
+}
+
+/** Three closed airfoil sections: broad root, swept middle, fine tip; 20 triangles. */
+function turbineBlade(): BufferGeometry {
+  const positions: number[] = [];
+  const rings = [[0.13, 0.105, 0.035, 0.32], [1.08, 0.125, 0.022, 0.17], [2.11, 0.025, 0.008, 0.035]]
+    .map(([y, chord, thickness, twist]) => [[thickness!, 0], [0, chord!], [-thickness!, 0], [0, -chord!]]
+      .map(([x, z]) => [x! * Math.cos(twist!) - z! * Math.sin(twist!), y!,
+        x! * Math.sin(twist!) + z! * Math.cos(twist!) + y! * 0.055]));
+  const triangle = (a: number[], b: number[], c: number[]) => positions.push(...a, ...c, ...b);
+  triangle(rings[0]![0]!, rings[0]![2]!, rings[0]![1]!);
+  triangle(rings[0]![0]!, rings[0]![3]!, rings[0]![2]!);
+  triangle(rings[2]![0]!, rings[2]![1]!, rings[2]![2]!);
+  triangle(rings[2]![0]!, rings[2]![2]!, rings[2]![3]!);
+  for (let j = 0; j < 2; j++) {
+    for (let i = 0; i < 4; i++) {
+      const next = (i + 1) % 4;
+      const a = rings[j]![i]!, b = rings[j]![next]!, c = rings[j + 1]![next]!, d = rings[j + 1]![i]!;
+      triangle(a, b, c); triangle(a, c, d);
+    }
+  }
+  return new BufferGeometry().setAttribute("position", new Float32BufferAttribute(positions, 3));
+}
+
+/** Two crossed, double-sided dry leaves; one tuft stays well below the grass budget. */
+function dryGrass(seed: number): BufferGeometry {
+  const positions: number[] = [], colors: number[] = [];
+  const color = new Color(PALETTE.grassDry).lerp(new Color(PALETTE.sand), (seed >>> 0) % 7 / 18);
+  for (let i = 0; i < 2; i++) {
+    const angle = i * Math.PI / 2 + seed * 0.7, dx = Math.cos(angle), dz = Math.sin(angle);
+    const a = [-dx * 0.035, -0.04, -dz * 0.035], b = [dx * 0.035, -0.04, dz * 0.035];
+    const tip = [dx * 0.1, 0.19 + (seed >>> 0) % 5 * 0.025, dz * 0.1];
+    positions.push(...a, ...b, ...tip, ...tip, ...b, ...a);
+    for (let j = 0; j < 6; j++) colors.push(color.r, color.g, color.b);
+  }
+  return new BufferGeometry().setAttribute("position", new Float32BufferAttribute(positions, 3))
+    .setAttribute("color", new Float32BufferAttribute(colors, 3));
 }
 
 /** Four rings give each block a small bevel, with a subtly skewed silhouette. */
@@ -80,12 +140,12 @@ function builder(root: Group, context: ZoneSceneContext) {
       geometry.deleteAttribute("normal");
       geometry.deleteAttribute("uv");
       geometry.clearGroups();
-      const vertices = geometry.getAttribute("position"), colors: number[] = [];
+      const vertices = geometry.getAttribute("position"), pigment = geometry.getAttribute("color"), colors: number[] = [];
       for (let i = 0; i < vertices.count; i++) {
         const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i);
         if (grounded) vertices.setY(i, y + context.heightAt(x, z));
         const wash = 0.96 + Math.sin(x * 17 + z * 23 + y * 5 + (context.seed >>> 0) % 997) * 0.025;
-        colors.push(wash, wash, wash);
+        colors.push(pigment ? pigment.getX(i) : wash, pigment ? pigment.getY(i) : wash, pigment ? pigment.getZ(i) : wash);
       }
       geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
       let surfaces = batches.get(parent);
@@ -146,53 +206,66 @@ export const createHorizonScene: ZoneSceneFactory = context => {
       size: new Vector3(size[0], size[1] + high - low, size[2]) });
   };
   const cylinder = (top: number, bottom: number, height: number, center: Point, surface: Surface) =>
-    build.add(new CylinderGeometry(top, bottom, height, 7).translate(...center), surface);
+    build.add(new CylinderGeometry(top, bottom, height, 6).translate(...center), surface);
+  const foundation = ([x, z]: Site, width: number, seed: number) => {
+    const stone = createRockGeometry("stone", seed);
+    const size = stone.boundingBox!.getSize(new Vector3());
+    build.add(stone.scale(width / size.x, 0.14 / size.y, width / size.z).translate(x, -0.04, z), "natural");
+  };
 
   // The host terrain supplies the grass; no flat pigment discs beneath the furniture.
   const [vx, vz] = viewer;
-  cylinder(0.34, 0.4, 0.1, [vx, 0.05, vz], "stone");
+  foundation(viewer, 0.8, context.seed + 11);
   cylinder(0.105, 0.15, 1, [vx, 0.55, vz], "iron");
   build.add(block([0.25, 0.22, 0.48], [vx, 1.04, vz]), "iron");
   for (const dz of [-0.16, 0.16]) {
-    build.add(new CylinderGeometry(0.14, 0.105, 0.55, 8).rotateZ(-Math.PI / 2)
+    build.add(new CylinderGeometry(0.14, 0.105, 0.55, 6).rotateZ(-Math.PI / 2)
       .translate(vx + 0.1, 1.25, vz + dz), "paint");
-    build.add(new CylinderGeometry(0.075, 0.075, 0.12, 8).rotateZ(-Math.PI / 2)
+    build.add(new CylinderGeometry(0.075, 0.075, 0.12, 6).rotateZ(-Math.PI / 2)
       .translate(vx - 0.23, 1.25, vz + dz), "iron");
-    build.add(new CircleGeometry(0.115, 8).rotateY(Math.PI / 2)
+    build.add(new CircleGeometry(0.115, 6).rotateY(Math.PI / 2)
       .translate(vx + 0.377, 1.25, vz + dz), "lens");
   }
   collider(viewer, [1.05, 1.5, 0.75]);
 
   const [bx, bz] = bench;
-  build.add(block([0.68, 0.16, 2.1], [bx, 0.51, bz]), "stone");
-  for (const dz of [-0.73, 0.73]) build.add(block([0.5, 0.43, 0.28], [bx, 0.215, bz + dz]), "stone");
+  // Kit back is +Z: rotate its open -Z side to seaward +X; sink the feet 4 cm.
+  build.add(createBenchGeometry(context.seed + 31).rotateY(-Math.PI / 2).translate(bx, -0.04, bz), "natural");
+  for (const [i, dz] of [-0.87, 0.88].entries()) {
+    build.add(createRockGeometry("stone", context.seed + 71 + i).scale(0.45, 0.45, 0.45)
+      .rotateY(i * 1.7).translate(bx + 0.21, -0.04, bz + dz), "natural");
+  }
+  for (const [i, dz] of [-0.82, 0.08, 0.86].entries()) {
+    build.add(dryGrass(context.seed + 91 + i).translate(bx - 0.32, 0, bz + dz), "natural");
+  }
+  // A small closed sketchbook rests on the seat: no lettering or extra material.
+  build.add(block([0.18, 0.028, 0.24], [bx + 0.035, 0.452, bz + 0.35]), "white");
   collider(bench, [0.75, 0.6, 2.2]);
   const [rx, rz] = rail;
-  for (const dz of [-1.8, 0, 1.8]) build.add(block([0.14, 1.08, 0.14], [rx, 0.54, rz + dz]), "wood");
-  for (const y of [0.5, 0.98]) build.add(block([0.1, 0.12, 3.8], [rx, y, rz]), "wood");
+  for (const [i, dz] of [-1.8, 0, 1.8].entries()) {
+    build.add(createPostGeometry(1.12, context.seed + 101 + i).translate(rx, -0.04, rz + dz), "natural");
+  }
+  for (const [i, y] of [0.5, 0.98].entries()) {
+    build.add(createPlankGeometry(3.8, context.seed + 111 + i).scale(1, 1, 0.5)
+      .rotateX(Math.PI / 2).rotateY(Math.PI / 2).translate(rx, y, rz), "natural");
+  }
   collider(rail, [0.3, 1.12, 4]);
 
   turbines.forEach(([x, z], index) => {
     const height = 7.2 - index * 0.6;
-    cylinder(0.42, 0.52, 0.18, [x, 0.09, z], "stone");
-    cylinder(0.14, 0.28, height, [x, height / 2, z], "white");
-    build.add(block([0.85, 0.32, 0.38], [x, height, z]), "white");
+    foundation([x, z], 0.9, context.seed + 131 + index);
+    cylinder(0.14, 0.28, height + 0.04, [x, height / 2 - 0.02, z], "white");
+    // Rigid housing follows the same terrain anchor as its rotor, without terrain shearing.
+    build.add(nacelle().translate(x, context.heightAt(x, z) + height, z), "white", group, false);
     const rotor = new Group();
     rotor.name = `horizon-rotor-${index}`;
     rotor.position.set(x + 0.49, context.heightAt(x, z) + height, z);
     rotor.rotation.x = index * 0.8 + ((context.seed >>> 0) % 31) * 0.025;
     group.add(rotor);
     rotors.push(rotor);
-    build.add(new CylinderGeometry(0.21, 0.21, 0.22, 8).rotateZ(-Math.PI / 2), "white", rotor, false);
+    build.add(new CylinderGeometry(0.09, 0.21, 0.22, 6).rotateZ(-Math.PI / 2), "white", rotor, false);
     for (let blade = 0; blade < 3; blade++) {
-      // A tapered, swept blade; all three are one draw call around the hub's +X axis.
-      const geometry = block([0.085, 1.96, 0.32], [0, 1.13, 0]);
-      const vertices = geometry.getAttribute("position");
-      for (let i = 0; i < vertices.count; i++) {
-        const y = vertices.getY(i);
-        vertices.setZ(i, vertices.getZ(i) * (1.15 - y * 0.38) + 0.07 + y * 0.06);
-      }
-      build.add(geometry.rotateX(blade * Math.PI * 2 / 3), "white", rotor, false);
+      build.add(turbineBlade().rotateX(blade * Math.PI * 2 / 3), "white", rotor, false);
     }
     collider([x, z], [0.62, height + 0.25, 0.62]);
   });
