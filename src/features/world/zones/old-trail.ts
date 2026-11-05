@@ -5,6 +5,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
+import { createPineCrown } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
 import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
@@ -67,7 +68,7 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   group.name = "old-trail";
   const phase = ((Math.imul(context.seed >>> 0, 1664525) + 1013904223) >>> 0) / 4294967296 * Math.PI * 2;
   const colliders: ZoneCollider[] = [];
-  const wood: BufferGeometry[] = [], green: BufferGeometry[] = [];
+  const wood: BufferGeometry[] = [], green: BufferGeometry[] = [], ink: BufferGeometry[] = [];
   const ownedGeometry: BufferGeometry[] = [];
   const ownedMaterials: MeshToonMaterial[] = [];
 
@@ -112,12 +113,15 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     const height = tall ? 2.35 : 0.92 + 0.08 * Math.sin(z + phase);
     const parts = [ground(timber(tall ? 0.28 : 0.24, height, 0.25, 0.035 * Math.sin(z + phase))
       .translate(x, 0, z))];
-    // A blank, split wooden shoulder reads as a trail marker without lettering.
-    parts.push(ground(timber(0.15, tall ? 0.78 : 0.48, 0.10, -0.025)
-      .rotateZ(Math.PI / 2).translate(x + (tall ? 0.38 : 0.24), tall ? 1.30 : 0.63, z + 0.16)));
-    if (tall) parts.push(ground(beam(new Vector3(x, 2.24, z), new Vector3(x - 0.50, 2.24, z), 0.09)));
+    // A close-fitting cap keeps every marker a plain post, with no projecting crossbar.
+    parts.push(ground(timber(tall ? 0.34 : 0.30, 0.10, 0.31)
+      .translate(x + 0.035 * Math.sin(z + phase), height - 0.02, z)));
+    const foot = ground(timber(tall ? 0.29 : 0.25, 0.18, 0.26)
+      .translate(x, 0, z));
+    parts.push(foot);
     addCollider(parts);
-    wood.push(...parts.map(part => wash(part, phase)));
+    wood.push(...parts.slice(0, 2).map(part => wash(part, phase)));
+    ink.push(wash(foot, phase));
     green.push(wash(ground(new IcosahedronGeometry(1, 0).scale(0.17, 0.07, 0.15)
       .translate(x + 0.03, height * 0.63, z - 0.05)), phase));
   }
@@ -130,24 +134,27 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     }
   }
 
-  // One quiet broken fence, parallel to the path. Ground every foot and rail on the terrain.
+  // Enlarge the entire broken gate 1.5x around its foot, including the fallen slat and moss.
+  const gateScale = 1.5;
   const fence = [{ x: -6.4, z: 1.8 }, { x: 6.4, z: 1.8 }, { x: -6.4, z: -5.8 }]
-    .find(({ x, z }) => Math.hypot(x - anchor.x, z - anchor.z) > 2.3 && safe(x, z, 0.35, 1.85));
+    .find(({ x, z }) => Math.hypot(x - anchor.x, z - anchor.z) > 2.3
+      && safe(x, z, 0.35 * gateScale, 1.85 * gateScale));
   if (fence) {
     const { x, z } = fence;
-    const parts = [-1.6, 1.6].map((offset, i) => ground(timber(0.23, 1.12 - i * 0.18, 0.23, i ? -0.06 : 0.03)
-      .translate(x, 0, z + offset)));
+    const place = (part: BufferGeometry) => ground(part.scale(gateScale, gateScale, gateScale).translate(x, 0, z));
+    const parts = [-1.6, 1.6].map((offset, i) => place(timber(0.23, 1.12 - i * 0.18, 0.23, i ? -0.06 : 0.03)
+      .translate(0, 0, offset)));
     for (const y of [0.47, 0.88]) {
-      parts.push(ground(beam(new Vector3(x, y, z - 1.6), new Vector3(x + 0.02, y - 0.10, z - 0.18), 0.14, 0.09)));
-      parts.push(ground(beam(new Vector3(x, y - 0.16, z + 0.28), new Vector3(x - 0.03, y - 0.06, z + 1.6), 0.14, 0.09)));
+      parts.push(place(beam(new Vector3(0, y, -1.6), new Vector3(0.02, y - 0.10, -0.18), 0.14, 0.09)));
+      parts.push(place(beam(new Vector3(0, y - 0.16, 0.28), new Vector3(-0.03, y - 0.06, 1.6), 0.14, 0.09)));
     }
     // Fallen slat still rests on the ground, leaving the broken middle open.
-    parts.push(ground(beam(new Vector3(x - 0.08, 0.08, z - 0.5), new Vector3(x + 0.18, 0.13, z + 0.65), 0.12, 0.08)));
+    parts.push(place(beam(new Vector3(-0.08, 0.08, -0.5), new Vector3(0.18, 0.13, 0.65), 0.12, 0.08)));
     addCollider(parts);
     wood.push(...parts.map(part => wash(part, phase)));
     for (const offset of [-1.3, -0.85, 1.35]) {
-      green.push(wash(ground(new IcosahedronGeometry(1, 0).scale(0.19, 0.10, 0.31)
-        .translate(x, 0.78, z + offset)), phase));
+      green.push(wash(place(new IcosahedronGeometry(1, 0).scale(0.19, 0.10, 0.31)
+        .translate(0, 0.78, offset)), phase));
     }
   }
 
@@ -171,13 +178,30 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   moss.vertexColors = true;
   mesh(green, moss, "moss-washes");
 
-  const lantern = new Group();
-  lantern.name = "storm-lantern-pivot";
-  lantern.position.set(anchor.x - 0.44, context.heightAt(anchor.x, anchor.z) + 2.23, anchor.z);
-  group.add(lantern);
-  const metal = createRampMaterial(paletteColor({ base: "ink", mix: "forestDeep", amount: 0.22,
+  const metal = createRampMaterial(paletteColor({ base: "ink", mix: "forestDeep", amount: 0.3,
     saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
   metal.vertexColors = true;
+  // A single outward-leaning pine frames the edge without screening the interactable.
+  const pine = [-9.5, 9.5].flatMap(x => [7, -7].map(z => ({ x, z })))
+    .find(({ x, z }) => safe(x, z, 2.5, 2));
+  if (pine) {
+    const direction = Math.sign(pine.x);
+    const trunk = ground(timber(0.36, 4.3, 0.32, direction * 0.8).translate(pine.x, 0, pine.z));
+    const crown = ground(createPineCrown(context.seed).scale(0.85, 1, 0.85)
+      .translate(0, 4.4, 0).rotateZ(-direction * 0.18).translate(pine.x, 0, pine.z));
+    addCollider([trunk, crown]);
+    ink.push(wash(trunk, phase));
+    const jade = createRampMaterial(paletteColor({ base: "forestLight", mix: "forestDeep", amount: 0.15,
+      saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
+    jade.vertexColors = true;
+    mesh([wash(crown, phase)], jade, "leaning-pine-jade-crown");
+  }
+  mesh(ink, metal, "ink-marker-feet-and-pine-trunk");
+
+  const lantern = new Group();
+  lantern.name = "storm-lantern-pivot";
+  lantern.position.set(anchor.x - Math.sign(anchor.x) * 0.30, context.heightAt(anchor.x, anchor.z) + 2.35, anchor.z);
+  group.add(lantern);
   const frame = [
     new TorusGeometry(0.13, 0.018, 4, 10).translate(0, -0.13, 0),
     new CylinderGeometry(0.19, 0.22, 0.10, 6).translate(0, -0.37, 0),
@@ -191,6 +215,12 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   light.vertexColors = true;
   mesh([wash(new CylinderGeometry(0.115, 0.13, 0.30, 6).translate(0, -0.53, 0), phase)],
     light, "storm-lantern-warm-core", lantern);
+  const flower = createRampMaterial(paletteColor({ base: "flower", mix: "flower", amount: 0,
+    saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
+  flower.vertexColors = true;
+  // One 0.12 m orange wick, visible through the path-facing side of the lantern.
+  mesh([wash(new IcosahedronGeometry(0.06, 0).translate(-Math.sign(anchor.x) * 0.12, -0.53, 0), phase)],
+    flower, "storm-lantern-flower-wick", lantern);
   // A conservative box encloses the lantern at the full ±0.035 rad sway.
   colliders.push({ center: lantern.position.clone().add(new Vector3(0, -0.39, 0)), size: new Vector3(0.52, 0.86, 0.48) });
 

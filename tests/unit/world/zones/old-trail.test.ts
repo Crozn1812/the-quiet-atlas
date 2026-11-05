@@ -1,4 +1,4 @@
-import { Color, Mesh, MeshToonMaterial, Vector3 } from "three";
+import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -67,7 +67,7 @@ describe("old-trail scene", () => {
     expect(markers).toHaveLength(10);
     for (const side of [-1, 1]) {
       expect(markers.filter(box => Math.sign(box.center.x) === side).map(box => box.center.z).sort((a, b) => a - b))
-        .toEqual([-8, -4, 0, 4, 8].map(z => expect.closeTo(z + 0.0425, 5)));
+        .toEqual([-8, -4, 0, 4, 8].map(z => expect.closeTo(z, 5)));
     }
     expect(scene.group.getObjectByName("storm-lantern-pivot")).toBeDefined();
     expect(scene.colliders.some(box => box.size.z > 3)).toBe(true);
@@ -78,15 +78,89 @@ describe("old-trail scene", () => {
     const all = meshes(scene);
     const triangles = all.reduce((total, mesh) => total + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = all.reduce((total, mesh) => total + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
-    expect(triangles).toBe(2236);
+    expect(triangles).toBe(2988);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(drawCalls).toBe(4);
+    expect(drawCalls).toBe(7);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     for (let i = 0; i < 20; i++) {
       scene.update?.(0.5, false);
       for (const point of vertices(scene)) expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
     }
     expect(all.every(mesh => mesh.geometry.groups.length === 0)).toBe(true);
+  });
+
+  it("keeps all ten markers plain and capped, and enlarges the broken gate uniformly by 1.5", () => {
+    const scene = create();
+    const markers = scene.colliders.filter(box => box.size.z < 0.45 && box.size.y > 0.8);
+    expect(markers).toHaveLength(10);
+    for (const marker of markers) {
+      // Includes the cap and seeded lean: a horizontal arm would exceed this width.
+      expect(marker.size.x).toBeLessThan(0.42);
+      expect(marker.size.z).toBeCloseTo(0.31, 5);
+    }
+    const gate = scene.colliders.find(box => box.size.z > 5)!;
+    expect(gate).toBeDefined();
+    expect(gate.size.z).toBeCloseTo((3.2 + 0.23) * 1.5, 5);
+    expect(gate.size.y).toBeCloseTo(1.12 * 1.5, 5);
+    expect(gate.center.x).toBeLessThan(-6);
+  });
+
+  it("adds exactly one outward-leaning jade pine with a grounded ink trunk at the edge", () => {
+    const scene = create();
+    const crowns = meshes(scene).filter(mesh => mesh.name === "leaning-pine-jade-crown");
+    expect(crowns).toHaveLength(1);
+    const bounds = new Box3().setFromObject(crowns[0]!);
+    expect(bounds.max.x).toBeLessThan(-7);
+    expect(bounds.max.y).toBeGreaterThan(5);
+    const positions = crowns[0]!.geometry.getAttribute("position");
+    const band = (top: boolean) => Array.from({ length: positions.count }, (_, i) => new Vector3().fromBufferAttribute(positions, i))
+      .filter(point => top ? point.y > bounds.max.y - 0.5 : point.y < bounds.min.y + 0.5);
+    const meanX = (points: Vector3[]) => points.reduce((sum, point) => sum + point.x, 0) / points.length;
+    expect(meanX(band(true))).toBeLessThan(meanX(band(false)) - 0.3);
+    const trunk = scene.group.getObjectByName("ink-marker-feet-and-pine-trunk") as Mesh;
+    const feet = trunk.geometry.getAttribute("position");
+    expect(Array.from({ length: feet.count }, (_, i) => new Vector3().fromBufferAttribute(feet, i))
+      .some(point => point.x < -9 && point.y === 0)).toBe(true);
+    expect(new Box3().setFromObject(create({ underWater: x => x < -7 }).group.getObjectByName("leaning-pine-jade-crown")!)
+      .min.x).toBeGreaterThan(7);
+    expect(create({ underWater: x => Math.abs(x) > 7 }).group.getObjectByName("leaning-pine-jade-crown")).toBeUndefined();
+  });
+
+  it("uses restrained ink coverage and one 0.12 m flower accent attached to the lantern", () => {
+    const scene = create();
+    const all = meshes(scene);
+    const inkColor = new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex();
+    const area = (mesh: Mesh) => {
+      const positions = mesh.geometry.getAttribute("position");
+      let sum = 0;
+      for (let i = 0; i < positions.count; i += 3) {
+        const a = new Vector3().fromBufferAttribute(positions, i);
+        const b = new Vector3().fromBufferAttribute(positions, i + 1);
+        const c = new Vector3().fromBufferAttribute(positions, i + 2);
+        sum += b.sub(a).cross(c.sub(a)).length() / 2;
+      }
+      return sum;
+    };
+    const inkArea = all.filter(mesh => (mesh.material as MeshToonMaterial).color.getHex() === inkColor)
+      .reduce((sum, mesh) => sum + area(mesh), 0);
+    const coverage = inkArea / all.reduce((sum, mesh) => sum + area(mesh), 0);
+    expect(coverage).toBeGreaterThan(0.06);
+    expect(coverage).toBeLessThan(0.18);
+    const accents = all.filter(mesh => (mesh.material as MeshToonMaterial).color.getHex() === new Color(PALETTE.flower).getHex());
+    expect(accents).toHaveLength(1);
+    expect(accents[0]!.parent?.name).toBe("storm-lantern-pivot");
+    expect(accents[0]!.geometry.boundingSphere!.radius * 2).toBeCloseTo(0.12, 5);
+  });
+
+  it.each([false, true])("keeps the interactable visible from the path edge, mirrored site: %s", (mirrored) => {
+    const scene = create({ underWater: x => mirrored && x > 3 });
+    scene.group.updateMatrixWorld(true);
+    const target = scene.interactable.position.clone();
+    const player = new Vector3(Math.sign(target.x) * PATH_CLEARANCE, target.y, target.z);
+    const ray = new Raycaster(player, target.clone().sub(player).normalize(), 0, player.distanceTo(target));
+    const hit = ray.intersectObjects(meshes(scene), false)[0];
+    expect(hit?.object.name).toBe("weathered-trail-timber");
+    expect(hit!.point.distanceTo(target)).toBeLessThan(0.2);
   });
 
   it("repeats all geometry, colors, placement, colliders and motion for the same seed", () => {
@@ -104,6 +178,8 @@ describe("old-trail scene", () => {
     { name: "water at the preferred marker", overrides: { underWater: (x: number, z: number) => x > 4 && Math.abs(z) < 1 } },
     { name: "water at footprint edge", overrides: { underWater: (x: number, z: number) => x > 5.3 && Math.abs(z) < 1 } },
     { name: "path bend", overrides: { onPath: (x: number, z: number) => Math.abs(x) <= 2.6 || (x > 4 && z > -1 && z < 1) } },
+    { name: "water at enlarged gate edge", overrides: { underWater: (x: number, z: number) => x < -6 && z > 4 } },
+    { name: "water at preferred pine", overrides: { underWater: (x: number) => x < -7 } },
   ])("keeps every triangle and collider clear of corridor/water on $name terrain", ({ overrides }) => {
     const ctx = { ...context, ...overrides };
     const scene = create(overrides);
@@ -163,8 +239,11 @@ describe("old-trail scene", () => {
     const expectedColors = [
       new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12).getHex(),
       new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.24).getHex(),
-      new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.22).getHex(),
+      new Color(PALETTE.forestLight).lerp(new Color(PALETTE.forestDeep), 0.15).getHex(),
+      new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
+      new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
       new Color(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.42).getHex(),
+      new Color(PALETTE.flower).getHex(),
     ];
     const all = meshes(create());
     expect(all.map(mesh => (mesh.material as MeshToonMaterial).color.getHex())).toEqual(expectedColors);
@@ -237,7 +316,7 @@ describe("old-trail scene", () => {
     expect(rampSpy).not.toHaveBeenCalled();
     expect(scene.group.children).toHaveLength(0);
     expect(scene.group.parent).toBeNull();
-    expect(meshes(sibling)).toHaveLength(4);
+    expect(meshes(sibling)).toHaveLength(7);
   });
 
   it("rejects an entirely submerged or blocked site instead of placing a hard object unsafely", () => {
