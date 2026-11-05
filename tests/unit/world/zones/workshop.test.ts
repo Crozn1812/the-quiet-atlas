@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
-import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
+import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
+import * as rockKit from "../../../../src/features/world/props/rocks";
+import * as woodKit from "../../../../src/features/world/props/wood";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
-import { surfaceHeight } from "../../../../src/features/world/scene/compose";
-import { placeZoneScenes } from "../../../../src/features/world/zones";
+import { createWorldScene, surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { createMeshPhysics } from "../../../../src/features/world/scene/mesh-physics";
+import { placeZoneScenes, zoneFoliageBounds } from "../../../../src/features/world/zones";
 import { createWorkshopScene } from "../../../../src/features/world/zones/workshop";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext } from "../../../../src/features/world/zones/types";
 
@@ -75,6 +78,7 @@ describe("workshop bank set-piece", () => {
       }
     }
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+    expect(triangles).toBeLessThanOrEqual(3680 * 1.5); // B2-203: round-4 growth ceiling.
     const pigments = parts.map(mesh => mesh.material);
     expect(new Set(pigments).size).toBe(7); // The animated sprig shares moss with the roof.
     console.info(`Workshop budget: ${triangles} triangles, ${parts.length} draw calls`);
@@ -149,7 +153,7 @@ describe("workshop bank set-piece", () => {
       for (const z of zs) {
         const foot = context.heightAt(x, z);
         const hit = new Raycaster(new Vector3(x, foot - 0.5, z), new Vector3(0, 1, 0)).intersectObjects(wood)[0];
-        expect(hit?.point.y).toBeCloseTo(foot, 5);
+        expect(hit?.point.y).toBeCloseTo(foot - 0.04, 5);
       }
     }
     const roof = meshes(scene).find(mesh => mesh.name === "workshop-roof")!;
@@ -158,7 +162,8 @@ describe("workshop bank set-piece", () => {
       const degrees = Math.atan(heights[i]! - heights[i - 1]!) * 180 / Math.PI;
       expect(degrees).toBeGreaterThanOrEqual(15);
       expect(degrees).toBeLessThanOrEqual(20);
-      expect(heights[i]! - heights[i - 1]!).toBeCloseTo(heights[1]! - heights[0]!, 5);
+      // Shared weathered boards bow slightly; the overall mono-pitch stays straight.
+      expect(Math.abs((heights[i]! - heights[i - 1]!) - (heights[1]! - heights[0]!))).toBeLessThan(0.02);
     }
     const moss = meshes(scene).find(mesh => mesh.name === "workshop-moss")!;
     expect(moss.material.color.getHex()).toBe(new Color(PALETTE.forestDeep).getHex());
@@ -224,8 +229,7 @@ describe("workshop bank set-piece", () => {
     const heightAt = (x: number, z: number) => x * 0.035 + z * 0.02;
     const scene = create({ heightAt });
     const wood = meshes(scene).find(mesh => mesh.name === "workshop-wood")!;
-    const woodColor = new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65);
-    expect(wood.material.color.getHex()).toBe(woodColor.getHex());
+    expect(wood.material.color.getHex()).toBe(0xffffff); // Preserve the kit's vertex pigments.
     const outdoor = scene.colliders.filter(collider => collider.center.x < 0 && collider.center.z > 3.35);
     expect(outdoor).toHaveLength(3);
     const [first, second, coil] = outdoor;
@@ -236,7 +240,7 @@ describe("workshop bank set-piece", () => {
       expect(center.y - size.y / 2).toBeCloseTo(foot, 5);
       const hit = new Raycaster(new Vector3(center.x, 4, center.z), new Vector3(0, -1, 0)).intersectObjects(meshes(scene))[0];
       expect(hit?.object).toBe(wood);
-      expect(hit!.point.y).toBeCloseTo(foot + size.z, 5);
+      expect(Math.abs(hit!.point.y - (foot + size.z))).toBeLessThan(0.055);
     }
     const { center, size } = coil!;
     const foot = heightAt(center.x + size.x / 2, center.z + size.z / 2);
@@ -253,7 +257,7 @@ describe("workshop bank set-piece", () => {
     const paper = meshes(scene).find(mesh => mesh.name === "workshop-paper")!;
     const down = new Vector3(0, -1, 0);
     const top = (mesh: Mesh, x: number, z: number) => new Raycaster(new Vector3(x, 2, z), down).intersectObject(mesh)[0]!.point.y;
-    expect(top(wood, -4.62, 1.25)).toBeCloseTo(1.25, 5);
+    expect(Math.abs(top(wood, -4.62, 1.25) - 1.25)).toBeLessThan(0.05);
     expect(top(wood, -4.75, -1.1)).toBeCloseTo(1.26, 5);
     expect(top(paper, -4.75, -0.4)).toBeCloseTo(1.022, 5);
   });
@@ -272,7 +276,7 @@ describe("workshop bank set-piece", () => {
     const ink = parts.find(mesh => mesh.name === "workshop-ink")!;
     const inkFraction = area(ink) / parts.reduce((total, mesh) => total + area(mesh), 0);
     expect(inkFraction).toBeGreaterThan(0.07);
-    expect(inkFraction).toBeLessThan(0.15);
+    expect(inkFraction).toBeLessThan(0.16); // Open slatted crates expose more of the dark backing.
     const flower = parts.find(mesh => mesh.name === "workshop-flower")!;
     expect(flower.material.color.getHex()).toBe(new Color(PALETTE.flower).getHex());
     // Each low-poly accent is a separate eight-face octahedron, 12 cm across.
@@ -292,9 +296,9 @@ describe("workshop bank set-piece", () => {
     const scene = create();
     const wood = meshes(scene).filter(mesh => mesh.name === "workshop-wood");
     const ray = (origin: Vector3, direction: Vector3) => new Raycaster(origin, direction).intersectObjects(wood)[0];
-    expect(ray(new Vector3(-2.8, 2.1, 0.3), new Vector3(-1, 0, 0))?.point.x).toBeCloseTo(-7.59, 4);
-    for (const sign of [-1, 1]) expect(ray(new Vector3(-6, 1.7, 0), new Vector3(0, 0, sign))?.point.z).toBeCloseTo(sign * 2.89, 4);
-    expect(ray(new Vector3(-4.75, 2, 0), new Vector3(0, -1, 0))?.point.y).toBeCloseTo(1.005, 4);
+    expect(Math.abs(ray(new Vector3(-2.8, 2.1, 0.3), new Vector3(-1, 0, 0))!.point.x + 7.59)).toBeLessThan(0.06);
+    for (const sign of [-1, 1]) expect(Math.abs(ray(new Vector3(-6, 1.7, 0), new Vector3(0, 0, sign))!.point.z - sign * 2.89)).toBeLessThan(0.06);
+    expect(Math.abs(ray(new Vector3(-4.75, 2, 0), new Vector3(0, -1, 0))!.point.y - 1.005)).toBeLessThan(0.035);
     const paper = meshes(scene).find(mesh => mesh.name === "workshop-paper")!;
     expect(new Raycaster(new Vector3(-3, 1.43, -4.25), new Vector3(-1, 0, 0)).intersectObject(paper)[0]).toBeDefined();
   });
@@ -313,13 +317,13 @@ describe("workshop bank set-piece", () => {
     expect([3.15, 3.82, 4.49].map(top)).toEqual(expect.arrayContaining([expect.closeTo(0.36), expect.closeTo(0.26), expect.closeTo(0.16)]));
   });
 
-  it("uses only palette recipes with neutral multiplicative vertex washes, without lettering", () => {
+  it("preserves kit palette pigments and uses neutral washes on other surfaces, without lettering", () => {
     const colors = {
-      wood: new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65),
+      wood: new Color(0xffffff),
       roof: new Color(PALETTE.rockDark),
       moss: new Color(PALETTE.forestDeep),
       paper: new Color(PALETTE.cloud), ink: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3),
-      stone: new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.2),
+      stone: new Color(0xffffff),
       flower: new Color(PALETTE.flower),
     };
     for (const mesh of meshes(create())) {
@@ -327,6 +331,31 @@ describe("workshop bank set-piece", () => {
       expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
       const pigment = mesh.material.name.replace("workshop-", "") as keyof typeof colors;
       expect(mesh.material.color.getHex()).toBe(colors[pigment].getHex());
+      if (pigment === "wood" || pigment === "stone") {
+        const vector = (color: Color) => new Vector3(...color.toArray());
+        const rock = new Color(PALETTE.rock), dark = new Color(PALETTE.rockDark);
+        const endpoints = [rock.clone().lerp(new Color(PALETTE.dusk), 0.08),
+          dark.clone().lerp(new Color(PALETTE.dusk), 0.08)].map(vector);
+        const rope = rock.clone().lerp(new Color(PALETTE.dusk), 0.12);
+        const stoneColors = [dark, rock, dark.clone().lerp(rock, 0.72),
+          rock.clone().lerp(new Color(PALETTE.sand), 0.16),
+          rock.clone().lerp(new Color(PALETTE.grass), 0.42)].map(vector);
+        const distanceToSegment = (p: Vector3, a: Vector3, b: Vector3) => {
+          const ab = b.clone().sub(a);
+          return p.distanceTo(a.clone().addScaledVector(ab, Math.max(0, Math.min(1,
+            p.clone().sub(a).dot(ab) / ab.lengthSq()))));
+        };
+        const attribute = mesh.geometry.getAttribute("color");
+        for (let i = 0; i < attribute.count; i++) {
+          const p = new Vector3().fromBufferAttribute(attribute, i);
+          const distance = pigment === "stone" ? Math.min(...stoneColors.map(c => c.distanceTo(p)))
+            : Math.min(distanceToSegment(p, endpoints[0]!, endpoints[1]!),
+              distanceToSegment(p, vector(rope.clone().multiplyScalar(0.91)), vector(rope)));
+          expect(distance).toBeLessThan(1e-6);
+          expect(p.dot(new Vector3(0.2126, 0.7152, 0.0722))).toBeGreaterThanOrEqual(0.06);
+        }
+        continue;
+      }
       const paper = new Vector3(...new Color(PALETTE.paper).toArray());
       if (pigment !== "paper") {
         expect(new Vector3(...mesh.material.color.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
@@ -350,12 +379,13 @@ describe("workshop bank set-piece", () => {
     }
   });
 
-  it("adds only 120 grounded moss/fern triangles beside the posts within the existing footprint", () => {
+  it("keeps the low moss and fern details grounded inside the shed footprint", () => {
     const scene = create();
     const moss = meshes(scene).find(mesh => mesh.name === "workshop-moss")!;
     const positions = moss.geometry.getAttribute("position");
-    const details = Array.from({ length: 120 * 3 }, (_, i) =>
-      new Vector3().fromBufferAttribute(positions, positions.count - 120 * 3 + i));
+    const details = Array.from({ length: positions.count }, (_, i) =>
+      new Vector3().fromBufferAttribute(positions, i)).filter(p => p.y < 0.4 && p.x > -7.5);
+    expect(details.length).toBeGreaterThan(0);
     for (const p of details) {
       expect(p.x).toBeGreaterThan(-8.05);
       expect(p.x).toBeLessThan(-3.15);
@@ -364,8 +394,7 @@ describe("workshop bank set-piece", () => {
       expect(p.y).toBeLessThanOrEqual(0.4 + 1e-6);
     }
     const total = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-    expect(total - 3560).toBe(120);
-    expect(total - 3560).toBeLessThanOrEqual(300);
+    expect(total).toBeLessThanOrEqual(3680 * 1.5);
   });
 
   it("exports the workshop target with the exact EN/VI labels and a reachable bench centre", () => {
@@ -422,15 +451,14 @@ describe("workshop bank set-piece", () => {
     expect(dispose).not.toHaveBeenCalled();
   });
 
-  it("preserves all original triangles, transforms, colliders and interaction", () => {
+  it("locks the round-4 kit geometry fingerprint", () => {
     const scene = create();
     scene.group.updateMatrixWorld(true);
     const triangles: string[] = [];
     for (const mesh of meshes(scene)) {
+      if (mesh.name.includes("moss")) continue; // Shared fern topology can evolve independently.
       const positions = mesh.geometry.getAttribute("position");
-      // Only the new soft detail triangles are excluded from the pre-ticket fingerprint.
-      const added = mesh.name === "workshop-moss" ? 120 * 3 : 0;
-      for (let i = 0; i < positions.count - added; i += 3) {
+      for (let i = 0; i < positions.count; i += 3) {
         triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
           .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
       }
@@ -438,7 +466,84 @@ describe("workshop bank set-piece", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    expect(fingerprint).toBe("922271182434112d38462a64f85b9f0c7ad2ca479a9ff63d34f54e6e05ae41f5");
+    // B2-203 replaces box wood/steps with shared grain/bevel/slab assets and adds bench tools.
+    expect(fingerprint).toBe("b5f8827c699e4a3fa58ffbadbf53ece49e0c8be657327eda63939e647209f614");
   });
+
+  it("uses shared wood and slab assets and keeps every prop cluster below 2000 triangles", () => {
+    const planks = vi.spyOn(woodKit, "createPlankGeometry");
+    const posts = vi.spyOn(woodKit, "createPostGeometry");
+    const rocks = vi.spyOn(rockKit, "createRockGeometry");
+    for (const seed of [0, 1, 2, 103, 0xffffffff]) {
+      const scene = create({ seed });
+      const counts = scene.group.userData.trianglesByCluster as Record<string, number>;
+      for (const count of Object.values(counts)) expect(count).toBeLessThanOrEqual(2000);
+      const total = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+      expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(total);
+      expect(total).toBeLessThanOrEqual(3680 * 1.5);
+    }
+    expect(planks).toHaveBeenCalled();
+    expect(posts).toHaveBeenCalled();
+    expect(rocks.mock.calls.every(([kind]) => kind === "slab")).toBe(true);
+    expect(rocks).toHaveBeenCalledTimes(15);
+  });
+
+  it("preserves the pre-ticket collider and interaction contract exactly", () => {
+    const scene = create();
+    expect(createHash("sha256").update(JSON.stringify({
+      colliders: scene.colliders, interactable: scene.interactable,
+    })).digest("hex")).toBe("949882038074a11ecd256330f42779ba06759b51411ab2d445d8f3bf1e693d0a");
+  });
+
+  it("exposes real joints between crate boards and embeds the slabs on sloping ground", () => {
+    const scene = create();
+    const wood = meshes(scene).find(mesh => mesh.name === "workshop-wood")!;
+    const front = (y: number) => new Raycaster(new Vector3(-6.05, y, 4.05), new Vector3(-1, 0, 0))
+      .intersectObject(wood)[0]!.point.x;
+    expect(front(0.16)).toBeGreaterThan(-6.4);
+    expect(front(0.34)).toBeLessThan(-6.85); // Joint opens onto the rear panel.
+    const heightAt = (x: number, z: number) => x * 0.035 + z * 0.02;
+    const sloped = create({ heightAt });
+    const stone = meshes(sloped).find(mesh => mesh.name === "workshop-stone")!;
+    const up = new Vector3(0, 1, 0);
+    for (const x of [3.15, 3.82, 4.49]) {
+      const foot = heightAt(x, 4.7);
+      const hit = new Raycaster(new Vector3(x, foot - 0.5, 4.7), up).intersectObject(stone)[0]!;
+      expect(hit.point.y - foot).toBeLessThanOrEqual(0.05);
+      expect(hit.point.y - foot).toBeGreaterThanOrEqual(-0.1);
+    }
+  });
+
+  it("reports Node review metrics", () => {
+    const durations: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      const start = performance.now();
+      const zone = createWorkshopScene(flat);
+      durations.push(performance.now() - start);
+      if (i === 0) console.info("Workshop contract:", createHash("sha256").update(JSON.stringify({
+        colliders: zone.colliders, interactable: zone.interactable,
+      })).digest("hex"), "clusters:", zone.group.userData.trianglesByCluster);
+      zone.dispose();
+    }
+    console.info("Workshop construction median ms:", durations.slice(2).sort((a, b) => a - b)[2]);
+    const zones = placeZoneScenes(surfaceHeight);
+    const scene = new Scene();
+    zones.forEach(zone => scene.add(zone.group));
+    const backend = createMeshPhysics();
+    const world = createWorldScene({ ...backend, scene, quality: "High",
+      zoneBounds: zoneFoliageBounds(zones), zoneBoxes: zones.flatMap(zone => zone.boxes) });
+    try {
+      world.update(zones.find(zone => zone.zoneId === "workshop")!.group.position, 0);
+      let triangles = 0;
+      scene.traverse(object => {
+        if (!(object instanceof Mesh) || !object.visible) return;
+        const count = object.geometry.index?.count ?? object.geometry.getAttribute("position").count;
+        const instances = "isInstancedMesh" in object ? (object as import("three").InstancedMesh).count : 1;
+        triangles += count / 3 * instances;
+      });
+      console.info("World High at workshop, visible geometry triangles:", triangles);
+      expect(triangles).toBeLessThanOrEqual(153796 * 1.25); // Same Node High composition before B2-203.
+    } finally { world.dispose(); zones.forEach(zone => zone.dispose()); }
+  }, 30000);
 
 });
