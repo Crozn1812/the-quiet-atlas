@@ -9,6 +9,10 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
 | Q-32 | **Duyệt 5 câu phản hồi secrets** (EN/VI, ẩn dụ, không chuyện riêng) — giữ hoặc viết lại | L3 | Không (đang TBD) | Khi rảnh | `docs/showcase/20-world-life/checklist.md` mục "Câu chữ secrets" |
 | Q-33 | **Chấm showcase đợt 18–20** (giữ/sửa/bỏ 9 dòng) | L3 | Không | Khi rảnh | `docs/showcase/20-world-life/checklist.md` |
+| Q-34 | **Kỹ năng (khu The Roots)**: liệt kê kỹ năng thật theo nhóm (ví dụ Cloud, CI/CD, IaC, Container, Monitoring, Ngôn ngữ), mỗi mục kèm mức độ hoặc dự án đã dùng. Không có thì ghi "chưa" | L2 | Khu Roots còn trống | Sớm | Gửi dạng danh sách; Lead nhập vào `src/content` |
+| Q-35 | **Chứng chỉ & học tập (khu The Milestones)**: chứng chỉ đã đạt (tên, tổ chức, tháng/năm, link xác minh nếu có) + khóa học đang/sắp học (ghi rõ "đang học"/"dự định", không ghi là đã đạt) | L2 | Khu Milestones còn trống | Sớm | Như trên |
+| Q-36 | **Định hướng (khu The Horizon)**: 2–4 câu về hướng nghề nghiệp 1–3 năm tới; phân biệt nguyện vọng với việc đã làm | L2 | Khu Horizon còn trống | Sớm | Như trên |
+| Q-37 | **Sở thích (khu The Quiet Shore)**: 3–5 sở thích thật (xe máy, nhạc indie, piano/guitar, biển…), mỗi cái 1 câu. Ảnh thật (nếu muốn) phải biết người chụp | L2 | Khu Quiet Shore còn trống | Sớm | Như trên |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
