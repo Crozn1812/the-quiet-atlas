@@ -21,3 +21,8 @@
 - Mỗi patch: tỉ lệ đỉnh có alpha/độ phủ < 1 ở mép ≥ 30 % số đỉnh viền.
 - Độ lệch so với terrain ≤ 0,05 m + offset.
 - Test shore cũ pass.
+
+### Gợi ý của Lead
+
+- Nguyên nhân: `createShoreSandGeometry` dựng cát bằng ô vuông 2 m, mép cắt cứng, và `shorePlacementClear` chỉ tránh `PATH_CLEARANCE` (hành lang lối đi), không tránh bề rộng thật của đường nhựa ven biển.
+- **Phương án được phép và ưu tiên:** bỏ mesh cát rời (trả `sand: []` hoặc bỏ hẳn draw call), vì `terrain/mesh.ts` đã tô cát/đá ven nước thật bằng vertex color. Khi đó chỉ cần sửa test shore và ghi giảm 1 draw call. Nếu giữ mesh cát thì phải đạt đủ các mục ở trên.
