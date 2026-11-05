@@ -1,0 +1,257 @@
+import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { PALETTE } from "../../../../src/features/world/art/palette";
+import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
+import { createWorkshopScene } from "../../../../src/features/world/zones/workshop";
+import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext } from "../../../../src/features/world/zones/types";
+
+const flat: ZoneSceneContext = {
+  seed: 103, heightAt: () => 0,
+  onPath: x => Math.abs(x) <= 2.6, underWater: () => false,
+};
+const scenes: ZoneScene[] = [];
+function create(overrides: Partial<ZoneSceneContext> = {}) {
+  const scene = createWorkshopScene({ ...flat, ...overrides });
+  scenes.push(scene);
+  scene.group.updateMatrixWorld(true);
+  return scene;
+}
+function meshes(scene: ZoneScene): Mesh<BufferGeometry, MeshToonMaterial>[] {
+  const result: Mesh<BufferGeometry, MeshToonMaterial>[] = [];
+  scene.group.traverse(object => { if (object instanceof Mesh) result.push(object); });
+  return result;
+}
+function vertices(mesh: Mesh): Vector3[] {
+  const positions = mesh.geometry.getAttribute("position");
+  return Array.from({ length: positions.count }, (_, i) => new Vector3().fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld));
+}
+function snapshot(scene: ZoneScene) {
+  return {
+    meshes: meshes(scene).map(mesh => ({
+      name: mesh.name, matrix: mesh.matrixWorld.toArray(), color: mesh.material.color.toArray(),
+      attributes: Object.fromEntries(Object.entries(mesh.geometry.attributes).map(([name, attr]) => [name, Array.from(attr.array)])),
+      index: mesh.geometry.index && Array.from(mesh.geometry.index.array), groups: mesh.geometry.groups,
+    })),
+    colliders: scene.colliders, interactable: scene.interactable,
+  };
+}
+function transforms(scene: ZoneScene) {
+  const result: number[][] = [];
+  scene.group.updateMatrixWorld(true);
+  scene.group.traverse(object => result.push(object.matrixWorld.toArray()));
+  return result;
+}
+
+afterEach(() => {
+  scenes.splice(0).forEach(scene => scene.dispose());
+  vi.restoreAllMocks();
+  disposeRampGradients();
+});
+
+describe("workshop bank set-piece", () => {
+  it("merges by pigment, stays inside all budgets and has finite nondegenerate faces", () => {
+    const scene = create();
+    let triangles = 0;
+    const parts = meshes(scene);
+    expect(parts.length).toBeGreaterThan(0);
+    expect(parts.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    for (const mesh of parts) {
+      const geometry = mesh.geometry;
+      triangles += (geometry.index?.count ?? geometry.getAttribute("position").count) / 3;
+      expect(geometry.groups).toHaveLength(0);
+      expect(geometry.boundingBox).not.toBeNull();
+      expect(geometry.boundingSphere).not.toBeNull();
+      const points = vertices(mesh);
+      for (const v of points) {
+        expect(v.toArray().every(Number.isFinite)).toBe(true);
+        expect(v.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+      }
+      for (let i = 0; i < points.length; i += 3) {
+        const a = points[i]!, b = points[i + 1]!, c = points[i + 2]!;
+        expect(b.clone().sub(a).cross(c.clone().sub(a)).length()).toBeGreaterThan(1e-9);
+      }
+    }
+    expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+    const pigments = parts.map(mesh => mesh.material);
+    expect(new Set(pigments).size).toBe(6); // The animated sprig shares moss with the roof.
+  });
+
+  it("is exactly deterministic for a seed, including colliders, labels and vertex washes", () => {
+    expect(snapshot(create())).toEqual(snapshot(create()));
+    const first = create({ seed: 5 }), second = create({ seed: 1000000005 });
+    expect(meshes(first)[0]!.geometry.getAttribute("position").array)
+      .toEqual(meshes(second)[0]!.geometry.getAttribute("position").array);
+    expect(meshes(first)[0]!.geometry.getAttribute("color").array)
+      .not.toEqual(meshes(second)[0]!.geometry.getAttribute("color").array);
+  });
+
+  const masks = [
+    { name: "flat dry ground", context: flat },
+    { name: "sloped stream bank", context: { ...flat, heightAt: (x: number, z: number) => x * 0.035 + z * 0.02, underWater: (x: number) => x >= 4 } },
+    { name: "path bending into the first site", context: { ...flat, onPath: (x: number, z: number) => Math.abs(x) <= 2.6 || (x < -3 && Math.abs(z) < 1) } },
+    { name: "wet landward bank", context: { ...flat, underWater: (x: number) => x < -3 } },
+    { name: "water pocket between the corners", context: { ...flat, underWater: (x: number, z: number) => Math.hypot(x + 6, z) < 0.7 } },
+  ];
+  it.each(masks)("keeps complete faces and collider footprints dry and clear on $name", ({ context }) => {
+    const scene = create(context);
+    for (const mesh of meshes(scene)) {
+      const points = vertices(mesh);
+      // Vertices and triangle interiors, rather than only merged mesh centres.
+      for (let i = 0; i < points.length; i += 3) {
+        const a = points[i]!, b = points[i + 1]!, c = points[i + 2]!;
+        for (let u = 0; u <= 4; u++) for (let v = 0; v <= 4 - u; v++) {
+          const p = a.clone().multiplyScalar(u / 4).addScaledVector(b, v / 4).addScaledVector(c, 1 - (u + v) / 4);
+          expect(Math.abs(p.x)).toBeGreaterThan(PATH_CLEARANCE);
+          expect(context.onPath(p.x, p.z)).toBe(false);
+          expect(context.underWater(p.x, p.z)).toBe(false);
+          expect(p.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+        }
+      }
+    }
+    expect(scene.colliders.length).toBeGreaterThan(5);
+    for (const collider of scene.colliders) {
+      expect(collider.yaw ?? 0).toBe(0);
+      expect(collider.size.toArray().every(n => n > 0 && Number.isFinite(n))).toBe(true);
+      for (let u = 0; u <= 20; u++) for (let v = 0; v <= 20; v++) {
+        const x = collider.center.x + (u / 20 - 0.5) * collider.size.x;
+        const z = collider.center.z + (v / 20 - 0.5) * collider.size.z;
+        expect(Math.abs(x)).toBeGreaterThan(PATH_CLEARANCE);
+        expect(context.onPath(x, z)).toBe(false);
+        expect(context.underWater(x, z)).toBe(false);
+        expect(Math.hypot(x, z, Math.abs(collider.center.y) + collider.size.y / 2)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+      }
+    }
+    const p = scene.interactable.position;
+    expect(context.underWater(p.x, p.z)).toBe(false);
+    expect(context.onPath(p.x, p.z)).toBe(false);
+    const gap = Math.abs(p.x) - PATH_CLEARANCE;
+    expect(gap).toBeGreaterThanOrEqual(2);
+    expect(gap).toBeLessThanOrEqual(6);
+    const edge = new Vector3(Math.sign(p.x) * PATH_CLEARANCE, context.heightAt(Math.sign(p.x) * PATH_CLEARANCE, p.z), p.z);
+    expect(edge.distanceTo(p)).toBeLessThanOrEqual(2.5);
+  });
+
+  it("grounds separate bench legs and shed posts on a gentle slope while keeping the roof straight", () => {
+    const context = { ...flat, heightAt: (x: number, z: number) => x * 0.035 + z * 0.02 };
+    const scene = create(context);
+    const wood = meshes(scene).filter(mesh => mesh.name === "workshop-wood");
+    for (const x of [-5.08, -4.42, -3.65]) {
+      const zs = x === -3.65 ? [-2.95, 2.95] : [-1.5, 1.5];
+      for (const z of zs) {
+        const foot = context.heightAt(x, z);
+        const hit = new Raycaster(new Vector3(x, foot - 0.5, z), new Vector3(0, 1, 0)).intersectObjects(wood)[0];
+        expect(hit?.point.y).toBeCloseTo(foot, 5);
+      }
+    }
+    const roof = meshes(scene).find(mesh => mesh.name === "workshop-roof")!;
+    const heights = [-7, -6, -5, -4].map(x => new Raycaster(new Vector3(x, 8, 0), new Vector3(0, -1, 0)).intersectObject(roof)[0]!.point.y);
+    for (let i = 1; i < heights.length; i++) expect(heights[i]! - heights[i - 1]!).toBeCloseTo(0.12, 5);
+  });
+
+  it("reads as three walls, an open front, a usable bench and a paper sketch on an easel", () => {
+    const scene = create();
+    const wood = meshes(scene).filter(mesh => mesh.name === "workshop-wood");
+    const ray = (origin: Vector3, direction: Vector3) => new Raycaster(origin, direction).intersectObjects(wood)[0];
+    expect(ray(new Vector3(-2.8, 2.1, 0.3), new Vector3(-1, 0, 0))?.point.x).toBeCloseTo(-7.59, 4);
+    for (const sign of [-1, 1]) expect(ray(new Vector3(-6, 1.7, 0), new Vector3(0, 0, sign))?.point.z).toBeCloseTo(sign * 2.89, 4);
+    expect(ray(new Vector3(-4.75, 2, 0), new Vector3(0, -1, 0))?.point.y).toBeCloseTo(1.005, 4);
+    const paper = meshes(scene).find(mesh => mesh.name === "workshop-paper")!;
+    expect(new Raycaster(new Vector3(-3, 1.43, -4.25), new Vector3(-1, 0, 0)).intersectObject(paper)[0]).toBeDefined();
+  });
+
+  it("stops the descending stone steps before water and does not place submerged props", () => {
+    const scene = create({ underWater: x => x > 3.55 });
+    const stone = meshes(scene).find(mesh => mesh.name === "workshop-stone")!;
+    const bounds = new Box3().setFromObject(stone);
+    expect(bounds.min.x).toBeCloseTo(2.84, 5);
+    expect(bounds.max.x).toBeCloseTo(3.46, 5);
+    expect(bounds.max.y).toBeCloseTo(0.36, 5);
+    expect(meshes(create({ underWater: x => x > 2.7 })).some(mesh => mesh.name === "workshop-stone")).toBe(false);
+    const dry = create();
+    const allSteps = meshes(dry).find(mesh => mesh.name === "workshop-stone")!;
+    const top = (x: number) => new Raycaster(new Vector3(x, 2, 4.7), new Vector3(0, -1, 0)).intersectObject(allSteps)[0]!.point.y;
+    expect([3.15, 3.82, 4.49].map(top)).toEqual(expect.arrayContaining([expect.closeTo(0.36), expect.closeTo(0.26), expect.closeTo(0.16)]));
+  });
+
+  it("uses only palette recipes with neutral multiplicative vertex washes, without lettering", () => {
+    const colors = {
+      wood: new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12),
+      roof: new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.ink), 0.24),
+      moss: new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.12),
+      paper: new Color(PALETTE.paper), ink: new Color(PALETTE.ink),
+      stone: new Color(PALETTE.mist).lerp(new Color(PALETTE.ink), 0.22),
+    };
+    for (const mesh of meshes(create())) {
+      expect(mesh.name).not.toMatch(/text|logo/i);
+      expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
+      const pigment = mesh.material.name.replace("workshop-", "") as keyof typeof colors;
+      expect(mesh.material.color.getHex()).toBe(colors[pigment].getHex());
+      expect(mesh.material.vertexColors).toBe(true);
+      expect(mesh.material.gradientMap).not.toBeNull();
+      const wash = mesh.geometry.getAttribute("color");
+      const shades = new Set<number>();
+      for (let i = 0; i < wash.count; i++) {
+        expect(wash.getX(i)).toBe(wash.getY(i));
+        expect(wash.getX(i)).toBe(wash.getZ(i));
+        expect(wash.getX(i)).toBeGreaterThanOrEqual(0.91);
+        expect(wash.getX(i)).toBeLessThanOrEqual(1);
+        shades.add(wash.getX(i));
+      }
+      expect(shades.size).toBeGreaterThan(3);
+    }
+  });
+
+  it("exports the workshop target with the exact EN/VI labels and a reachable bench centre", () => {
+    const scene = create();
+    expect(scene.zoneId).toBe("workshop");
+    expect(scene.interactable.position.toArray()).toEqual([-4.75, 0.94, 0]);
+    expect(scene.interactable.label).toEqual({ en: "Workbench by the stream", vi: "Bàn thợ cạnh suối" });
+  });
+
+  it("moves only the small sprig slowly and freezes every transform in reduced motion", () => {
+    const scene = create();
+    const before = transforms(scene);
+    const staticTransforms = meshes(scene).filter(mesh => mesh.parent === scene.group).map(mesh => ({ mesh, matrix: mesh.matrixWorld.toArray() }));
+    for (let i = 0; i < 100; i++) scene.update!(1 / 60, true);
+    expect(transforms(scene)).toEqual(before);
+    scene.update!(1 / 60, false);
+    const moved = transforms(scene);
+    expect(moved).not.toEqual(before);
+    const sprig = scene.group.getObjectByName("workshop-hanging-sprig")!;
+    expect(Math.abs(sprig.rotation.z)).toBeLessThan(0.001);
+    staticTransforms.forEach(({ mesh, matrix }) => expect(mesh.matrixWorld.toArray()).toEqual(matrix));
+    for (let i = 0; i < 100; i++) scene.update!(1, true);
+    expect(transforms(scene)).toEqual(moved);
+    for (const dt of [NaN, Infinity, -1, 0]) scene.update!(dt, false);
+    expect(transforms(scene)).toEqual(moved);
+  });
+
+  it("releases temporary and merged geometry plus every owned material exactly once", () => {
+    const released = new Set<BufferGeometry>();
+    const original = BufferGeometry.prototype.dispose;
+    const spy = vi.spyOn(BufferGeometry.prototype, "dispose").mockImplementation(function (this: BufferGeometry) {
+      expect(released.has(this)).toBe(false);
+      released.add(this);
+      original.call(this);
+    });
+    const scene = create();
+    const parts = meshes(scene), ownedMaterials = [...new Set(parts.map(mesh => mesh.material))];
+    const callbacks = ownedMaterials.map(material => { const fn = vi.fn(); material.addEventListener("dispose", fn); return fn; });
+    const rampDisposed = vi.fn();
+    ownedMaterials[0]!.gradientMap!.addEventListener("dispose", rampDisposed);
+    expect(spy.mock.calls.length).toBeGreaterThan(80);
+    const holder = new Group(); holder.add(scene.group);
+    scene.dispose(); scene.dispose(); scene.update!(1, false);
+    parts.forEach(mesh => expect(released.has(mesh.geometry)).toBe(true));
+    callbacks.forEach(fn => expect(fn).toHaveBeenCalledTimes(1));
+    expect(rampDisposed).not.toHaveBeenCalled();
+    expect(holder.children).toHaveLength(0);
+    expect(scene.group.children).toHaveLength(0);
+  });
+
+  it("rejects a fully flooded context before allocating any geometry or material", () => {
+    const dispose = vi.spyOn(BufferGeometry.prototype, "dispose");
+    expect(() => createWorkshopScene({ ...flat, underWater: () => true })).toThrow(/dry bank/);
+    expect(dispose).not.toHaveBeenCalled();
+  });
+});
