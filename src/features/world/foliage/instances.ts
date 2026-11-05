@@ -1,4 +1,5 @@
-import { Group, InstancedMesh, Matrix4, Object3D, Ray, Vector3 } from "three";
+import { Color, Group, InstancedMesh, Matrix4, Object3D, Ray, Vector3 } from "three";
+import { PALETTE } from "../art/palette";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
 import { TRUNK_HEIGHT } from "./colliders";
@@ -16,6 +17,11 @@ export function foliageVariantAt(x: number, z: number, count: number): number {
   hash = Math.imul(hash, 0x7feb352d);
   hash ^= hash >>> 15;
   return (hash >>> 0) % count;
+}
+
+/** Independent hash buckets keep ~30% deep crowns stable through streaming/LOD. */
+export function isDeepCrown(x: number, z: number): boolean {
+  return foliageVariantAt(x, z, 100) < 30;
 }
 
 /**
@@ -60,6 +66,10 @@ export function createFoliage(maxPerKind: number) {
   const trunkMaterial = createRampMaterial(RAMP_PRESETS.trunk);
   const crownMaterial = createRampMaterial(RAMP_PRESETS.crown);
   crownMaterial.vertexColors = true;
+  const neutral = new Color(1, 1, 1);
+  // Instance colours multiply the shared ramp colour; compensate in linear RGB.
+  const deep = new Color(PALETTE.forestDeep);
+  deep.setRGB(deep.r / crownMaterial.color.r, deep.g / crownMaterial.color.g, deep.b / crownMaterial.color.b);
   function createSpecies(seeds: readonly number[], createCrown: (seed: number) => ReturnType<typeof createPineCrown>) {
     const variants = seeds.map(seed => ({
       seed,
@@ -110,9 +120,11 @@ export function createFoliage(maxPerKind: number) {
       transform.scale.set(tree.scale, heightScale, tree.scale);
       transform.updateMatrix();
       crowns.setMatrixAt(index, transform.matrix);
+      crowns.setColorAt(index, isDeepCrown(tree.x, tree.z) ? deep : neutral);
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingBox();
       mesh.computeBoundingSphere();
     }

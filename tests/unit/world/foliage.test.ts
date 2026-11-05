@@ -66,7 +66,7 @@ describe("tile foliage", () => {
     assertSpacing(block);
   });
 
-  it("keeps hills sparse and coast at most 5% of forest density; reports complete route count", () => {
+  it("keeps hills sparse and mature coast trees at most 5% of forest density; reports complete route count", () => {
     const stats = { "forest-dawn": { area: 0, count: 0 }, hill: { area: 0, count: 0 }, "coast-dusk": { area: 0, count: 0 } };
     let total = 0;
     for (const tile of route) {
@@ -75,7 +75,8 @@ describe("tile foliage", () => {
       // Count only tiles wholly in one biome for an equal-area density comparison.
       const biomes = [0, 0.5, 1].flatMap(x => [0, 0.5, 1].map(z => foliageBiomeAt((tile.ix + x) * TILE_SIZE, (tile.iz + z) * TILE_SIZE)));
       const biome = biomes[0]!;
-      if (biomes.every(value => value === biome)) { stats[biome].area++; stats[biome].count += trees.length; }
+      // B2-149 adds low coastal shrubs in the same pool. Keep the original mature-tree density limit.
+      if (biomes.every(value => value === biome)) { stats[biome].area++; stats[biome].count += trees.filter(tree => tree.growth !== "shrub").length; }
     }
     for (const stat of Object.values(stats)) expect(stat.area).toBeGreaterThan(0);
     const forestDensity = stats["forest-dawn"].count / stats["forest-dawn"].area;

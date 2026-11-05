@@ -10,6 +10,8 @@ export interface FoliageTree {
   readonly y: number;
   readonly scale: number;
   readonly kind: "pine" | "broadleaf";
+  /** Low coastal broadleaf, reusing the existing meshes and instance budget. */
+  readonly growth?: "shrub";
   /** Radians about world Z, rooted at the terrain surface. */
   readonly lean: number;
 }
@@ -22,6 +24,8 @@ export const ZONE_CLEARANCE = 4 + 0.28;
 export const BRIDGE_CLEARANCE = 6;
 /** Ground below this height (m, sea level 0) is sea floor or wet sand: no trees (B2-031). */
 export const SHORE_MIN_HEIGHT = 0.8;
+export const ZONE_APPROACH_REACH = 15;
+const APPROACH_COSINE = Math.cos(Math.PI / 6);
 
 function randomFor(key: string): () => number {
   let state = TERRAIN_SEED;
@@ -38,18 +42,57 @@ export function foliageBiomeAt(x: number, z: number): Biome {
   return ZONES.reduce((best, zone) => Math.abs(zone.t - t) < Math.abs(best.t - t) ? zone : best).biome;
 }
 
+/** Layout anchors lie on the path: -lookDirection points back along the approach. */
+export function isZoneApproach(x: number, z: number): boolean {
+  return ZONES.some(zone => {
+    const dx = x - zone.position.x, dz = z - zone.position.z;
+    const distance = Math.hypot(dx, dz);
+    const length = Math.hypot(zone.lookDirection.x, zone.lookDirection.z);
+    return distance <= zone.radius + ZONE_APPROACH_REACH
+      && -(dx * zone.lookDirection.x + dz * zone.lookDirection.z) >= distance * length * APPROACH_COSINE;
+  });
+}
+
 export function isFoliageExcluded(x: number, z: number): boolean {
   if (worldHeight(x, z) < SHORE_MIN_HEIGHT) return true;
   const path = nearestPath(x, z);
   return path.distance < PATH_CLEARANCE || nearestRiver(x, z).distance < RIVER_CLEARANCE
     || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE)
+    || isZoneApproach(x, z)
     || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < BRIDGE_CLEARANCE);
 }
 
-interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number }
+interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number; growth?: "shrub" }
+interface Clump { x: number; z: number; radius: number }
+const CLUMP_SIZE = TILE_SIZE / 2;
+
+function clumpsFor(ix: number, iz: number, width: number): Clump[] {
+  const result: Clump[] = [];
+  for (let dx = -1; dx <= width; dx++) for (let dz = -1; dz <= width; dz++) {
+    const random = randomFor(`clump:${ix + dx},${iz + dz}`);
+    result.push({ x: (ix + dx + random()) * CLUMP_SIZE, z: (iz + dz + random()) * CLUMP_SIZE, radius: 12 + random() * 12 });
+  }
+  return result;
+}
+
+function clumpDensity(x: number, z: number, clumps: readonly Clump[]): number {
+  let influence = 0;
+  for (const clump of clumps) {
+    const falloff = Math.max(0, 1 - Math.hypot(x - clump.x, z - clump.z) / clump.radius);
+    influence = Math.max(influence, falloff * falloff);
+  }
+  return 0.12 + influence * 0.88;
+}
+
+/** Overlapping seeded clumps in world space, continuous across tile boundaries. */
+export function foliageClumpAt(x: number, z: number): number {
+  return clumpDensity(x, z, clumpsFor(Math.floor(x / CLUMP_SIZE), Math.floor(z / CLUMP_SIZE), 1));
+}
 
 function candidates(ix: number, iz: number): Candidate[] {
   const random = randomFor(tileKey(ix, iz));
+  // Only sixteen centres per tile, reused by all candidates; no global cache.
+  const clumps = clumpsFor(ix * 2, iz * 2, 2);
   const clearings = Array.from({ length: 2 }, () => ({
     x: (ix + random()) * TILE_SIZE, z: (iz + random()) * TILE_SIZE, radius: 9 + random() * 6,
   }));
@@ -59,14 +102,19 @@ function candidates(ix: number, iz: number): Candidate[] {
     const z = (iz + random()) * TILE_SIZE;
     const densityRoll = random();
     const priority = random();
-    const scale = 0.8 + random() * 0.5;
+    const scaleRoll = random();
     const kindRoll = random();
     const lean = (random() - 0.5) * 0.12;
     const biome = foliageBiomeAt(x, z);
-    const density = biome === "forest-dawn" ? 1 : biome === "hill" ? 0.2 : 0.005;
+    const clump = clumpDensity(x, z, clumps);
+    const density = biome === "forest-dawn" ? clump : biome === "hill" ? clump * 0.2 : clump * 0.25;
     if (densityRoll >= density || isFoliageExcluded(x, z)) continue;
     if (biome === "forest-dawn" && clearings.some(c => Math.hypot(x - c.x, z - c.z) < c.radius)) continue;
-    result.push({ x, z, priority, scale, kind: kindRoll < (biome === "forest-dawn" ? 0.88 : 0.6) ? "pine" : "broadleaf", lean });
+    const shrub = biome === "coast-dusk" && kindRoll >= 0.02;
+    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : 0.8 + scaleRoll * 0.5,
+      kind: shrub ? "broadleaf" : kindRoll < (biome === "forest-dawn" ? 0.88 : 0.6) ? "pine" : "broadleaf", lean,
+      ...(shrub ? { growth: "shrub" as const } : {}),
+    });
   }
   return result;
 }
@@ -89,5 +137,7 @@ export function scatterTile(tile: TileAddress | TerrainTile): FoliageTree[] {
   return own.filter(a => !halo.some(b => b !== a
     && (b.priority < a.priority || (b.priority === a.priority && (b.x < a.x || (b.x === a.x && b.z < a.z))))
     && (a.x - b.x) ** 2 + (a.z - b.z) ** 2 < MIN_TREE_DISTANCE ** 2))
-    .map(({ x, z, scale, kind, lean }) => ({ x, z, y: worldHeight(x, z), scale, kind, lean }));
+    .map(({ x, z, scale, kind, lean, growth }) => ({ x, z, y: worldHeight(x, z), scale, kind, lean,
+      ...(growth ? { growth } : {}),
+    }));
 }
