@@ -19,13 +19,18 @@ function sampleDomeData(dome: ReturnType<typeof createSkyDome>, direction: Vecto
   const names = ["skyTop", "skyHorizon", "cloud", "cloudBase", "cloudTime", "sunDirection", "sunGlow", "coastWeight"];
   let evaluate = evaluators.get(dome.mesh.material);
   if (!evaluate) {
-    const body = fragmentShader.slice(fragmentShader.indexOf("float cloudHash"), fragmentShader.indexOf("void main()"))
+    const body = fragmentShader.slice(fragmentShader.indexOf("float cloudSeed"), fragmentShader.indexOf("void main()"))
       .replace(/\b(?:float|vec3) (\w+)\(([^)]*)\) \{/g, (_, name: string, params: string) =>
         "function " + name + "(" + params.replace(/\b(?:float|vec3) /g, "") + ") {")
       .replace(/\b(?:float|vec3) (\w+) =/g, "let $1 =")
       .replace("return color + sunGlow * radiance;", "return color.map((v, i) => v + sunGlow[i] * radiance);");
     evaluate = new Function("direction", ...names, "mix", "smoothstep", "max", "abs", "sqrt", "cos", "sin", "radians", "dot", "normalize", "fract", "floor", "mod", "atan", "min", "vec3",
-      body + " return { color: skyColor(direction), density: cloudDensity(direction), shape: cloudShape(direction) };") as DomeEvaluator;
+      body + `
+        const computeShape = cloudShape;
+        const shape = computeShape(direction);
+        cloudShape = () => shape;
+        return { color: skyColor(direction), density: cloudDensity(direction), shape };
+      `) as DomeEvaluator;
     evaluators.set(dome.mesh.material, evaluate);
   }
   const mix = (a: number | number[], b: number | number[], t: number): number | number[] =>
@@ -52,8 +57,54 @@ const rayAt = (azimuth: number, elevation: number) => new Vector3(
   Math.cos(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.sin(azimuth) * Math.cos(elevation),
 );
 
+// Four-connected silhouettes on the ticket's 360 × 90 angular grid. Join the seam
+// and measure the shortest circular azimuth span, so a seam-crossing cloud is one cloud.
+function cloudRegions(dome: ReturnType<typeof createSkyDome>) {
+  const width = 360;
+  const height = 90;
+  const mask = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      mask[y * width + x] = Number(sampleDomeData(dome, rayAt((x + 0.5) * Math.PI / 180, (y + 0.5) * Math.PI / 180)).density >= 0.5);
+    }
+  }
+  const regions: { area: number; span: number; bottom: number; top: number }[] = [];
+  for (let start = 0; start < mask.length; start++) {
+    if (!mask[start]) continue;
+    const queue = [start];
+    const columns = new Set<number>();
+    let bottom = height;
+    let top = 0;
+    mask[start] = 0;
+    for (let cursor = 0; cursor < queue.length; cursor++) {
+      const index = queue[cursor]!;
+      const x = index % width;
+      const y = Math.floor(index / width);
+      columns.add(x);
+      bottom = Math.min(bottom, y);
+      top = Math.max(top, y);
+      for (const next of [y * width + (x + 1) % width, y * width + (x + width - 1) % width, index - width, index + width]) {
+        if (next < 0 || next >= mask.length || !mask[next]) continue;
+        mask[next] = 0;
+        queue.push(next);
+      }
+    }
+    const sorted = [...columns].sort((a, b) => a - b);
+    let gap = 0;
+    sorted.forEach((column, i) => {
+      const next = sorted[(i + 1) % sorted.length]! + (i === sorted.length - 1 ? width : 0);
+      gap = Math.max(gap, next - column);
+    });
+    regions.push({ area: queue.length, span: width - gap + 1, bottom, top });
+  }
+  return regions;
+}
+
 // Frozen pre-B2-188 density, evaluated by the same CPU GLSL adapter as production.
 const legacyCloudDensity = `
+      float cloudHash(float x, float y, float period) {
+        return fract(sin(mod(x, period) * 127.1 + y * 311.7) * 43758.5453);
+      }
       float oldCloudNoise(float x, float y, float period) {
         float ix = floor(x);
         float iy = floor(y);
@@ -415,6 +466,60 @@ describe("grade follower", () => {
 });
 
 describe("sky dome without a GPU", () => {
+  it.each([0, 120, 600, 960])("has no azimuth density correlation above 0.5 at any 10–90 degree lag after %s seconds", seconds => {
+    const dome = createSkyDome();
+    try {
+      dome.mesh.material.uniforms.cloudTime!.value = seconds;
+      // Quarter-degree sampling also checks periods between integer degrees.
+      const samples = Array.from({ length: 1440 }, (_, i) =>
+        sampleDomeData(dome, rayAt(i * Math.PI / 720, 15 * Math.PI / 180)).density);
+      const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+      const variance = samples.reduce((sum, value) => sum + (value - mean) ** 2, 0);
+      expect(variance / samples.length).toBeGreaterThan(0.05);
+      for (let lag = 40; lag <= 360; lag++) {
+        const covariance = samples.reduce((sum, value, i) =>
+          sum + (value - mean) * (samples[(i + lag) % samples.length]! - mean), 0);
+        expect(covariance / variance, `lag ${lag / 4}°`).toBeLessThanOrEqual(0.5);
+      }
+    } finally { dome.dispose(); }
+  });
+
+  it.each([0, 120, 600])("varies connected cloud sizes by at least 3× without a region spanning 120° after %s seconds", seconds => {
+    const dome = createSkyDome();
+    try {
+      dome.mesh.material.uniforms.cloudTime!.value = seconds;
+      const regions = cloudRegions(dome);
+      // Ignore sub-grid flecks for the size comparison, but include every fleck in the span gate.
+      const areas = regions.filter(region => region.area >= 4).map(region => region.area);
+      expect(areas.length).toBeGreaterThan(20);
+      expect(Math.max(...areas) / Math.min(...areas)).toBeGreaterThanOrEqual(3);
+      expect(Math.max(...regions.map(region => region.span))).toBeLessThanOrEqual(120);
+    } finally { dome.dispose(); }
+  });
+
+  it("keeps round overhead undersides translucent and dark, with no high-latitude cut or azimuth seam", () => {
+    const dome = createSkyDome();
+    try {
+      let overheadCores = 0;
+      for (let elevation = 76; elevation < 89; elevation += 0.5) {
+        for (let azimuth = 0; azimuth < 360; azimuth += 2) {
+          const { density, shape } = sampleDomeData(dome, rayAt(azimuth * Math.PI / 180, elevation * Math.PI / 180));
+          if (shape.x < 0.1) continue;
+          expect(density).toBeGreaterThan(0.7);
+          expect(density).toBeLessThan(0.8);
+          expect(shape.y).toBeLessThan(0.5); // The underside stays below the bright crown ramp.
+          overheadCores++;
+        }
+      }
+      expect(overheadCores).toBeGreaterThan(40);
+      for (let elevation = 5; elevation <= 85; elevation++) {
+        const a = sampleDomeData(dome, rayAt(-Math.PI + 1e-8, elevation * Math.PI / 180));
+        const b = sampleDomeData(dome, rayAt(Math.PI - 1e-8, elevation * Math.PI / 180));
+        expect(Math.abs(a.density - b.density)).toBeLessThan(1e-4);
+      }
+    } finally { dome.dispose(); }
+  });
+
   it("makes painted 10–90 percent silhouette edges at least four times narrower than the old blur", () => {
     const dome = createSkyDome();
     const old = createSkyDome();
@@ -501,34 +606,22 @@ describe("sky dome without a GPU", () => {
 
   it("makes distant silhouettes smaller and flatter than the high cumulus crowns", () => {
     const dome = createSkyDome();
-    const spans = (samples: number[], coordinates: number[]) => {
-      const widths: number[] = [];
-      let start: number | undefined;
-      for (let i = 0; i < samples.length; i++) {
-        if (samples[i]! >= 0.5) start ??= coordinates[i];
-        else if (start !== undefined) {
-          widths.push(coordinates[i]! - start);
-          start = undefined;
-        }
-      }
-      return widths;
-    };
     const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
     try {
-      const sizes = [1, 3].map(band => {
-        const elevation = Math.asin(((band + 0.46) / 4) ** 2);
-        const azimuths = Array.from({ length: 4097 }, (_, i) => i * 2 * Math.PI / 4096);
-        const widths = spans(azimuths.map(a => sampleDomeData(dome, rayAt(a, elevation)).density), azimuths)
-          .map(width => width * Math.cos(elevation)); // Angular width on the unit sphere.
-        const heights: number[] = [];
-        const elevations = Array.from({ length: 257 }, (_, i) => Math.asin(Math.min(1, ((band + 0.15 + i * 0.85 / 256) / 4) ** 2)));
-        for (let column = 0; column < 64; column++) {
-          heights.push(...spans(elevations.map(e => sampleDomeData(dome, rayAt(column * 2 * Math.PI / 64, e)).density), elevations));
-        }
-        expect(widths.length).toBeGreaterThan(10);
-        expect(heights.length).toBeGreaterThan(10);
-        return { width: mean(widths), height: mean(heights) };
+      // B2-188b has no row centres. Compare complete connected silhouettes in
+      // angular elevation ranges, including the intentionally sparse high clouds.
+      const regions = cloudRegions(dome).filter(region => region.area >= 4);
+      const sizes = [[5, 20], [30, 75]].map(([low, high]) => {
+        const clouds = regions.filter(region => {
+          const middle = (region.bottom + region.top + 1) / 2;
+          return middle >= low! && middle <= high!;
+        });
+        expect(clouds.length).toBeGreaterThan(3);
+        const widths = clouds.map(region => region.span * Math.cos((region.bottom + region.top + 1) * Math.PI / 360));
+        const heights = clouds.map(region => region.top - region.bottom + 1);
+        return { count: clouds.length, width: mean(widths), height: mean(heights) };
       });
+      expect(sizes[0]!.count).toBeGreaterThan(sizes[1]!.count);
       expect(sizes[0]!.width).toBeLessThan(sizes[1]!.width * 0.9);
       expect(sizes[0]!.height).toBeLessThan(sizes[1]!.height * 0.5);
       expect(sizes[0]!.height / sizes[0]!.width).toBeLessThan(sizes[1]!.height / sizes[1]!.width * 0.75);

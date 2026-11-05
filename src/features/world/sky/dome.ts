@@ -110,56 +110,94 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
       uniform vec3 sunGlow;
       uniform float coastWeight;
       varying vec3 skyDirection;
-      // Periodic seeded cells keep the azimuth seam invisible, including while drifting.
-      float cloudHash(float x, float y, float period) {
-        return fract(sin(mod(x, period) * 127.1 + y * 311.7) * 43758.5453);
+      // A planar noise domain has no azimuth seam or rows around the sky.
+      // Integer polynomial intermediates stay below 2^24: highp GPU floats and
+      // the CPU reference agree, without a sin hash's platform-sensitive seeds.
+      float cloudSeed(float x, float y) {
+        float h = mod(x, 251.0);
+        h = mod((h * 17.0 + 13.0) * h + mod(y, 251.0), 251.0);
+        return mod((h * 17.0 + 13.0) * h, 251.0) / 251.0;
       }
-      // Elliptical lobes share a shallow, almost level condensation base.
+      float cloudNoise(float x, float y) {
+        float ix = floor(x);
+        float iy = floor(y);
+        float fx = fract(x);
+        float fy = fract(y);
+        float ux = fx * fx * (3.0 - 2.0 * fx);
+        float uy = fy * fy * (3.0 - 2.0 * fy);
+        return mix(mix(cloudSeed(ix, iy), cloudSeed(ix + 1.0, iy), ux),
+          mix(cloudSeed(ix, iy + 1.0), cloudSeed(ix + 1.0, iy + 1.0), ux), uy);
+      }
+      float cloudFbm(float x, float y) {
+        return 0.57 * cloudNoise(x, y) + 0.29 * cloudNoise(x * 2.03 + 19.1, y * 2.03 + 7.7)
+          + 0.14 * cloudNoise(x * 4.11 + 3.4, y * 4.11 + 31.8);
+      }
       float cloudLobe(float x, float y, float width, float height) {
         return 1.0 - sqrt(x * x / (width * width) + y * y / (height * height));
       }
       vec3 cloudShape(vec3 direction) {
         float height = max(direction.y, 0.0);
-        if (height <= 0.11 || height >= 0.96) return vec3(-1.0, 0.0, 0.0);
-        // sqrt compresses distant vertical silhouettes; integer periods shrink their width.
-        float y = sqrt(height) * 4.0;
+        if (height <= 0.015) return vec3(-1.0, 0.0, 0.0);
+        // Intersect a cloud sheet: distant footprints become small, flat silhouettes;
+        // overhead footprints stay round. No latitude cutoff can turn them into a curtain.
+        float breeze = 0.045 * sin(cloudTime * 6.28318530718 / 1280.0);
+        float planeX = direction.x * 2.6 / (height + 0.08) + 64.0 + breeze;
+        float planeY = direction.z * 2.6 / (height + 0.08) + 64.0 + breeze * 0.43;
+        float x = planeX + 0.72 * (cloudFbm(planeX * 0.73, planeY * 0.73) - 0.5);
+        float y = planeY + 0.72 * (cloudFbm(planeX * 0.73 + 29.4, planeY * 0.73 + 13.7) - 0.5);
+        float column = floor(x);
         float row = floor(y);
-        float azimuth = atan(direction.z, direction.x) / 6.28318530718 + 0.5;
-        // A twenty-minute breeze cycle wraps continuously and moves only a few degrees.
-        azimuth += 0.008 * sin(cloudTime * 6.28318530718 / 1280.0);
+        float horizontal = max(0.001, sqrt(direction.x * direction.x + direction.z * direction.z));
+        float overhead = smoothstep(0.55, 0.94, height);
+        float erosion = cloudFbm(x * 8.0, y * 8.0) - 0.5;
         vec3 shape = vec3(-10.0, 0.0, 0.0);
         for (float j = -1.0; j <= 1.0; j += 1.0) {
           float r = row + j;
-          float period = max(12.0, 40.0 - r * 8.0);
-          float x = azimuth * period;
-          float column = floor(x);
           for (float i = -1.0; i <= 1.0; i += 1.0) {
             float c = column + i;
-            float seed = cloudHash(c, r, period);
-            float px = x - c - 0.5 - (seed - 0.5) * 0.25;
-            float py = y - r - 0.46 - (cloudHash(c, r + 17.0, period) - 0.5) * 0.18;
-            float width = 0.34 + seed * 0.12;
-            float rise = 0.32 + cloudHash(c, r + 31.0, period) * 0.15;
-            float field = cloudLobe(px, py - 0.08, width * 0.7, rise);
-            field = max(field, cloudLobe(px + width * 0.53, py, width * 0.52, rise * 0.72));
-            field = max(field, cloudLobe(px - width * 0.55, py + 0.02, width * 0.55, rise * 0.65));
-            field = min(field, (py + 0.18 + 0.015 * cos(px * 12.0)) * 4.0);
-            // Narrow painted edge, also at the horizon/zenith limits.
-            field = min(field, min((height - 0.11) * 80.0, (0.96 - height) * 80.0));
-            if (field > shape.x) shape = vec3(field, (py + 0.18) / (rise + 0.26), px / width);
+            float seed = cloudSeed(c, r);
+            float sizeNoise = cloudNoise(c * 0.61 + 5.3, r * 0.61 + 11.8);
+            float width = 0.14 + 0.50 * smoothstep(0.18, 0.82, sizeNoise);
+            float depth = width * (0.65 + 0.6 * seed);
+            float dx = x - c - 0.5 - 0.78 * (cloudNoise(c * 1.37 + 41.7, r * 1.37 + 9.2) - 0.5);
+            float dy = y - r - 0.5 - 0.78 * (cloudNoise(c * 1.37 + 8.3, r * 1.37 + 53.1) - 0.5);
+            // Radial is up in the horizon view; tangential is left/right.
+            float px = (dx * direction.z - dy * direction.x) / horizontal;
+            float py = -(dx * direction.x + dy * direction.z) / horizontal;
+            // Reject distant cells before evaluating their compound silhouettes.
+            if (abs(dx) > width * 1.45 || abs(dy) > depth * 1.4) continue;
+            float field = cloudLobe(dx, dy, width * 0.78, depth * 0.72);
+            for (float k = 0.0; k < 5.0; k += 1.0) {
+              float lobeSeed = cloudSeed(c + k * 17.0, r + k * 7.0);
+              float offsetX = (lobeSeed - 0.5) * width * 1.55;
+              float offsetY = (cloudSeed(c + k * 11.0, r + 37.0) - 0.35) * depth;
+              float radius = 0.24 + 0.38 * cloudSeed(c + k * 3.0, r + 71.0);
+              field = max(field, cloudLobe(dx - offsetX, dy - offsetY, width * radius, depth * radius));
+            }
+            // Multiscale erosion breaks perfect arcs; the shallow base undulates instead
+            // of sharing a straight cut. Round undersides replace that base overhead.
+            field += 0.19 * erosion;
+            float base = (py / depth + 0.42 + 0.13 * (cloudNoise(x * 7.0, y * 7.0) - 0.5)) * 2.5;
+            field = mix(min(field, base), field, overhead);
+            if (field > shape.x) shape = vec3(field,
+              mix((py / depth + 0.42) / 1.25, 0.15 + 0.3 * field, overhead), px / width);
           }
         }
         return shape;
       }
+      float cloudOpacity(vec3 direction) {
+        // Aerial haze dissolves the horizon; thinner overhead clouds expose darker bases.
+        return smoothstep(0.06, 0.16, direction.y) * (1.0 - 0.28 * smoothstep(0.65, 0.98, direction.y));
+      }
       float cloudDensity(vec3 direction) {
-        return smoothstep(-0.025, 0.025, cloudShape(direction).x);
+        return smoothstep(-0.025, 0.025, cloudShape(direction).x) * cloudOpacity(direction);
       }
       vec3 skyColor(vec3 direction) {
         float height = max(direction.y, 0.0);
         float gradient = smoothstep(0.0, 0.85, sqrt(height));
         vec3 color = mix(skyHorizon, skyTop, gradient);
         vec3 shape = cloudShape(direction);
-        float density = smoothstep(-0.025, 0.025, shape.x);
+        float density = smoothstep(-0.025, 0.025, shape.x) * cloudOpacity(direction);
         float crown = smoothstep(0.12, 0.78, shape.y);
         vec3 cloudColor = mix(cloudBase, cloud, crown);
         // A rounded sun-facing shoulder and warm rim, independent of the sky halo.
