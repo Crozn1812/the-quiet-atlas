@@ -10,6 +10,9 @@ import { createController } from "../../../src/features/world/rapier";
 import { scatterTile } from "../../../src/features/world/foliage/scatter";
 import { scatterGround } from "../../../src/features/world/foliage/ground";
 import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
+// Builds all eight real scenes plus the composer; under a parallel full suite this exceeds the 5 s default
+// (5.04 s observed). Harness limit only, like the contract test (L4-010) — not a performance gate.
+vi.setConfig({ testTimeout: 30_000 });
 
 const h = vi.hoisted(() => ({
   canvas: undefined as unknown, scene: undefined as unknown, camera: undefined as unknown,
