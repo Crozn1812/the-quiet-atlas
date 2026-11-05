@@ -1,3 +1,4 @@
+import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import {
   Color,
   DataTexture,
@@ -42,11 +43,11 @@ export function disposeRampGradients(): void {
 
 export function createRampMaterial(
   color: number,
-  opts: { shadowTint?: number; soft?: boolean } = {},
+  opts: { shadowTint?: number; soft?: boolean; steps?: number } = {},
 ): MeshToonMaterial {
   const material = new MeshToonMaterial({
     color,
-    gradientMap: createRampGradient(4, opts.soft ?? true),
+    gradientMap: createRampGradient(opts.steps ?? 4, opts.soft ?? true),
   });
   const shadowTint = opts.shadowTint === undefined
     ? defaultShadowTint.clone()
@@ -68,10 +69,15 @@ outgoingLight = mix( rampShadow, outgoingLight, smoothstep( 0.0, 0.5, rampLight 
   return material;
 }
 
-/** Base colours for createRampMaterial; blending uses Three's linear working colour space. */
+/** Base colours for createRampMaterial, from the world art direction (B2-038, direction C). */
 export const RAMP_PRESETS = {
-  terrain: hex("forestLight"),
-  crown: hex("forestDeep"),
-  trunk: new Color(hex("ink")).lerp(new Color(hex("paper")), 0.35).getHex(),
+  terrain: paletteColor(WORLD_DIRECTION.background.terrain),
+  crown: paletteColor(WORLD_DIRECTION.foliage.crown),
+  trunk: paletteColor(WORLD_DIRECTION.foliage.trunk),
   water: hex("water"),
+} as const;
+/** Ramp bands per surface family (direction C: 3 soft washes on ground, 4 on foliage). */
+export const RAMP_STEPS = {
+  terrain: WORLD_DIRECTION.background.ramp,
+  foliage: WORLD_DIRECTION.foliage.ramp,
 } as const;

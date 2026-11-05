@@ -1,5 +1,6 @@
-import { CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, MeshBasicMaterial, Scene, Vector3, type MeshToonMaterial } from "three";
+import { Color, CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, MeshBasicMaterial, Scene, Vector3, type MeshToonMaterial } from "three";
 import type RAPIER from "@dimforge/rapier3d-compat";
+import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { createFoliage } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
@@ -9,9 +10,27 @@ import { selectOccludingCrowns } from "../camera";
 import { timeOfDayAt } from "../layout/lighting";
 import { pathLength } from "../layout/path";
 import { ZONES } from "../layout/zones";
-import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createRampMaterial, RAMP_PRESETS, RAMP_STEPS } from "../materials/ramp";
 import { createSkyDome } from "../sky/dome";
 import { lightingAt, type LightingGrade } from "../sky/grade";
+
+const DIRECTED_SKY = {
+  dawn: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.horizon)) },
+  dusk: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dusk.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dusk.horizon)) },
+};
+/** Share of the sky horizon in distance fog at dawn/dusk: gold fog over jade sea mixes to olive (B2-031). */
+const FOG_HORIZON = { dawn: 1, dusk: 0.25 };
+/** Sea mirror of the dusk sky; the bench's coast frame uses 0.35. */
+const SEA_SKY_MIX = 0.35;
+
+/** Replace the grade's sky/fog colours with the art direction's, blended by time of day (0 dawn → 1 dusk). */
+export function directGrade(grade: LightingGrade, timeOfDay: number): LightingGrade {
+  const t = Math.max(0, Math.min(1, timeOfDay));
+  grade.skyTop.copy(DIRECTED_SKY.dawn.top).lerp(DIRECTED_SKY.dusk.top, t);
+  grade.skyHorizon.copy(DIRECTED_SKY.dawn.horizon).lerp(DIRECTED_SKY.dusk.horizon, t);
+  grade.fogColor.set(PALETTE.paper).lerp(grade.skyHorizon, FOG_HORIZON.dawn + (FOG_HORIZON.dusk - FOG_HORIZON.dawn) * t);
+  return grade;
+}
 import { createGradeFollower } from "../sky/smoothing";
 import { PRESETS, type Quality } from "../terrain";
 import type { TilePhysicsWorld, TileRapier } from "../terrain/collider";
@@ -57,7 +76,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let reducedMotion = false;
   let lastT = -Infinity;
   let previousPosition: Vector3 | undefined;
-  const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain);
+  const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
   const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
   const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
   const trunkMaterial = new MeshBasicMaterial();
@@ -66,7 +85,9 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   const sun = new DirectionalLight();
   const hemisphere = new HemisphereLight();
   const previousFog = scene.fog;
-  const fog = new Fog(PALETTE.paper, 15, 65);
+  // Low quality has no paper pass: Three fog carries the same world-scale distances (B2-038).
+  const fog = new Fog(PALETTE.paper, WORLD_DIRECTION.background.fog.near, WORLD_DIRECTION.background.fog.far);
+  const directed = lightingAt(0);
   scene.fog = fog;
   Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 0.5, far: 120 });
   sun.shadow.bias = -0.001;
@@ -209,7 +230,14 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
     const target = lightingAt(timeOfDayAt(t));
     const teleport = !previousPosition || previousPosition.distanceTo(player) > 24;
-    const grade = teleport ? follower.snap(target) : follower.update(target, dt);
+    const followed = teleport ? follower.snap(target) : follower.update(target, dt);
+    const tod = timeOfDayAt(t);
+    // Copy before directing: the follower keeps its own smoothed state.
+    for (const key of ["sunColor", "hemiSky", "hemiGround", "shadowTint"] as const) directed[key].copy(followed[key]);
+    directed.sunDirection.copy(followed.sunDirection);
+    directed.sunIntensity = followed.sunIntensity;
+    directed.hemiIntensity = followed.hemiIntensity;
+    const grade = directGrade(directed, tod);
     previousPosition = player.clone();
     sun.color.copy(grade.sunColor);
     sun.intensity = grade.sunIntensity;
@@ -225,7 +253,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     elapsed += dt;
     for (const surface of water) {
       surface.mesh.material.setTime(elapsed);
-      surface.mesh.material.setSkyMix(timeOfDayAt(t));
+      surface.mesh.material.setSkyMix(surface === water[1] ? SEA_SKY_MIX * tod : tod);
     }
   }
 

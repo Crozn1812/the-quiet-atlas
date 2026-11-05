@@ -1,6 +1,7 @@
+import { WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { afterEach, expect, it, vi } from "vitest";
 import { BufferGeometry, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
-import { createWorldScene, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
+import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
 import { createController } from "../../../src/features/world/rapier";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
 import { createGradedPaperPass } from "../../../src/features/world/scene/paper";
@@ -91,7 +92,8 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     const destination = pathPointAt(0.95);
     composed.update(destination, 0);
     track(composed);
-    expect(paper.setGrade.mock.lastCall![0].fogColor).toEqual(lightingAt(timeOfDayAt(0.95)).fogColor);
+    // B2-038: sky/fog colours come from art direction C, blended by time of day.
+    expect(paper.setGrade.mock.lastCall![0].fogColor).toEqual(directGrade(lightingAt(0), timeOfDayAt(0.95)).fogColor);
     expect(scene.fog!.color).toEqual(paper.setGrade.mock.lastCall![0].fogColor);
   } finally {
     composed.dispose();
@@ -181,7 +183,10 @@ it("grades paper fog without changing the paper pigment, across Low and High rea
       expect(material.uniforms.paperColor!.value).toEqual(new Color(PALETTE.paper));
       // Grade tints fog + mist through the pass API (survives Low -> High reallocation); paper stays immutable.
       expect(material.uniforms.fogColor!.value).toEqual(lightingAt(1).fogColor);
-      expect(material.uniforms.mistColor!.value).toEqual(lightingAt(1).fogColor);
+      // Mist leans toward the fog colour by direction C's warmth.
+      expect(material.uniforms.mistColor!.value).toEqual(new Color(PALETTE.mist).lerp(lightingAt(1).fogColor, WORLD_DIRECTION.background.mist.warmth));
+      expect(material.uniforms.fogNear!.value).toBe(WORLD_DIRECTION.background.fog.near);
+      expect(material.uniforms.fogFar!.value).toBe(WORLD_DIRECTION.background.fog.far);
       expect(material.fragmentShader).toContain("mix(color.rgb, fogColor, smoothstep(fogNear, fogFar, viewDepth)");
       expect(material.fragmentShader).toContain("1.0 - step(0.99999, depth)");
     }

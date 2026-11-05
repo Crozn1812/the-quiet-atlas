@@ -1,3 +1,4 @@
+import { paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   Color, LinearFilter, MeshToonMaterial, NearestFilter, NoColorSpace,
@@ -65,10 +66,12 @@ describe("painted toon ramp", () => {
   });
 
   it("uses palette colours and an ink/paper blend for the trunk", () => {
-    expect(RAMP_PRESETS.terrain).toBe(hex("forestLight"));
-    expect(RAMP_PRESETS.crown).toBe(hex("forestDeep"));
+    // B2-038: world colours come from art direction C (palette recipes), not raw palette entries.
+    expect(RAMP_PRESETS.terrain).toBe(paletteColor(WORLD_DIRECTION.background.terrain));
+    expect(RAMP_PRESETS.crown).toBe(paletteColor(WORLD_DIRECTION.foliage.crown));
     expect(RAMP_PRESETS.water).toBe(hex("water"));
-    expect(RAMP_PRESETS.trunk).toBe(new Color(hex("ink")).lerp(new Color(hex("paper")), 0.35).getHex());
+    expect(RAMP_PRESETS.trunk).toBe(paletteColor(WORLD_DIRECTION.foliage.trunk));
+    expect(WORLD_DIRECTION).toBe(STYLE_PRESETS.C);
     for (const color of Object.values(RAMP_PRESETS)) {
       const material = createRampMaterial(color);
       expect(material.color.getHex()).toBe(color);
