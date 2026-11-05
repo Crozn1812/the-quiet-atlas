@@ -2,6 +2,8 @@ import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
+import { surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { placeZoneScenes } from "../../../../src/features/world/zones";
 import { createWorkshopScene } from "../../../../src/features/world/zones/workshop";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext } from "../../../../src/features/world/zones/types";
 
@@ -168,10 +170,61 @@ describe("workshop bank set-piece", () => {
     }
   });
 
+  it("exposes forestDeep moss above at least a quarter of the roof", () => {
+    const parts = meshes(create());
+    const roof = parts.find(mesh => mesh.name === "workshop-roof")!;
+    const moss = parts.find(mesh => mesh.name === "workshop-moss")!;
+    expect(moss.material.color.getHex()).toBe(new Color(PALETTE.forestDeep).getHex());
+    const bounds = new Box3().setFromObject(roof);
+    let roofSamples = 0, visibleMossSamples = 0;
+    // Count actual visible coverage, including board gaps and the mats' uneven edges.
+    for (let ix = 0; ix < 48; ix++) for (let iz = 0; iz < 72; iz++) {
+      const x = bounds.min.x + (ix + 0.5) / 48 * (bounds.max.x - bounds.min.x);
+      const z = bounds.min.z + (iz + 0.5) / 72 * (bounds.max.z - bounds.min.z);
+      const ray = new Raycaster(new Vector3(x, 8, z), new Vector3(0, -1, 0));
+      const roofHit = ray.intersectObject(roof)[0];
+      const mossHit = ray.intersectObject(moss)[0];
+      if (!roofHit) continue;
+      roofSamples++;
+      if (mossHit && mossHit.point.y > roofHit.point.y + 0.015) visibleMossSamples++;
+    }
+    expect(roofSamples).toBeGreaterThan(3000);
+    expect(visibleMossSamples / roofSamples).toBeGreaterThanOrEqual(0.25);
+    console.info(`Workshop visible roof moss: ${(100 * visibleMossSamples / roofSamples).toFixed(1)}%`);
+  });
+
+  it("has one broad ink inner wall visible through the open front behind the tools", () => {
+    const parts = meshes(create());
+    const ink = parts.find(mesh => mesh.name === "workshop-ink")!;
+    expect(ink.material.color.getHex()).toBe(new Color(PALETTE.ink).getHex());
+    // Several rays across the upper rear wall must see ink before wood or the bank.
+    for (const z of [-2.4, -1.2, 0, 1.2, 2.4]) {
+      const hit = new Raycaster(new Vector3(-2.8, 2.05, z), new Vector3(-1, 0, 0)).intersectObjects(parts)[0];
+      expect(hit?.object).toBe(ink);
+      expect(hit!.point.x).toBeCloseTo(-7.5225, 4);
+    }
+  });
+
+  it("places the workshop through the real terrain composer without throwing", () => {
+    const placed = placeZoneScenes(surfaceHeight);
+    try {
+      expect(placed).toHaveLength(8);
+      const workshop = placed.find(zone => zone.zoneId === "workshop")!;
+      expect(workshop).toBeDefined();
+      expect(workshop.group.position.y).toBe(surfaceHeight(workshop.layout.position.x, workshop.layout.position.z));
+      expect(workshop.target.position.toArray().every(Number.isFinite)).toBe(true);
+      expect(meshes(workshop).length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    } finally {
+      placed.forEach(zone => zone.dispose());
+    }
+  });
+
   it("places two grounded wooden crates and a hollow rope coil outside the side wall", () => {
     const heightAt = (x: number, z: number) => x * 0.035 + z * 0.02;
     const scene = create({ heightAt });
     const wood = meshes(scene).find(mesh => mesh.name === "workshop-wood")!;
+    const woodColor = new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12);
+    expect(wood.material.color.getHex()).toBe(woodColor.getHex());
     const outdoor = scene.colliders.filter(collider => collider.center.x < 0 && collider.center.z > 3.35);
     expect(outdoor).toHaveLength(3);
     const [first, second, coil] = outdoor;
@@ -180,7 +233,8 @@ describe("workshop bank set-piece", () => {
       expect(center.z - size.z / 2).toBeGreaterThan(3.35);
       const foot = heightAt(center.x + (size.x - 0.025) / 2, center.z + size.z / 2);
       expect(center.y - size.y / 2).toBeCloseTo(foot, 5);
-      const hit = new Raycaster(new Vector3(center.x, 4, center.z), new Vector3(0, -1, 0)).intersectObject(wood)[0];
+      const hit = new Raycaster(new Vector3(center.x, 4, center.z), new Vector3(0, -1, 0)).intersectObjects(meshes(scene))[0];
+      expect(hit?.object).toBe(wood);
       expect(hit!.point.y).toBeCloseTo(foot + size.z, 5);
     }
     const { center, size } = coil!;

@@ -46,6 +46,8 @@ function timber(size: Point, center: Point): BufferGeometry {
 function materialFor(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
   switch (surface) {
+    case "wood": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38)
+      .lerp(new Color(PALETTE.paper), 0.12); break;
     case "roof": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.55); break;
     case "moss": material.color.set(PALETTE.forestDeep); break;
     case "ink": material.color.set(PALETTE.ink); break;
@@ -147,6 +149,10 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     box("wood", [0.12, top - foot, 0.584], [-7.65, (top + foot) / 2, z]);
   }
   collider([0.16, roofY(-7.65) - base, 6.05], [-7.65, (base + roofY(-7.65)) / 2, 0]);
+  // One broad, dark inner lining behind the tools separates the open shed from the bank.
+  const liningFoot = highest([-7.59, -7.51, -2.7, 2.7]);
+  const liningTop = roofY(-7.65) - 0.23;
+  box("ink", [0.055, liningTop - liningFoot, 5.4], [-7.55, (liningTop + liningFoot) / 2, 0]);
   for (const z of [-2.95, 2.95]) {
     for (let i = 0; i < 7; i++) {
       const x = -7.35 + i * 0.53;
@@ -233,10 +239,21 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   add(timber([0.01, 0.016, 0.67], [0, 0, 0]).rotateX(0.16).translate(-4.791, easelY + 1.6, -4.25), "ink");
   collider([0.65, 2, 1.2], [-4.98, easelY + 1, easelZ]);
 
-  // Two broad patches rather than scattered confetti. Moss follows the roof pitch.
-  for (const [x, z, width, depth] of [[-6.9, 1.65, 1.6, 2.5], [-6.3, -2.1, 1.25, 1.15]] as const) {
-    add(new OctahedronGeometry(1, 0).scale(width / 2, 0.055, depth / 2)
-      .rotateZ(pitch).translate(x, roofY(x) + 0.095, z), "moss");
+  // Two shallow, uneven mats cover over a third of the roof; both follow its pitch.
+  // Their flat tops keep the forestDeep wash visible instead of sinking into the boards.
+  for (const [x, z, width, depth] of [[-6.15, 1.35, 2.7, 3.15], [-5.3, -1.95, 2.1, 2.25]] as const) {
+    const outline = new Shape();
+    outline.moveTo(-0.5 * width, -0.32 * depth);
+    outline.lineTo(-0.35 * width, -0.5 * depth);
+    outline.lineTo(0.36 * width, -0.46 * depth);
+    outline.lineTo(0.5 * width, -0.25 * depth);
+    outline.lineTo(0.46 * width, 0.38 * depth);
+    outline.lineTo(0.24 * width, 0.5 * depth);
+    outline.lineTo(-0.42 * width, 0.45 * depth);
+    outline.lineTo(-0.5 * width, 0.2 * depth);
+    outline.closePath();
+    add(new ExtrudeGeometry(outline, { depth: 0.035, steps: 1, bevelEnabled: false, curveSegments: 1 })
+      .rotateX(-Math.PI / 2).rotateZ(pitch).translate(x, roofY(x) + 0.095, z), "moss");
   }
   for (let i = 0; i < 6; i++) {
     add(new OctahedronGeometry(1, 0).scale(0.05, 0.23, 0.16).rotateX(i * 0.8)
