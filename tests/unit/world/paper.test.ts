@@ -46,6 +46,15 @@ function screenMaterial(renderer: ReturnType<typeof mockRenderer>["renderer"]) {
   return { triangle, material: triangle.material };
 }
 
+function shaderDepthJump(shader: string) {
+  // Execute the actual scalar GLSL body: its arithmetic/branch syntax is also
+  // valid JS. This avoids testing a separately maintained copy of the detector.
+  const body = shader.match(/float relativeDepthDiscontinuity\(float center, float forward, float backward\) \{([\s\S]*?)\n  \}/)![1]!;
+  const evaluate = new Function("center", "forward", "backward", "perspective", "max", body);
+  return (center: number, forward: number, backward: number, perspective: boolean) =>
+    evaluate(center, forward, backward, perspective, Math.max) as number;
+}
+
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); });
 
 describe("paper post pass", () => {
@@ -266,7 +275,11 @@ describe("paper post pass", () => {
     expect(shader).toContain("perspectiveDepthToViewZ(depth, cameraNear, cameraFar)");
     expect(shader).toContain("orthographicDepthToViewZ(depth, cameraNear, cameraFar)");
     expect(shader).toContain("(adjacent - vec4(viewDepth)) / max(viewDepth, 1.0)");
-    expect(shader).toContain("mix(0.012, 0.028, fiber)");
+    expect(shader).toContain("mix(0.03, 0.06, fiber)");
+    expect(shader).toContain("relativeDepthDiscontinuity(viewDepth, adjacent.x, adjacent.y)");
+    expect(shader).toContain("relativeDepthDiscontinuity(viewDepth, adjacent.z, adjacent.w)");
+    expect(shader).toContain("max(abs(discontinuity.x), abs(discontinuity.y))");
+    expect(shader).toContain("float foregroundEdge = max(discontinuity.x, discontinuity.y)");
     expect(shader).toContain("dot(other, luma) < dot(color, luma) ? other : color");
     expect(shader).toContain("mix(color, paperColor, pooling * paperRim)");
     expect(shader).toContain("#ifdef INK_OUTLINE");
@@ -275,6 +288,50 @@ describe("paper post pass", () => {
     expect(shader).toContain("inkEdge * inkFade * 0.35");
     expect(shader).toContain("mix(color, inkColor, inkAlpha)");
     pass.dispose();
+  });
+
+  it.each([true, false])("rejects continuous slopes and nearly coplanar terrain (perspective=%s)", perspective => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createPaperPass(gpu, { quality: "High" });
+    try {
+      pass.render(new Scene(), new PerspectiveCamera());
+      const shader = screenMaterial(renderer).material.fragmentShader;
+      const jump = shaderDepthJump(shader);
+      for (const distance of [0.05, 2, 10, 35, 120]) {
+        for (const slope of [-0.45, -0.15, -0.02, 0, 0.02, 0.15, 0.45]) {
+          // Perspective planes have affine reciprocal depth; orthographic planes
+          // have affine linear depth. Even a large first difference is no edge.
+          const forward = perspective ? distance / (1 - slope) : distance * (1 + slope);
+          const backward = perspective ? distance / (1 + slope) : distance * (1 - slope);
+          expect(Math.abs(jump(distance, forward, backward, perspective))).toBeLessThan(1e-12);
+          // Adjacent terrain triangles differing by 0.5% of depth remain unpainted
+          // at every fiber threshold, rather than tracing the tessellation.
+          const facet = perspective ? distance / (1 - slope - 0.005) : forward + distance * 0.005;
+          expect(Math.abs(jump(distance, facet, backward, perspective))).toBeLessThan(0.03);
+        }
+      }
+    } finally { pass.dispose(); }
+  });
+
+  it.each([true, false])("retains foreground object/sky silhouettes at relative distances (perspective=%s)", perspective => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createPaperPass(gpu, { quality: "High" });
+    try {
+      pass.render(new Scene(), new PerspectiveCamera());
+      const shader = screenMaterial(renderer).material.fragmentShader;
+      const jump = shaderDepthJump(shader);
+      for (const distance of [0.05, 2, 10, 25, 35]) {
+        const background = distance * 1.25;
+        // A trunk, prop or character with a 25% background gap survives even
+        // the highest fiber threshold's upper smoothstep bound (2 * 6%).
+        expect(jump(distance, background, distance, perspective)).toBeGreaterThan(0.12);
+        expect(jump(distance, distance, background, perspective)).toBeGreaterThan(0.12);
+        expect(jump(distance, background, background, perspective)).toBeGreaterThan(0.12); // Thin object.
+        expect(jump(distance, 320, distance, perspective)).toBeGreaterThan(0.12); // Sky.
+        expect(jump(background, distance, background, perspective)).toBeLessThan(0); // Rear side gets no ink.
+        expect(jump(distance, distance * 1.01, distance, perspective)).toBeLessThan(0.03);
+      }
+    } finally { pass.dispose(); }
   });
 
   it.each(["perspective", "orthographic"])("refreshes %s reconstruction matrices after the scene render", kind => {

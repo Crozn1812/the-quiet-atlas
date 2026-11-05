@@ -98,6 +98,17 @@ const fragmentShader = /* glsl */ `
       : -orthographicDepthToViewZ(depth, cameraNear, cameraFar);
   }
 
+  float relativeDepthDiscontinuity(float center, float forward, float backward) {
+    // Reciprocal view depth is affine across a perspective-projected plane.
+    // Opposite samples cancel its slope, including steep/grazing terrain; small
+    // changes between nearly coplanar triangles stay below the relative threshold.
+    // Orthographic projection instead interpolates linear view depth.
+    if (perspective) {
+      return 2.0 - center / max(forward, 0.0001) - center / max(backward, 0.0001);
+    }
+    return (forward + backward - 2.0 * center) / max(center, 0.0001);
+  }
+
   vec3 paintEdges(vec3 color, float depth, float viewDepth, float distanceToCamera, float fiber) {
     if (bleedStrength <= 0.0 && !inkEnabled) return color;
     // Exactly four extra depth reads, one physical pixel away in a cross.
@@ -127,9 +138,14 @@ const fragmentShader = /* glsl */ `
       signedEdge = delta.w;
       offset = vec2(0.0, -texelSize.y);
     }
-    // Relative linear-viewZ threshold; static fibers break up the otherwise straight rim.
-    float threshold = mix(0.012, 0.028, fiber);
-    float edge = smoothstep(threshold, threshold * 2.0, strongest);
+    vec2 discontinuity = vec2(
+      relativeDepthDiscontinuity(viewDepth, adjacent.x, adjacent.y),
+      relativeDepthDiscontinuity(viewDepth, adjacent.z, adjacent.w)
+    );
+    // A 3–6% depth jump after slope cancellation, independent of world distance.
+    // Static fibers break up the rim without turning continuous hills into ink.
+    float threshold = mix(0.03, 0.06, fiber);
+    float edge = smoothstep(threshold, threshold * 2.0, max(abs(discontinuity.x), abs(discontinuity.y)));
     if (edge > 0.0 && bleedStrength > 0.0) {
       // Only one extra color read: the other side of the strongest depth discontinuity.
       vec3 other = texture2D(tColor, vUv + offset).rgb;
@@ -144,7 +160,7 @@ const fragmentShader = /* glsl */ `
     #ifdef INK_OUTLINE
       if (inkEnabled && depth < 1.0) {
         // Foreground side only: a one-texel footprint, never a two-sided outline or sky ink.
-        float foregroundEdge = max(max(delta.x, delta.y), max(delta.z, delta.w));
+        float foregroundEdge = max(discontinuity.x, discontinuity.y);
         float inkEdge = smoothstep(threshold, threshold * 2.0, foregroundEdge);
         float inkFade = 1.0 - smoothstep(25.0, 40.0, distanceToCamera);
         float inkAlpha = inkEdge * inkFade * 0.35;
