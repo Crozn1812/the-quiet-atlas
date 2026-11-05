@@ -7,6 +7,8 @@ import { createWorldScene, surfaceHeight } from "../../src/features/world/scene/
 import { createGradedPaperPass } from "../../src/features/world/scene/paper";
 import { placeZoneScenes, zoneFoliageBounds } from "../../src/features/world/zones";
 import { pathPointAt } from "../../src/features/world/layout/path";
+import { placeDressing } from "../../src/features/world/dressing";
+import { createForestSunShafts } from "../../src/features/world/zones/first-light";
 
 declare global { interface Window { __frameReady: boolean } }
 window.__frameReady = false;
@@ -30,9 +32,12 @@ async function start() {
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   const zones = placeZoneScenes(surfaceHeight);
   for (const zone of zones) scene.add(zone.group);
+  const dressing = placeDressing();
+  for (const group of dressing.groups) scene.add(group);
+  scene.add(createForestSunShafts(surfaceHeight).group);
   const composed = createWorldScene({
     RAPIER, world, scene, quality: "High", paper,
-    zoneBounds: zoneFoliageBounds(zones), zoneBoxes: zones.flatMap(zone => zone.boxes),
+    zoneBounds: zoneFoliageBounds(zones), zoneBoxes: [...zones.flatMap(zone => zone.boxes), ...dressing.boxes, ...dressing.surfaces],
   });
   const zone = zones.find(item => item.zoneId === zoneId);
   if (!zone) throw new Error(`Unknown zone ${zoneId}`);

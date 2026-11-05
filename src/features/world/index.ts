@@ -11,6 +11,7 @@ import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpa
 import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import { createZoneEntryTracker, placeZoneScenes, zoneFoliageBounds } from "./zones";
+import { createForestSunShafts } from "./zones/first-light";
 import { placeDressing } from "./dressing";
 import { addBridgeColliders } from "./bridges";
 import type { Controller } from "./scene";
@@ -84,6 +85,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let zones: ReturnType<typeof placeZoneScenes> = [];
   let dressing: ReturnType<typeof placeDressing> | undefined;
   let removeDressingTrimeshes: (() => void) | undefined;
+  let forestSun: ReturnType<typeof createForestSunShafts> | undefined;
   try {
     const physicsBackend = opts.collision === "raycast"
       ? createMeshPhysics()
@@ -94,6 +96,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const zoneBoxes = [...zones.flatMap(zone => zone.boxes), ...dressing.boxes];
     for (const zone of zones) scene.add(zone.group);
     for (const group of dressing.groups) scene.add(group);
+    // B2-169: three soft sun shafts along the forest trail (First Light keeps its own two).
+    forestSun = createForestSunShafts(surfaceHeight);
+    scene.add(forestSun.group);
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     if (opts.collision !== "raycast") for (const box of zoneBoxes) {
       const size = box.geometry.parameters;
@@ -113,6 +118,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     zones.forEach(zone => zone.dispose());
     removeDressingTrimeshes?.();
     dressing?.dispose();
+    forestSun?.dispose();
     composition?.dispose();
     controller?.dispose();
     paperPass?.dispose();
@@ -1243,6 +1249,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     zones.forEach(zone => zone.dispose());
     removeDressingTrimeshes?.();
     dressing?.dispose();
+    forestSun?.dispose();
     physics.dispose();
     character.dispose();
     for (const { root } of secretTargets) {
