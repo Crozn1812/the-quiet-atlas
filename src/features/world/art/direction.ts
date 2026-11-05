@@ -130,7 +130,7 @@ const R: StylePreset = {
   },
   foliage: {
     crown: recipe("forestLight", "grass", 0.25, 1, 0.95),
-    trunk: recipe("rockDark", "ink", 0.3, 0.9),
+    trunk: recipe("rock", "rockDark", 0.6, 0.9), // Lead: rockDark+ink read as black poles in the forest
     ramp: { steps: 4, soft: true },
     density: 1,
   },

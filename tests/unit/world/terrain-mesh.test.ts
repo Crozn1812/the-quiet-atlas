@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { hex } from "../../../src/features/world/art/palette";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { createTileCollider, removeTileCollider, type TileRapier } from "../../../src/features/world/terrain/collider";
-import { waterLevelAt } from "../../../src/features/world/terrain/height";
+import { riverWidthAt, waterLevelAt } from "../../../src/features/world/terrain/height";
+import { nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { createTilePool } from "../../../src/features/world/terrain/pool";
 import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
@@ -142,23 +143,33 @@ describe("terrain tile mesh", () => {
     expect(colorDistance(below, above)).toBeLessThan(0.001);
   });
 
-  it("uses sand with a little rock from 0 to 1.2 m above local river/sea level", () => {
+  it("uses sand with a little rock from 0 to 1.2 m above the sea, and stone on the stream bank", () => {
     const sand = paletteColor("sand"), rock = paletteColor("rock");
-    for (const z of [-400, -1000]) for (const rise of [0, 0.02, 0.6, 1.2]) {
-      const color = sampleColor(400, z, waterLevelAt(z) + rise);
+    for (const rise of [0, 0.02, 0.6, 1.2]) {
+      const color = sampleColor(400, -1000, waterLevelAt(-1000) + rise);
       const t = (color.r - sand.r) / (rock.r - sand.r);
       expect(t).toBeGreaterThan(0.07);
       expect(t).toBeLessThan(0.21);
       expect(colorDistance(color, sand.clone().lerp(rock, t))).toBeLessThan(1e-6);
       expect(colorDistance(color, sand)).toBeLessThan(0.12);
     }
+    // Lead fix (batch 25): low meadow far from the stream is NOT sand, even near the river level.
+    const meadow = sampleColor(400, -400, waterLevelAt(-400) + 0.6);
+    expect(colorDistance(meadow, paletteColor("grass").lerp(paletteColor("grassDry"), 0.5)))
+      .toBeLessThan(colorDistance(meadow, sand));
+    // On the stream bank the low ground is sandy stone (more rock than on the beach).
+    const centre = nearestRiver(0, -400);
+    const bank = sampleColor(centre.x + riverWidthAt(centre.t) / 2 + 0.2, centre.z, waterLevelAt(centre.z) + 0.6);
+    const tBank = (bank.r - sand.r) / (rock.r - sand.r);
+    expect(tBank).toBeGreaterThan(0.25);
+    expect(tBank).toBeLessThan(0.5);
     expect(colorDistance(sampleColor(400, -400, 8), sampleColor(400, -400, 8, 0, 0, 5)))
       .toBeLessThan(1e-6);
   });
 
-  it("blends submerged rockDark toward seaDeep with depth and joins the waterline continuously", () => {
+  it("blends submerged rockDark toward seaDeep with depth (sea only) and joins the waterline continuously", () => {
     const dark = paletteColor("rockDark"), deep = paletteColor("seaDeep");
-    for (const z of [-400, -1000]) {
+    for (const z of [-1000]) {
       const water = waterLevelAt(z);
       const shallow = sampleColor(400, z, water - 0.4);
       const bottom = sampleColor(400, z, water - 3);

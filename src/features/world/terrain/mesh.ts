@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, Color, Mesh, type Material } from "three";
 import { hex } from "../art/palette";
-import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
-import { nearestPath } from "./samples";
+import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
+import { nearestPath, nearestRiver } from "./samples";
 import type { TerrainTile } from "./tiles";
 
 const grass = new Color(hex("grass"));
@@ -84,11 +84,17 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     tint.copy(rock).lerp(rockDark, 0.08 + 0.2 * detail);
     color.lerp(tint, cliff);
 
-    // Local river level also covers the sea (0 m); blend the shallow bed into the shore.
-    tint.copy(sand).lerp(rock, 0.08 + 0.12 * detail);
-    color.lerp(tint, 1 - smoothstep(1.2, 2.2, aboveWater));
+    // Lead fix: sand and seabed belong to real water only. waterLevelAt() is the valley's river level, so low meadow
+    // ground far from the stream must stay grass. Sea: south of z −700 (the bay reaches −680). Stream: within ~3 m of
+    // the ribbon edge, where the bed reads as light wet stone, not the dark seabed (no black halo beside the ribbon).
+    const river = nearestRiver(wx, wz);
+    const bank = 1 - smoothstep(riverWidthAt(river.t) / 2 + 0.5, riverWidthAt(river.t) / 2 + 3, river.distance);
+    const sea = 1 - smoothstep(-720, -680, wz);
+    const wet = Math.max(bank, sea);
+    tint.copy(sand).lerp(rock, 0.08 + 0.12 * detail + 0.25 * (1 - sea));
+    color.lerp(tint, wet * (1 - smoothstep(1.2, 2.2, aboveWater)));
     tint.copy(rockDark).lerp(seaDeep, 0.2 + 0.45 * smoothstep(0, 3, -aboveWater));
-    color.lerp(tint, 1 - smoothstep(-0.3, 0, aboveWater));
+    color.lerp(tint, sea * (1 - smoothstep(-0.3, 0, aboveWater)));
 
     // The unpaved forest route stays light brown, including its low river-bank stretches.
     const path = nearestPath(wx, wz);
