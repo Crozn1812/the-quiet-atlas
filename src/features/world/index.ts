@@ -998,7 +998,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     player.position.copy(physics.position);
     const moved = Math.hypot(player.position.x - lastPlayer.x, player.position.z - lastPlayer.z);
     // Teleports and intro hand-offs jump the controller: never read them as running.
-    animator.update(dt, vehicle.mode === "ride" ? 0 : dt > 0 && moved < 2 ? moved / dt : 0, (physics as { grounded?: boolean }).grounded ?? true);
+    // A paused world is frozen (§6.1): no idle breathing either (e2e compares paused frames pixel for pixel).
+    const animDt = canSimulate(state) ? dt : 0;
+    animator.update(animDt, vehicle.mode === "ride" || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(dt);
     if (intro?.inputLocked) {
       if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
@@ -1008,7 +1010,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     interaction.update();
     composed.update(physics.position, 0);
     updateMascot(canSimulate(state) ? dt : 0);
-    updateMascotHint(dt);
+    updateMascotHint(canSimulate(state) ? dt : 0);
     publishAmbience(now);
     updateEndingGrade();
     if (canSimulate(state) && !motionPreference?.matches) chimeTime += dt;
