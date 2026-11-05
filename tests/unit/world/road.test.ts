@@ -1,8 +1,12 @@
-import { Color, InstancedMesh, LineSegments, Matrix4, Mesh, MeshToonMaterial, Vector3 } from "three";
+import {
+  Color, InstancedMesh, LineSegments, Matrix3, Matrix4, Mesh, MeshToonMaterial, ShaderChunk, ShaderLib, Vector3,
+  type DataTexture, type WebGLProgramParametersWithUniforms, type WebGLRenderer,
+} from "three";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { PATH_CLEARANCE, ZONE_CLEARANCE } from "../../../src/features/world/foliage/scatter";
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
+import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import {
   createRoadLayout, POLE_OFFSET, POLE_RADIUS, POLE_SPACING, POST_OFFSET, POST_RADIUS,
@@ -13,8 +17,65 @@ import {
   WIRE_HEIGHT, WIRE_OFFSETS, WIRE_SAG, WIRE_SEGMENTS, wireAnchor,
 } from "../../../src/features/world/road/posts";
 import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS } from "../../../src/features/world/road/road";
+import { asphaltColorAt, roadBandOffsetAt } from "../../../src/features/world/road/surface";
+import { lightingAt } from "../../../src/features/world/sky/grade";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
+
+const luma = (c: Color) => c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+const smoothstep = (a: number, b: number, x: number) => {
+  const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return u * u * (3 - 2 * u);
+};
+
+/** Execute the installed ACES fit/matrices, then Three's sRGB display transfer. */
+function displayColor(color: Color): Color {
+  const source = ShaderChunk.tonemapping_pars_fragment;
+  const matrix = (name: string) => {
+    const body = source.match(new RegExp(`const mat3 ${name} = mat3\\(([\\s\\S]*?)\\);`))![1]!;
+    return new Matrix3().fromArray([...body.matchAll(/vec3\(\s*([^)]*)\)/g)]
+      .flatMap(match => match[1]!.split(",").map(Number)));
+  };
+  const body = source.match(/vec3 RRTAndODTFit\( vec3 v \) \{([\s\S]*?)\}/)![1]!;
+  const fit = new Function("v", body.replaceAll("vec3", "const")) as (v: number) => number;
+  // The scene uses ACES at default exposure 1; looking down is inside the fog near plane.
+  const value = new Vector3(...color.toArray()).multiplyScalar(1 / 0.6).applyMatrix3(matrix("ACESInputMat"));
+  value.set(...value.toArray().map(fit) as [number, number, number]).applyMatrix3(matrix("ACESOutputMat"));
+  return new Color().setRGB(...value.toArray().map(c => Math.max(0, Math.min(1, c))) as [number, number, number])
+    .convertLinearToSRGB();
+}
+
+function shadedColor(material: MeshToonMaterial) {
+  const shader = { vertexShader: ShaderLib.toon!.vertexShader, fragmentShader: ShaderLib.toon!.fragmentShader,
+    uniforms: {} } as WebGLProgramParametersWithUniforms;
+  material.onBeforeCompile(shader, {} as WebGLRenderer);
+  // Run the actual ramp hook per channel. Only GLSL types/vector constants are adapted.
+  const body = shader.fragmentShader.match(/float rampLight = ([\s\S]*?)#include <opaque_fragment>/)![0]!
+    .replace("#include <opaque_fragment>", "return outgoingLight;")
+    .replace(/dot\( outgoingLight, vec3\( [^)]* \) \)/, "rampLuma")
+    .replaceAll("vec3( 0.25 )", "0.25").replaceAll("vec3( 1.0 )", "1.0")
+    .replace(/\b(float|vec3)\b/g, "let").replaceAll("diffuseColor.rgb", "diffuseColor");
+  const ramp = new Function("outgoingLight", "diffuseColor", "rampLuma", "rampShadowTint", "rampHighlightTint",
+    "rampClearLight", "mix", "smoothstep", body) as (...args: unknown[]) => number;
+  const data = (material.gradientMap as DataTexture).image.data as Uint8Array;
+  return (pigment: Color, normal: Vector3, t: number) => {
+    const grade = lightingAt(timeOfDayAt(t));
+    // Three's gradient coordinate, linear texel filtering/clamp and Lambert BRDF.
+    const coord = (normal.dot(grade.sunDirection) * 0.5 + 0.5) * data.length - 0.5;
+    const sample = (i: number) => data[Math.max(0, Math.min(data.length - 1, i))]! / 255;
+    const floor = Math.floor(coord), u = coord - floor;
+    const gradient = sample(floor) * (1 - u) + sample(floor + 1) * u;
+    const hemi = grade.hemiGround.clone().lerp(grade.hemiSky, normal.y * 0.5 + 0.5).multiplyScalar(grade.hemiIntensity);
+    const outgoing = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * gradient).add(hemi)
+      .multiply(pigment).multiplyScalar(1 / Math.PI);
+    const shadow = shader.uniforms.rampShadowTint!.value as Color;
+    const highlight = shader.uniforms.rampHighlightTint!.value as Color;
+    const channels = (["r", "g", "b"] as const).map(channel => ramp(outgoing[channel], pigment[channel], luma(outgoing),
+      shadow[channel], highlight[channel], shader.uniforms.rampClearLight!.value,
+      (a: number, b: number, w: number) => a * (1 - w) + b * w, smoothstep));
+    return displayColor(new Color().setRGB(...channels as [number, number, number]));
+  };
+}
 
 describe("coastal asphalt, roadside bollards and utility poles", () => {
   let road: ReturnType<typeof createCoastRoad>;
@@ -35,8 +96,8 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     for (let row = 0; row < ROAD_SEGMENTS; row++) {
       const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
       const center = pathPointAt(t);
-      const first = point(row, 0);
-      const last = new Vector3().fromBufferAttribute(position, row * bands * 6 + (bands - 1) * 6 + 1);
+      const first = point(row, ROAD_BANDS.indexOf(-2.5));
+      const last = point(row, ROAD_BANDS.indexOf(2.5));
       const midpoint = first.clone().add(last).multiplyScalar(0.5);
       expect(Math.hypot(midpoint.x - center.x, midpoint.z - center.z)).toBeLessThan(0.0001);
       const width = Math.hypot(first.x - last.x, first.z - last.z);
@@ -46,7 +107,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       for (let band = 0; band < bands; band++) {
         const vertex = point(row, band);
         const radius = Math.hypot(vertex.x - center.x, vertex.z - center.z);
-        expect(radius).toBeLessThanOrEqual(ROAD_WIDTH / 2 + 0.0001);
+        expect(radius).toBeLessThanOrEqual(ROAD_WIDTH / 2 + 1);
       }
     }
     const end = pathPointAt(1);
@@ -67,40 +128,138 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     }
   });
 
-  it("keeps all three continuous paint bands inside the asphalt, using palette pigments and subtle asphalt grain", () => {
+  it("keeps 0.12 m yellow and 0.10 m white paint inside asphalt, with sparse wear", () => {
     const material = surface.material as MeshToonMaterial;
     expect(material).toBeInstanceOf(MeshToonMaterial);
     expect(material.color.getHexString()).toBe(PALETTE.laneWhite.slice(1).toLowerCase());
     expect(material.vertexColors).toBe(true);
     expect(material.gradientMap!.magFilter).toBe(material.gradientMap!.minFilter);
-    const color = surface.geometry.getAttribute("color");
-    const shades = new Set<number>();
-    const pigments = { asphalt: new Color(PALETTE.asphalt), laneWhite: new Color(PALETTE.laneWhite), laneYellow: new Color(PALETTE.laneYellow) };
+    const color = surface.geometry.getAttribute("color"), position = surface.geometry.getAttribute("position");
+    let worn = 0, intact = 0;
     for (let row = 0; row < ROAD_SEGMENTS; row++) {
+      const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
       let yellow = 0, white = 0;
       for (let band = 0; band < ROAD_BANDS.length - 1; band++) {
         const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
-        const kind = middle < 0.1 ? "laneYellow" : middle > 2.05 && middle < 2.2 ? "laneWhite" : "asphalt";
+        const kind = middle < 0.06 ? "laneYellow" : middle > 2.1 && middle < 2.2 ? "laneWhite" : undefined;
+        if (!kind) continue;
         if (kind === "laneYellow") yellow++;
         if (kind === "laneWhite") white++;
-        const pigment = pigments[kind];
+        expect(middle).toBeLessThan(ROAD_WIDTH / 2);
+        const pigment = new Color(PALETTE[kind]);
         const start = (row * (ROAD_BANDS.length - 1) + band) * 6;
+        const a = new Vector3().fromBufferAttribute(position, start);
+        const b = new Vector3().fromBufferAttribute(position, start + 1);
+        expect(Math.hypot(a.x - b.x, a.z - b.z))
+          .toBeCloseTo((kind === "laneYellow" ? 0.12 : 0.1) * roadWidthAt(t) / 5, 4);
         for (let j = 0; j < 6; j++) {
           const actual = new Color().fromBufferAttribute(color, start + j).multiply(material.color);
-          const shade = actual.r / pigment.r;
-          expect(actual.g / pigment.g).toBeCloseTo(shade, 6);
-          expect(actual.b / pigment.b).toBeCloseTo(shade, 6);
-          if (kind === "asphalt") {
-            expect(shade).toBeGreaterThanOrEqual(0.97 - 1e-6);
-            expect(shade).toBeLessThanOrEqual(1 + 1e-6);
-            shades.add(shade);
-          } else expect(shade).toBeCloseTo(1, 6);
+          expect(luma(actual)).toBeGreaterThan(luma(pigment) * 0.8);
+          expect(luma(actual)).toBeLessThanOrEqual(luma(pigment) + 1e-6);
+          if (luma(actual) < luma(pigment) * 0.97) worn++; else intact++;
+          expect(actual.r / actual.b).toBeGreaterThan(kind === "laneYellow" ? 3 : 1);
         }
       }
       expect(yellow).toBe(1);
       expect(white).toBe(2);
     }
-    expect(shades.size).toBeGreaterThan(100);
+    expect(worn).toBeGreaterThan(50);
+    expect(intact).toBeGreaterThan(worn * 2);
+  });
+
+  it("places 0.6–1 m rock/sand shoulders between asphalt and a ragged grassy verge", () => {
+    const position = surface.geometry.getAttribute("position"), colors = surface.geometry.getAttribute("color");
+    const material = surface.material as MeshToonMaterial;
+    const bands = ROAD_BANDS.length - 1;
+    const widthSamples = new Set<number>();
+    for (let row = 0; row < ROAD_SEGMENTS; row++) {
+      const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
+      const { point: center, right } = roadFrameAt(t);
+      for (const side of [-1, 1]) {
+        const boundary = (offset: number) => {
+          const band = ROAD_BANDS.indexOf(offset as typeof ROAD_BANDS[number]);
+          const index = row * bands * 6 + Math.min(band, bands - 1) * 6 + (band === bands ? 1 : 0);
+          return { point: new Vector3().fromBufferAttribute(position, index),
+            color: new Color().fromBufferAttribute(colors, index).multiply(material.color) };
+        };
+        const inner = boundary(side * 2.5), outer = boundary(side * 3.3);
+        const signed = (p: Vector3) => p.clone().sub(center).dot(right) * side;
+        expect(signed(inner.point)).toBeCloseTo(roadWidthAt(t) / 2, 4);
+        const width = signed(outer.point) - signed(inner.point);
+        expect(width).toBeCloseTo(Math.abs(roadBandOffsetAt(side * 3.3, t)) - roadWidthAt(t) / 2, 4);
+        if (roadWidthAt(t) > 4.999) {
+          expect(width).toBeGreaterThanOrEqual(0.6);
+          expect(width).toBeLessThanOrEqual(1);
+          widthSamples.add(Math.round(width * 1000));
+        }
+        expect(outer.color.g).toBeGreaterThan(outer.color.r);
+        expect(outer.color.r).toBeGreaterThan(outer.color.b);
+        // Read gravel on the shoulder side of the duplicated asphalt edge.
+        const gravelBand = side < 0 ? ROAD_BANDS.indexOf(-2.8) : ROAD_BANDS.indexOf(2.5);
+        const gravel = new Color().fromBufferAttribute(colors, row * bands * 6 + gravelBand * 6 + (side < 0 ? 1 : 0))
+          .multiply(material.color);
+        expect(gravel.r).toBeGreaterThan(gravel.g);
+        expect(gravel.g).toBeGreaterThan(gravel.b);
+        expect(luma(gravel)).toBeGreaterThan(luma(new Color(PALETTE.rock)));
+        expect(luma(gravel)).toBeLessThan(luma(new Color(PALETTE.sand)));
+      }
+    }
+    expect(widthSamples.size).toBeGreaterThan(50);
+  });
+
+  it("keeps sunlit asphalt display luma >= 0.22 after the coastal ramp and ACES, including patches", () => {
+    const material = surface.material as MeshToonMaterial;
+    const shade = shadedColor(material);
+    const colors = surface.geometry.getAttribute("color"), normals = surface.geometry.getAttribute("normal");
+    let minimum = Infinity, maximum = 0;
+    for (let row = 0; row < ROAD_SEGMENTS; row++) {
+      const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
+      for (let band = 0; band < ROAD_BANDS.length - 1; band++) {
+        const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
+        if (middle > 2.5 || middle < 0.06 || (middle > 2.1 && middle < 2.2)) continue;
+        const start = (row * (ROAD_BANDS.length - 1) + band) * 6;
+        for (let j = 0; j < 6; j++) {
+          const pigment = new Color().fromBufferAttribute(colors, start + j).multiply(material.color);
+          const normal = new Vector3().fromBufferAttribute(normals, start + j);
+          if (normal.lengthSq() < 0.5) continue; // Degenerate end-cap triangles.
+          const brightness = luma(shade(pigment, normal, t));
+          minimum = Math.min(minimum, brightness);
+          maximum = Math.max(maximum, brightness);
+        }
+      }
+    }
+    console.info(`B2-172 coastal asphalt: display luma=${minimum.toFixed(4)}–${maximum.toFixed(4)}; draws=${road.budget.drawCalls}; triangles=${road.budget.triangles}`);
+    expect(minimum).toBeGreaterThanOrEqual(0.22);
+    expect(maximum - minimum).toBeGreaterThan(0.02);
+  });
+
+  it("adds wheel wear and darker patches without colour seams between asphalt cells", () => {
+    let patches = 0;
+    for (let row = 1; row < ROAD_SEGMENTS; row++) {
+      const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
+      const { x, z } = pathPointAt(t);
+      const plain = luma(asphaltColorAt(x, z, 1.1));
+      expect(luma(asphaltColorAt(x, z, 0.65))).toBeGreaterThan(plain * 1.07);
+      expect(luma(asphaltColorAt(x, z, 1.55))).toBeGreaterThan(plain * 1.07);
+      if (plain < 0.98 * luma(new Color(PALETTE.asphalt).lerp(new Color(PALETTE.laneWhite), 0.36))) patches++;
+    }
+    expect(patches).toBeGreaterThan(10);
+    const colors = surface.geometry.getAttribute("color");
+    const bands = ROAD_BANDS.length - 1;
+    const asphaltBand = (band: number) => {
+      const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
+      return middle < 2.5 && middle > 0.06 && !(middle > 2.1 && middle < 2.2);
+    };
+    for (let row = 0; row < ROAD_SEGMENTS - 1; row++) for (let band = 0; band < bands; band++) {
+      if (!asphaltBand(band)) continue;
+      const start = (row * bands + band) * 6;
+      expect(new Color().fromBufferAttribute(colors, start + 2))
+        .toEqual(new Color().fromBufferAttribute(colors, start + bands * 6));
+      if (band + 1 < bands && asphaltBand(band + 1)) {
+        expect(new Color().fromBufferAttribute(colors, start + 1))
+          .toEqual(new Color().fromBufferAttribute(colors, start + 6));
+      }
+    }
   });
 
   it("grounds vertices at terrain +2 cm and keeps triangle interiors above the terrain", () => {
@@ -241,7 +400,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     }
   });
 
-  it("stays within four draw calls and 12,000 submitted triangles, counting every instance", () => {
+  it("stays within four draw calls and 14,000 submitted triangles, counting every instance", () => {
     let drawCalls = 0, triangles = 0;
     road.group.traverse(object => {
       if (!(object instanceof Mesh || object instanceof LineSegments)) return;
@@ -258,7 +417,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       }
     });
     expect(drawCalls).toBeLessThanOrEqual(4);
-    expect(triangles).toBeLessThanOrEqual(12000);
+    expect(triangles).toBeLessThanOrEqual(14000);
     expect(road.budget).toEqual({ drawCalls, triangles });
   });
 

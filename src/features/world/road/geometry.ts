@@ -13,9 +13,9 @@ export function roadGeometryBuilder() {
     colors.push(color.r * shade / base.r, color.g * shade / base.g, color.b * shade / base.b);
   };
   return {
-    triangle(a: Vector3, b: Vector3, c: Vector3, pigment: PaletteKey, shade = 1) {
-      const color = new Color(PALETTE[pigment]);
-      for (const point of [a, b, c]) vertex(point.x, point.y, point.z, color, shade);
+    triangle(a: Vector3, b: Vector3, c: Vector3, pigment: PaletteKey | readonly [Color, Color, Color], shade = 1) {
+      const colors = typeof pigment === "string" ? [new Color(PALETTE[pigment])] : pigment;
+      [a, b, c].forEach((point, i) => vertex(point.x, point.y, point.z, colors[i] ?? colors[0]!, shade));
     },
     add(part: BufferGeometry, pigment: PaletteKey, grain = false) {
       const position = part.getAttribute("position");

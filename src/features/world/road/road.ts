@@ -1,20 +1,21 @@
 import { Group, Mesh } from "three";
-import { hex, type PaletteKey } from "../art/palette";
+import { hex } from "../art/palette";
 import { pathLength } from "../layout/path";
 import { createRampMaterial } from "../materials/ramp";
 import { worldHeight } from "../terrain/height";
 import { roadGeometryBuilder } from "./geometry";
 import {
-  createRoadLayout, ROAD_END, ROAD_LIFT, ROAD_START, ROAD_WIDTH,
-  roadFrameAt, roadRandomAt, roadWidthAt,
+  createRoadLayout, ROAD_END, ROAD_LIFT, ROAD_START, roadFrameAt,
 } from "./layout";
 import { createRoadInstances, createRoadWires } from "./posts";
+import { roadBandOffsetAt, roadSurfaceColorAt } from "./surface";
 
 // Duplicate band boundaries to keep crisp paint in the same draw call as asphalt.
 // Refine both terrain shoulders (the existing flat walking strip is only 3 m).
-// Longitudinal cells are <= 0.65 m; shoulder cells are <= 0.3 m.
-export const ROAD_BANDS = [-2.5, -2.2, -2.05, -1.8, -1.5, -1, -0.5, -0.075, 0.075, 0.5, 1, 1.5, 1.8, 2.05, 2.2, 2.5] as const;
-export const ROAD_SEGMENTS = Math.ceil((ROAD_END - ROAD_START) * pathLength() / 0.65);
+// Longitudinal cells are <= 0.68 m; shoulder cells are <= 0.35 m.
+export const ROAD_BANDS = [-3.3, -3.05, -2.8, -2.5, -2.2, -2.1, -1.8, -1.55, -0.65, -0.06,
+  0.06, 0.65, 1.55, 1.8, 2.1, 2.2, 2.5, 2.8, 3.05, 3.3] as const;
+export const ROAD_SEGMENTS = Math.ceil((ROAD_END - ROAD_START) * pathLength() / 0.68);
 
 function surfaceGeometry() {
   const builder = roadGeometryBuilder();
@@ -22,20 +23,21 @@ function surfaceGeometry() {
     const t = ROAD_START + (ROAD_END - ROAD_START) * i / ROAD_SEGMENTS;
     const { point, right } = roadFrameAt(t);
     return ROAD_BANDS.map(offset => {
-      const vertex = point.clone().addScaledVector(right, offset * roadWidthAt(t) / ROAD_WIDTH);
+      const vertex = point.clone().addScaledVector(right, roadBandOffsetAt(offset, t));
       vertex.y = worldHeight(vertex.x, vertex.z) + ROAD_LIFT;
       return vertex;
     });
   });
   for (let row = 0; row < ROAD_SEGMENTS; row++) {
     for (let band = 0; band < ROAD_BANDS.length - 1; band++) {
-      const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
-      const pigment: PaletteKey = middle < 0.1 ? "laneYellow" : middle > 2.05 && middle < 2.2 ? "laneWhite" : "asphalt";
+      const left = ROAD_BANDS[band]!, right = ROAD_BANDS[band + 1]!;
+      const middle = (left + right) / 2;
       const a = rows[row]![band]!, b = rows[row]![band + 1]!;
       const c = rows[row + 1]![band]!, d = rows[row + 1]![band + 1]!;
-      const shade = pigment === "asphalt" ? 0.97 + roadRandomAt(a.x, a.z) * 0.03 : 1;
-      builder.triangle(a, b, c, pigment, shade);
-      builder.triangle(b, d, c, pigment, shade);
+      const ca = roadSurfaceColorAt(a.x, a.z, left, middle), cb = roadSurfaceColorAt(b.x, b.z, right, middle);
+      const cc = roadSurfaceColorAt(c.x, c.z, left, middle), cd = roadSurfaceColorAt(d.x, d.z, right, middle);
+      builder.triangle(a, b, c, [ca, cb, cc]);
+      builder.triangle(b, d, c, [cb, cd, cc]);
     }
   }
   return builder.finish();
