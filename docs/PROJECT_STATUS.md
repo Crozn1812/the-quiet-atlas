@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-05 (đợt 18–20: nhân vật, xe, dịch chuyển, secrets, mascot, âm thanh).
+> Cập nhật lần cuối: 2026-11-05 (đợt 21–23: 8 khu hoàn chỉnh + UX/UI).
 
 ## Milestone hiện tại
 
@@ -397,11 +397,51 @@ Ending chưa xem được bằng mắt trong world (phải tìm đủ secret); h
   - **CI GitHub lượt chạy cho `62ef088`: PASS cả 2 job** (gồm unit, build, e2e, perf, Lighthouse, terraform validate).
 - **Từ nay:** sau mỗi lần push, Lead đợi kết quả CI rồi mới báo cáo. Lỗi chỉ xảy ra trên CI thì tái hiện bằng `docker run node:24` trước khi sửa.
 
+### Đợt 21–23 (2026-11-05): 8 khu hoàn chỉnh + UX/UI
+
+Duy chỉ test khi map và UX/UI hoàn chỉnh. Đợt này làm 3 phần.
+
+**Dựng 8 khu:**
+- Hợp đồng chung `zones/types.ts`, mỗi khu là 1 ticket Codex.
+- Địa hình dấu mốc: đồi Milestones, mỏm Horizon, thềm Workshop.
+- Nối khu vào world (B2-100); mọi khu có vật để mở nội dung.
+
+**Đánh bóng qua 3 vòng Art Director:**
+- Vòng 2 bỏ dáng nghĩa trang ở Milestones và hình thánh giá ở Old Trail.
+- Vòng 3 xem trong bối cảnh thật: thông Đà Lạt, rừng mọc thành cụm, dải sáng tối, Quiet Shore nhìn ra biển, bỏ vách răng cưa dưới Milestones.
+
+**UX/UI:**
+- Menu đủ mục theo §6.4.
+- HUD có Sổ Atlas, gợi ý phím 10 s đầu, thẻ tên khu khi bước vào.
+- Overlay tạp chí cho cả 8 khu: dữ liệu thật; 4 khu chờ Q-34…37.
+- Thống nhất nhãn "Rời world".
+
+**Lỗi UX thật mà gate A (e2e) bắt được:** vật nội dung cách đường 4,7 m nhưng phạm vi E chỉ 2,5 m, nên đi đúng đường không bao giờ thấy gợi ý. Sửa ở `4318b1f`: phạm vi E của vật trong khu là 6,5 m.
+
+**Sự cố quy trình:**
+- Codex hết lượt giữa đợt. Lead tự hoàn tất B2-100, sửa 4 ticket dở, rồi Duy đổi tài khoản.
+- Gate cũ không bắt warning lint, nên 7 warning lọt vào main. Đã sửa; gate giờ dùng `--max-warnings=0`.
+- Horizon vòng 2 và vòng 3 bị bỏ: một bản làm vỡ world, một bản kém hơn bằng mắt. Giữ Horizon vòng 1.
+
+**Gate A đầy đủ trên `20109a4`:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| lint (0 warning), typecheck, unit 1008, build, check:cv/bundle/leaks/licenses/assets | **PASS** |
+| e2e | **151/151 PASS** |
+| perf | **PASS**: 3D tới playable 1,94 MB / 8 MB; Welcome JS 137,5 / 150 KB |
+| perf: thời gian tới playable | **4,96 s / 10 s**. Tăng từ 3,77 s; đang theo dõi |
+| Lighthouse | **PASS** |
+| T08/T09 | **NOT RUN** |
+
+Showcase: `docs/showcase/23-eight-zones/checklist.md`. Chưa push.
+
 ### Ticket tiếp theo
 
-1. B2-034: đo T08/T09 trên laptop Iris Xe. **Ưu tiên**, vì đợt này thêm nhiều thứ phải render (nhân vật có skin, cỏ, xe, mascot).
-2. B2-090: quay video ending bằng hook test, Art Director review.
-3. B2-091: âm riêng cho Forgotten Sound; đề xuất nhạc có giấy phép (Q-26).
+1. B2-151: vệt nắng ở First Light, mép suối ven biển (đang chạy).
+2. Nhập nội dung khi Duy trả lời Q-34…37.
+3. B2-034: đo T08/T09 trên Iris Xe.
+4. Theo dõi thời gian tới playable (4,96 s).
 
 ### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 
