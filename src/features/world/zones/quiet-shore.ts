@@ -1,6 +1,6 @@
 import {
-  BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry,
-  Float32BufferAttribute, Group, Mesh, OctahedronGeometry, Quaternion, Shape, Vector3,
+  BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry,
+  Float32BufferAttribute, Group, Mesh, OctahedronGeometry, Quaternion, Shape, TorusGeometry, Vector3,
   type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -12,7 +12,7 @@ import {
 } from "./types";
 
 type Point = readonly [number, number, number];
-type Surface = "wood" | "roof" | "leaf" | "vine" | "guitar" | "ink" | "flower";
+type Surface = "wood" | "roof" | "leaf" | "vine" | "guitar" | "ink" | "flower" | "cream";
 
 function pigment(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
@@ -26,6 +26,7 @@ function pigment(surface: Surface): MeshToonMaterial {
     case "guitar": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.35); break;
     case "ink": material.color.set(PALETTE.ink); break;
     case "flower": material.color.set(PALETTE.flower); material.side = DoubleSide; break;
+    case "cream": material.color.set(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.08); break;
   }
   return material;
 }
@@ -67,18 +68,19 @@ function dryFootprint(context: ZoneSceneContext, x: number, z: number, halfX: nu
   return true;
 }
 
-/** The porch faces the path; try the opposite bank if the seaward footprint is wet. */
+/** Lead the eye downstream to the sea, with the porch on the side of that open vista. */
 function porchSite(context: ZoneSceneContext) {
-  for (const z of [0, -4.5, 4.5, -9, 9]) {
+  for (const z of [9, 4.5, 0, -4.5, -9]) {
     for (const side of [1, -1]) {
       const x = side * 6;
-      if (dryFootprint(context, x, z, 2.15, 2.15)) return { x, z, side };
+      if (dryFootprint(context, x, z, 2.15, 2.15)
+        && dryFootprint(context, side * 5.35, z - 3.15, 0.64, 1.18)) return { x, z, side };
     }
   }
   throw new RangeError("quiet-shore needs a dry porch footprint beside the walking corridor");
 }
 
-/** Seven static pigment batches. No bench: the nearby Unwritten Page owns that silhouette. */
+/** Eight static pigment batches. No bench: the nearby Unwritten Page owns that silhouette. */
 export const createQuietShoreScene: ZoneSceneFactory = context => {
   const site = porchSite(context);
   const group = new Group();
@@ -116,6 +118,20 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   };
   const board = (size: Point, center: Point, surface: Surface = "wood", tilt = 0) =>
     add(timber(...size).rotateZ(tilt).translate(...center), surface);
+  const groundedBoard = (size: Point, center: Point) => {
+    const geometry = timber(...size).translate(...center);
+    const positions = geometry.getAttribute("position");
+    const ground = new Map<string, number>();
+    // Scribe the foot/step to the rendered slope, including its uphill corners.
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i), z = positions.getZ(i), key = `${x},${z}`;
+      let y = ground.get(key);
+      if (y === undefined) { y = height(x, z); ground.set(key, y); }
+      positions.setY(i, Math.max(positions.getY(i), y));
+    }
+    geometry.computeVertexNormals();
+    add(geometry, "wood");
+  };
   const collider = (center: Point, size: Point) => colliders.push({
     center: new Vector3(...localPoint(...center)), size: new Vector3(...size),
   });
@@ -131,7 +147,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   for (const x of [-1.24, 1.24]) {
     for (const z of [-1.42, 1.42]) {
       const bottom = height(x, z), top = floor + 2.48 + x * 0.06;
-      board([0.14, top - bottom, 0.14], [x, (top + bottom) / 2, z]);
+      groundedBoard([0.14, top - bottom, 0.14], [x, (top + bottom) / 2, z]);
     }
     board([0.15, 0.16, 3.08], [x, floor + 2.32 + x * 0.06, 0]);
   }
@@ -164,7 +180,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   }
   const stepGround = Math.max(height(-1.79, -0.9), height(-1.79, 0.9));
   const stepTop = Math.max(floor - 0.1, stepGround + 0.08);
-  board([0.68, stepTop - stepGround, 2.0], [-1.76, (stepTop + stepGround) / 2, 0]);
+  groundedBoard([0.68, stepTop - stepGround, 2.0], [-1.76, (stepTop + stepGround) / 2, 0]);
   collider([0, (floor + highest) / 2, 0], [2.9, floor - highest, 3.32]);
   collider([-1.76, (stepTop + stepGround) / 2, 0], [0.68, stepTop - stepGround, 2]);
   for (const x of [-1.24, 1.24]) {
@@ -216,6 +232,49 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   collider([-1.76, stepTop + 0.305 * radioScale, radioZ],
     [0.39 * radioScale, 0.61 * radioScale, 0.7 * radioScale]);
 
+  // A small, anonymous old step-through, parked alongside the porch rather than the player's GD110.
+  // Chunky cast wheels, a low leg shield and one long saddle give it a different silhouette.
+  // Every part joins the existing pigment batches; this prop adds only the cream draw call.
+  const bikeX = -0.65, bikeZ = site.side > 0 ? -3.15 : 3.15;
+  const bikeCenter = localPoint(bikeX, 0, bikeZ);
+  if (dryFootprint(context, bikeCenter[0], bikeCenter[2], 0.64, 1.18)) {
+    const bikeHeight = (z: number) => height(bikeX, bikeZ + z);
+    const rearGround = bikeHeight(-0.66), frontGround = bikeHeight(0.66);
+    const pitch = Math.atan2(frontGround - rearGround, 1.32);
+    const ground = (rearGround + frontGround) / 2;
+    const bikePart = (part: BufferGeometry, surface: Surface) =>
+      add(part.rotateX(-pitch).translate(bikeX, ground, bikeZ), surface);
+    const bikeBox = (size: Point, center: Point, surface: Surface) =>
+      bikePart(new BoxGeometry(...size).translate(...center), surface);
+    for (const z of [-0.66, 0.66]) {
+      bikePart(new TorusGeometry(0.245, 0.055, 4, 10).rotateY(Math.PI / 2)
+        .translate(0, 0.3, z), "ink");
+      for (const x of [-0.077, 0.077]) {
+        bikePart(new CylinderGeometry(0.19, 0.19, 0.018, 8).rotateZ(Math.PI / 2)
+          .translate(x, 0.3, z), "wood");
+      }
+      bikeBox([0.28, 0.09, 0.62], [0, 0.62, z], "cream");
+    }
+    bikeBox([0.31, 0.34, 0.47], [0, 0.57, -0.3], "cream");
+    bikeBox([0.35, 0.13, 0.8], [0, 0.85, -0.27], "ink");
+    bikeBox([0.24, 0.1, 0.58], [0, 0.43, 0.17], "cream");
+    bikePart(timber(0.4, 0.57, 0.14).rotateX(-0.22).translate(0, 0.75, 0.43), "cream");
+    for (const x of [-0.1, 0.1]) {
+      bikePart(rod([x, 0.3, 0.66], [x, 1.07, 0.43], 0.028), "wood");
+    }
+    bikePart(rod([-0.4, 1.08, 0.44], [0.4, 1.08, 0.44], 0.027), "ink");
+    bikePart(new CylinderGeometry(0.1, 0.1, 0.14, 8).rotateX(Math.PI / 2)
+      .translate(0, 1.03, 0.53), "cream");
+    bikePart(rod([-0.12, 0.45, -0.28], [-0.35, 0.015, -0.4], 0.022), "wood");
+    // Pad below the kickstand follows heightAt; wheels follow their individual contact heights.
+    const standGround = height(bikeX - 0.35, bikeZ - 0.4);
+    add(rod([bikeX - 0.35, standGround, bikeZ - 0.4],
+      [bikeX - 0.35, ground + 0.2, bikeZ - 0.4], 0.025), "wood");
+    const bottom = Math.min(rearGround, frontGround, standGround);
+    const top = Math.max(rearGround, frontGround) + 1.2;
+    collider([bikeX, (bottom + top) / 2, bikeZ], [0.9, top - bottom, 2.15]);
+  }
+
   const leaf = (x: number, y: number, z: number, angle: number) => add(
     new OctahedronGeometry(1, 0).scale(0.09, 0.18, 0.035).rotateZ(angle).rotateY(0.4).translate(x, y, z), "leaf");
   const fencePoint = (i: number): Point => [3.15 + Math.sin(i * 0.65) * 0.16, 0, (i - 3) * 2.4];
@@ -229,7 +288,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
       if (posts.has(index)) continue;
       posts.add(index);
       const p = fencePoint(index), y = height(p[0], p[2]);
-      board([0.13, 1.16, 0.14], [p[0], y + 0.58, p[2]]);
+      groundedBoard([0.13, 1.16, 0.14], [p[0], y + 0.58, p[2]]);
     }
     const ay = height(a[0], a[2]), by = height(b[0], b[2]);
     for (const y of [0.48, 0.93]) {
@@ -256,7 +315,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
         const positions: number[] = [];
         for (let k = 0; k < 10; k++) {
           const a = k * Math.PI / 5, b = (k + 1) * Math.PI / 5;
-          const ra = k % 2 ? 0.03 : 0.06, rb = k % 2 ? 0.06 : 0.03;
+          const ra = k % 2 ? 0.0625 : 0.125, rb = k % 2 ? 0.125 : 0.0625;
           positions.push(0, 0, 0, 0, Math.cos(a) * ra, Math.sin(a) * ra, 0, Math.cos(b) * rb, Math.sin(b) * rb);
         }
         const flower = new BufferGeometry();
