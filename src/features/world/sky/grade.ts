@@ -29,21 +29,22 @@ const KEYFRAMES: readonly LightingGrade[] = [
     // B2-031 (Art Director r2): less hemisphere fill so soft shade and dark trunks return.
     sunColor: tint("dusk", 0.24), sunIntensity: 2.3,
     sunDirection: new Vector3(-0.9, 0.2, 0.4).normalize(),
-    hemiSky: tint("mist", 0.25), hemiGround: tint("indigo", 0.28), hemiIntensity: 1.0,
+    // AD r3: 12% less ground bounce in linear space restores shade without changing hue.
+    hemiSky: tint("mist", 0.25), hemiGround: tint("indigo", 0.28).multiplyScalar(0.88), hemiIntensity: 1.0,
     fogColor: tint("dusk", 0.1), skyTop: tint("mist", 0.32),
     skyHorizon: tint("dusk", 0.1), shadowTint: tint("indigo", 0.32),
   },
   {
     sunColor: tint("mist", 0.08), sunIntensity: 2.8,
     sunDirection: new Vector3(0, 0.94, 0.34).normalize(),
-    hemiSky: tint("mist", 0.4), hemiGround: tint("indigo", 0.22), hemiIntensity: 2,
+    hemiSky: tint("mist", 0.4), hemiGround: tint("indigo", 0.22).multiplyScalar(0.88), hemiIntensity: 2,
     fogColor: tint("mist", 0.12), skyTop: tint("mist", 0.55),
     skyHorizon: tint("mist", 0.12), shadowTint: tint("indigo", 0.26),
   },
   {
     sunColor: tint("dusk", 0.4), sunIntensity: 1.7,
     sunDirection: new Vector3(0.9, 0.16, 0.4).normalize(),
-    hemiSky: tint("mist", 0.24), hemiGround: tint("indigo", 0.32), hemiIntensity: 0.95,
+    hemiSky: tint("mist", 0.24), hemiGround: tint("indigo", 0.32).multiplyScalar(0.88), hemiIntensity: 0.95,
     fogColor: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
     skyTop: tint("mist", 0.36),
     skyHorizon: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),

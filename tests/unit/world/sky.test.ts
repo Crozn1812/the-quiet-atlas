@@ -24,7 +24,8 @@ describe("position-driven sky grade", () => {
     const grade = lightingAt(spec.tod);
     const expected = {
       sunColor: tint(spec.tod === 0.5 ? "mist" : "dusk", spec.sun),
-      hemiSky: tint("mist", spec.hemi), hemiGround: tint("indigo", spec.ground),
+      // AD r3: preserve the palette hue, with 12% less linear ground bounce at every keyframe.
+      hemiSky: tint("mist", spec.hemi), hemiGround: tint("indigo", spec.ground).multiplyScalar(0.88),
       fogColor: spec.fog, skyHorizon: spec.fog, skyTop: tint("mist", spec.top),
       shadowTint: tint("indigo", spec.shadow),
     };

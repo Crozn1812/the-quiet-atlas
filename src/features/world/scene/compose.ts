@@ -1,6 +1,6 @@
 import { Color, CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, MeshBasicMaterial, Scene, Vector3, type Box3, type MeshToonMaterial } from "three";
 import type RAPIER from "@dimforge/rapier3d-compat";
-import { paletteColor, WORLD_DIRECTION } from "../art/direction";
+import { fogAt, paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
@@ -71,7 +71,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   world: TilePhysicsWorld;
   scene: Scene;
   quality: Quality;
-  paper?: { setGrade(grade: LightingGrade): void; setMist(options: { height: number }): void };
+  paper?: { setGrade(grade: LightingGrade): void; setMist(options: { height: number }): void; setFog?(options: { near: number; far: number }): void };
 }) {
   let quality = initialQuality;
   let disposed = false;
@@ -294,6 +294,11 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     hemisphere.groundColor.copy(grade.hemiGround);
     hemisphere.intensity = grade.hemiIntensity;
     fog.color.copy(grade.fogColor);
+    // AD r3: use the same biome distances for native fog and the High/Balanced paper pass.
+    const distances = fogAt(t);
+    fog.near = distances.near;
+    fog.far = distances.far;
+    paper?.setFog?.(distances);
     sky.update(grade);
     paper?.setGrade(grade);
     paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });

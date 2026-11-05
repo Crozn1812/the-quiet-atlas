@@ -1,6 +1,6 @@
 import { WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { afterEach, expect, it, vi } from "vitest";
-import { BufferGeometry, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
+import { BufferGeometry, Fog, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
 import { createController } from "../../../src/features/world/rapier";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
@@ -19,6 +19,28 @@ import { FIXED_DT } from "../../../src/features/world/timestep";
 import { PALETTE } from "../../../src/features/world/art/palette";
 
 afterEach(() => { disposeRampGradients(); vi.restoreAllMocks(); });
+
+it("shares biome fog distances between native fog and paper at every quality, including the return to forest", () => {
+  const backend = createMeshPhysics();
+  const scene = new Scene();
+  const paper = { setGrade: vi.fn(), setMist: vi.fn(), setFog: vi.fn() };
+  const composed = createWorldScene({ ...backend, scene, quality: "Low", paper });
+  try {
+    for (const quality of ["Low", "Balanced", "High"] as const) {
+      composed.setQuality(quality);
+      for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
+        const zone = ZONES.find(zone => zone.id === id)!;
+        composed.update(new Vector3().copy(zone.position), 0);
+        const expected = { near: 40, far: zone.biome === "coast-dusk" ? 400 : 260 };
+        expect(scene.fog).toBeInstanceOf(Fog);
+        expect((scene.fog as Fog).near).toBe(expected.near);
+        expect((scene.fog as Fog).far).toBeCloseTo(expected.far, 8);
+        expect(paper.setFog.mock.lastCall![0].near).toBe(expected.near);
+        expect(paper.setFog.mock.lastCall![0].far).toBeCloseTo(expected.far, 8);
+      }
+    }
+  } finally { composed.dispose(); }
+});
 
 it("preloads spawn, streams 300 m, retains every tree collider at all qualities and releases every resource", async () => {
   const physics = await createController(undefined, [], { streamed: true });
