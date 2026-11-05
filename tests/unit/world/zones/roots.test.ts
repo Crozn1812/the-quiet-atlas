@@ -520,7 +520,8 @@ describe("The Roots procedural zone", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    expect(fingerprint).toBe("9ad79312becf3cf247681c7a7e44030a964cae33730992230ffec96991b86477");
+    // B2-185 redrew createFern (serrated variants) that Roots places; only the fern geometry changed.
+    expect(fingerprint).toBe("0efba9a4fe730941a2453f8dc1e80e5889928a2c4463a4835e9ba5066e51288a");
   });
 
 });
