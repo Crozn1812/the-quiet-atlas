@@ -12,21 +12,22 @@ import {
 } from "./types";
 
 type Point = readonly [number, number, number];
-type Surface = "wood" | "roof" | "leaf" | "vine" | "guitar" | "ink" | "flower" | "cream";
+type Surface = "wood" | "roof" | "leaf" | "piano" | "guitar" | "ink" | "flower" | "cream";
 
 function pigment(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
   switch (surface) {
-    case "roof": material.color.set(PALETTE.forestDeep).lerp(new Color(PALETTE.paper), 0.22); break;
+    case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62); break;
+    case "roof": material.color.set(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.32); break;
     case "leaf":
-      material.color.set(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.18);
+      material.color.set(PALETTE.grass);
       material.side = DoubleSide;
       break;
-    case "vine": material.color.set(PALETTE.forestDeep); break;
-    case "guitar": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.35); break;
+    case "piano": material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.45); break;
+    case "guitar": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.sand), 0.45); break;
     case "ink": material.color.set(PALETTE.ink); break;
     case "flower": material.color.set(PALETTE.flower); material.side = DoubleSide; break;
-    case "cream": material.color.set(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.08); break;
+    case "cream": material.color.set(PALETTE.cloud); break;
   }
   return material;
 }
@@ -166,7 +167,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     }
     board([0.15, 0.16, 3.08], [x, floor + 2.32 + x * 0.06, 0]);
   }
-  // Straight mono-pitch, green-grey timber roof; open sides preserve the sea vista.
+  // Straight mono-pitch, weathered white timber roof; open sides preserve the sea vista.
   for (let i = 0; i < 8; i++) {
     const plank = timber(3.65, 0.12, 0.46).rotateZ(0.06)
       .translate(0, floor + 2.53, (i - 3.5) * 0.465);
@@ -209,7 +210,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   batchedProp("piano", [-0.85, floor, 0.35], () => {
     const pianoPart = (part: BufferGeometry, surface: Surface) =>
       add(part.rotateY(-Math.PI / 2).translate(-0.85, floor, 0.35), surface);
-    const pianoBox = (size: Point, center: Point, surface: Surface = "wood") =>
+    const pianoBox = (size: Point, center: Point, surface: Surface = "piano") =>
       pianoPart(new BoxGeometry(...size).translate(...center), surface);
     pianoBox([1.28, 1.12, 0.31], [0, 0.66, -0.04]);
     for (const x of [-0.57, 0.57]) {
@@ -221,7 +222,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     // Open hinge at the rear; the raised front exposes a dark interior below the lid.
     pianoBox([1.15, 0.025, 0.25], [0, 1.225, -0.04], "ink");
     pianoPart(new BoxGeometry(1.3, 0.045, 0.36).translate(0, 0, 0.18)
-      .rotateX(-0.55).translate(0, 1.24, -0.21), "wood");
+      .rotateX(-0.55).translate(0, 1.24, -0.21), "piano");
     for (let i = 0; i < 14; i++) {
       pianoBox([0.073, 0.035, 0.23], [(i - 6.5) * 0.078, 0.773, 0.23], "cream");
       if ([0, 1, 3, 4, 5].includes(i % 7)) {
@@ -368,7 +369,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
         const previous = (j - 1) / 6;
         add(rod([a[0] + (b[0] - a[0]) * previous - 0.09,
           ay + (by - ay) * previous + 0.6 + Math.sin(previous * Math.PI) * 0.38,
-          a[2] + (b[2] - a[2]) * previous], [x, y, z], 0.012), "vine");
+          a[2] + (b[2] - a[2]) * previous], [x, y, z], 0.012), "leaf");
       }
       leaf(x - 0.025, y, z, (j % 2 ? 1 : -1) * 0.75);
       leaf(x - 0.025, y - 0.17, z + 0.09, (j % 2 ? -1 : 1) * 0.85);

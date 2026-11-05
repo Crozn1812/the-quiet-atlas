@@ -1,9 +1,9 @@
 import {
-  BoxGeometry, BufferGeometry, CylinderGeometry, ExtrudeGeometry,
+  BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry,
   Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Shape, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { PALETTE } from "../art/palette";
+import { PALETTE, type PaletteKey } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneSceneFactory, type ZoneSceneContext } from "./types";
 
@@ -156,7 +156,8 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     },
   };
 
-  function add(part: BufferGeometry, surface: Surface, site?: Site, facing = 0, groundBottom = false, followTerrain = false) {
+  function add(part: BufferGeometry, surface: Surface, site?: Site, facing = 0, groundBottom = false,
+    followTerrain = false, tint?: PaletteKey) {
     if (site) {
       part.rotateY(facing + (site.sign < 0 ? Math.PI : 0)).translate(site.x, site.base, site.z);
       // Shore details follow the bank; platform furniture keeps its level deck height.
@@ -177,10 +178,12 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     flat.computeVertexNormals();
     const positions = flat.getAttribute("position"), colors: number[] = [];
     const phase = (Math.imul(context.seed, 2654435761) >>> 0) / 4294967296 * Math.PI * 2;
+    // Cloud, stone and real postcard paper share one batch; only their vertex pigments differ.
+    const base = new Color(PALETTE.cloud), pigment = tint ? new Color(PALETTE[tint]) : base;
     for (let i = 0; i < positions.count; i++) {
       const wash = 0.96 + 0.025 * Math.sin(positions.getX(i) * 31 + positions.getZ(i) * 43 + phase)
         + 0.015 * Math.sin(positions.getY(i) * 19 + phase);
-      colors.push(wash, wash, wash);
+      colors.push(wash * pigment.r / base.r, wash * pigment.g / base.g, wash * pigment.b / base.b);
     }
     flat.setAttribute("color", new Float32BufferAttribute(colors, 3));
     let surfaces = batches.get(parent);
@@ -219,7 +222,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     const yaw = face * Math.PI * 2 / 3 + 0.12;
     for (let row = 0; row < 2; row++) {
       const y = 1.06 + row * 0.49;
-      add(bevel([0.51, 0.35, 0.025], [0, y, 0.35]).rotateY(yaw), "paper", rack);
+      add(bevel([0.51, 0.35, 0.025], [0, y, 0.35]).rotateY(yaw), "paper", rack, 0, false, false, "paper");
       add(box([0.425, 0.255, 0.008], [0, y + 0.009, 0.37]).rotateY(yaw), pigments[face]!, rack);
       add(box([0.425, 0.06, 0.009], [0, y - 0.088, 0.376]).rotateY(yaw),
         face === 2 ? "forestDeep" : "forestLight", rack);
@@ -265,7 +268,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     rock.computeBoundingBox();
     const bounds = rock.boundingBox!, size = bounds.getSize(new Vector3());
     rock.translate(0, -bounds.min.y, 0).scale(halfX * 2 / size.x, height / size.y, halfZ * 2 / size.z);
-    add(rock, "paper", site, 0, false, true);
+    add(rock, "paper", site, 0, false, true, "rock");
   }
   for (const [x, z] of [[0.2, -2.5], [1.1, 2.6], [3.2, -1.7]] as const) {
     const site = shoreSite(shoreContext, platform, { x, z, halfX: 0.58, halfZ: 0.58, height: 0.8 }, occupied);
@@ -289,8 +292,14 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
       geometry.computeBoundingBox();
       geometry.computeBoundingSphere();
       const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
-      if (surface !== "wood" && surface !== "paper") {
-        material.color.set(PALETTE[surface]);
+      switch (surface) {
+        case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62); break;
+        case "paper": material.color.set(PALETTE.cloud); break;
+        case "ink": material.color.set(PALETTE.rockDark); break;
+        case "forestDeep": material.color.set(PALETTE.grass).lerp(new Color(PALETTE.rockDark), 0.35); break;
+        case "forestLight": material.color.set(PALETTE.grass); break;
+        case "water": material.color.set(PALETTE.seaShallow); break;
+        default: material.color.set(PALETTE[surface]);
       }
       const mesh = new Mesh(geometry, material);
       mesh.name = `last-postcard-${surface}`;

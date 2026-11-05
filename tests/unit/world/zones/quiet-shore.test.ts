@@ -2,7 +2,6 @@ import { Box3, Color, Mesh, PerspectiveCamera, Raycaster, Vector3, type BufferGe
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
-import { createPropMaterial } from "../../../../src/features/world/props/materials";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
 import { waterLevelAt } from "../../../../src/features/world/terrain/height";
 import { placeZoneScenes } from "../../../../src/features/world/zones";
@@ -294,7 +293,7 @@ describe("quiet-shore procedural place", () => {
     }
     expect(radio.min.x).toBeLessThan(4.1);
     expect(radio.min.y).toBeGreaterThan(0.25);
-    expect(scene.group.getObjectByName("quiet-shore-vine")).toBeDefined();
+    expect(scene.group.getObjectByName("quiet-shore-leaf")).toBeDefined();
     expect(scene.group.getObjectByName("quiet-shore-flower")).toBeDefined();
     scene.group.traverse(node => expect(node.name).not.toMatch(/bench|seat|text|logo/i));
   });
@@ -316,7 +315,7 @@ describe("quiet-shore procedural place", () => {
       expect(keys.getSize(new Vector3()).y).toBeLessThan(0.04);
       const darkKeys = propVertices(scene, "piano", "ink").filter(p => p.y > keys.max.y && p.y < 1.08);
       expect(darkKeys.length).toBeGreaterThan(0);
-      const lid = propVertices(scene, "piano", "wood").filter(p => p.y > 1.48);
+      const lid = propVertices(scene, "piano", "piano").filter(p => p.y > 1.48);
       const lidBounds = new Box3().setFromPoints(lid);
       expect(lidBounds.getSize(new Vector3()).y).toBeGreaterThan(0.18);
       expect(lidBounds.getSize(new Vector3()).z).toBeGreaterThan(1.25);
@@ -399,7 +398,7 @@ describe("quiet-shore procedural place", () => {
     }
   });
 
-  it("paints the actual roof underside ink while retaining its green-grey top", () => {
+  it("paints the actual roof underside ink while weathering its white top", () => {
     const scene = create();
     scene.group.updateMatrixWorld(true);
     const below = new Raycaster(new Vector3(6, 2, 9.2325), new Vector3(0, 1, 0));
@@ -410,18 +409,16 @@ describe("quiet-shore procedural place", () => {
 
   it("uses palette-only pigments, neutral vertex multiplication and matte ramp materials", () => {
     const scene = create();
-    const wood = createPropMaterial("wood");
     const colors: Record<string, Color> = {
-      wood: wood.color.clone(),
-      roof: new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.paper), 0.22),
-      leaf: new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.18),
-      vine: new Color(PALETTE.forestDeep),
-      guitar: new Color(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.35),
+      wood: new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62),
+      roof: new Color(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.32),
+      leaf: new Color(PALETTE.grass),
+      piano: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.45),
+      guitar: new Color(PALETTE.dusk).lerp(new Color(PALETTE.sand), 0.45),
       ink: new Color(PALETTE.ink),
       flower: new Color(PALETTE.flower),
-      cream: new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.08),
+      cream: new Color(PALETTE.cloud),
     };
-    wood.dispose();
     for (const mesh of meshes(scene)) {
       const key = mesh.name.replace("quiet-shore-", "");
       expect(mesh.material.color.toArray()).toEqual(colors[key]!.toArray());
@@ -478,7 +475,7 @@ describe("quiet-shore procedural place", () => {
     const scene = create({ underWater: x => x > 8.3 });
     expect(scene.interactable.position.x).toBeGreaterThan(0);
     for (const p of vertices(scene)) expect(p.x).toBeLessThanOrEqual(8.3);
-    expect(scene.group.getObjectByName("quiet-shore-vine")).toBeUndefined();
+    expect(scene.group.getObjectByName("quiet-shore-flower")).toBeUndefined();
     expect(() => create({ underWater: () => true })).toThrow(/dry porch footprint/);
     expect(() => create({ onPath: () => true })).toThrow(/dry porch footprint/);
   });

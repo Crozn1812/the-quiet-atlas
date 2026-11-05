@@ -1,24 +1,25 @@
 import {
-  BufferGeometry, CircleGeometry, Color, CylinderGeometry, Float32BufferAttribute,
-  Group, Mesh, Vector3, type MeshToonMaterial,
+  Box3, BufferGeometry, CircleGeometry, Color, CylinderGeometry, Float32BufferAttribute,
+  Group, Matrix4, Mesh, Ray, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
-type Surface = "grass" | "stone" | "wood" | "paper" | "iron" | "lens";
+type Surface = "stone" | "wood" | "paint" | "white" | "iron" | "lens";
 type Point = readonly [number, number, number];
 type Site = readonly [number, number];
 
 function pigment(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
   switch (surface) {
-    case "grass": material.color.set(PALETTE.forestLight).lerp(new Color(PALETTE.mist), 0.18); break;
-    case "stone": material.color.set(PALETTE.mist).lerp(new Color(PALETTE.ink), 0.14); break;
-    case "paper": material.color.set(PALETTE.paper).lerp(new Color(PALETTE.mist), 0.14); break;
-    case "iron": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.mist), 0.32); break;
-    case "lens": material.color.set(PALETTE.indigo).lerp(new Color(PALETTE.water), 0.35); break;
+    case "stone": material.color.set(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.14); break;
+    case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62); break;
+    case "paint": material.color.set(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.22); break;
+    case "white": material.color.set(PALETTE.laneWhite); break;
+    case "iron": material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.32); break;
+    case "lens": material.color.set(PALETTE.seaDeep); break;
   }
   return material;
 }
@@ -68,20 +69,6 @@ function siteFor(context: ZoneSceneContext, sites: readonly Site[], rx: number, 
   return site;
 }
 
-/** Terrain-following grass washes; the host terrain supplies the promontory and sea. */
-function grassPatch([x, z]: Site, rx: number, rz: number, seed: number): BufferGeometry {
-  const positions: number[] = [];
-  for (let i = 0; i < 12; i++) {
-    const point = (n: number): Point => {
-      const angle = n * Math.PI / 6;
-      const wobble = 0.94 + Math.sin(n * 2.1 + (seed >>> 0) % 997) * 0.06;
-      return [x + Math.cos(angle) * rx * wobble, 0.025, z + Math.sin(angle) * rz * wobble];
-    };
-    positions.push(x, 0.025, z, ...point(i + 1), ...point(i));
-  }
-  return new BufferGeometry().setAttribute("position", new Float32BufferAttribute(positions, 3));
-}
-
 /** One merged mesh per pigment per pivot; the two moving rotors share the tower material. */
 function builder(root: Group, context: ZoneSceneContext) {
   const batches = new Map<Group, Map<Surface, BufferGeometry[]>>();
@@ -121,7 +108,7 @@ function builder(root: Group, context: ZoneSceneContext) {
           if (!material) { material = pigment(surface); materials.set(surface, material); }
           const mesh = new Mesh(geometry, material);
           mesh.name = `horizon-${surface}`;
-          mesh.castShadow = surface !== "grass";
+          mesh.castShadow = true;
           mesh.receiveShadow = true;
           parent.add(mesh);
         }
@@ -161,15 +148,14 @@ export const createHorizonScene: ZoneSceneFactory = context => {
   const cylinder = (top: number, bottom: number, height: number, center: Point, surface: Surface) =>
     build.add(new CylinderGeometry(top, bottom, height, 7).translate(...center), surface);
 
-  const terrace: Site = [6.5, viewer[1]];
-  if (dryFootprint(context, terrace, 3.2, 5)) build.add(grassPatch(terrace, 3.2, 5, context.seed), "grass");
+  // The host terrain supplies the grass; no flat pigment discs beneath the furniture.
   const [vx, vz] = viewer;
   cylinder(0.34, 0.4, 0.1, [vx, 0.05, vz], "stone");
   cylinder(0.105, 0.15, 1, [vx, 0.55, vz], "iron");
   build.add(block([0.25, 0.22, 0.48], [vx, 1.04, vz]), "iron");
   for (const dz of [-0.16, 0.16]) {
     build.add(new CylinderGeometry(0.14, 0.105, 0.55, 8).rotateZ(-Math.PI / 2)
-      .translate(vx + 0.1, 1.25, vz + dz), "paper");
+      .translate(vx + 0.1, 1.25, vz + dz), "paint");
     build.add(new CylinderGeometry(0.075, 0.075, 0.12, 8).rotateZ(-Math.PI / 2)
       .translate(vx - 0.23, 1.25, vz + dz), "iron");
     build.add(new CircleGeometry(0.115, 8).rotateY(Math.PI / 2)
@@ -188,17 +174,16 @@ export const createHorizonScene: ZoneSceneFactory = context => {
 
   turbines.forEach(([x, z], index) => {
     const height = 7.2 - index * 0.6;
-    if (dryFootprint(context, [x, z], 2.5, 2.5)) build.add(grassPatch([x, z], 2.5, 2.5, context.seed + index), "grass");
     cylinder(0.42, 0.52, 0.18, [x, 0.09, z], "stone");
-    cylinder(0.14, 0.28, height, [x, height / 2, z], "paper");
-    build.add(block([0.85, 0.32, 0.38], [x, height, z]), "paper");
+    cylinder(0.14, 0.28, height, [x, height / 2, z], "white");
+    build.add(block([0.85, 0.32, 0.38], [x, height, z]), "white");
     const rotor = new Group();
     rotor.name = `horizon-rotor-${index}`;
     rotor.position.set(x + 0.49, context.heightAt(x, z) + height, z);
     rotor.rotation.x = index * 0.8 + ((context.seed >>> 0) % 31) * 0.025;
     group.add(rotor);
     rotors.push(rotor);
-    build.add(new CylinderGeometry(0.21, 0.21, 0.22, 8).rotateZ(-Math.PI / 2), "paper", rotor, false);
+    build.add(new CylinderGeometry(0.21, 0.21, 0.22, 8).rotateZ(-Math.PI / 2), "white", rotor, false);
     for (let blade = 0; blade < 3; blade++) {
       // A tapered, swept blade; all three are one draw call around the hub's +X axis.
       const geometry = block([0.085, 1.96, 0.32], [0, 1.13, 0]);
@@ -207,11 +192,30 @@ export const createHorizonScene: ZoneSceneFactory = context => {
         const y = vertices.getY(i);
         vertices.setZ(i, vertices.getZ(i) * (1.15 - y * 0.38) + 0.07 + y * 0.06);
       }
-      build.add(geometry.rotateX(blade * Math.PI * 2 / 3), "paper", rotor, false);
+      build.add(geometry.rotateX(blade * Math.PI * 2 / 3), "white", rotor, false);
     }
     collider([x, z], [0.62, height + 0.25, 0.62]);
   });
   const dispose = build.finish();
+  // The target lies in the gap between the two tubes. Preserve click ownership after removing
+  // the grass disc by picking the existing viewer collider, without an invisible mesh or draw.
+  const viewerBody = group.getObjectByName("horizon-iron") as Mesh;
+  const raycast = viewerBody.raycast.bind(viewerBody);
+  const viewerBounds = new Box3().setFromCenterAndSize(colliders[0]!.center, colliders[0]!.size);
+  const inverse = new Matrix4(), localRay = new Ray(), point = new Vector3();
+  viewerBody.raycast = (raycaster, intersections) => {
+    const before = intersections.length;
+    raycast(raycaster, intersections);
+    if (intersections.length > before) return;
+    inverse.copy(viewerBody.matrixWorld).invert();
+    localRay.copy(raycaster.ray).applyMatrix4(inverse);
+    if (!localRay.intersectBox(viewerBounds, point)) return;
+    point.applyMatrix4(viewerBody.matrixWorld);
+    const distance = raycaster.ray.origin.distanceTo(point);
+    if (distance >= raycaster.near && distance <= raycaster.far) {
+      intersections.push({ distance, point: point.clone(), object: viewerBody });
+    }
+  };
   let disposed = false;
   return {
     zoneId: "horizon", group, colliders,

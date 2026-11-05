@@ -1,7 +1,6 @@
 import { Box3, BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ZONE_IDS } from "../../../../src/features/interaction/targets";
-import { paletteColor, WORLD_DIRECTION } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
 import { HEIGHT } from "../../../../src/features/world/scene";
@@ -133,6 +132,7 @@ describe("The Milestones hillside", () => {
     expect(drawCalls).toBe(6);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     if (seed === 104) expect(triangles).toBe(1466);
+    if (seed === 104) console.info(`milestones: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
   it("repeats all geometry, materials, colliders and target for the same seed", () => {
@@ -309,14 +309,14 @@ describe("The Milestones hillside", () => {
     }
   });
 
-  it("uses only palette recipes, neutral vertex pigment and soft matte ramp materials", () => {
+  it("uses natural palette recipes, moss on existing stone faces and soft matte ramp materials", () => {
     const scene = create();
     const expected = [
-      new Color(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.45).getHex(),
-      new Color(PALETTE.mist).lerp(new Color(PALETTE.paper), 0.88).getHex(),
-      new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
-      paletteColor(WORLD_DIRECTION.foliage.crown),
-      new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.35).getHex(),
+      new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.24).getHex(),
+      new Color(PALETTE.rock).getHex(),
+      new Color(PALETTE.rockDark).getHex(),
+      new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.42).getHex(),
+      new Color(PALETTE.grass).lerp(new Color(PALETTE.grassDry), 0.18).getHex(),
       new Color(PALETTE.flower).getHex(),
     ];
     for (const mesh of meshes(scene)) {
@@ -330,6 +330,16 @@ describe("The Milestones hillside", () => {
       const colors = mesh.geometry.getAttribute("color");
       expect(colors.count).toBe(mesh.geometry.getAttribute("position").count);
       for (let i = 0; i < colors.count; i++) {
+        if (["milestones-weathered", "milestones-future"].includes(mesh.name) && Math.floor(i / 3) % 7 === 2) {
+          const moss = new Color(PALETTE.grass).lerp(new Color(PALETTE.rock), 0.25);
+          const rendered = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
+          const wash = rendered.r / moss.r;
+          expect(wash).toBeGreaterThanOrEqual(0.9149);
+          expect(wash).toBeLessThanOrEqual(0.9851);
+          expect(rendered.g / moss.g).toBeCloseTo(wash, 6);
+          expect(rendered.b / moss.b).toBeCloseTo(wash, 6);
+          continue;
+        }
         expect(colors.getX(i)).toBeGreaterThanOrEqual(0.82);
         expect(colors.getX(i)).toBeLessThanOrEqual(1);
         expect(colors.getX(i)).toBe(colors.getY(i));

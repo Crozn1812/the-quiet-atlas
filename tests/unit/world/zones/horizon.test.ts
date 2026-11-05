@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Vector3 } from "three";
+import { BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -106,7 +106,8 @@ describe("horizon: a quiet sea-facing overlook", () => {
     }
     expect(Math.max(...points(scene).map(point => point.length()))).toBeLessThanOrEqual(ZONE_BUDGET.radius);
     // This exact count makes the handoff measurable and catches accidental detail growth.
-    expect(triangles).toBe(888);
+    expect(triangles).toBe(852);
+    console.info(`horizon: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
   it("repeats geometry, pigments, placement, colliders and animation for a given seed", () => {
@@ -124,7 +125,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
     assertClear(create(), flat);
   });
 
-  it("grounds feet and grass on a slope, including all three rail posts and bench supports", () => {
+  it("grounds feet on a slope, including all three rail posts and bench supports", () => {
     const slope: ZoneSceneContext = { ...flat, heightAt: (x, z) => x * 0.015 + z * 0.01 };
     const scene = create(slope);
     assertClear(scene, slope);
@@ -182,9 +183,9 @@ describe("horizon: a quiet sea-facing overlook", () => {
     const color = (base: keyof typeof PALETTE, mix: keyof typeof PALETTE, amount: number) =>
       new Color(PALETTE[base]).lerp(new Color(PALETTE[mix]), amount);
     const expected: Record<string, Color> = {
-      grass: color("forestLight", "mist", 0.18), stone: color("mist", "ink", 0.14),
-      wood: color("ink", "dusk", 0.38).lerp(new Color(PALETTE.paper), 0.12),
-      paper: color("paper", "mist", 0.14), iron: color("ink", "mist", 0.32), lens: color("indigo", "water", 0.35),
+      stone: color("rock", "rockDark", 0.14), wood: color("dusk", "rockDark", 0.62),
+      paint: color("cloud", "rock", 0.22), white: new Color(PALETTE.laneWhite),
+      iron: color("rockDark", "ink", 0.32), lens: new Color(PALETTE.seaDeep),
     };
     for (const mesh of meshes(scene.group)) {
       expect(mesh.name).not.toMatch(/text|logo/i);
@@ -204,6 +205,26 @@ describe("horizon: a quiet sea-facing overlook", () => {
         expect(colors.getX(i)).toBe(colors.getZ(i));
       }
       for (const attribute of Object.values(mesh.geometry.attributes)) expect(Array.from(attribute.array).every(Number.isFinite)).toBe(true);
+    }
+  });
+
+  it("keeps the gap between the viewer tubes clickable using its existing collider", () => {
+    const scene = create();
+    for (const mirrored of [false, true]) {
+      scene.group.position.set(12, 3, -20);
+      scene.group.rotation.y = 0.7;
+      scene.group.scale.x = mirrored ? -1 : 1;
+      scene.group.updateMatrixWorld(true);
+      const target = scene.group.localToWorld(scene.interactable.position.clone());
+      const eye = scene.group.localToWorld(new Vector3(2.6, 1.25, 0));
+      const direction = target.clone().sub(eye).normalize();
+      const ray = new Raycaster(eye, direction, 0, 2.5);
+      expect(ray.intersectObject(scene.group, true)[0]?.object.name).toBe("horizon-iron");
+      ray.far = 0.1;
+      expect(ray.intersectObject(scene.group, true)).toHaveLength(0);
+      ray.far = 2.5;
+      ray.ray.origin.y += 2;
+      expect(ray.intersectObject(scene.group, true)).toHaveLength(0);
     }
   });
 

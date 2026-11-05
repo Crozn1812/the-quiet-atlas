@@ -1,9 +1,10 @@
 import {
-  BufferGeometry, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh,
+  BufferGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh,
   Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
+import { PALETTE } from "../art/palette";
 import { CROWN_BASE, createPineCrown, createTreeTrunk } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
 import {
@@ -106,13 +107,19 @@ function stone(width: number, depth: number, height: number, lean: number, rando
   return geometry;
 }
 
-/** Neutral pigment multiplies the palette material, as in the existing procedural props. */
-function wash(geometry: BufferGeometry) {
+/** Moss repaints existing stone faces through vertex pigment, without extra geometry or draws. */
+function wash(geometry: BufferGeometry, surface: Surface, inkVertices = 0) {
   const vertices = geometry.getAttribute("position");
   const colors: number[] = [];
+  const rock = new Color(paletteColor({ base: "rock", mix: "rockDark", amount: surface === "future" ? 0 : 0.24,
+    saturation: 1, brightness: 1 }));
+  const moss = new Color(PALETTE.grass).lerp(new Color(PALETTE.rock), 0.25);
   for (let i = 0; i < vertices.count; i++) {
     const value = 0.95 + 0.035 * Math.sin(vertices.getX(i) * 4 + vertices.getY(i) * 3 + vertices.getZ(i));
-    colors.push(value, value, value);
+    if (inkVertices && i >= inkVertices && Math.floor((i - inkVertices) / 3) % 7 === 2) {
+      // Divide out the base pigment so material * vertex colour yields the palette moss recipe.
+      colors.push(value * moss.r / rock.r, value * moss.g / rock.g, value * moss.b / rock.b);
+    } else colors.push(value, value, value);
   }
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
 }
@@ -121,17 +128,19 @@ function materials(): Record<Surface, MeshToonMaterial> {
   const ramp = WORLD_DIRECTION.foliage.ramp;
   const result = {
     weathered: createRampMaterial(paletteColor({
-      base: "ink", mix: "paper", amount: 0.45, saturation: 1, brightness: 1,
+      base: "rock", mix: "rockDark", amount: 0.24, saturation: 1, brightness: 1,
     }), ramp),
     future: createRampMaterial(paletteColor({
-      base: "mist", mix: "paper", amount: 0.88, saturation: 1, brightness: 1,
+      base: "rock", mix: "rockDark", amount: 0, saturation: 1, brightness: 1,
     }), ramp),
     ink: createRampMaterial(paletteColor({
-      base: "ink", mix: "forestDeep", amount: 0.3, saturation: 1, brightness: 1,
+      base: "rockDark", mix: "rockDark", amount: 0, saturation: 1, brightness: 1,
     }), ramp),
-    needles: createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.crown), ramp),
+    needles: createRampMaterial(paletteColor({
+      base: "grass", mix: "forestDeep", amount: 0.42, saturation: 1, brightness: 1,
+    }), ramp),
     mound: createRampMaterial(paletteColor({
-      base: "forestLight", mix: "paper", amount: 0.35, saturation: 1, brightness: 1,
+      base: "grass", mix: "grassDry", amount: 0.18, saturation: 1, brightness: 1,
     }), ramp),
     flower: createRampMaterial(paletteColor({
       base: "flower", mix: "flower", amount: 0, saturation: 1, brightness: 1,
@@ -241,7 +250,7 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
         : flatCap ? moundHeight(part.x, part.z) : moundHeight(localX, localZ));
       vertices.setXYZ(i, x, vertices.getY(i) + ground, z);
     }
-    if (!geometry.hasAttribute("color")) wash(geometry);
+    if (!geometry.hasAttribute("color")) wash(geometry, part.surface, part.inkVertices);
     geometry.computeVertexNormals();
     geometry.computeBoundingBox();
     const bounds = geometry.boundingBox!;

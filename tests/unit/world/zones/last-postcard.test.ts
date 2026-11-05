@@ -188,7 +188,7 @@ describe("last-postcard shore scene", () => {
     }
   });
 
-  it("uses dark ink for roughly a tenth of the geometry surface, including the visible mailbox slot", () => {
+  it("uses rockDark trim for roughly a tenth of the furniture surface, including the visible mailbox slot", () => {
     const { scene } = create();
     let totalArea = 0, inkArea = 0;
     for (const mesh of meshes(scene.group)) {
@@ -353,11 +353,15 @@ describe("last-postcard shore scene", () => {
     expect(materialDispose).not.toHaveBeenCalled();
   });
 
-  it("uses only palette pigments, neutral multiplicative washes, and a painted dusk lantern", () => {
+  it("uses natural palette pigments, paper only on postcards, and a painted dusk lantern", () => {
     const { scene } = create();
-    const wood = new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12);
     const recipes: Record<string, Color> = Object.fromEntries(Object.entries(PALETTE).map(([key, value]) => [key, new Color(value)]));
-    recipes.wood = new Color(wood.getHex());
+    recipes.wood = new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62);
+    recipes.paper = new Color(PALETTE.cloud);
+    recipes.ink = new Color(PALETTE.rockDark);
+    recipes.forestDeep = new Color(PALETTE.grass).lerp(new Color(PALETTE.rockDark), 0.35);
+    recipes.forestLight = new Color(PALETTE.grass);
+    recipes.water = new Color(PALETTE.seaShallow);
     scene.group.traverse(node => {
       expect(node).not.toBeInstanceOf(Light);
       expect(node.name).not.toMatch(/text|logo/i);
@@ -372,13 +376,32 @@ describe("last-postcard shore scene", () => {
       expect(mesh.material.transparent).toBe(false);
       expect(mesh.material.customProgramCacheKey()).toBe("painted-toon-ramp-v1");
       const colors = mesh.geometry.getAttribute("color");
+      const positions = mesh.geometry.getAttribute("position");
       const shades = new Set<number>();
       for (let i = 0; i < colors.count; i++) {
+        shades.add(colors.getX(i));
+        if (surface === "paper") {
+          const rendered = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
+          const matches = ["cloud", "paper", "rock"] as const;
+          const pigment = matches.find(key => {
+            const pigment = new Color(PALETTE[key]);
+            const wash = rendered.r / pigment.r;
+            return wash >= 0.9199 && wash <= 1.0001
+              && Math.abs(rendered.g / pigment.g - wash) < 1e-6
+              && Math.abs(rendered.b / pigment.b - wash) < 1e-6;
+          });
+          expect(pigment).toBeDefined();
+          const point = new Vector3().fromBufferAttribute(positions, i);
+          const colliders = pigment === "paper" ? [scene.colliders[2]!]
+            : pigment === "cloud" ? [scene.colliders[1]!] : scene.colliders.slice(5);
+          expect(colliders.some(collider => new Box3().setFromCenterAndSize(collider.center, collider.size)
+            .expandByScalar(1e-5).containsPoint(point))).toBe(true);
+          continue;
+        }
         expect(colors.getX(i)).toBeGreaterThanOrEqual(0.9199);
         expect(colors.getX(i)).toBeLessThanOrEqual(1.0001);
         expect(colors.getY(i)).toBe(colors.getX(i));
         expect(colors.getZ(i)).toBe(colors.getX(i));
-        shades.add(colors.getX(i));
       }
       expect(shades.size).toBeGreaterThan(3);
     }
