@@ -1,6 +1,6 @@
-"""Original character study. Blender -b -P this.py -- <output-directory>.
+"""D-23 character detail study. Blender -b -P this.py -- <output.glb|directory>.
 
-Metres, Z up, facing -Y. No rig; separate visual approval precedes production.
+Metres, Z up, facing -Y. Shared geometry for turnaround and character_rig.py.
 """
 import math
 import os
@@ -26,6 +26,7 @@ ARM_WIDTH_SCALE = 1.20
 SHOE_SCALE = 1.12
 STRAP_WIDTH = 0.011
 HAIR_CROWN_HEIGHT = 0.045
+HAIR_ENVELOPE = (0.088, 0.083, HAIR_CROWN_HEIGHT)
 MAX_TRIANGLES = 12000
 MAX_BYTES = 600000
 
@@ -60,8 +61,8 @@ def finish(name, mat):
     return obj
 
 
-def oval(name, center, scale, mat):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=8, location=center)
+def oval(name, center, scale, mat, segments=12, rings=8):
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=segments, ring_count=rings, location=center)
     obj = finish(name, mat)
     obj.scale = scale
     return obj
@@ -78,10 +79,10 @@ def box(name, center, size, mat, bevel=0.01):
     return obj
 
 
-def segment(name, start, end, radius, mat, end_radius=None):
+def segment(name, start, end, radius, mat, end_radius=None, vertices=10):
     direction = Vector(end) - Vector(start)
     bpy.ops.mesh.primitive_cone_add(
-        vertices=10, radius1=radius,
+        vertices=vertices, radius1=radius,
         radius2=radius if end_radius is None else end_radius,
         depth=direction.length, location=(Vector(start) + Vector(end)) / 2)
     obj = finish(name, mat)
@@ -143,6 +144,51 @@ def loose_shirt(mat):
         fold.rotation_euler.y = side * 0.13
 
 
+def shirt_placket(mat):
+    """Raised fabric follows the existing chest/hem depth; plain sewn buttons."""
+    points = [(0, -0.116, 0.982), (0, -0.112, 1.18), (0, -0.111, 1.314)]
+    for start, end in zip(points, points[1:]):
+        direction = Vector(end) - Vector(start)
+        strip = box("shirt button placket", (Vector(start) + Vector(end)) / 2,
+                    (0.015, 0.006, direction.length + 0.003), mat, 0.002)
+        strip.rotation_euler = direction.to_track_quat("Z", "Y").to_euler()
+    for z in (1.025, 1.105, 1.185, 1.265):
+        y = -0.116 + min((z - 0.982) / 0.198, 1) * 0.004
+        segment("plain shirt button", (0, y - 0.004, z), (0, y - 0.007, z),
+                0.004, mat, vertices=8)
+
+
+def tousled_hair(mat):
+    """Fourteen overlapping locks, inside the approved short-hair silhouette."""
+    width, depth, height = HAIR_ENVELOPE
+    # The central lock retains the old crown's Y/Z extrema: height bake and
+    # skeleton scale stay identical, while the outer silhouette is now lobed.
+    oval("crown lock center", (0, 0.009, 1.655), (width * 0.375, depth, height), mat)
+    for x, y, z, tilt in [(-0.046, 0.008, 1.653, -0.18),
+                          (0.046, 0.011, 1.653, 0.15),
+                          (-0.029, 0.046, 1.652, -0.12),
+                          (0.032, 0.047, 1.652, 0.19)]:
+        lock = oval("tousled crown lock", (x, y, z), (0.039, 0.055, 0.042),
+                    mat, segments=10, rings=6)
+        lock.rotation_euler.y = tilt
+    for x, z, tilt in [(-0.044, 1.611, -0.13), (0, 1.609, 0.08),
+                        (0.044, 1.613, 0.16)]:
+        lock = oval("nape lock", (x, 0.057, z), (0.034, 0.043, 0.071),
+                    mat, segments=10, rings=6)
+        lock.rotation_euler.y = tilt
+    for side in (-1, 1):
+        lock = oval("side lock", (side * 0.072, 0.016, 1.635),
+                    (0.018, 0.055, 0.037), mat, segments=10, rings=6)
+        lock.rotation_euler.x = side * 0.08
+    for x, y, z, tilt in [(-0.055, -0.063, 1.633, -0.22),
+                          (-0.024, -0.075, 1.627, -0.20),
+                          (0.009, -0.077, 1.635, -0.28),
+                          (0.043, -0.066, 1.644, -0.16)]:
+        lock = oval("loose fringe", (x, y, z), (0.022, 0.021, 0.039),
+                    mat, segments=10, rings=6)
+        lock.rotation_euler.y = tilt
+
+
 def build_character():
     """Reset scene and build the shared turnaround/export study deterministically."""
     bpy.ops.object.select_all(action="SELECT")
@@ -159,11 +205,14 @@ def build_character():
 
     # Seven-head silhouette: head ~0.245 m; neck partly covered by the collar.
     loose_shirt(cloth)
+    shirt_placket(cloth)
     segment("neck", (0, 0, 1.345), (0, 0, 1.345 + NECK_LENGTH), NECK_RADIUS, skin)
     box("shorts seat", (0, 0.005, 0.938), (0.30, 0.19, 0.14), dark, 0.025)
     for side in (-1, 1):
         x = side * 0.086
         segment("shorts leg", (x, 0, 0.73), (x, 0, 0.965), 0.078, dark, 0.085)
+        segment("turned shorts hem", (x, 0, 0.731), (x, 0, 0.785),
+                0.083, dark, 0.084)
         segment("bare thigh", (x, 0, 0.55), (x, 0, 0.78),
                 0.048 * LEG_WIDTH_SCALE, skin, 0.061 * LEG_WIDTH_SCALE)
         oval("knee", (x, -0.006, 0.54),
@@ -179,6 +228,12 @@ def build_character():
             (0.095 * SHOE_SCALE, 0.212 * SHOE_SCALE, 0.096), green, 0.025)
         box("canvas sole", (x, -0.048, 0.016),
             (0.098 * SHOE_SCALE, 0.214 * SHOE_SCALE, 0.032), cloth, 0.009)
+        # Small solid crossed laces sit above the canvas, below the ankle.
+        for y in (-0.074, -0.047, -0.020):
+            for direction in (-1, 1):
+                segment("canvas shoelace", (x - 0.027, y - direction * 0.010, 0.107),
+                        (x + 0.027, y + direction * 0.010, 0.107),
+                        0.002, cloth, vertices=6)
         shoulder = Vector((side * 0.165, 0, 1.342))
         elbow = Vector((side * 0.294, 0, 1.103))
         wrist = Vector((side * 0.405, -0.012, 0.902))
@@ -190,6 +245,10 @@ def build_character():
         axis = (shoulder - elbow).normalized()
         for offset in (0, 0.018):
             ring("rolled cuff", elbow + axis * offset, 0.064, 0.009, cloth, axis)
+        for offset in (-0.021, 0.023):
+            fold = box("rolled sleeve fold", elbow + axis * 0.023 + Vector((offset, -0.064, 0)),
+                       (0.008, 0.008, 0.050), cloth, 0.002)
+            fold.rotation_euler = axis.to_track_quat("Z", "Y").to_euler()
         hand = oval("relaxed hand", (side * 0.427, -0.014, 0.861),
                     (0.033 * ARM_WIDTH_SCALE, 0.026 * ARM_WIDTH_SCALE, 0.062), skin)
         hand.rotation_euler.y = side * 0.3
@@ -215,18 +274,7 @@ def build_character():
                     (0.023, -0.082, 1.536)]
     for start, end in zip(smile_points, smile_points[1:]):
         segment("quiet smile", start, end, 0.0012, smile)
-    oval("short hair crown", (0, 0.009, 1.655), (0.088, 0.083, HAIR_CROWN_HEIGHT), dark)
-    oval("short hair nape", (0, 0.056, 1.609), (0.079, 0.044, 0.074), dark)
-    for side in (-1, 1):
-        oval("neat side hair", (side * 0.072, 0.016, 1.635),
-             (0.018, 0.055, 0.037), dark)
-    # Four rounded locks hang over the brow, swept slightly to one side.
-    for x, y, z, tilt in [(-0.055, -0.063, 1.633, -0.22),
-                          (-0.024, -0.075, 1.627, -0.20),
-                          (0.009, -0.077, 1.635, -0.28),
-                          (0.043, -0.066, 1.644, -0.16)]:
-        lock = oval("loose fringe", (x, y, z), (0.022, 0.021, 0.039), dark)
-        lock.rotation_euler.y = tilt
+    tousled_hair(dark)
     pivot = Matrix.Translation((0, 0, 1.46))
     tilt = pivot @ Matrix.Rotation(math.radians(-5), 4, "X") @ pivot.inverted()
     bpy.context.view_layer.update()
@@ -234,6 +282,8 @@ def build_character():
         obj.matrix_world = tilt @ obj.matrix_world
 
     box("linen tote body", (0.268, 0.02, 0.938), (0.145, 0.13, 0.27), tote, 0.02)
+    for y in (-0.045, 0.085):
+        box("tote folded rim", (0.268, y, 1.062), (0.123, 0.008, 0.016), tote, 0.003)
     # Two continuous flat handles pass over the shoulder, front and rear.
     for y in (-0.063, 0.082):
         points = [(0.218, y, 1.056), (0.193, y, 1.31),
@@ -269,11 +319,12 @@ def build_character():
 
 def main(argv):
     if len(argv) != 1:
-        raise SystemExit("Usage: blender -b -P tools/assets/blender/character.py -- <output-directory>")
-    output_dir = os.path.abspath(argv[0])
+        raise SystemExit("Usage: blender -b -P tools/assets/blender/character.py -- <output.glb|directory>")
+    destination = os.path.abspath(argv[0])
+    output_dir = os.path.dirname(destination) if destination.lower().endswith(".glb") else destination
     os.makedirs(output_dir, exist_ok=True)
     build_character()
-    output = os.path.join(output_dir, "character-duy.glb")
+    output = destination if destination.lower().endswith(".glb") else os.path.join(output_dir, "character-duy.glb")
     bpy.ops.export_scene.gltf(
         filepath=output, export_format="GLB", use_selection=True,
         export_materials="EXPORT", export_yup=True, export_apply=True,
