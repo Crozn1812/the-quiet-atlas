@@ -36,3 +36,5 @@ docs/showcase/**/*.webm
 
 # Intermediate asset exports (tools/assets README)
 /tmp/
+__pycache__/
+*.pyc
