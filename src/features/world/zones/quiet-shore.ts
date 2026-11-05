@@ -24,7 +24,7 @@ function pigment(surface: Surface): MeshToonMaterial {
       break;
     case "vine": material.color.set(PALETTE.forestDeep); break;
     case "guitar": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.35); break;
-    case "ink": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.08); break;
+    case "ink": material.color.set(PALETTE.ink); break;
     case "flower": material.color.set(PALETTE.flower); material.side = DoubleSide; break;
   }
   return material;
@@ -137,7 +137,26 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   }
   // Straight mono-pitch, green-grey timber roof; open sides and an unoccupied deck.
   for (let i = 0; i < 8; i++) {
-    board([3.65, 0.12, 0.46], [0, floor + 2.53, (i - 3.5) * 0.465], "roof", 0.06);
+    const plank = timber(3.65, 0.12, 0.46).rotateZ(0.06)
+      .translate(0, floor + 2.53, (i - 3.5) * 0.465);
+    const positions = plank.getAttribute("position"), normals = plank.getAttribute("normal");
+    const faces = { roof: { position: [] as number[], normal: [] as number[] },
+      ink: { position: [] as number[], normal: [] as number[] } };
+    // Repaint existing downward faces, including their bevels: no overlapping ceiling mesh.
+    for (let j = 0; j < positions.count; j += 3) {
+      const face = faces[normals.getY(j) + normals.getY(j + 1) + normals.getY(j + 2) < -1.5 ? "ink" : "roof"];
+      for (let k = j; k < j + 3; k++) {
+        face.position.push(positions.getX(k), positions.getY(k), positions.getZ(k));
+        face.normal.push(normals.getX(k), normals.getY(k), normals.getZ(k));
+      }
+    }
+    plank.dispose();
+    for (const surface of ["roof", "ink"] as const) {
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new Float32BufferAttribute(faces[surface].position, 3));
+      geometry.setAttribute("normal", new Float32BufferAttribute(faces[surface].normal, 3));
+      add(geometry, surface);
+    }
   }
   for (const z of [-1.42, 1.42]) {
     board([2.65, 0.12, 0.12], [0, floor + 2.31, z], "wood", 0.06);
@@ -179,18 +198,23 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   add(rod([-1.25, floor + 2.17, 0.36], [-1.25, floor + 2.4, 0.36], 0.008), "wood");
 
   // Old portable radio resting on the broad step: woven grille, blank dial, two knobs.
-  const radioY = stepTop + 0.24;
-  board([0.29, 0.48, 0.68], [-1.76, radioY, -0.54]);
-  board([0.018, 0.32, 0.39], [-1.916, radioY - 0.02, -0.64], "guitar");
-  for (let i = 0; i < 5; i++) board([0.012, 0.25, 0.012], [-1.931, radioY - 0.02, -0.79 + i * 0.075], "wood");
-  board([0.019, 0.065, 0.15], [-1.916, radioY + 0.1, -0.32], "ink");
-  for (const z of [-0.37, -0.27]) {
-    add(new CylinderGeometry(0.034, 0.034, 0.035, 8).rotateZ(Math.PI / 2)
-      .translate(-1.935, radioY - 0.09, z), "ink");
+  const radioScale = 1.5, radioZ = -0.48;
+  const radioPart = (part: BufferGeometry, surface: Surface) =>
+    add(part.scale(radioScale, radioScale, radioScale).translate(-1.76, stepTop, radioZ), surface);
+  const radioBoard = (size: Point, center: Point, surface: Surface = "wood") =>
+    radioPart(timber(...size).translate(...center), surface);
+  radioBoard([0.29, 0.48, 0.68], [0, 0.24, 0]);
+  radioBoard([0.018, 0.32, 0.39], [-0.156, 0.22, -0.1], "guitar");
+  for (let i = 0; i < 5; i++) radioBoard([0.012, 0.25, 0.012], [-0.171, 0.22, -0.25 + i * 0.075]);
+  radioBoard([0.019, 0.065, 0.15], [-0.156, 0.34, 0.22], "ink");
+  for (const z of [0.17, 0.27]) {
+    radioPart(new CylinderGeometry(0.034, 0.034, 0.035, 8).rotateZ(Math.PI / 2)
+      .translate(-0.175, 0.15, z), "ink");
   }
-  for (const z of [-0.76, -0.32]) board([0.045, 0.13, 0.04], [-1.76, stepTop + 0.525, z], "ink");
-  board([0.045, 0.04, 0.48], [-1.76, stepTop + 0.59, -0.54], "ink");
-  collider([-1.76, radioY + 0.06, -0.54], [0.37, 0.6, 0.7]);
+  for (const z of [-0.22, 0.22]) radioBoard([0.045, 0.13, 0.04], [0, 0.525, z], "ink");
+  radioBoard([0.045, 0.04, 0.48], [0, 0.59, 0], "ink");
+  collider([-1.76, stepTop + 0.305 * radioScale, radioZ],
+    [0.39 * radioScale, 0.61 * radioScale, 0.7 * radioScale]);
 
   const leaf = (x: number, y: number, z: number, angle: number) => add(
     new OctahedronGeometry(1, 0).scale(0.09, 0.18, 0.035).rotateZ(angle).rotateY(0.4).translate(x, y, z), "leaf");
@@ -215,7 +239,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     const low = Math.min(ay, by), high = Math.max(ay, by) + 1.18;
     collider([(a[0] + b[0]) / 2, (low + high) / 2, (a[2] + b[2]) / 2],
       [halfX * 2, high - low, 2.56]);
-    // Two broad patches of climbing leaves; orange occupies only a few small petals.
+    // Two broad climbing patches, each with six path-facing orange flowers.
     if (i !== 1 && i !== 4) continue;
     for (let j = 0; j < 7; j++) {
       const t = j / 6, x = a[0] + (b[0] - a[0]) * t - 0.09;
@@ -228,17 +252,18 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
       }
       leaf(x - 0.025, y, z, (j % 2 ? 1 : -1) * 0.75);
       leaf(x - 0.025, y - 0.17, z + 0.09, (j % 2 ? -1 : 1) * 0.85);
-      if (j === 2 || j === 5) {
+      if (j > 0) {
         const positions: number[] = [];
         for (let k = 0; k < 10; k++) {
           const a = k * Math.PI / 5, b = (k + 1) * Math.PI / 5;
-          const ra = k % 2 ? 0.027 : 0.055, rb = k % 2 ? 0.055 : 0.027;
+          const ra = k % 2 ? 0.03 : 0.06, rb = k % 2 ? 0.06 : 0.03;
           positions.push(0, 0, 0, 0, Math.cos(a) * ra, Math.sin(a) * ra, 0, Math.cos(b) * rb, Math.sin(b) * rb);
         }
         const flower = new BufferGeometry();
         flower.setAttribute("position", new Float32BufferAttribute(positions, 3));
         flower.computeVertexNormals();
-        add(flower.translate(x - 0.08, y + 0.04, z), "flower");
+        // Stand clear of the leaves and rails on the side facing the walking corridor.
+        add(flower.translate(x - 0.16, y + 0.04, z), "flower");
       }
     }
   }

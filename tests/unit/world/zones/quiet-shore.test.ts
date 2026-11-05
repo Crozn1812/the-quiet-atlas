@@ -1,4 +1,4 @@
-import { Box3, Color, Mesh, Vector3, type BufferGeometry, type MeshToonMaterial } from "three";
+import { Box3, Color, Mesh, Raycaster, Vector3, type BufferGeometry, type MeshToonMaterial } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -181,6 +181,70 @@ describe("quiet-shore procedural place", () => {
     scene.group.traverse(node => expect(node.name).not.toMatch(/bench|seat|text|logo/i));
   });
 
+  it("shows twelve 0.12 m flowers clear of foliage and porch from either path edge", () => {
+    for (const underWater of [flat.underWater, (x: number) => x > 3]) {
+      const scene = create({ underWater });
+      scene.group.updateMatrixWorld(true);
+      const flowers = scene.group.getObjectByName("quiet-shore-flower") as PaintedMesh;
+      const positions = flowers.geometry.getAttribute("position");
+      // Each five-petal fan has ten triangles with a shared centre.
+      expect(positions.count / 30).toBe(12);
+      for (let start = 0; start < positions.count; start += 30) {
+        const bounds = new Box3();
+        for (let i = start; i < start + 30; i++) {
+          bounds.expandByPoint(new Vector3().fromBufferAttribute(positions, i));
+        }
+        const size = bounds.getSize(new Vector3()), center = bounds.getCenter(new Vector3());
+        expect(size.y).toBeGreaterThan(0.1);
+        expect(size.y).toBeLessThanOrEqual(0.12);
+        expect(size.z).toBeGreaterThan(0.11);
+        expect(size.z).toBeLessThanOrEqual(0.121);
+        const eye = new Vector3(Math.sign(center.x) * PATH_CLEARANCE, 1.6, center.z);
+        const ray = new Raycaster(eye, center.clone().sub(eye).normalize());
+        expect(ray.intersectObjects(meshes(scene))[0]?.object).toBe(flowers);
+      }
+    }
+  });
+
+  it("enlarges the whole radio by 1.5, grounds it on the step and keeps the guitar visible", () => {
+    for (const underWater of [flat.underWater, (x: number) => x > 3]) {
+      const scene = create({ underWater });
+      const side = Math.sign(scene.interactable.position.x);
+      const box = scene.colliders.find(box => Math.abs(box.center.x - side * 4.24) < 0.001
+        && box.size.y > 0.8)!;
+      expect(box).toBeDefined();
+      expect(box.size.x).toBeCloseTo(0.39 * 1.5);
+      expect(box.size.y).toBeCloseTo(0.61 * 1.5);
+      expect(box.size.z).toBeCloseTo(0.7 * 1.5);
+      const radio = new Box3();
+      const envelope = new Box3().setFromCenterAndSize(box.center, box.size).expandByScalar(0.00001);
+      for (const p of vertices(scene)) {
+        if (envelope.containsPoint(p)) radio.expandByPoint(p);
+      }
+      expect(radio.min.y).toBeCloseTo(0.15);
+      expect(radio.max.y - 0.15).toBeCloseTo(0.61 * 1.5);
+      expect(radio.getSize(new Vector3()).x).toBeCloseTo((0.145 + 0.175 + 0.035 / 2) * 1.5);
+      expect(radio.getSize(new Vector3()).z).toBeCloseTo(0.68 * 1.5);
+      expect(box.center.y - box.size.y / 2).toBeCloseTo(0.15);
+      const target = scene.interactable.position;
+      const eye = new Vector3(side * PATH_CLEARANCE, 1.6, target.z);
+      const ray = new Raycaster(eye, target.clone().sub(eye).normalize());
+      const hit = ray.intersectObjects(meshes(scene))[0]!;
+      // The sound hole is the first visible surface at the target centre.
+      expect(hit.object.name).toBe("quiet-shore-ink");
+      expect(hit.point.distanceTo(target)).toBeLessThan(0.15);
+    }
+  });
+
+  it("paints the actual roof underside ink while retaining its green-grey top", () => {
+    const scene = create();
+    scene.group.updateMatrixWorld(true);
+    const below = new Raycaster(new Vector3(6, 2, 0.2325), new Vector3(0, 1, 0));
+    const above = new Raycaster(new Vector3(6, 4, 0.2325), new Vector3(0, -1, 0));
+    expect(below.intersectObjects(meshes(scene))[0]?.object.name).toBe("quiet-shore-ink");
+    expect(above.intersectObjects(meshes(scene))[0]?.object.name).toBe("quiet-shore-roof");
+  });
+
   it("uses palette-only pigments, neutral vertex multiplication and matte ramp materials", () => {
     const scene = create();
     const wood = createPropMaterial("wood");
@@ -190,7 +254,7 @@ describe("quiet-shore procedural place", () => {
       leaf: new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.18),
       vine: new Color(PALETTE.forestDeep),
       guitar: new Color(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.35),
-      ink: new Color(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.08),
+      ink: new Color(PALETTE.ink),
       flower: new Color(PALETTE.flower),
     };
     wood.dispose();
@@ -216,8 +280,8 @@ describe("quiet-shore procedural place", () => {
     }
   });
 
-  it("keeps orange flower accents below one percent of actual surface area", () => {
-    let total = 0, accent = 0;
+  it("keeps ink near ten percent and orange below one percent of actual surface area", () => {
+    let total = 0, accent = 0, ink = 0;
     for (const mesh of meshes(create())) {
       const positions = mesh.geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i += 3) {
@@ -228,10 +292,13 @@ describe("quiet-shore procedural place", () => {
         expect(area).toBeGreaterThan(1e-10);
         total += area;
         if (mesh.material.color.equals(new Color(PALETTE.flower))) accent += area;
+        if (mesh.material.color.equals(new Color(PALETTE.ink))) ink += area;
       }
     }
     expect(accent).toBeGreaterThan(0);
     expect(accent / total).toBeLessThan(0.01);
+    expect(ink / total).toBeGreaterThan(0.08);
+    expect(ink / total).toBeLessThan(0.16);
   });
 
   it("leaves all transforms and geometry unchanged with reducedMotion, including after normal updates", () => {
