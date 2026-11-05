@@ -14,3 +14,12 @@
 - Crown thông trong `createFoliage` có cùng số tam giác như `createPineCrownV2` từng seed.
 - Đá ground: tam giác ≤ 200, 2 biến thể khác hash.
 - Attribute-budget, foliage-light, foliage-natural, ground test pass.
+
+### Lead thử nối thẳng (2026-11-06, đã hoàn tác): 5 FAIL
+
+- `foliage.test.ts` "two thirds bare": tỉ lệ thân trần ≈ 0 thay vì 2/3 — `createPineCrownV2` **không cùng gốc toạ độ** với `createPineCrown` (bản cũ đặt tán ở `height*2/3 − TRUNK_HEIGHT` qua `paintCrown`). Sửa V2 cho khớp, hoặc chuyển đổi khi nối.
+- `foliage.test.ts` "before/after submitted triangles … 240 m": 872 791 > trần 789 083 (+25 %). V2 phải giảm tam giác (mục tiêu ≤ 700/biến thể) hoặc dùng LOD xa.
+- `foliage.test.ts` "selects and fades real high pine crowns": crown fraction sai do lệch toạ độ ở trên.
+- `foliage-light.test.ts`: đếm cứng tam giác thông cũ (132) → đổi sang đếm từ `createPineCrownV2`.
+- `pine.test.ts` "reports the High streamed world's triangle budget … factory swap": cần xem lại sau khi nối.
+- Phần đá ground: `createGroundDetails` gộp biến thể bằng thuộc tính `groundPosition1/2` nên mọi biến thể phải **cùng số đỉnh**; kit đá hiện không bảo đảm. Chỉ đổi nếu chuẩn hoá được số đỉnh, nếu không thì giữ `createRock` và ghi lý do.
