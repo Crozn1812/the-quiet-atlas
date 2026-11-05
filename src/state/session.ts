@@ -1,5 +1,5 @@
 export type AppMode = "welcome" | "loading" | "world" | "editorial" | "recoverableError";
-export type PauseReason = "overlay" | "hiddenTab" | "windowBlur" | "error";
+export type PauseReason = "overlay" | "journal" | "hiddenTab" | "windowBlur" | "error";
 export interface Position {
   x: number;
   y: number;

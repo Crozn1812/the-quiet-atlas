@@ -5,8 +5,11 @@ import { mountWorldContent } from "./WorldContent";
 import { worldMenuMessages } from "@/i18n/world-menu";
 import { escapeAction, pauseWorld, returnToPath, setWorldQuality, trapFocus } from "./worldMenuControls";
 import type { Quality } from "./worldMenuControls";
+import { journalTitle } from "@/features/journal/model";
+import { mountWorldJournal } from "./journal/WorldJournal";
 
 export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void, onLocale: (locale: WorldLocale, copy: WorldCopy, labels: { sound: string; actions: string }) => void) {
+  const removeJournal = mountWorldJournal(container, locale);
   const removeContent = mountWorldContent(container, locale);
   let language: WorldLocale = locale === "vi" ? "vi" : "en";
   let copy = worldMenuMessages[language];
@@ -45,6 +48,10 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   }
 
   button(() => `× ${copy.close}`, close);
+  button(() => journalTitle(language), () => {
+    close();
+    removeJournal.toggle();
+  });
   const label = document.createElement("label");
   const qualityText = document.createElement("span");
   translations.push(() => {
@@ -118,6 +125,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
         actions: next === "vi" ? "Thao tác world" : "World actions",
       });
       removeContent.setLocale(next);
+      removeJournal.setLocale(next);
     });
     translations.push(() => {
       choice.setAttribute("aria-pressed", String(language === next));
@@ -152,7 +160,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   function onEscape(event: KeyboardEvent) {
     if (event.key !== "Escape") return;
     // B2-043b: during the opening cinematic Escape belongs to the world (Skip), not the menu.
-    if (container.dataset.worldIntro === "playing") return;
+    if (container.dataset?.worldIntro === "playing") return;
     const target = event.target;
     const editing = target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])"));
     const activeDialog = document.querySelector("dialog[open], [role='dialog'][aria-modal='true']:not(dialog)");
@@ -170,6 +178,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   document.addEventListener("keydown", onEscape, true);
   return () => {
     close();
+    removeJournal();
     removeContent();
     document.removeEventListener("keydown", onEscape, true);
     container.removeEventListener("tqa:world-state", syncQuality);

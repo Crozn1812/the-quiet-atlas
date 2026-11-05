@@ -168,7 +168,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     last = 0;
     adaptive = { ...adaptive, frames: [], windowTime: 0 };
   }
-  function pause(reason: "hiddenTab" | "windowBlur" | "overlay" | "error", paused: boolean) {
+  function pause(reason: "hiddenTab" | "windowBlur" | "overlay" | "journal" | "error", paused: boolean) {
     state = sessionReducer(state, { type: "pause", reason, paused });
     metricStart = 0;
     metricFrames = 0;
@@ -266,7 +266,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function externalPause(event: Event) {
     const detail = (event as CustomEvent).detail;
-    if (detail && ["overlay", "error"].includes(detail.reason) && typeof detail.paused === "boolean") pause(detail.reason, detail.paused);
+    if (detail && ["overlay", "journal", "error"].includes(detail.reason) && typeof detail.paused === "boolean") pause(detail.reason, detail.paused);
   }
   function setLocale(event: Event) {
     const next = (event as CustomEvent).detail?.locale;

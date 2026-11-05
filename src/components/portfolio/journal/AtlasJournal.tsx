@@ -48,7 +48,9 @@ export function AtlasJournal({ entries, blankPages, title, locale, onOpenZone, o
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
+      const editing = "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
+      if ([event.target, document.activeElement].some(target => target instanceof HTMLElement && target.closest(editing))) return;
       if (event.key === "Escape" || event.key.toLowerCase() === "j") {
         event.preventDefault();
         event.stopImmediatePropagation();

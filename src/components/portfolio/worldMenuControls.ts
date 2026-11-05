@@ -12,8 +12,8 @@ export function trapFocus<T>(items: readonly T[], active: T | null, backwards: b
   return undefined;
 }
 
-export function pauseWorld(target: EventTarget, paused: boolean) {
-  target.dispatchEvent(new CustomEvent("tqa:pause", { detail: { reason: "overlay", paused } }));
+export function pauseWorld(target: EventTarget, paused: boolean, reason: "overlay" | "journal" = "overlay") {
+  target.dispatchEvent(new CustomEvent("tqa:pause", { detail: { reason, paused } }));
 }
 
 export function setWorldQuality(target: EventTarget, quality: Quality) {
