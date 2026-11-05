@@ -1,15 +1,16 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import { BufferGeometry, Color, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
+import * as direction from "../../../src/features/world/art/direction";
 import { hex } from "../../../src/features/world/art/palette";
-import { pathPointAt } from "../../../src/features/world/layout/path";
+import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { createTileCollider, removeTileCollider, type TileRapier } from "../../../src/features/world/terrain/collider";
 import { riverWidthAt, waterLevelAt } from "../../../src/features/world/terrain/height";
-import { nearestRiver } from "../../../src/features/world/terrain/samples";
+import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { createTilePool } from "../../../src/features/world/terrain/pool";
 import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
-import { buildTile, tileKey, type TerrainTile } from "../../../src/features/world/terrain/tiles";
+import { buildTile, TILE_SIZE, tileKey, type TerrainTile } from "../../../src/features/world/terrain/tiles";
 
 function physicsMock() {
   const descriptor = { setTranslation: vi.fn() };
@@ -28,6 +29,11 @@ const paletteColor = (key: Parameters<typeof hex>[0]) => new Color(hex(key));
 const colorDistance = (a: Color, b: Color) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
 const luma = (color: Color) => 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 
+function besidePath(t: number): Vector3 {
+  const tangent = pathPointAt(t + 0.0001).sub(pathPointAt(t - 0.0001));
+  return pathPointAt(t).addScaledVector(new Vector3(-tangent.z, 0, tangent.x).normalize(), 30);
+}
+
 /** Interior vertex of a known plane, independent of the procedural heightfield at tile edges. */
 function sampleColor(x: number, z: number, height: number, dx = 0, dz = 0, originY = 0): Color {
   const tile: TerrainTile = {
@@ -44,6 +50,71 @@ function sampleColor(x: number, z: number, height: number, dx = 0, dz = 0, origi
 }
 
 describe("terrain tile mesh", () => {
+  it("paints off-trail forest at least 0.05 luma darker than even the greenest hill grass", () => {
+    const darkestHill = Math.min(luma(paletteColor("grass")), luma(paletteColor("grassDry")));
+    const luminances: number[] = [];
+    for (let i = 0; i <= 24; i++) {
+      const p = besidePath(0.03 + i * 0.01);
+      expect(direction.forestAtmosphereWeight(nearestPath(p.x, p.z).t)).toBe(1);
+      const color = sampleColor(p.x, p.z, waterLevelAt(p.z) + 20);
+      luminances.push(luma(color));
+      expect(darkestHill - luma(color)).toBeGreaterThanOrEqual(0.05);
+      // A forest floor is made only from forestDeep, grass and 8% rockDark.
+      const low = paletteColor("forestDeep").lerp(paletteColor("grass"), 0.18).lerp(paletteColor("rockDark"), 0.08);
+      const high = paletteColor("forestDeep").lerp(paletteColor("grass"), 0.48).lerp(paletteColor("rockDark"), 0.08);
+      const mix = (color.r - low.r) / (high.r - low.r);
+      expect(mix).toBeGreaterThanOrEqual(0);
+      expect(mix).toBeLessThanOrEqual(1);
+      expect(colorDistance(color, low.lerp(high, mix))).toBeLessThan(1e-6);
+      expect(Math.abs(luma(color) - luma(sampleColor(p.x + 0.25, p.z, waterLevelAt(p.z) + 20))))
+        .toBeLessThan(0.01);
+    }
+    expect(Math.max(...luminances) - Math.min(...luminances)).toBeGreaterThan(0.01);
+  });
+
+  it("blends forest pigment into hills smoothly over the shared 40 m biome edge", () => {
+    const { start, end } = direction.FOREST_ATMOSPHERE_TRANSITION;
+    expect((end - start) * pathLength()).toBeCloseTo(40, 8);
+    const originalWeight = direction.forestAtmosphereWeight;
+    const weight = vi.spyOn(direction, "forestAtmosphereWeight");
+    const weights: number[] = [];
+    try {
+      for (let m = -5; m <= 45; m++) {
+        const p = besidePath(start + m / pathLength());
+        const actualWeight = originalWeight(nearestPath(p.x, p.z).t);
+        weights.push(actualWeight);
+        const height = waterLevelAt(p.z) + 20;
+        weight.mockImplementation(originalWeight);
+        const actual = sampleColor(p.x, p.z, height);
+        weight.mockReturnValue(0);
+        const hill = sampleColor(p.x, p.z, height);
+        weight.mockReturnValue(1);
+        const forest = sampleColor(p.x, p.z, height);
+        expect(colorDistance(actual, hill.lerp(forest, actualWeight))).toBeLessThan(1e-6);
+      }
+      expect(Math.min(...weights)).toBe(0);
+      expect(Math.max(...weights)).toBe(1);
+      expect(weights.filter(value => value > 0 && value < 1).length).toBeGreaterThan(20);
+    } finally { weight.mockRestore(); }
+  });
+
+  it("leaves forest cliffs, stream banks and the trail unchanged by moss", () => {
+    const p = besidePath(0.14);
+    const river = nearestRiver(p.x, p.z);
+    const trail = pathPointAt(0.14);
+    const locations = [
+      { x: p.x, z: p.z, height: waterLevelAt(p.z) + 20, slope: 1 },
+      { x: river.x, z: river.z, height: waterLevelAt(river.z) + 0.4, slope: 0 },
+      { x: trail.x, z: trail.z, height: waterLevelAt(trail.z) + 20, slope: 0 },
+    ];
+    const before = locations.map(p => sampleColor(p.x, p.z, p.height, p.slope));
+    const weight = vi.spyOn(direction, "forestAtmosphereWeight").mockReturnValue(0);
+    try {
+      locations.forEach((p, i) => expect(colorDistance(before[i]!, sampleColor(p.x, p.z, p.height, p.slope)))
+        .toBeLessThan(1e-6));
+    } finally { weight.mockRestore(); }
+  });
+
   it("builds 1089 vertices and 2048 upward triangles from the original heightfield", () => {
     const tile = buildTile(-2, -5);
     const material = new MeshToonMaterial({ color: 0x5e8c6a });
@@ -82,8 +153,10 @@ describe("terrain tile mesh", () => {
 
   it("matches world positions, normals and colours across X/Z seams and corners", () => {
     const material = new MeshToonMaterial();
+    const forest = besidePath(0.14);
     try {
-      for (const [ix, iz] of [[-2, -5], [-1, -1], [0, 0], [1, -14]] as const) {
+      for (const [ix, iz] of [[-2, -5], [-1, -1], [0, 0], [1, -14],
+        [Math.floor(forest.x / TILE_SIZE), Math.floor(forest.z / TILE_SIZE)]] as const) {
         const mesh = createTileMesh(buildTile(ix, iz), material);
         const east = createTileMesh(buildTile(ix + 1, iz), material);
         const south = createTileMesh(buildTile(ix, iz + 1), material);
@@ -224,7 +297,8 @@ describe("terrain tile mesh", () => {
   });
 
   it("rebuilds identical vertex colours without modifying heights or using random state", () => {
-    const tile = buildTile(-2, -5);
+    const forest = besidePath(0.14);
+    const tile = buildTile(Math.floor(forest.x / TILE_SIZE), Math.floor(forest.z / TILE_SIZE));
     const heights = tile.heights.slice();
     const material = new MeshToonMaterial();
     const random = vi.spyOn(Math, "random").mockReturnValue(0.1);

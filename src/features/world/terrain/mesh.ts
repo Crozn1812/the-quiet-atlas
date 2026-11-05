@@ -1,4 +1,5 @@
 import { BufferAttribute, BufferGeometry, Color, Mesh, type Material } from "three";
+import { forestAtmosphereWeight } from "../art/direction";
 import { hex } from "../art/palette";
 import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
 import { nearestPath, nearestRiver } from "./samples";
@@ -6,6 +7,7 @@ import type { TerrainTile } from "./tiles";
 
 const grass = new Color(hex("grass"));
 const grassDry = new Color(hex("grassDry"));
+const forestDeep = new Color(hex("forestDeep"));
 const rock = new Color(hex("rock"));
 const rockDark = new Color(hex("rockDark"));
 const sand = new Color(hex("sand"));
@@ -76,6 +78,17 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
       + 0.16 * smoothstep(3, 45, aboveWater) + 0.1 * sunward);
     color.copy(grass).lerp(grassDry, dryness);
 
+    // Share the biome edge with forest air: a 40 m fade in walking distance.
+    // Pigment stays world-seeded and continuous across tiles, with damp moss patches.
+    const path = nearestPath(wx, wz);
+    const forest = forestAtmosphereWeight(path.t)
+      * smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance);
+    if (forest > 0) {
+      const moss = 0.65 * pigmentNoise(wx, wz, 28) + 0.35 * pigmentNoise(wx, wz, 12);
+      tint.copy(forestDeep).lerp(grass, 0.18 + 0.3 * moss).lerp(rockDark, 0.08);
+      color.lerp(tint, forest);
+    }
+
     // Rock starts above 35 degrees. Fine noise breaks up the soft cliff edge;
     // every 45-degree face is fully rocky, with darker seams rather than a hard band.
     const detail = pigmentNoise(wx, wz, 6);
@@ -97,7 +110,6 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     color.lerp(tint, sea * (1 - smoothstep(-0.3, 0, aboveWater)));
 
     // The unpaved forest route stays light brown, including its low river-bank stretches.
-    const path = nearestPath(wx, wz);
     const trail = (1 - smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance))
       * (1 - smoothstep(0.8, 0.82, path.t)) * smoothstep(0, 0.15, aboveWater) * (1 - cliff);
     color.lerp(dirt, trail);

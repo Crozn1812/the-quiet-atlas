@@ -45,10 +45,13 @@ export function disposeRampGradients(): void {
 
 export function createRampMaterial(
   color: number,
-  opts: { shadowTint?: number; soft?: boolean; steps?: number; preset?: StylePreset } = {},
+  opts: { shadowTint?: number; soft?: boolean; steps?: number; preset?: StylePreset; continuous?: boolean } = {},
 ): MeshToonMaterial {
+  const continuous = opts.continuous ?? false;
   const material = new MeshToonMaterial({
     color,
+    // Retain the shared gradient descriptor for existing material consumers.
+    // Continuous terrain replaces its shader lookup below, so this row is never sampled.
     gradientMap: createRampGradient(opts.steps ?? 4, opts.soft ?? true),
   });
   const clearLight = (opts.preset ?? WORLD_DIRECTION) === STYLE_PRESETS.R;
@@ -57,6 +60,15 @@ export function createRampMaterial(
     : new Color(opts.shadowTint);
 
   material.onBeforeCompile = (shader) => {
+    if (continuous) {
+      // Analytic half-Lambert has no texel plateaus or band boundaries on curved ground.
+      // Only replace angular irradiance: Three's light colour still carries cast shadows.
+      shader.fragmentShader = shader.fragmentShader.replace("#include <gradientmap_pars_fragment>", `
+vec3 getGradientIrradiance( vec3 normal, vec3 lightDirection ) {
+  float halfLambert = clamp( dot( normal, lightDirection ) * 0.5 + 0.5, 0.0, 1.0 );
+  return vec3( mix( 0.25, 1.0, halfLambert ) );
+}`);
+    }
     shader.uniforms.rampShadowTint = { value: shadowTint };
     shader.uniforms.rampClearLight = { value: clearLight };
     shader.uniforms.rampHighlightTint = { value: clearHighlightTint.clone() };
@@ -74,8 +86,8 @@ if ( rampClearLight ) {
 outgoingLight = mix( rampShadow, outgoingLight, smoothstep( 0.0, 0.5, rampLight ) );
 #include <opaque_fragment>`);
   };
-  // Colour/tint are uniforms; filtering is texture state. All share the same shader source.
-  material.customProgramCacheKey = () => "painted-toon-ramp-v1";
+  // Keep terrain and object programs separate; colour/tint remain per-material uniforms.
+  material.customProgramCacheKey = () => continuous ? "painted-terrain-continuous-v1" : "painted-toon-ramp-v1";
   return material;
 }
 
@@ -86,8 +98,8 @@ export const RAMP_PRESETS = {
   trunk: paletteColor(WORLD_DIRECTION.foliage.trunk),
   water: hex("water"),
 } as const;
-/** Ramp bands per surface family (R: four soft levels on ground and foliage). */
+/** Continuous terrain lighting; objects/foliage retain the direction's soft ramp. */
 export const RAMP_STEPS = {
-  terrain: WORLD_DIRECTION.background.ramp,
+  terrain: { ...WORLD_DIRECTION.background.ramp, continuous: true },
   foliage: WORLD_DIRECTION.foliage.ramp,
 } as const;

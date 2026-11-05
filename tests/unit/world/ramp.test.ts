@@ -2,11 +2,11 @@ import { paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/featu
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   Color, LinearFilter, MeshToonMaterial, NearestFilter, NoColorSpace,
-  RedFormat, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer,
+  RedFormat, ShaderChunk, ShaderLib, Vector3, type WebGLProgramParametersWithUniforms, type WebGLRenderer,
 } from "three";
 import { hex } from "../../../src/features/world/art/palette";
 import {
-  createRampGradient, createRampMaterial, disposeRampGradients, RAMP_PRESETS,
+  createRampGradient, createRampMaterial, disposeRampGradients, RAMP_PRESETS, RAMP_STEPS,
 } from "../../../src/features/world/materials/ramp";
 
 afterEach(disposeRampGradients);
@@ -22,6 +22,61 @@ function compile(material: MeshToonMaterial) {
 }
 
 describe("painted toon ramp", () => {
+  it("uses analytic terrain irradiance while objects retain their four soft levels", () => {
+    const terrain = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
+    const foliage = createRampMaterial(RAMP_PRESETS.crown, RAMP_STEPS.foliage);
+    const prop = createRampMaterial(RAMP_PRESETS.trunk);
+    try {
+      const shader = compile(terrain).fragmentShader;
+      expect(terrain.gradientMap).toBe(createRampGradient(4, true));
+      expect(shader).not.toContain("#include <gradientmap_pars_fragment>");
+      expect(shader).toContain("float halfLambert = clamp( dot( normal, lightDirection ) * 0.5 + 0.5, 0.0, 1.0 );");
+      expect(shader).toContain("return vec3( mix( 0.25, 1.0, halfLambert ) );");
+      expect(shader).not.toContain("texture2D( gradientMap");
+      expect(shader).toContain("#include <lights_fragment_begin>");
+      expect(shader).toContain("#include <shadowmap_pars_fragment>");
+      // The unchanged Three light path multiplies angular irradiance by shadowed light colour.
+      expect(ShaderChunk.lights_toon_pars_fragment).toContain("* directLight.color");
+      expect(ShaderChunk.lights_fragment_begin).toContain("getShadow(");
+      for (const material of [foliage, prop]) {
+        expect(material.gradientMap).toBe(createRampGradient(4, true));
+        expect(compile(material).fragmentShader).toContain("#include <gradientmap_pars_fragment>");
+        expect(material.customProgramCacheKey()).not.toBe(terrain.customProgramCacheKey());
+      }
+    } finally { for (const material of [terrain, foliage, prop]) material.dispose(); }
+  });
+
+  it("keeps adjacent luma within 0.03 over a densely sampled curved slope, with distinct cast shade", () => {
+    const material = createRampMaterial(hex("grass"), RAMP_STEPS.terrain);
+    try {
+      const shader = compile(material);
+      const shadowTint = shader.uniforms.rampShadowTint!.value as Color;
+      const highlight = shader.uniforms.rampHighlightTint!.value as Color;
+      const light = new Vector3(0.8, 0.6, 0).normalize();
+      const luma = (c: Color) => c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+      const smooth = (a: number, b: number, v: number) => {
+        const t = Math.max(0, Math.min(1, (v - a) / (b - a)));
+        return t * t * (3 - 2 * t);
+      };
+      // CPU reference for the asserted GLSL half-Lambert and existing post-light tint.
+      const shade = (normal: Vector3, visibility = 1) => {
+        const halfLambert = Math.max(0, Math.min(1, normal.dot(light) * 0.5 + 0.5));
+        const outgoing = material.color.clone().multiplyScalar((0.25 + 0.75 * halfLambert) * visibility);
+        const intensity = luma(outgoing);
+        outgoing.multiply(new Color().setRGB(1, 1, 1).lerp(highlight, smooth(0.5, 1, intensity) * 0.12));
+        const shadow = material.color.clone().multiply(new Color().setRGB(0.25, 0.25, 0.25).lerp(shadowTint, 0.6));
+        return luma(shadow.lerp(outgoing, smooth(0, 0.5, intensity)));
+      };
+      const samples = Array.from({ length: 2049 }, (_, i) => {
+        const angle = -Math.PI / 2 + Math.PI * i / 2048;
+        return shade(new Vector3(Math.sin(angle), Math.cos(angle), 0));
+      });
+      expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(0.1);
+      for (let i = 1; i < samples.length; i++) expect(Math.abs(samples[i]! - samples[i - 1]!)).toBeLessThanOrEqual(0.03);
+      expect(shade(light) - shade(light, 0)).toBeGreaterThan(0.1);
+    } finally { material.dispose(); }
+  });
+
   it.each([2, 3, 4, 5, 256])("has a monotonic, nonblack %i-step data row", (steps) => {
     const texture = createRampGradient(steps);
     const data = texture.image.data as Uint8Array;
