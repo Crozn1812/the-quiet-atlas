@@ -1,6 +1,6 @@
 // T01 — Welcome (spec §13.1): name, role, Quick Portfolio link, Enter World, Sound, CV; 0 console errors.
 // Layout per ADR 0009: everything above sits in the bottom-left corner card (see full-viewport.spec.ts).
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { hasWebGL2, LOCALES, settle, trackConsoleErrors } from "./helpers";
 
 for (const profile of LOCALES) {

@@ -151,6 +151,8 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   });
   function onEscape(event: KeyboardEvent) {
     if (event.key !== "Escape") return;
+    // B2-043b: during the opening cinematic Escape belongs to the world (Skip), not the menu.
+    if (container.dataset.worldIntro === "playing") return;
     const target = event.target;
     const editing = target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])"));
     const activeDialog = document.querySelector("dialog[open], [role='dialog'][aria-modal='true']:not(dialog)");

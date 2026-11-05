@@ -6,7 +6,7 @@
 //       the probe result is cached (a further resize does not probe again).
 //   (d) coarse pointer → Editorial, no WebGL context created on load.
 // WebGL contexts are counted by an init script around HTMLCanvasElement.prototype.getContext (as in world-input.spec.ts).
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "./test";
 import { enterWorld, ensureWindowFocus, LOCALES, MENU_TRIGGER, trackConsoleErrors } from "./helpers";
 
 test.describe.configure({ timeout: 90_000 });

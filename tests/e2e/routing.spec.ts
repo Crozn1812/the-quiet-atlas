@@ -1,5 +1,5 @@
 // Q12 (local, tools/serve-out emulating CloudFront rules from spec §5): direct URLs, missing slash, unknown routes.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const ROUTES = ["/", "/en/", "/vi/", "/en/quick/", "/vi/quick/"];
 

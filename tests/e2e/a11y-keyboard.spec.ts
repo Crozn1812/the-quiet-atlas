@@ -9,7 +9,7 @@
 //   6. Skip link (spec §13 T11 "Skip"): the first Tab stop is a link to the main content.
 // Not covered here (needs a person): screen reader (NVDA/Narrator/VoiceOver), real browser zoom UI, contrast of
 // the focus ring against every background, the world canvas. Results → docs/evidence/A1/a11y-keyboard-2026-11-04.md.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { htmlPagesToAudit, settle } from "./helpers";
 
 /** Pages named by ticket L3-005 for the keyboard checks (one case study is enough: same renderer). */

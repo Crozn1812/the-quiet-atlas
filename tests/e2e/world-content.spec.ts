@@ -4,7 +4,7 @@
 // at spawn; Workshop desk (2, −3). Initial camera yaw atan2(7, 9): holding W+D walks along ≈ (0.12, −0.99), which passes
 // ≈ 1.1 m from the desk (radius 2.5 m). The drive is checked through `data-world-hint`; if it never reaches "workshop"
 // the test falls back to dispatching `tqa:open-content` (allowed by the ticket) and says so in an annotation.
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./test";
 import { enterWorld, ensureWindowFocus, trackConsoleErrors } from "./helpers";
 
 test.use({ viewport: { width: 1366, height: 800 } });

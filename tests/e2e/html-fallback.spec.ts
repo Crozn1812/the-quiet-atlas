@@ -1,5 +1,5 @@
 // T02 — standalone HTML (spec §3.3, §3.4, §5, §13.1; also Q15/Q18 HTML side).
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { DISABLE_WEBGL, LOCALES, settle, trackNetwork } from "./helpers";
 
 test.describe("T02-a JavaScript disabled: content still readable", () => {

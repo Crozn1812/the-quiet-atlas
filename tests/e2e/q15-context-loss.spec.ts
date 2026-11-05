@@ -4,7 +4,7 @@
 //   1. world contract (L2-007, merged): `tqa:world-error {kind:"context-lost"}` on the container, bubbles: false.
 //   2. UI handling (L1-007, merged): the portfolio UI leaves world mode and brings the viewer back to HTML within 2 s.
 // Load failure / no WebGL parts of Q15 are covered by html-fallback.spec.ts.
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./test";
 import { enterWorld, ensureWindowFocus } from "./helpers";
 
 test.use({ viewport: { width: 1366, height: 800 } });

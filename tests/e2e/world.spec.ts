@@ -1,6 +1,6 @@
 // Enter World lifecycle (spec §3.4, §5; T02 counterpart, T07 HTML part: focus returns after leaving).
 // Needs WebGL2 in the test browser; skipped with a reason (NOT RUN) when the headless browser has none.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { hasWebGL2, HUD, LOCALES, settle, trackConsoleErrors, trackNetwork, WORLD_MARKER } from "./helpers";
 
 test.use({ viewport: { width: 1366, height: 800 } });

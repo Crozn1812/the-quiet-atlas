@@ -105,7 +105,8 @@ it.each([
     hasFocus: () => true,
     createElement: () => new Element(),
   });
-  const window = Object.assign(new EventTarget(), { devicePixelRatio: 2, performance });
+  // This contract covers gameplay events; cinematic timing/focus is covered by intro-wiring.test.ts.
+  const window = Object.assign(new EventTarget(), { devicePixelRatio: 2, performance, __tqaSkipIntro: true });
   vi.stubGlobal("document", document);
   vi.stubGlobal("window", window);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });

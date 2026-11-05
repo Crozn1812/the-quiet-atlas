@@ -3,7 +3,7 @@
 // If the window has no focus (headless/CI), `ensureWindowFocus` emulates it (annotated) so pause assertions see
 // only the menu's `overlay` reason. Run headed to exercise real window focus.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./test";
 import { enterWorld, ensureWindowFocus, HUD, LOCALES, MENU_TRIGGER, trackConsoleErrors, trackNetwork, WORLD_MARKER } from "./helpers";
 
 test.use({ viewport: { width: 1366, height: 800 } });

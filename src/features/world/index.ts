@@ -17,6 +17,13 @@ import { FIXED_DT, limitSteps } from "./timestep";
 import { PALETTE } from "./art/palette";
 import { disposeRampGradients } from "./materials/ramp";
 import { createGradedPaperPass } from "./scene/paper";
+import { WORLD_DIRECTION } from "./art/direction";
+import { createIntroController } from "./cinematic/controller";
+import type { IntroFrame } from "./cinematic/intro";
+
+declare global {
+  interface Window { __tqaSkipIntro?: boolean }
+}
 export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
   locale?: WorldLocale;
@@ -105,6 +112,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const camera = new PerspectiveCamera(55, 1, 0.1, 100);
   gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
   gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
+  gpu.domElement.tabIndex = 0;
   container.dataset.worldLocale = locale;
   container.appendChild(gpu.domElement);
   const metrics = opts.debug ? document.createElement("output") : undefined;
@@ -117,6 +125,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const previousMarker = container.dataset.worldChunk;
   container.dataset.worldChunk = WORLD_CHUNK_MARKER;
   let state = sessionReducer(initialSession(), { type: "mode", mode: "world" });
+  let introUI: { skip: HTMLButtonElement; bars: HTMLDivElement[]; fade: HTMLDivElement } | undefined;
+  const gameplayFar = camera.far;
+  const introPending = () => intro?.state !== "done";
   state = { ...state, position: { ...physics.position }, sessionProgress: { ...state.sessionProgress, lastSafePosition: { ...physics.position } } };
   let yaw = Math.atan2(7, 9);
   let zoom = INITIAL_ZOOM;
@@ -166,16 +177,21 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     interaction.update();
   }
   function cameraEnabled() {
-    return canSimulate(state) && !isInputTarget(document.activeElement);
+    return canSimulate(state) && !introPending() && !isInputTarget(document.activeElement);
   }
   function keydown(event: KeyboardEvent) {
+    if (intro?.inputLocked && (event.code === "Escape" || (event.code === "Enter" && document.activeElement === introUI?.skip))) {
+      event.preventDefault();
+      skipIntro();
+      return;
+    }
     if (interaction.keydown(event)) return;
     if (cameraEnabled() && !isInputTarget(event.target)) {
       if (["Equal", "NumpadAdd"].includes(event.code)) zoom = clampZoom(zoom - 0.75);
       if (["Minus", "NumpadSubtract"].includes(event.code)) zoom = clampZoom(zoom + 0.75);
       if (["ArrowLeft", "ArrowRight", "Equal", "Minus", "NumpadAdd", "NumpadSubtract"].includes(event.code)) event.preventDefault();
     }
-    keys = inputReducer(keys, { type: "keydown", event, enabled: canSimulate(state) });
+    keys = inputReducer(keys, { type: "keydown", event, enabled: canSimulate(state) && !introPending() });
   }
   function keyup(event: KeyboardEvent) {
     keys = inputReducer(keys, { type: "keyup", event });
@@ -191,10 +207,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function visibility() {
     pause("hiddenTab", document.hidden);
-    if (document.hidden) cancelAnimationFrame(frame);
-    else if (!disposed && !contextLost) frame = requestAnimationFrame(tick);
+    cancelAnimationFrame(frame);
+    if (!document.hidden && !disposed && !contextLost) frame = requestAnimationFrame(tick);
   }
   function returnToPath() {
+    if (introPending()) return;
     const safe = nearestSafePath(physics.position);
     composed.update(safe, 0);
     state = sessionReducer(state, { type: "safePosition", position: safe });
@@ -258,6 +275,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dataset.worldLocale = locale;
     labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
     gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
+    if (introUI) introUI.skip.textContent = WORLD_COPY[locale].skip;
     for (const prop of props) {
       prop.mesh.name = WORLD_COPY[locale][prop.id === "desk" ? "desk" : "signpost"];
     }
@@ -297,6 +315,72 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       container.dataset.worldCameraBelowTerrainFrames = String(belowTerrainFrames);
     }
   }
+  function publishIntro(next: "playing" | "done") {
+    if (container.dataset.worldIntro === next) return;
+    container.dataset.worldIntro = next;
+    container.dispatchEvent(new CustomEvent("tqa:intro", { bubbles: false, detail: { state: next } }));
+  }
+  function removeIntroUI() {
+    if (!introUI) return;
+    introUI.skip.removeEventListener("click", skipIntro);
+    introUI.skip.remove();
+    for (const bar of introUI.bars) bar.remove();
+    introUI.fade.remove();
+    introUI = undefined;
+  }
+  function applyIntro(pose: IntroFrame) {
+    camera.position.copy(pose.position);
+    camera.lookAt(pose.target);
+    camera.fov = pose.fov;
+    // The river overview is hundreds of metres above the gameplay camera.
+    camera.far = intro?.state === "done" ? gameplayFar : Math.max(gameplayFar, 2000);
+    camera.updateProjectionMatrix();
+    // Lead: boost on top of direction C's mist (B2-038), not the pass default.
+    paper.setMist({ strength: Math.min(1, WORLD_DIRECTION.background.mist.strength + pose.mistBoost) });
+    if (introUI) {
+      for (const bar of introUI.bars) bar.style.height = `${pose.letterbox * 12}%`;
+      introUI.fade.style.opacity = String(pose.paperOpacity);
+    }
+    if (intro?.state === "done") {
+      removeIntroUI();
+      clear();
+      gpu.domElement.focus({ preventScroll: true });
+      interaction.update();
+      publishIntro("done");
+    }
+  }
+  function skipIntro() {
+    if (intro?.inputLocked) applyIntro(intro.skip());
+  }
+  function startIntro() {
+    if (intro?.state !== "idle" || !canSimulate(state)) return;
+    clear();
+    const bars = ["top", "bottom"].map(edge => {
+      const bar = document.createElement("div");
+      bar.setAttribute("aria-hidden", "true");
+      bar.dataset.worldLetterbox = edge;
+      Object.assign(bar.style, { position: "absolute", left: "0", right: "0", [edge]: "0", background: PALETTE.paper, pointerEvents: "none", zIndex: "2" });
+      container.appendChild(bar);
+      return bar;
+    });
+    const fade = document.createElement("div");
+    fade.setAttribute("aria-hidden", "true");
+    Object.assign(fade.style, { position: "absolute", inset: "0", background: PALETTE.paper, pointerEvents: "none", zIndex: "2" });
+    container.appendChild(fade);
+    const skip = document.createElement("button");
+    skip.type = "button";
+    skip.dataset.worldIntroSkip = "true";
+    skip.textContent = WORLD_COPY[locale].skip;
+    Object.assign(skip.style, { position: "absolute", bottom: "5.5rem", right: "1rem", zIndex: "3", color: PALETTE.ink, background: PALETTE.paper, padding: ".5rem 1rem", cursor: "pointer" });
+    skip.addEventListener("click", skipIntro);
+    container.appendChild(skip);
+    introUI = { skip, bars, fade };
+    applyIntro(intro.start());
+    const active = document.activeElement;
+    if (!active || active === document.body || active === gpu.domElement) skip.focus({ preventScroll: true });
+    interaction.update();
+    publishIntro("playing");
+  }
   function resize() {
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
@@ -328,8 +412,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       applyQuality(result.quality);
     }
     const dt = Math.min(0.1, last ? (now - last) / 1000 : FIXED_DT);
+    const wasPlaying = intro?.inputLocked;
+    startIntro();
     if (cameraEnabled()) yaw = wrapYaw(yaw + (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) * KEY_YAW_SPEED * dt);
-    if (canSimulate(state)) {
+    if (canSimulate(state) && !introPending()) {
       const plan = limitSteps(accumulator, last ? (now - last) / 1000 : 0);
       accumulator = plan.remainder;
       for (let i = 0; i < plan.steps; i++) {
@@ -340,7 +426,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     }
     last = now;
     player.position.copy(physics.position);
-    updateCamera(dt);
+    if (intro?.inputLocked) {
+      if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
+    } else updateCamera(dt);
     interaction.update();
     composed.update(physics.position, 0);
     paper.render(scene, camera);
@@ -359,6 +447,14 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   gpu.domElement.addEventListener("webglcontextlost", loseContext);
   updateCamera(FIXED_DT);
+  const intro = createIntroController({
+    gameplayPose: { position: camera.position, target: physics.position, fov: camera.fov },
+    reducedMotion: motionPreference?.matches ?? false,
+  });
+  if (window.__tqaSkipIntro === true) {
+    intro.skip();
+    publishIntro("done");
+  }
   container.addEventListener("tqa:return-to-path", returnToPath);
   container.addEventListener("tqa:pause", externalPause);
   container.addEventListener("tqa:set-quality", setQuality);
@@ -381,10 +477,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   pause("hiddenTab", document.hidden);
   pause("windowBlur", !document.hasFocus());
   resize();
+  player.position.copy(physics.position);
+  paper.render(scene, camera);
+  startIntro();
   if (!document.hidden) frame = requestAnimationFrame(tick);
   return () => {
     if (disposed) return;
     disposed = true;
+    removeIntroUI();
+    delete container.dataset.worldIntro;
     gpu.domElement.removeEventListener("webglcontextlost", loseContext);
     if (perf && container.__tqaPerf === perf) delete container.__tqaPerf;
     cancelAnimationFrame(frame);

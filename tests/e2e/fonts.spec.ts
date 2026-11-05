@@ -2,7 +2,7 @@
 // subset, no font is requested from another origin, and /en/ does not pull the Vietnamese 700 subset it does not use.
 // @font-face declarations: src/app/portfolio.css (latin/vietnamese × 400/700, unicode-range split);
 // preload of latin-400: src/app/[locale]/layout.tsx.
-import { expect, test, type Page, type Request } from "@playwright/test";
+import { expect, test, type Page, type Request } from "./test";
 import { settle, trackConsoleErrors } from "./helpers";
 
 const FONT_FILE = /\.(woff2?|ttf|otf|eot)(\?|#|$)/i;

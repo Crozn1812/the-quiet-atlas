@@ -5,7 +5,7 @@
 //   4. axe on Welcome and inside the world: 0 violations (critical/serious; KNOWN_ISSUES.axeRules stays empty).
 // World checks need WebGL2 (SwiftShader in headless Edge); skipped as NOT RUN without it.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { enterWorld, HUD, KNOWN_ISSUES, LOCALES, settle, trackConsoleErrors } from "./helpers";
 
 const VIEWPORT = { width: 1366, height: 800 };

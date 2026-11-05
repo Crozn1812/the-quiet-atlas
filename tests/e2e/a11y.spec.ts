@@ -3,7 +3,7 @@
 // "known-issue" annotations instead of failing; T11 stays FAIL in reports until that list is empty.
 // Any other critical/serious violation fails the test, and so does a known issue that no longer reproduces.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { htmlPagesToAudit, KNOWN_ISSUES, settle } from "./helpers";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"];

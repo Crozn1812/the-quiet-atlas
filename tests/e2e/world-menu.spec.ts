@@ -3,7 +3,7 @@
 // Pause assertions: a window without focus (headless/CI) makes the world start with a `windowBlur` reason.
 // `ensureWindowFocus` emulates window focus first (annotated per test) so `data-world-paused` reflects
 // only the menu's `overlay` reason; run headed (`--headed`) to exercise real window focus.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { enterWorld, ensureWindowFocus, MENU_TRIGGER, trackConsoleErrors } from "./helpers";
 
 test.use({ viewport: { width: 1366, height: 800 } });
