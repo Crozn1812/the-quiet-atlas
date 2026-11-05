@@ -3,7 +3,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { initialJournal, journalEntries, journalReducer, journalTitle } from "@/features/journal/model";
+import { blankPages, initialJournal, journalEntries, journalReducer, journalTitle, type SecretId } from "@/features/journal/model";
 import { pauseWorld } from "../worldMenuControls";
 
 const AtlasJournal = lazy(() => import("./AtlasJournal"));
@@ -33,7 +33,7 @@ function WorldJournal({ container, locale }: { container: HTMLElement; locale: "
     function toggle() {
       if (container.closest("[data-app-mode]")?.getAttribute("data-app-mode") !== "world") return;
       // Lead: the opening cinematic keeps the keyboard; the journal opens after Skip/end (B2-043b).
-      if (container.dataset?.worldIntro === "playing") return;
+      if (container.dataset?.worldIntro === "playing" || container.dataset?.worldEnding === "playing") return;
       if (!current.current.open && document.querySelector(modalSelector)) return;
       dispatch({ type: "toggle" });
     }
@@ -58,11 +58,19 @@ function WorldJournal({ container, locale }: { container: HTMLElement; locale: "
       dispatch({ type: "visit", zoneId: entry.zoneId });
     }
 
+    function findSecret(event: Event) {
+      const id: unknown = (event as CustomEvent).detail?.id;
+      if (typeof id !== "string" || !["reflection", "forgotten-sound", "unmarked-road", "unwritten-page"].includes(id)) return;
+      dispatch({ type: "findSecret", id: id as SecretId });
+    }
+
     container.addEventListener(toggleEvent, toggle);
+    container.addEventListener("tqa:secret-found", findSecret);
     container.addEventListener("tqa:open-content", visit);
     document.addEventListener("keydown", onKey, true);
     return () => {
       container.removeEventListener(toggleEvent, toggle);
+      container.removeEventListener("tqa:secret-found", findSecret);
       container.removeEventListener("tqa:open-content", visit);
       document.removeEventListener("keydown", onKey, true);
     };
@@ -72,7 +80,7 @@ function WorldJournal({ container, locale }: { container: HTMLElement; locale: "
     <Suspense fallback={null}>
       <AtlasJournal
         entries={journalEntries(journal, locale)}
-        blankPages={0}
+        blankPages={blankPages(journal)}
         title={journalTitle(locale)}
         locale={locale}
         onClose={() => dispatch({ type: "close" })}

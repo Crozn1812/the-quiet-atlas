@@ -6,6 +6,7 @@ export const WORLD_COPY = {
   en: {
     skip: "Skip",
     teleportHint: "E — Travel…",
+    secretHint: "E — Pause",
     vehicleUnsafe: "No safe place to stop",
     signpost: "First Light signpost (placeholder)",
     desk: "The Workshop desk (placeholder)",
@@ -15,6 +16,7 @@ export const WORLD_COPY = {
   vi: {
     skip: "Bỏ qua",
     teleportHint: "E — Đi tới…",
+    secretHint: "E — Dừng",
     vehicleUnsafe: "Chưa có chỗ dừng an toàn",
     signpost: "Biển chỉ đường The First Light (tạm)",
     desk: "Bàn The Workshop (tạm)",
@@ -27,7 +29,8 @@ export function isWorldLocale(value: unknown): value is WorldLocale {
   return value === "en" || value === "vi";
 }
 
-export function interactionHint(locale: WorldLocale, zoneId: string, kind?: "content" | "teleport" | "vehicle"): string {
+export function interactionHint(locale: WorldLocale, zoneId: string, kind?: "content" | "teleport" | "vehicle" | "secret"): string {
+  if (kind === "secret") return WORLD_COPY[locale].secretHint;
   if (kind === "vehicle") return VEHICLE_LABELS[locale].ride;
   if (kind === "teleport") return WORLD_COPY[locale].teleportHint;
   return "E — " + WORLD_COPY[locale][zoneId === "workshop" ? "desk" : "signpost"];

@@ -7,14 +7,14 @@ import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
 import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
-import { createWorldScene, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
+import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
 import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
-import { ACESFilmicToneMapping, Box3, Color, PerspectiveCamera, Ray, Scene, Raycaster, Vector2, Vector3, WebGLRenderer, type Mesh } from "three";
+import { ACESFilmicToneMapping, Box3, Color, HemisphereLight, PerspectiveCamera, Ray, Scene, Raycaster, Vector2, Vector3, WebGLRenderer, type Mesh, type ShaderMaterial } from "three";
 import { canSimulate, initialSession, sessionReducer } from "../../state/session";
-import { HEIGHT } from "./scene";
+import { HEIGHT, RADIUS } from "./scene";
 import { FIXED_DT, limitSteps } from "./timestep";
 import { PALETTE } from "./art/palette";
 import { disposeRampGradients } from "./materials/ramp";
@@ -28,7 +28,15 @@ import { CORRIDOR_POINTS } from "./post/paper";
 import { nearestPath } from "./terrain/samples";
 import { TERRAIN_RADIUS } from "./terrain/tiles";
 import { createIntroController } from "./cinematic/controller";
+import { createEndingController } from "./cinematic/ending-controller";
+import type { EndingFrame } from "./cinematic/ending";
 import type { IntroFrame } from "./cinematic/intro";
+import { SECRETS, nearestSecret } from "../story/secrets";
+import { initialStory, storyReducer } from "../story/story";
+import { storyFeedbackText } from "../story/copy";
+import { createSecretLandmark, disposeLandmark } from "./props/secrets";
+import { lightingAt } from "./sky/grade";
+import { timeOfDayAt } from "./layout/lighting";
 import { createVehicleView } from "./vehicle/view";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
@@ -135,6 +143,46 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const mesh = placeProp("signpost", post.position.x, post.position.z, `teleport-${post.zoneId}`);
     return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh };
   })];
+  let story = initialStory();
+  let ending: ReturnType<typeof createEndingController> | undefined;
+  let sunsetBoost = 0;
+  let chimeTime = 0;
+  const secretSolids: Box3[] = [];
+  const secretMeshes: Mesh[] = [];
+  const secretTargets = SECRETS.map(secret => {
+    const root = createSecretLandmark(secret.landmark);
+    const { x, z } = secret.position;
+    root.position.set(x, surfaceHeight(x, z), z);
+    root.updateMatrixWorld(true);
+    root.traverse(object => { if ((object as Mesh).isMesh) secretMeshes.push(object as Mesh); });
+    scene.add(root);
+    if (secret.landmark === "vine-arch-mirror" || secret.landmark === "bench") {
+      const size = secret.landmark === "bench" ? new Vector3(2.2, 1.05, 1.5) : new Vector3(1.95, 2.5, 0.25);
+      secretSolids.push(new Box3().setFromCenterAndSize(root.position.clone().add(new Vector3(0, size.y / 2, 0)), size));
+    }
+    return { id: secret.id, kind: "secret" as const, zoneId: "quiet-shore" as const,
+      position: root.position.clone().add(new Vector3(0, HEIGHT, 0)), root };
+  });
+  const chimes = secretTargets.find(target => target.id === "forgotten-sound")!.root.getObjectByName("chimes")!;
+  // Shared swept boxes protect walking and riding with either physics backend.
+  const stepPhysics = physics.step.bind(physics);
+  physics.step = (x, z, dt) => {
+    const delta = new Vector3(x * dt, 0, z * dt);
+    const distance = delta.length();
+    let travel = distance;
+    if (distance > 0) {
+      const ray = new Ray(physics.position, delta.clone().normalize());
+      for (const solid of secretSolids) {
+        const box = solid.clone();
+        box.min.add(new Vector3(-RADIUS, -HEIGHT, -RADIUS));
+        box.max.add(new Vector3(RADIUS, HEIGHT, RADIUS));
+        const hit = ray.intersectBox(box, new Vector3());
+        if (hit) travel = Math.min(travel, Math.max(0, hit.distanceTo(ray.origin) - 0.01));
+      }
+    }
+    const scale = distance > 0 ? travel / distance : 1;
+    stepPhysics(x * scale, z * scale, dt);
+  };
   // Include the one-metre dry shoulder: the model's margin leaves a 2 m lateral limit.
   const corridor: VehicleCorridor = {
     length: pathLength(),
@@ -178,9 +226,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const previousMarker = container.dataset.worldChunk;
   container.dataset.worldChunk = WORLD_CHUNK_MARKER;
   let state = sessionReducer(initialSession(), { type: "mode", mode: "world" });
-  let introUI: { skip: HTMLButtonElement; bars: HTMLDivElement[]; fade: HTMLDivElement } | undefined;
+  let cinematicUI: { skip: HTMLButtonElement; bars: HTMLDivElement[]; fade: HTMLDivElement } | undefined;
   const gameplayFar = camera.far;
   const introPending = () => intro?.state !== "done";
+  const cinematicLocked = () => introPending() || ending?.inputLocked === true;
   let teleport = createTeleport({ reducedMotion: motionPreference?.matches ?? false });
   let destination: ZoneId | undefined;
   let teleportCover: HTMLDivElement | undefined;
@@ -192,14 +241,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let belowTerrainFrames = 0;
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
-  const cameraObstacles = () => [...composed.collisionMeshes, ...props.map(prop => prop.mesh)];
+  const cameraObstacles = () => [...composed.collisionMeshes, ...props.map(prop => prop.mesh), ...secretMeshes];
   const sightRay = new Raycaster();
   const interaction = createInteraction({
     container,
-    targets: [...props, vehicleTarget],
+    targets: [...props, ...secretTargets, vehicleTarget],
     locale: () => locale,
     player: () => physics.position,
     enabled: cameraEnabled,
+    discover,
     ride() {
       if (!cameraEnabled()) return false;
       const result = mount(vehicle, Math.hypot(physics.position.x - vehicleTarget.position.x, physics.position.z - vehicleTarget.position.z));
@@ -214,11 +264,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     },
     hint() {
       if (!cameraEnabled() || vehicle.mode !== "ride") return undefined;
+      if (nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z })) return WORLD_COPY[locale].secretHint;
       return unsafeStop ? WORLD_COPY[locale].vehicleUnsafe
         : `${VEHICLE_LABELS[locale].getOff} · ${VEHICLE_LABELS[locale].cruise}`;
     },
     chooseTeleport(from) {
-      if (introPending() || teleport.inputLocked) return false;
+      if (cinematicLocked() || teleport.inputLocked) return false;
       teleport = createTeleport({ reducedMotion: motionPreference?.matches ?? false });
       if (!teleport.startChoosing(from)) return false;
       parkVehicle();
@@ -231,13 +282,42 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       const direction = new Vector3().copy(target.position).sub(physics.position);
       sightRay.set(physics.position, direction.clone().normalize());
       sightRay.far = Math.max(0, direction.length() - 0.01);
-      const blockers = cameraObstacles().filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh));
+      const ownSecret = secretTargets.find(secret => secret.id === target.id)?.root;
+      const blockers = cameraObstacles().filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh)
+        && !ownSecret?.getObjectById(mesh.id));
       return sightRay.intersectObjects(blockers).length === 0;
     },
     visit(zoneId) {
       state = sessionReducer(state, { type: "visitZone", zoneId });
     },
   });
+  const feedback = document.createElement("p");
+  feedback.dataset.worldStoryFeedback = "true";
+  feedback.setAttribute("aria-live", "polite");
+  feedback.setAttribute("aria-atomic", "true");
+  Object.assign(feedback.style, { position: "absolute", bottom: "4rem", left: "1rem", right: "1rem", fontSize: ".875rem", pointerEvents: "none" });
+  container.appendChild(feedback);
+  let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  function discover(id: string) {
+    if (!cameraEnabled()) return false;
+    const secret = nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z });
+    if (!secret || secret.id !== id) return false;
+    const previous = story;
+    story = storyReducer(story, { type: "discover", id: secret.id });
+    // Repeated visits still speak the appropriate line, without another discovery event.
+    const response = secret.id === "unwritten-page" && !story.found.has(secret.id)
+      ? { id: secret.id, feedback: "not-yet" as const } : { id: secret.id, feedback: "found" as const };
+    story = { ...story, lastFeedback: response };
+    feedback.textContent = storyFeedbackText(response, locale);
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(() => { feedback.textContent = ""; feedbackTimer = undefined; }, 6000);
+    if (story.found.size > previous.found.size) {
+      container.dispatchEvent(new CustomEvent("tqa:secret-found", { bubbles: false, detail: { id: secret.id, count: story.found.size } }));
+    }
+    if (secret.id === "unwritten-page" && story.endingState === "ready") startEnding();
+    return true;
+  }
+  publishEnding("idle");
   let keys: ReadonlySet<string> = new Set();
   let accumulator = 0;
   let last = 0;
@@ -259,7 +339,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         cache.set(radius, bounds);
       }
       return bounds;
-    });
+    }).concat(secretSolids.map(solid => {
+      const box = solid.clone();
+      box.min.add(new Vector3(-radius, -HEIGHT * 2, -radius));
+      box.max.add(new Vector3(radius, -0.1, radius));
+      return box;
+    }));
   }
   function groundPoint(point: { x: number; z: number }) {
     return new Vector3(point.x, surfaceHeight(point.x, point.z), point.z);
@@ -373,17 +458,19 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     interaction.update();
   }
   function cameraEnabled() {
-    return canSimulate(state) && !introPending() && !teleport.inputLocked && !isInputTarget(document.activeElement);
+    return canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !isInputTarget(document.activeElement);
   }
   function keydown(event: KeyboardEvent) {
-    if (intro?.inputLocked && (event.code === "Escape" || (event.code === "Enter" && document.activeElement === introUI?.skip))) {
+    if ((intro?.inputLocked || ending?.inputLocked) && (event.code === "Escape" || (event.code === "Enter" && document.activeElement === cinematicUI?.skip))) {
       event.preventDefault();
-      skipIntro();
+      skipCinematic();
       return;
     }
     if (vehicle.mode === "ride" && cameraEnabled() && !isInputTarget(event.target)) {
       if (event.code === "KeyE" && !event.repeat) {
         event.preventDefault();
+        const secret = nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z });
+        if (secret && discover(secret.id)) return;
         getOffVehicle();
         return;
       }
@@ -403,7 +490,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       if (["Minus", "NumpadSubtract"].includes(event.code)) zoom = clampZoom(zoom + 0.75);
       if (["ArrowLeft", "ArrowRight", "Equal", "Minus", "NumpadAdd", "NumpadSubtract"].includes(event.code)) event.preventDefault();
     }
-    keys = inputReducer(keys, { type: "keydown", event, enabled: canSimulate(state) && !introPending() && !teleport.inputLocked });
+    keys = inputReducer(keys, { type: "keydown", event, enabled: canSimulate(state) && !cinematicLocked() && !teleport.inputLocked });
   }
   function keyup(event: KeyboardEvent) {
     keys = inputReducer(keys, { type: "keyup", event });
@@ -427,7 +514,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (!document.hidden && !disposed && !contextLost) frame = requestAnimationFrame(tick);
   }
   function returnToPath() {
-    if (introPending() || teleport.inputLocked) return;
+    if (cinematicLocked() || teleport.inputLocked) return;
     parkVehicle();
     const safe = nearestSafePath(physics.position);
     composed.update(safe, 0);
@@ -443,13 +530,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       (event.clientX - rect.left) / rect.width * 2 - 1,
       -(event.clientY - rect.top) / rect.height * 2 + 1,
     ), camera);
-    const hit = raycaster.intersectObjects([...composed.visibleMeshes, player, bike.group, ...props.map(prop => prop.mesh)])[0];
+    const hit = raycaster.intersectObjects([...composed.visibleMeshes, player, bike.group, ...props.map(prop => prop.mesh), ...secretTargets.map(target => target.root)])[0];
     if (hit && (hit.object === bike.group || bike.group.getObjectById(hit.object.id))) {
       interaction.click(vehicleTarget.id);
       return;
     }
     const target = props.find(prop => prop.mesh === hit?.object || prop.mesh === hit?.object.parent);
     if (target) interaction.click(target.id);
+    const secret = secretTargets.find(target => hit && target.root.getObjectById(hit.object.id));
+    if (secret) interaction.click(secret.id);
   }
   function pointerdown(event: PointerEvent) {
     if (event.button !== 0 || !cameraEnabled()) return;
@@ -457,7 +546,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     raycaster.far = Infinity;
     raycaster.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), camera);
     // Terrain is empty space; visible character, trees and props retain click ownership.
-    if (raycaster.intersectObjects([...composed.foliageMeshes, player, bike.group, ...props.map(prop => prop.mesh)]).length) return;
+    if (raycaster.intersectObjects([...composed.foliageMeshes, player, bike.group, ...props.map(prop => prop.mesh), ...secretTargets.map(target => target.root)]).length) return;
     drag = { id: event.pointerId, x: event.clientX };
     gpu.domElement.setPointerCapture(event.pointerId);
   }
@@ -496,7 +585,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dataset.worldLocale = locale;
     labels.textContent = WORLD_COPY[locale].signpost + " · " + WORLD_COPY[locale].desk;
     gpu.domElement.setAttribute("aria-label", WORLD_COPY[locale].canvas);
-    if (introUI) introUI.skip.textContent = WORLD_COPY[locale].skip;
+    if (cinematicUI) cinematicUI.skip.textContent = WORLD_COPY[locale].skip;
+    if (feedback.textContent && story.lastFeedback) feedback.textContent = storyFeedbackText(story.lastFeedback, locale);
     for (const prop of contentProps) {
       prop.mesh.name = WORLD_COPY[locale][prop.id === "desk" ? "desk" : "signpost"];
     }
@@ -520,7 +610,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     publishState();
   }
   function teleportTo(event: Event) {
-    if (introPending() || contextLost || teleport.state !== "choosing") return;
+    if (cinematicLocked() || contextLost || teleport.state !== "choosing") return;
     const to = (event as CustomEvent).detail?.to;
     if (!ZONE_IDS.includes(to)) return;
     const start = teleport.choose(to);
@@ -597,48 +687,51 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dataset.worldIntro = next;
     container.dispatchEvent(new CustomEvent("tqa:intro", { bubbles: false, detail: { state: next } }));
   }
-  function removeIntroUI() {
-    if (!introUI) return;
-    introUI.skip.removeEventListener("click", skipIntro);
-    introUI.skip.remove();
-    for (const bar of introUI.bars) bar.remove();
-    introUI.fade.remove();
-    introUI = undefined;
+  function removeCinematicUI() {
+    if (!cinematicUI) return;
+    cinematicUI.skip.removeEventListener("click", skipCinematic);
+    cinematicUI.skip.remove();
+    for (const bar of cinematicUI.bars) bar.remove();
+    cinematicUI.fade.remove();
+    cinematicUI = undefined;
   }
-  function applyIntro(pose: IntroFrame) {
+  function applyCinematicPose(pose: IntroFrame, playing: boolean) {
     camera.position.copy(pose.position);
     camera.lookAt(pose.target);
     camera.fov = pose.fov;
     // The river overview is hundreds of metres above the gameplay camera.
-    camera.far = intro?.state === "done" ? gameplayFar : Math.max(gameplayFar, 2000);
+    camera.far = playing ? Math.max(gameplayFar, 2000) : gameplayFar;
     camera.updateProjectionMatrix();
     // Lead: boost on top of direction C's mist (B2-038), not the pass default.
     paper.setMist({ strength: Math.min(1, WORLD_DIRECTION.background.mist.strength + pose.mistBoost) });
     // Lead: world-scale fog (260 m) would dissolve the 460 m overview into blank paper; stretch it with
     // the camera-to-target distance during the flight and restore the directed distances at handoff.
     const { near, far } = WORLD_DIRECTION.background.fog;
-    const reach = intro?.state === "done" ? 0 : pose.position.distanceTo(pose.target);
+    const reach = playing ? pose.position.distanceTo(pose.target) : 0;
     paper.setFog({ near: Math.max(near, reach * 0.6), far: Math.max(far, reach * 1.8) });
-    if (introUI) {
-      for (const bar of introUI.bars) bar.style.height = `${pose.letterbox * 12}%`;
-      introUI.fade.style.opacity = String(pose.paperOpacity);
+    if (cinematicUI) {
+      for (const bar of cinematicUI.bars) bar.style.height = `${pose.letterbox * 12}%`;
+      cinematicUI.fade.style.opacity = String(pose.paperOpacity);
     }
+  }
+  function applyIntro(pose: IntroFrame) {
+    applyCinematicPose(pose, intro?.state !== "done");
     if (intro?.state === "done") {
       composed.setPreload(0);
       paper.setCorridor(null);
-      removeIntroUI();
+      removeCinematicUI();
       clear();
       gpu.domElement.focus({ preventScroll: true });
       interaction.update();
       publishIntro("done");
     }
   }
-  function skipIntro() {
-    if (intro?.inputLocked) applyIntro(intro.skip());
+  function skipCinematic() {
+    if (contextLost || disposed) return;
+    if (ending?.inputLocked) applyEnding(ending.skip());
+    else if (intro?.inputLocked) applyIntro(intro.skip());
   }
-  function startIntro() {
-    if (intro?.state !== "idle" || !canSimulate(state)) return;
-    clear();
+  function createCinematicUI(kind: "intro" | "ending") {
     const bars = ["top", "bottom"].map(edge => {
       const bar = document.createElement("div");
       bar.setAttribute("aria-hidden", "true");
@@ -653,12 +746,19 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.appendChild(fade);
     const skip = document.createElement("button");
     skip.type = "button";
-    skip.dataset.worldIntroSkip = "true";
+    if (kind === "intro") skip.dataset.worldIntroSkip = "true";
+    else skip.dataset.worldEndingSkip = "true";
     skip.textContent = WORLD_COPY[locale].skip;
     Object.assign(skip.style, { position: "absolute", bottom: "5.5rem", right: "1rem", zIndex: "3", color: PALETTE.ink, background: PALETTE.paper, padding: ".5rem 1rem", cursor: "pointer" });
-    skip.addEventListener("click", skipIntro);
+    skip.addEventListener("click", skipCinematic);
     container.appendChild(skip);
-    introUI = { skip, bars, fade };
+    cinematicUI = { skip, bars, fade };
+    return skip;
+  }
+  function startIntro() {
+    if (intro?.state !== "idle" || !canSimulate(state)) return;
+    clear();
+    const skip = createCinematicUI("intro");
     // The overview shows the first bends of the river: stream them before the first intro frame.
     composed.setPreload(INTRO_PRELOAD_M);
     composed.update(physics.position, 0);
@@ -669,6 +769,77 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (!active || active === document.body || active === gpu.domElement) skip.focus({ preventScroll: true });
     interaction.update();
     publishIntro("playing");
+  }
+  function publishEnding(next: "idle" | "playing" | "seen") {
+    if (container.dataset.worldEnding === next) return;
+    container.dataset.worldEnding = next;
+    container.dispatchEvent(new CustomEvent("tqa:ending", { bubbles: false, detail: { state: next } }));
+  }
+  function startEnding() {
+    if (ending || story.endingState !== "ready" || cinematicLocked() || teleport.inputLocked) return;
+    parkVehicle();
+    clear();
+    const postcard = ZONES.find(zone => zone.id === "last-postcard")!;
+    const landing = pathPointAt(postcard.t - 0.003);
+    landing.y = surfaceHeight(landing.x, landing.z) + HEIGHT + 0.02;
+    // Match the orbit camera at the dry final landing, facing Last Postcard.
+    yaw = Math.atan2(landing.x - postcard.position.x, landing.z - postcard.position.z);
+    zoom = arm = INITIAL_ZOOM;
+    const endPosition = landing.clone().add(new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH)).multiplyScalar(zoom));
+    endPosition.y = Math.max(endPosition.y, surfaceHeight(endPosition.x, endPosition.z) + CAMERA_CLEARANCE);
+    ending = createEndingController({
+      bench: secretTargets.find(target => target.id === "unwritten-page")!.root.position,
+      gameplayPose: { position: endPosition, target: landing, fov: 55 },
+      reducedMotion: motionPreference?.matches ?? false,
+    });
+    story = storyReducer(story, { type: "startEnding" });
+    createCinematicUI("ending").focus({ preventScroll: true });
+    composed.setPreload(INTRO_PRELOAD_M);
+    publishEnding("playing");
+    applyEnding(ending.start());
+    interaction.update();
+  }
+  function applyEnding(pose: EndingFrame) {
+    if (!ending) return;
+    sunsetBoost = pose.sunsetBoost;
+    applyCinematicPose(pose, ending.inputLocked);
+    if (ending.state !== "done") return;
+    const position = ending.finalPlayerPosition;
+    position.y = surfaceHeight(position.x, position.z) + HEIGHT + 0.02;
+    composed.setPreload(0);
+    composed.update(position, 0);
+    physics.teleport(position);
+    state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
+    player.position.copy(physics.position);
+    story = storyReducer(story, { type: "finishEnding", valid: true });
+    clear();
+    removeCinematicUI();
+    gpu.domElement.focus({ preventScroll: true });
+    publishEnding("seen");
+    interaction.update();
+  }
+  function updateEndingGrade() {
+    if (!sunsetBoost) return;
+    const base = timeOfDayAt(nearestPath(physics.position.x, physics.position.z).t);
+    const tod = base + (1 - base) * sunsetBoost;
+    const grade = directGrade(lightingAt(tod), tod);
+    paper.setGrade(grade);
+    scene.fog?.color.copy(grade.fogColor);
+    sun.color.copy(grade.sunColor);
+    sun.intensity = grade.sunIntensity;
+    sun.position.copy(physics.position).addScaledVector(grade.sunDirection, 50);
+    // Compose owns these scene resources; update their existing uniforms/lights.
+    const sky = scene.getObjectByName("position-graded-sky") as Mesh | undefined;
+    if (sky) {
+      const uniforms = (sky.material as ShaderMaterial).uniforms;
+      uniforms.skyTop!.value.copy(grade.skyTop);
+      uniforms.skyHorizon!.value.copy(grade.skyHorizon);
+    }
+    for (const light of scene.children) if (light instanceof HemisphereLight) {
+      light.color.copy(grade.hemiSky);
+      light.groundColor.copy(grade.hemiGround);
+      light.intensity = grade.hemiIntensity;
+    }
   }
   function resize() {
     const width = Math.max(1, container.clientWidth);
@@ -706,7 +877,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const wasPlaying = intro?.inputLocked;
     startIntro();
     if (cameraEnabled()) yaw = wrapYaw(yaw + (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) * KEY_YAW_SPEED * dt);
-    if (canSimulate(state) && !introPending() && !teleport.inputLocked) {
+    if (canSimulate(state) && !cinematicLocked() && !teleport.inputLocked) {
       const plan = limitSteps(accumulator, last ? (now - last) / 1000 : 0);
       accumulator = plan.remainder;
       for (let i = 0; i < plan.steps; i++) {
@@ -717,7 +888,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       }
     }
     // The chooser's overlay pause must not stall travel. Blur/hidden/error still suspend it.
-    if (!introPending() && state.appMode === "world" && !state.pauseReasons.has("windowBlur") && !state.pauseReasons.has("error")) updateTeleport(dt);
+    if (!cinematicLocked() && state.appMode === "world" && !state.pauseReasons.has("windowBlur") && !state.pauseReasons.has("error")) updateTeleport(dt);
     last = now;
     lastPlayer.copy(player.position);
     player.position.copy(physics.position);
@@ -727,9 +898,14 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     publishVehicle(dt);
     if (intro?.inputLocked) {
       if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
+    } else if (ending?.inputLocked) {
+      if (canSimulate(state)) applyEnding(ending.tick(dt));
     } else updateCamera(dt);
     interaction.update();
     composed.update(physics.position, 0);
+    updateEndingGrade();
+    if (canSimulate(state) && !motionPreference?.matches) chimeTime += dt;
+    chimes.rotation.z = motionPreference?.matches ? 0 : Math.sin(chimeTime * 1.4) * 0.045;
     paper.render(scene, camera);
     if (metrics) {
       if (!metricStart) metricStart = now;
@@ -785,7 +961,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   return () => {
     if (disposed) return;
     disposed = true;
-    removeIntroUI();
+    removeCinematicUI();
+    clearTimeout(feedbackTimer);
+    feedback.remove();
+    delete container.dataset.worldEnding;
     delete container.dataset.worldIntro;
     container.removeEventListener(TELEPORT_TO_EVENT, teleportTo);
     container.removeEventListener(TELEPORT_CANCEL_EVENT, cancelTeleport);
@@ -826,6 +1005,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     composed.dispose();
     physics.dispose();
     character.dispose();
+    for (const { root } of secretTargets) {
+      disposeLandmark(root);
+      root.removeFromParent();
+    }
     for (const { mesh } of props) {
       mesh.geometry.dispose();
       for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();

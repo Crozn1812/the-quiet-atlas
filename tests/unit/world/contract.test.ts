@@ -131,6 +131,7 @@ it.each([
   const unmount = await mountWorld(container as unknown as HTMLElement, { collision, debug: true, locale });
   try {
     expect(container.dataset.worldVehicle).toBe("parked");
+    expect(container.dataset.worldEnding).toBe("idle");
     const tick = (now: number) => harness.next!(now);
     tick(100);
     const camera = harness.camera as import("three").Camera;
@@ -295,6 +296,7 @@ it.each([
   expect((container as unknown as HTMLElement).__tqaPerf).toBeUndefined();
   expect(container.dataset.worldPaused).toBeUndefined();
   expect(container.dataset.worldVehicle).toBeUndefined();
+  expect(container.dataset.worldEnding).toBeUndefined();
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
   expect(container.dataset.worldLocale).toBeUndefined();
   const count = states.length;

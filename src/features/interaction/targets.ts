@@ -8,7 +8,7 @@ export const ZONE_IDS = ["first-light", "roots", "workshop", "milestones", "old-
 export type ZoneId = typeof ZONE_IDS[number];
 export interface InteractionTarget {
   id: string;
-  kind?: "content" | "teleport" | "vehicle";
+  kind?: "content" | "teleport" | "vehicle" | "secret";
   zoneId: ZoneId;
   position: Position;
 }
@@ -44,6 +44,7 @@ export function createInteraction(options: {
   visit: (zoneId: ZoneId) => void;
   chooseTeleport?: (from: ZoneId) => boolean;
   ride?: () => boolean;
+  discover?: (id: string) => boolean;
   hint?: () => string | undefined;
 }) {
   const { container } = options;
@@ -65,6 +66,7 @@ export function createInteraction(options: {
   }
   function open(target: InteractionTarget | null) {
     if (!target) return false;
+    if (target.kind === "secret") return options.discover?.(target.id) ?? false;
     if (target.kind === "vehicle") return options.ride?.() ?? false;
     if (target.kind === "teleport") {
       if (options.chooseTeleport?.(target.zoneId) === false) return false;
