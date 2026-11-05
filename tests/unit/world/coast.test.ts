@@ -25,7 +25,9 @@ describe("organic coast", () => {
 
   it("has at least 8 m shoreline variation across 40 zero crossings", () => {
     const shore = Array.from({ length: 40 }, (_, i) => {
-      const x = -390 + i * 20;
+      // B2-152b moves the ridge west and bay east. Probe the seeded beaches
+      // outside both footprints; coast-shape covers the curved bay's transects.
+      const x = i < 20 ? -650 + i * 20 : 430 + (i - 20) * 20;
       let sea = -1040;
       let land = sea;
       // Find the outermost crossing, including the protected Last Postcard headland.
@@ -40,10 +42,7 @@ describe("organic coast", () => {
       }
       const z = (sea + land) / 2;
       expect(Math.abs(worldHeight(x, z))).toBeLessThan(1e-6);
-      // B2-152 adds an eastern mountain shoulder (x=50..300), whose long toe
-      // replaces the old flat beach. Retain the 32 m shelf gate on the beach;
-      // the coastal-strip continuity gate below still covers the mountain too.
-      if (x <= -50 || x >= 300) expect(worldHeight(x, z - 32), `x=${x}, shore z=${z}`).toBeLessThanOrEqual(-2.49);
+      expect(worldHeight(x, z - 32), `x=${x}, shore z=${z}`).toBeLessThanOrEqual(-2.49);
       return z;
     });
     const mean = shore.reduce((sum, z) => sum + z, 0) / shore.length;

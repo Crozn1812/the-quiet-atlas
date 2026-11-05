@@ -6,19 +6,25 @@ import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { PATH_WIDTH, worldHeight } from "../../../src/features/world/terrain/height";
 import { placeZoneScenes } from "../../../src/features/world/zones";
 
+function rightOf(forward: { x: number; z: number }) {
+  return { x: -forward.z, z: forward.x };
+}
+
 function station(t: number) {
   const point = pathPointAt(t);
   const forward = pathPointAt(Math.min(1, t + 0.00001))
     .sub(pathPointAt(Math.max(0, t - 0.00001))).normalize();
-  return (left: number) => ({ x: point.x - forward.z * left, z: point.z + forward.x * left });
+  const right = rightOf(forward);
+  return (left: number) => ({ x: point.x - right.x * left, z: point.z - right.z * left });
 }
 
 // Parallel transects across the whole inlet, from its northern lip to the cape.
 const start = pathPointAt(0.82);
 const forward = pathPointAt(1).sub(start).normalize();
 function bayPoint(along: number, right: number) {
-  return { x: start.x + forward.x * along + forward.z * right,
-    z: start.z + forward.z * along - forward.x * right };
+  const side = rightOf(forward);
+  return { x: start.x + forward.x * along + side.x * right,
+    z: start.z + forward.z * along + side.z * right };
 }
 
 function waterline(along: number) {
@@ -43,6 +49,10 @@ function waterline(along: number) {
 }
 
 describe("coastal mountain and curved bay", () => {
+  it("puts right at +X when walking toward -Z in the Y-up frame", () => {
+    expect(rightOf({ x: 0, z: -1 })).toEqual({ x: 1, z: 0 });
+  });
+
   it.each([0.85, 0.9, 0.95])("puts the mountain to the left and sea to the right at t=%s", t => {
     const at = station(t);
     const road = at(0), mountain = at(100), sea = at(-60);
@@ -75,7 +85,9 @@ describe("coastal mountain and curved bay", () => {
   });
 
   it("recesses the middle waterline at least 25 m inland of the chord across five shore points", () => {
-    const shore = [-15, 30, 75, 120, 165].map(waterline);
+    // The corrected bay's southern lip must precede the existing estuary/sea.
+    const alongs = [-40, 5, 50, 95, 140];
+    const shore = alongs.map(waterline);
     const first = shore[0]!, last = shore[4]!;
     const chordSlope = (last - first) / 180;
     const middleRecess = ((first + last) / 2 - shore[2]!) / Math.hypot(1, chordSlope);
@@ -88,7 +100,7 @@ describe("coastal mountain and curved bay", () => {
     for (let i = 0; i < shore.length; i++) {
       let previous = 0;
       for (let offshore = 2; offshore <= 64; offshore += 2) {
-        const p = bayPoint(-15 + i * 45, shore[i]! + offshore);
+        const p = bayPoint(alongs[i]!, shore[i]! + offshore);
         const height = worldHeight(p.x, p.z);
         expect(height).toBeLessThanOrEqual(previous + 1e-9);
         expect((previous - height) / 2).toBeLessThanOrEqual(0.2);
@@ -113,10 +125,12 @@ describe("coastal mountain and curved bay", () => {
     expect(points.map(p => worldHeight(p.x, p.z))).toEqual(first);
   });
 
-  it("keeps the far ridge continuous where the nearest walking segment changes", () => {
-    // This point used to jump between projections onto the bend and route end.
-    for (let z = -867; z <= -864; z += 0.05) {
-      expect(Math.abs(worldHeight(202, z + 0.05) - worldHeight(202, z))).toBeLessThan(0.06);
+  it("keeps the relocated far ridge continuous across the walking bend", () => {
+    // The old x=202 probe is now in the bay; follow the western ridge instead.
+    for (let along = 80; along <= 140; along += 0.05) {
+      const point = bayPoint(along, -150), next = bayPoint(along + 0.05, -150);
+      expect(worldHeight(point.x, point.z)).toBeGreaterThan(5);
+      expect(Math.abs(worldHeight(next.x, next.z) - worldHeight(point.x, point.z))).toBeLessThan(0.06);
     }
   });
 

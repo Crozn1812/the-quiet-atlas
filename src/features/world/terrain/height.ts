@@ -22,7 +22,8 @@ function coastCoordinates(x: number, z: number) {
   const dz = z - coastStart.z;
   return {
     along: dx * coastForward.x + dz * coastForward.z,
-    right: dx * coastForward.z - dz * coastForward.x,
+    // With Y up, walking toward -Z puts +X on the right.
+    right: -dx * coastForward.z + dz * coastForward.x,
   };
 }
 
@@ -132,17 +133,19 @@ function coastalRelief(x: number, z: number, land: number, river: ReturnType<typ
   // mid-bay and returns to a low cape, rather than adding noise to a straight line.
   // Reserve the channel in distance space, so its fade is finished before the
   // waterline: blending tall valley ground directly into water steepens the beach.
-  const inland = Math.max(Math.hypot((along - 75) * 160 / 130, right - 190) - 160,
+  // Move the ellipse upstream and toward the road to leave the estuary open.
+  const inland = Math.max(Math.hypot((along - 65) * 160 / 145, right - 180) - 160,
     bankRadius + 12 - river.distance);
   const bay = (1 - smoothstep(0, 32, inland)) * smoothstep(bankRadius, bankRadius + 12, river.distance);
   land += Math.min(0, beachHeight(inland) - land) * bay;
 
   // Start 25 m beyond the 3 m strip; ease to a rounded 45 m ridge at 110 m.
   // End caps extend beyond the route so the final station has a full shoulder.
+  // Use the gentler of the road/river ramps, avoiding a steep product at the bank.
   const left = coastRoadRight(along) - right;
-  const ridge = smoothstep(26.5, 110, left) * (1 - smoothstep(130, 240, left))
-    * smoothstep(-60, 0, along) * (1 - smoothstep(200, 280, along))
-    * smoothstep(18, 32, river.distance);
+  const ridge = Math.min(smoothstep(26.5, 110, left), smoothstep(32, 102, river.distance))
+    * (1 - smoothstep(130, 240, left))
+    * smoothstep(-20, 0, along) * (1 - smoothstep(220, 300, along));
   return land + Math.max(0, riverLevel(coastStart.z + coastForward.z * along) + 45 - land) * ridge;
 }
 
@@ -152,11 +155,14 @@ export function worldHeight(x: number, z: number): number {
   const river = nearestRiver(x, z);
   const path = nearestPath(x, z);
   const coastal = coastWeight(z);
+  // The left shoulder crosses the stream: add 1 m of bank/approach run here,
+  // fading out before the estuary so its bed and shoreline remain unchanged.
+  const coastalBankEase = smoothstep(650, 710, -z) * (1 - smoothstep(810, 850, -z));
   // Keep the compact spring hollow, then extend the flat bed 1 m past BOTH
   // ribbon edges along the entire reach, including the 60 m mouth flare.
   const widened = smoothstep(4, 12, river.t * streamLength);
   const bedRadius = widened * (riverWidthAt(river.t) / 2 + 1);
-  const bankRadius = Math.max(6 + 2 * widened, bedRadius + 2);
+  const bankRadius = Math.max(6 + 2 * widened + coastalBankEase, bedRadius + 2);
   const channel = -1.1 + 1.2 * smoothstep(bedRadius, bankRadius, river.distance);
   // B2-031: a readable valley (taste §5.2) — hills rise to ~7–12 m beyond the bank instead of 3–4 m.
   const hills = valleyHills(x, z, river.distance);
@@ -196,7 +202,7 @@ export function worldHeight(x: number, z: number): number {
   // would force a cliff even if landmark relief itself started farther away.
   const pathHeight = Math.max(0.4, riverLevel(path.z) + coastWeight(path.z) * pathOffset);
   // Keep the 3 m walking strip flat, with broader, gentle beach approaches.
-  const pathBlend = 1 - smoothstep(PATH_WIDTH / 2, 4 + 12 * (1 - coastal), path.distance);
+  const pathBlend = 1 - smoothstep(PATH_WIDTH / 2, 4 + 12 * (1 - coastal) + coastalBankEase, path.distance);
   let height = pathBlend === 1 ? pathHeight : land + (pathHeight - land) * pathBlend;
   // Extra dry clearance has zero influence at/below the old waterline, so
   // raising the walking surface cannot move any shoreline zero crossing.
