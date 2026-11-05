@@ -1,15 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { Box3, Matrix4, Mesh, PerspectiveCamera, Scene, Vector3 } from "three";
+import { Matrix4, Mesh, PerspectiveCamera, Scene, Vector3 } from "three";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { ZONE_IDS } from "../../../src/features/interaction/targets";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { placeZoneScenes, zoneFoliageBounds, createZoneEntryTracker } from "../../../src/features/world/zones";
-import { createWorldScene } from "../../../src/features/world/scene/compose";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
-import { createController } from "../../../src/features/world/rapier";
-import { scatterTile } from "../../../src/features/world/foliage/scatter";
-import { scatterGround } from "../../../src/features/world/foliage/ground";
-import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
 // Builds all eight real scenes plus the composer; under a parallel full suite this exceeds the 5 s default
 // (5.04 s observed). Harness limit only, like the contract test (L4-010) — not a performance gate.
 vi.setConfig({ testTimeout: 30_000 });

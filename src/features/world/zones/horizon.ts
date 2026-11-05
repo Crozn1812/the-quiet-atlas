@@ -48,7 +48,7 @@ function block([width, height, depth]: Point, center: Point): BufferGeometry {
 }
 
 /** Check the whole swept footprint, including its interior, before allocating scene resources. */
-function dryFootprint(context: ZoneSceneContext, [x, z]: Site, rx: number, rz: number, _top = 0): boolean {
+function dryFootprint(context: ZoneSceneContext, [x, z]: Site, rx: number, rz: number): boolean {
   const nx = Math.ceil(rx * 2 / 0.35), nz = Math.ceil(rz * 2 / 0.35);
   for (let i = 0; i <= nx; i++) {
     for (let j = 0; j <= nz; j++) {
@@ -62,8 +62,8 @@ function dryFootprint(context: ZoneSceneContext, [x, z]: Site, rx: number, rz: n
   return true;
 }
 
-function siteFor(context: ZoneSceneContext, sites: readonly Site[], rx: number, rz: number, top: number): Site {
-  const site = sites.find(site => dryFootprint(context, site, rx, rz, top));
+function siteFor(context: ZoneSceneContext, sites: readonly Site[], rx: number, rz: number): Site {
+  const site = sites.find(site => dryFootprint(context, site, rx, rz));
   if (!site) throw new RangeError("Horizon requires a dry, path-clear overlook and two distant turbine sites.");
   return site;
 }
@@ -141,12 +141,12 @@ function builder(root: Group, context: ZoneSceneContext) {
 /** The viewer and seat face local +X (seaward). No text, glow, or moving foreground props. */
 export const createHorizonScene: ZoneSceneFactory = context => {
   // Keep the viewer 2.05 m from the corridor edge, within E range even at ground level.
-  const viewer = siteFor(context, [0, 2, -2, 4, -4].map(z => [4.65, z] as const), 0.6, 0.5, 1.6);
-  const bench = siteFor(context, [[6.4, viewer[1] - 3], [6.4, viewer[1] + 3]], 0.45, 1.15, 0.6);
-  const rail = siteFor(context, [[8.4, viewer[1] + 1], [8.4, viewer[1] - 1]], 0.2, 2, 1.15);
+  const viewer = siteFor(context, [0, 2, -2, 4, -4].map(z => [4.65, z] as const), 0.6, 0.5);
+  const bench = siteFor(context, [[6.4, viewer[1] - 3], [6.4, viewer[1] + 3]], 0.45, 1.15);
+  const rail = siteFor(context, [[8.4, viewer[1] + 1], [8.4, viewer[1] - 1]], 0.2, 2);
   const turbines = [
-    siteFor(context, [[19.5, 9.5], [18.5, 12], [21, 4]], 2.6, 2.6, 9.5),
-    siteFor(context, [[23, -7], [22, -11], [21, -14]], 2.6, 2.6, 9),
+    siteFor(context, [[19.5, 9.5], [18.5, 12], [21, 4]], 2.6, 2.6),
+    siteFor(context, [[23, -7], [22, -11], [21, -14]], 2.6, 2.6),
   ];
   const group = new Group();
   group.name = "horizon-overlook";
