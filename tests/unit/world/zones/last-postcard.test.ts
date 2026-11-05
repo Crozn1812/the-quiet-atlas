@@ -5,6 +5,8 @@ import { disposeRampGradients } from "../../../../src/features/world/materials/r
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
 import { PATH_WIDTH, waterLevelAt } from "../../../../src/features/world/terrain/height";
 import { nearestPath } from "../../../../src/features/world/terrain/samples";
+import * as rockKit from "../../../../src/features/world/props/rocks";
+import * as woodKit from "../../../../src/features/world/props/wood";
 import { placeZoneScenes } from "../../../../src/features/world/zones";
 import { createLastPostcardScene } from "../../../../src/features/world/zones/last-postcard";
 import {
@@ -70,6 +72,21 @@ function vertices(scene: ZoneScene): Vector3[] {
   return meshes(scene.group).flatMap(meshVertices);
 }
 
+/** A palette blend with the zone's 0.92–1 paper wash, in linear colour space. */
+function paletteBlend(color: Color, a: Color, b = a): boolean {
+  const start = new Vector3(a.r, a.g, a.b), delta = new Vector3(b.r - a.r, b.g - a.g, b.b - a.b);
+  const point = new Vector3(color.r, color.g, color.b);
+  if (delta.lengthSq() < 1e-12) {
+    const wash = point.dot(start) / start.lengthSq();
+    return wash >= 0.9199 && wash <= 1.0001 && point.distanceTo(start.multiplyScalar(wash)) < 1e-6;
+  }
+  const aa = start.lengthSq(), ab = start.dot(delta), bb = delta.lengthSq(), det = aa * bb - ab * ab;
+  const wash = (point.dot(start) * bb - point.dot(delta) * ab) / det;
+  const blend = (point.dot(delta) * aa - point.dot(start) * ab) / det;
+  return wash >= 0.9199 && wash <= 1.0001 && blend >= -1e-6 && blend <= wash + 1e-6
+    && point.distanceTo(start.multiplyScalar(wash).addScaledVector(delta, blend)) < 1e-6;
+}
+
 /** Include collider interiors so a shoreline/path cutting through a box cannot pass on corner checks alone. */
 function expectSafe(scene: ZoneScene, context: ZoneSceneContext) {
   const boxes = scene.colliders.map(collider => new Box3().setFromCenterAndSize(collider.center, collider.size));
@@ -83,13 +100,17 @@ function expectSafe(scene: ZoneScene, context: ZoneSceneContext) {
     expect(context.onPath(point.x, point.z)).toBe(false);
     expect(context.underWater(point.x, point.z)).toBe(false);
     expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
-    const covered = boxes.some(box => box.clone().expandByScalar(1e-5).containsPoint(point));
+    const covered = boxes.some(box => {
+      const buried = box.clone().expandByScalar(1e-5);
+      buried.min.y -= 0.06;
+      return buried.containsPoint(point);
+    });
     // Soft shore grass is walk-through; all furniture, rocks and fence remain boxed.
     if (!covered) {
       expect(grassPigment, `unboxed solid vertex ${point.toArray()}`).toBe(true);
       expect(point.y - context.heightAt(point.x, point.z)).toBeLessThanOrEqual(0.8);
     }
-    expect(point.y).toBeGreaterThanOrEqual(context.heightAt(point.x, point.z) - 1e-5);
+    expect(point.y).toBeGreaterThanOrEqual(context.heightAt(point.x, point.z) - 0.06001);
   }
   for (const collider of scene.colliders) {
     expect(collider.yaw ?? 0).toBe(0);
@@ -157,30 +178,35 @@ describe("last-postcard shore scene", () => {
       }
     }
     expect(triangles).toBeGreaterThan(0);
+    expect(triangles).toBeLessThanOrEqual(1670 * 1.5);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     expect(new Set(meshes(scene.group).map(mesh => mesh.material)).size).toBe(drawCalls);
     console.info(`last-postcard: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
-  it("groups the enlarged mailbox, rack and 3.2 m lamp on one 3 by 2 m timber platform", () => {
+  it("keeps the mailbox, rack and 3.2 m lamp on the original footprint with a buried stone footing", () => {
     const { scene } = create();
     const [platform, mailbox, rack, lamp] = scene.colliders;
     expect(platform!.size.toArray()).toEqual([2, 0.12, 3]);
     const deckTop = platform!.center.y + platform!.size.y / 2;
-    const wood = meshes(scene.group).find(mesh => mesh.name.endsWith("wood"))!;
-    const platformBounds = new Box3().setFromCenterAndSize(platform!.center, platform!.size).expandByScalar(1e-5);
-    const groundBoards = meshVertices(wood).filter(point => platformBounds.containsPoint(point));
-    const deckBounds = new Box3().setFromPoints(groundBoards);
-    expect(deckBounds.getSize(new Vector3()).toArray()).toEqual([2, expect.closeTo(0.12, 5), 3]);
+    const paper = meshes(scene.group).find(mesh => mesh.name.endsWith("paper"))!;
+    const groundStones = meshVertices(paper).filter(point => point.y <= deckTop + 1e-5
+      && Math.abs(point.x - platform!.center.x) <= 1.00001 && Math.abs(point.z - platform!.center.z) <= 1.50001);
+    const deckBounds = new Box3().setFromPoints(groundStones);
+    expect(deckBounds.getSize(new Vector3()).toArray()).toEqual([
+      expect.closeTo(2, 5), expect.closeTo(0.17, 5), expect.closeTo(3, 5),
+    ]);
+    expect(deckBounds.min.y).toBeCloseTo(-0.05, 6);
     const allPoints = vertices(scene);
     expect(Math.max(...allPoints.map(point => point.y)) - deckTop).toBeCloseTo(3.2, 5);
     expect(lamp!.size.y).toBeCloseTo(3.2, 5);
     const dusk = meshes(scene.group).find(mesh => mesh.name.endsWith("dusk"))!;
     expect(dusk.geometry.boundingBox!.getSize(new Vector3()).z).toBeCloseTo(0.35, 6);
     const mailboxBounds = new Box3().setFromCenterAndSize(mailbox!.center, mailbox!.size);
-    const paper = meshes(scene.group).find(mesh => mesh.name.endsWith("paper"))!;
-    const barrel = new Box3().setFromPoints(meshVertices(paper).filter(point => mailboxBounds.containsPoint(point)));
+    const barrel = new Box3().setFromPoints(meshVertices(paper).filter((point, i) => mailboxBounds.containsPoint(point)
+      && paletteBlend(new Color().fromBufferAttribute(paper.geometry.getAttribute("color"), i).multiply(paper.material.color),
+        new Color(PALETTE.paper).lerp(new Color(PALETTE.rock), 0.58))));
     expect(barrel.getSize(new Vector3()).z).toBeCloseTo(0.96 * 1.3, 5);
     expect(barrel.getSize(new Vector3()).y).toBeCloseTo(0.68 * 1.3, 5);
     for (const prop of [mailbox!, rack!, lamp!]) {
@@ -188,11 +214,11 @@ describe("last-postcard shore scene", () => {
     }
   });
 
-  it("uses rockDark trim for roughly a tenth of the furniture surface, including the visible mailbox slot", () => {
+  it("limits dark trim to small fittings and keeps the visible mailbox slot", () => {
     const { scene } = create();
     let totalArea = 0, inkArea = 0;
     for (const mesh of meshes(scene.group)) {
-      // The round-two ink ratio belongs to the original platform furniture, not the new beach.
+      // The hewn wood posts replace the old dark pillars; only fittings retain this pigment.
       const platform = scene.colliders[0]!;
       const points = meshVertices(mesh).filter(point =>
         Math.abs(point.x - platform.center.x) <= platform.size.x / 2 + 1e-5
@@ -204,8 +230,8 @@ describe("last-postcard shore scene", () => {
         if (mesh.name.endsWith("ink")) inkArea += area;
       }
     }
-    expect(inkArea / totalArea).toBeGreaterThanOrEqual(0.08);
-    expect(inkArea / totalArea).toBeLessThanOrEqual(0.14);
+    expect(inkArea / totalArea).toBeGreaterThanOrEqual(0.01);
+    expect(inkArea / totalArea).toBeLessThanOrEqual(0.04);
     const slotHeight = 0.12 + 1.69 * 1.3;
     const origin = new Vector3(PATH_CLEARANCE, slotHeight, -0.45);
     scene.group.updateMatrixWorld(true);
@@ -260,6 +286,62 @@ describe("last-postcard shore scene", () => {
       .not.toEqual(meshes(first.group)[0]!.geometry.getAttribute("color").array);
   });
 
+  it("uses the shared stone, boulder, hewn-post and plank kits within per-prop budgets", () => {
+    const rocks = vi.spyOn(rockKit, "createRockGeometry");
+    const posts = vi.spyOn(woodKit, "createPostGeometry");
+    const planks = vi.spyOn(woodKit, "createPlankGeometry");
+    const { scene } = create();
+    expect(rocks.mock.calls.filter(([kind]) => kind === "stone")).toHaveLength(8);
+    expect(rocks.mock.calls.filter(([kind]) => kind === "boulder")).toHaveLength(3);
+    expect(posts.mock.calls).toHaveLength(9);
+    expect(planks.mock.calls).toHaveLength(12);
+    for (const spy of [rocks, posts, planks]) {
+      for (const result of spy.mock.results) {
+        expect(result.type).toBe("return");
+        expect(result.value.getAttribute("position").count / 3).toBeLessThanOrEqual(400);
+      }
+    }
+    const counts = scene.colliders.map(() => 0);
+    for (const mesh of meshes(scene.group)) {
+      const points = meshVertices(mesh);
+      for (let i = 0; i < points.length; i += 3) {
+        const center = points[i]!.clone().add(points[i + 1]!).add(points[i + 2]!).divideScalar(3);
+        const owner = scene.colliders.findIndex(collider => {
+          const box = new Box3().setFromCenterAndSize(collider.center, collider.size).expandByScalar(1e-5);
+          box.min.y -= 0.06;
+          return box.containsPoint(center);
+        });
+        if (owner >= 0) counts[owner]!++;
+      }
+    }
+    expect(Math.max(...counts)).toBeLessThanOrEqual(2000);
+    console.info(`last-postcard prop clusters: ${counts.join(", ")} triangles`);
+  });
+
+  it("preserves all eight original collider boxes and stays within 1.5x triangles across kit variants", () => {
+    const expected = [
+      [[5.1, 0.06, 0], [2, 0.12, 3]],
+      [[4.75, 1.3875, -0.45], [1.28, 2.535, 1.4]],
+      [[5.4, 1.09, 0.8], [1.3, 1.94, 1.3]],
+      [[5.52, 1.72, -1.1], [1.16, 3.2, 0.4]],
+      [[7.5, 0.45, 0.25], [0.28, 0.9, 3.4]],
+      [[6.75, 0.325, -2.7], [1.44, 0.65, 1.1]],
+      [[4.65, 0.24, 2.9], [1.1, 0.48, 0.9]],
+      [[8.1, 0.275, 2.75], [1.2, 0.55, 0.96]],
+    ];
+    const counts: number[] = [];
+    for (const seed of [0, 1, 2, 108, 9301, 9302, 0xffffffff]) {
+      const { scene } = create({ seed });
+      expect(scene.colliders.map(collider => [collider.center, collider.size]
+        .map(vector => vector.toArray().map(value => Number(value.toFixed(6)))))).toEqual(expected);
+      const count = meshes(scene.group).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+      expect(count).toBeLessThanOrEqual(1670 * 1.5);
+      expect(meshes(scene.group)).toHaveLength(8);
+      counts.push(count);
+    }
+    console.info(`last-postcard kit variants: ${Math.min(...counts)}–${Math.max(...counts)} triangles (before 1670)`);
+  });
+
   const terrains: { name: string; context: Partial<ZoneSceneContext> }[] = [
     { name: "flat dry bank", context: {} },
     { name: "gentle slope", context: { heightAt: (x, z) => x * 0.04 - z * 0.02 } },
@@ -281,11 +363,11 @@ describe("last-postcard shore scene", () => {
       expectSafe(scene, context);
       for (let i = 0; i < 80; i++) scene.update?.(0.1, false);
       expectSafe(scene, context);
-      // The shared platform touches the terrain; every prop starts on its level top.
+      // The lower course sinks into terrain; every furniture collider keeps its original level top.
       const points = vertices(scene);
       const platform = scene.colliders[0]!;
       const deckTop = platform.center.y + platform.size.y / 2;
-      expect(points.filter(point => Math.abs(point.y - context.heightAt(point.x, point.z)) < 1e-5).length)
+      expect(points.filter(point => Math.abs(point.y - context.heightAt(point.x, point.z) + 0.05) < 1e-5).length)
         .toBeGreaterThanOrEqual(4);
       for (const collider of scene.colliders.slice(1, 4)) {
         expect(collider.center.y - collider.size.y / 2).toBeCloseTo(deckTop, 6);
@@ -297,7 +379,7 @@ describe("last-postcard shore scene", () => {
     });
   }
 
-  it("frames the original platform with three rocks, a low two-rail fence and three grass clumps", () => {
+  it("frames the stone footing with three boulders, a low fence and dry grass at their feet", () => {
     const { scene, context } = create();
     expect(scene.colliders).toHaveLength(8);
     const [fence, ...rocks] = scene.colliders.slice(4);
@@ -309,8 +391,13 @@ describe("last-postcard shore scene", () => {
     }
     const grass = meshes(scene.group).filter(mesh => /forestLight|forestDeep/.test(mesh.name))
       .flatMap(meshVertices).filter(point => point.y <= 0.8);
-    expect(grass).toHaveLength(3 * 9 * 18);
-    expect(grass.some(point => Math.abs(point.y - context.heightAt(point.x, point.z)) < 1e-5)).toBe(true);
+    expect(grass).toHaveLength((3 * 7 + 3 * 3 + 3) * 18);
+    expect(grass.some(point => Math.abs(point.y - context.heightAt(point.x, point.z) + 0.04) < 1e-5)).toBe(true);
+    for (const rock of rocks) {
+      const points = vertices(scene).filter(point => Math.abs(point.x - rock.center.x) < rock.size.x / 2
+        && Math.abs(point.z - rock.center.z) < rock.size.z / 2);
+      expect(Math.min(...points.map(point => point.y))).toBeCloseTo(-0.04, 6);
+    }
     expectSafe(scene, context);
   });
 
@@ -334,16 +421,48 @@ describe("last-postcard shore scene", () => {
         return ground;
       };
       for (const point of vertices(scene)) {
-        expect(point.y).toBeGreaterThanOrEqual(groundAt(point) - 1e-4);
+        expect(point.y).toBeGreaterThanOrEqual(groundAt(point) - 0.0601);
       }
       const grass = meshes(scene.group).filter(mesh => /forestLight|forestDeep/.test(mesh.name))
         .flatMap(meshVertices).filter(point => point.y - groundAt(point) <= 0.8);
-      expect(grass).toHaveLength(3 * 9 * 18);
+      expect(grass).toHaveLength((3 * 7 + 3 * 3 + 3) * 18);
       console.info(`last-postcard real terrain: interaction ${scene.target.position.toArray().join(", ")}`);
     } finally {
       zones.forEach(zone => zone.dispose());
     }
   });
+
+  it("keeps the High world's triangle increase below 25% with the zone included", async () => {
+    const { InstancedMesh, Scene } = await import("three");
+    const { createWorldScene } = await import("../../../../src/features/world/scene/compose");
+    const { createMeshPhysics } = await import("../../../../src/features/world/scene/mesh-physics");
+    const { pathPointAt } = await import("../../../../src/features/world/layout/path");
+    const { zoneFoliageBounds } = await import("../../../../src/features/world/zones");
+    const { placeDressing } = await import("../../../../src/features/world/dressing");
+    const { createFarLandscape } = await import("../../../../src/features/world/scene/far-landscape");
+    const scene = new Scene(), zones = placeZoneScenes(surfaceHeight);
+    const dressing = placeDressing(), far = createFarLandscape();
+    scene.add(...zones.map(zone => zone.group), ...dressing.groups, far.mesh);
+    const composed = createWorldScene({ ...createMeshPhysics(), scene, quality: "High", zoneBounds: zoneFoliageBounds(zones) });
+    try {
+      composed.update(pathPointAt(0.9), 0);
+      let after = 0;
+      scene.traverseVisible(object => {
+        if (object instanceof Mesh) after += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3
+          * (object instanceof InstancedMesh ? object.count : 1);
+      });
+      const currentZone = meshes(zones.find(zone => zone.zoneId === "last-postcard")!.group)
+        .reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+      const before = after - currentZone + 1670;
+      expect(after).toBeLessThanOrEqual(before * 1.25);
+      console.info(`last-postcard High world t=0.9: ${before} -> ${after} triangles; zone 1670 -> ${currentZone}`);
+    } finally {
+      composed.dispose();
+      dressing.dispose();
+      far.dispose();
+      zones.forEach(zone => zone.dispose());
+    }
+  }, 60_000);
 
   it("rejects an entirely flooded or obstructed bank before allocating GPU resources", () => {
     const materialDispose = vi.spyOn(MeshToonMaterial.prototype, "dispose");
@@ -353,7 +472,7 @@ describe("last-postcard shore scene", () => {
     expect(materialDispose).not.toHaveBeenCalled();
   });
 
-  it("uses natural palette pigments, paper only on postcards, and a painted dusk lantern", () => {
+  it("preserves kit pigments, fades the metal with paper/rock, and reserves plain paper for cards", () => {
     const { scene } = create();
     const recipes: Record<string, Color> = Object.fromEntries(Object.entries(PALETTE).map(([key, value]) => [key, new Color(value)]));
     recipes.wood = new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62);
@@ -362,6 +481,11 @@ describe("last-postcard shore scene", () => {
     recipes.forestDeep = new Color(PALETTE.grass).lerp(new Color(PALETTE.rockDark), 0.35);
     recipes.forestLight = new Color(PALETTE.grass);
     recipes.water = new Color(PALETTE.seaShallow);
+    const metal = new Color(PALETTE.paper).lerp(new Color(PALETTE.rock), 0.58);
+    const edge = new Color(PALETTE.paper).lerp(new Color(PALETTE.rock), 0.78);
+    const stoneColors = [new Color(PALETTE.rockDark), new Color(PALETTE.rock),
+      new Color(PALETTE.rockDark).lerp(new Color(PALETTE.rock), 0.72),
+      new Color(PALETTE.rock).lerp(new Color(PALETTE.sand), 0.16)];
     scene.group.traverse(node => {
       expect(node).not.toBeInstanceOf(Light);
       expect(node.name).not.toMatch(/text|logo/i);
@@ -380,28 +504,30 @@ describe("last-postcard shore scene", () => {
       const shades = new Set<number>();
       for (let i = 0; i < colors.count; i++) {
         shades.add(colors.getX(i));
+        const rendered = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
         if (surface === "paper") {
-          const rendered = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
-          const matches = ["cloud", "paper", "rock"] as const;
-          const pigment = matches.find(key => {
-            const pigment = new Color(PALETTE[key]);
-            const wash = rendered.r / pigment.r;
-            return wash >= 0.9199 && wash <= 1.0001
-              && Math.abs(rendered.g / pigment.g - wash) < 1e-6
-              && Math.abs(rendered.b / pigment.b - wash) < 1e-6;
-          });
-          expect(pigment).toBeDefined();
+          const paper = paletteBlend(rendered, new Color(PALETTE.paper));
+          const paintedMetal = [metal, edge].some(color => paletteBlend(rendered, color));
+          const stone = stoneColors.some(color => paletteBlend(rendered, color));
+          expect(paper || paintedMetal || stone).toBe(true);
           const point = new Vector3().fromBufferAttribute(positions, i);
-          const colliders = pigment === "paper" ? [scene.colliders[2]!]
-            : pigment === "cloud" ? [scene.colliders[1]!] : scene.colliders.slice(5);
-          expect(colliders.some(collider => new Box3().setFromCenterAndSize(collider.center, collider.size)
-            .expandByScalar(1e-5).containsPoint(point))).toBe(true);
+          const colliders = paper ? [scene.colliders[2]!] : paintedMetal ? [scene.colliders[1]!]
+            : [scene.colliders[0]!, ...scene.colliders.slice(5)];
+          expect(colliders.some(collider => {
+            const box = new Box3().setFromCenterAndSize(collider.center, collider.size).expandByScalar(1e-5);
+            box.min.y -= 0.06;
+            return box.containsPoint(point);
+          })).toBe(true);
           continue;
         }
-        expect(colors.getX(i)).toBeGreaterThanOrEqual(0.9199);
-        expect(colors.getX(i)).toBeLessThanOrEqual(1.0001);
-        expect(colors.getY(i)).toBe(colors.getX(i));
-        expect(colors.getZ(i)).toBe(colors.getX(i));
+        if (surface === "wood") {
+          expect(paletteBlend(rendered,
+            new Color(PALETTE.rock).lerp(new Color(PALETTE.dusk), 0.08),
+            new Color(PALETTE.rockDark).lerp(new Color(PALETTE.dusk), 0.08))).toBe(true);
+        } else {
+          expect(paletteBlend(rendered, recipes[surface]!)
+            || (/forestLight|forestDeep/.test(surface) && paletteBlend(rendered, new Color(PALETTE.grassDry)))).toBe(true);
+        }
       }
       expect(shades.size).toBeGreaterThan(3);
     }

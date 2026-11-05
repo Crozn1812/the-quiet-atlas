@@ -1,10 +1,12 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry,
-  Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Shape, Vector3, type MeshToonMaterial,
+  Float32BufferAttribute, Group, Mesh, Shape, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE, type PaletteKey } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
+import { createRockGeometry } from "../props/rocks";
+import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneSceneFactory, type ZoneSceneContext } from "./types";
 
 type Point = readonly [number, number, number];
@@ -12,7 +14,7 @@ type Surface = "wood" | "paper" | "ink" | "forestDeep" | "forestLight" | "water"
 type Footprint = { x: number; z: number; halfX: number; halfZ: number; height: number };
 type Site = Footprint & { base: number; bottom: number; sign: number };
 
-// All three props share a level 3 m (along Z) by 2 m timber platform.
+// All three props share a level 3 m (along Z) by 2 m dry-stone footing.
 // Bounds include bevels and the lantern's entire sway.
 const FOOTPRINTS: readonly Footprint[] = [
   { x: 0, z: 0, halfX: 1, halfZ: 1.5, height: 0 },
@@ -92,6 +94,27 @@ function box(size: Point, center: Point): BufferGeometry {
   return new BoxGeometry(...size).translate(...center);
 }
 
+/** Fit kit assets before placement; retain their fracture faces, grain and vertex pigments. */
+function fit(part: BufferGeometry, size: Point, center: Point): BufferGeometry {
+  part.computeBoundingBox();
+  const bounds = part.boundingBox!, span = bounds.getSize(new Vector3());
+  const origin = bounds.getCenter(new Vector3());
+  return part.translate(-origin.x, -origin.y, -origin.z)
+    .scale(size[0] / span.x, size[1] / span.y, size[2] / span.z).translate(...center);
+}
+
+function surfaceColor(surface: Surface): Color {
+  switch (surface) {
+    case "wood": return new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62);
+    case "paper": return new Color(PALETTE.cloud);
+    case "ink": return new Color(PALETTE.rockDark);
+    case "forestDeep": return new Color(PALETTE.grass).lerp(new Color(PALETTE.rockDark), 0.35);
+    case "forestLight": return new Color(PALETTE.grass);
+    case "water": return new Color(PALETTE.seaShallow);
+    default: return new Color(PALETTE[surface]);
+  }
+}
+
 /** A few broad shore clusters, with filled dry footprints and room between their silhouettes. */
 function shoreSite(context: ZoneSceneContext, platform: Site, footprint: Footprint, occupied: Site[]): Site | undefined {
   for (const shift of [0, -1.6, 1.6, -3.2, 3.2]) {
@@ -157,16 +180,22 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
   };
 
   function add(part: BufferGeometry, surface: Surface, site?: Site, facing = 0, groundBottom = false,
-    followTerrain = false, tint?: PaletteKey) {
+    followTerrain = false, tint?: PaletteKey | Color) {
     if (site) {
       part.rotateY(facing + (site.sign < 0 ? Math.PI : 0)).translate(site.x, site.base, site.z);
       // Shore details follow the bank; platform furniture keeps its level deck height.
       const vertices = part.getAttribute("position");
+      part.computeBoundingBox();
+      const { min, max } = part.boundingBox!;
       for (let i = 0; i < vertices.count; i++) {
         if (followTerrain) {
-          vertices.setY(i, vertices.getY(i) - site.base + shoreContext.heightAt(vertices.getX(i), vertices.getZ(i)));
-        } else if (groundBottom && vertices.getY(i) < site.base - 0.06) {
-          vertices.setY(i, context.heightAt(vertices.getX(i), vertices.getZ(i)));
+          vertices.setY(i, vertices.getY(i) - site.base
+            + shoreContext.heightAt(vertices.getX(i), vertices.getZ(i)) - 0.04);
+        } else if (groundBottom) {
+          // Stretch only the buried course down to the bank; keep its bevel rings distinct.
+          const ground = shoreContext.heightAt(vertices.getX(i), vertices.getZ(i)) - 0.05;
+          const t = (vertices.getY(i) - min.y) / (max.y - min.y);
+          vertices.setY(i, ground + t * (max.y - ground));
         }
       }
     }
@@ -178,12 +207,16 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     flat.computeVertexNormals();
     const positions = flat.getAttribute("position"), colors: number[] = [];
     const phase = (Math.imul(context.seed, 2654435761) >>> 0) / 4294967296 * Math.PI * 2;
-    // Cloud, stone and real postcard paper share one batch; only their vertex pigments differ.
-    const base = new Color(PALETTE.cloud), pigment = tint ? new Color(PALETTE[tint]) : base;
+    // Normalize kit pigments by the batch material, so wood/stone never receive a second dark tint.
+    const base = surfaceColor(surface);
+    const pigment = tint instanceof Color ? tint : tint ? new Color(PALETTE[tint]) : base;
+    const kitColors = flat.getAttribute("color");
     for (let i = 0; i < positions.count; i++) {
       const wash = 0.96 + 0.025 * Math.sin(positions.getX(i) * 31 + positions.getZ(i) * 43 + phase)
         + 0.015 * Math.sin(positions.getY(i) * 19 + phase);
-      colors.push(wash * pigment.r / base.r, wash * pigment.g / base.g, wash * pigment.b / base.b);
+      colors.push(wash * (kitColors?.getX(i) ?? pigment.r) / base.r,
+        wash * (kitColors?.getY(i) ?? pigment.g) / base.g,
+        wash * (kitColors?.getZ(i) ?? pigment.b) / base.b);
     }
     flat.setAttribute("color", new Float32BufferAttribute(colors, 3));
     let surfaces = batches.get(parent);
@@ -193,50 +226,67 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     surfaces.set(surface, parts);
   }
 
-  // Four broad boards retain a quiet silhouette instead of scattered individual props.
-  for (let board = 0; board < 4; board++) {
-    add(box([2, 0.12, 0.75], [0, -0.06, (board - 1.5) * 0.75]), "wood", platform, 0, true);
+  const seed = (offset: number) => (context.seed + Math.imul(offset, 2654435761)) >>> 0;
+  const timber = (size: Point, center: Point, offset: number) =>
+    fit(createPlankGeometry(size[0], seed(offset)), size, center);
+  const post = (size: Point, center: Point, offset: number) =>
+    fit(createPostGeometry(size[1], seed(offset)), size, center);
+  // Two staggered courses, not a single square slab. The lower course is buried 5 cm.
+  for (let course = 0; course < 2; course++) {
+    for (let row = 0; row < 2; row++) {
+      const split = (row + course) % 2 ? 0.12 : -0.12;
+      for (const side of [-1, 1]) {
+        const width = 1 + side * -split;
+        const x = side < 0 ? -1 + width / 2 : 1 - width / 2;
+        const height = course === 0 ? 0.16 : 0.06;
+        const rock = fit(createRockGeometry("stone", seed(10 + course * 6 + row * 2 + (side + 1) / 2)),
+          [width, height, 1.5], [x, course === 0 ? -0.14 : -0.03, (row - 0.5) * 1.5]);
+        add(rock, "paper", platform, 0, course === 0);
+      }
+    }
   }
-  const mail = (part: BufferGeometry, surface: Surface) => add(part.scale(1.3, 1.3, 1.3), surface, mailbox, -Math.PI / 2);
-  // Front faces the path: a 1.3x cream barrel, recessed blank door and dark slot.
-  mail(bevel([0.19, 1.17, 0.18], [0.025, 0.585, 0]), "ink");
-  mail(bevel([0.76, 0.11, 0.55], [0, 1.15, 0]), "wood");
-  mail(bevel([0.96, 0.68, 0.74], [0, 1.55, 0], true), "paper");
+  const mail = (part: BufferGeometry, surface: Surface, tint?: PaletteKey | Color) =>
+    add(part.scale(1.3, 1.3, 1.3), surface, mailbox, -Math.PI / 2, false, false, tint);
+  const metal = new Color(PALETTE.paper).lerp(new Color(PALETTE.rock), 0.58);
+  const wornEdge = new Color(PALETTE.paper).lerp(new Color(PALETTE.rock), 0.78);
+  // Faded painted metal, a recessed door and folded lip; front still faces the walking path.
+  mail(post([0.19, 1.2, 0.18], [0.025, 0.57, 0], 30), "wood");
+  mail(timber([0.76, 0.11, 0.55], [0, 1.15, 0], 31), "wood");
+  mail(bevel([0.96, 0.68, 0.74], [0, 1.55, 0], true), "paper", metal);
   mail(bevel([0.7, 0.37, 0.025], [0, 1.43, 0.382]), "ink");
-  mail(bevel([0.65, 0.32, 0.025], [0, 1.43, 0.399]), "paper");
+  mail(bevel([0.65, 0.32, 0.025], [0, 1.43, 0.399]), "paper", metal);
   mail(box([0.53, 0.045, 0.018], [0, 1.69, 0.386]), "ink");
-  mail(box([0.57, 0.025, 0.065], [0, 1.727, 0.397]), "paper");
-  mail(bevel([0.09, 0.045, 0.06], [0, 1.48, 0.437]), "wood");
-  mail(box([0.027, 0.19, 0.025], [0.494, 1.56, -0.05]), "wood");
+  mail(bevel([0.57, 0.025, 0.065], [0, 1.727, 0.397]), "paper", wornEdge);
+  mail(bevel([0.09, 0.045, 0.06], [0, 1.48, 0.437]), "paper", wornEdge);
+  mail(box([0.027, 0.19, 0.025], [0.494, 1.56, -0.05]), "paper", wornEdge);
   mail(bevel([0.03, 0.08, 0.11], [0.497, 1.64, -0.008]), "flower");
 
   // Six thick, blank postcards on a three-sided spindle; broad pigments recall visited zones.
-  add(bevel([0.12, 0.4, 0.12], [0, 0.2, 0]), "ink", rack);
-  add(bevel([0.12, 1.48, 0.12], [0, 1.14, 0]), "wood", rack);
+  add(post([0.12, 1.87, 0.12], [0, 0.905, 0], 40), "wood", rack);
   for (const yaw of [0, Math.PI / 2]) {
-    add(bevel([1.24, 0.085, 0.16], [0, 0.0425, 0]).rotateY(yaw), "wood", rack);
+    add(timber([1.24, 0.085, 0.16], [0, 0.0425, 0], 41 + Math.round(yaw)).rotateY(yaw), "wood", rack);
   }
-  add(new CylinderGeometry(0.13, 0.13, 0.08, 6).translate(0, 1.84, 0), "wood", rack);
   const pigments = ["forestDeep", "forestLight", "water"] as const;
   for (let face = 0; face < 3; face++) {
     const yaw = face * Math.PI * 2 / 3 + 0.12;
+    add(post([0.045, 1.02, 0.055], [0, 1.305, 0.28], 60 + face).rotateY(yaw), "wood", rack);
     for (let row = 0; row < 2; row++) {
       const y = 1.06 + row * 0.49;
       add(bevel([0.51, 0.35, 0.025], [0, y, 0.35]).rotateY(yaw), "paper", rack, 0, false, false, "paper");
       add(box([0.425, 0.255, 0.008], [0, y + 0.009, 0.37]).rotateY(yaw), pigments[face]!, rack);
       add(box([0.425, 0.06, 0.009], [0, y - 0.088, 0.376]).rotateY(yaw),
         face === 2 ? "forestDeep" : "forestLight", rack);
-      add(bevel([0.56, 0.045, 0.095], [0, y - 0.186, 0.35]).rotateY(yaw), "wood", rack);
-      add(box([0.045, 0.41, 0.055], [0, y, 0.28]).rotateY(yaw), "wood", rack);
+      add(timber([0.56, 0.045, 0.095], [0, y - 0.186, 0.35], 50 + face * 2 + row).rotateY(yaw), "wood", rack);
       // Two small orange suns on the postcards facing the walking path.
       if (face === 2) add(bevel([0.11, 0.11, 0.012], [0.12, y + 0.065, 0.383]).rotateY(yaw), "flower", rack);
     }
   }
 
-  add(bevel([0.16, 1.4, 0.16], [0, 0.7, 0]), "ink", lamp);
-  add(bevel([0.16, 1.8, 0.16], [0, 2.3, 0]), "wood", lamp);
-  add(bevel([0.64, 0.1, 0.12], [-0.23, 3.13, 0]), "wood", lamp);
-  add(box([0.027, 0.17, 0.027], [-0.42, 3.04, 0]), "wood", lamp);
+  // A blank reply card left sideways on the rack's lower foot.
+  add(bevel([0.28, 0.018, 0.19], [0.18, 0.096, 0.12]).rotateY(-0.24), "paper", rack, 0, false, false, "paper");
+  add(post([0.16, 3.23, 0.16], [0, 1.585, 0], 70), "wood", lamp);
+  add(timber([0.64, 0.1, 0.12], [-0.23, 3.13, 0], 71), "wood", lamp);
+  add(box([0.027, 0.17, 0.027], [-0.42, 3.04, 0]), "ink", lamp);
   // Painted dusk pigment, never a light or emissive material.
   add(new CylinderGeometry(0.12, 0.1, 0.32, 6).translate(0, -0.19, 0), "dusk");
   add(new CylinderGeometry(0.045, 0.175, 0.085, 6).translate(0, -0.025, 0), "dusk");
@@ -244,17 +294,21 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
 
   const solidSites = [platform, mailbox, rack, lamp];
   const occupied = [platform];
+  for (const [x, z, yaw] of [[0.78, -1, -Math.PI / 2], [0.78, 1, -Math.PI / 2], [-0.78, 0.9, Math.PI / 2]] as const) {
+    add(grassBlade(0.22, 0.035).rotateY(yaw).translate(x, 0, z),
+      "forestLight", platform, 0, false, true, "grassDry");
+  }
   // A short two-rail fence behind the deck leaves the mailbox's path-facing side open.
   const fence = shoreSite(shoreContext, platform, { x: 2.4, z: 0.25, halfX: 0.14, halfZ: 1.7, height: 0.9 }, occupied);
   if (fence) {
     solidSites.push(fence);
     occupied.push(fence);
     for (const z of [-1.55, 0, 1.55]) {
-      add(bevel([0.18, 0.24, 0.19], [0, 0.12, z]), "ink", fence, 0, false, true);
-      add(bevel([0.16, 0.66, 0.17], [0.015, 0.57, z]), "wood", fence, 0, false, true);
+      add(post([0.18, 0.94, 0.19], [0, 0.47, z], 80 + Math.round(z * 10)), "wood", fence, 0, false, true);
     }
     for (const y of [0.36, 0.69]) {
-      add(bevel([0.11, 0.12, 3.4], [-0.025, y, 0]), "wood", fence, 0, false, true);
+      add(timber([3.4, 0.12, 0.11], [0, 0, 0], 90 + Math.round(y * 10))
+        .rotateY(Math.PI / 2).translate(-0.025, y, 0), "wood", fence, 0, false, true);
     }
   }
   for (const [x, z, halfX, halfZ, height] of [
@@ -264,22 +318,26 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     if (!site) continue;
     solidSites.push(site);
     occupied.push(site);
-    const rock = new IcosahedronGeometry(1, 0).rotateY(z);
-    rock.computeBoundingBox();
-    const bounds = rock.boundingBox!, size = bounds.getSize(new Vector3());
-    rock.translate(0, -bounds.min.y, 0).scale(halfX * 2 / size.x, height / size.y, halfZ * 2 / size.z);
-    add(rock, "paper", site, 0, false, true, "rock");
+    const rock = fit(createRockGeometry("boulder", seed(100 + Math.round(z * 10))),
+      [halfX * 2, height, halfZ * 2], [0, height / 2, 0]);
+    add(rock, "paper", site, 0, false, true);
+    for (let tuft = 0; tuft < 3; tuft++) {
+      const yaw = tuft * Math.PI * 2 / 3 + z;
+      const part = grassBlade(0.2 + tuft * 0.025, 0.035).rotateY(yaw)
+        .translate(Math.cos(yaw) * halfX * 0.75, 0, Math.sin(yaw) * halfZ * 0.65);
+      add(part, "forestLight", site, 0, false, true, "grassDry");
+    }
   }
   for (const [x, z] of [[0.2, -2.5], [1.1, 2.6], [3.2, -1.7]] as const) {
     const site = shoreSite(shoreContext, platform, { x, z, halfX: 0.58, halfZ: 0.58, height: 0.8 }, occupied);
     if (!site) continue;
     occupied.push(site);
-    for (let blade = 0; blade < 9; blade++) {
+    for (let blade = 0; blade < 7; blade++) {
       const yaw = blade * 2.39996 + z;
       const height = 0.48 + (blade % 4) * 0.1;
       const part = grassBlade(height, 0.065 + (blade % 3) * 0.012)
         .translate(0, 0, 0.14).rotateY(yaw);
-      add(part, blade % 3 === 0 ? "forestDeep" : "forestLight", site, 0, false, true);
+      add(part, blade % 3 === 0 ? "forestDeep" : "forestLight", site, 0, false, true, "grassDry");
     }
   }
 
@@ -292,15 +350,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
       geometry.computeBoundingBox();
       geometry.computeBoundingSphere();
       const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
-      switch (surface) {
-        case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62); break;
-        case "paper": material.color.set(PALETTE.cloud); break;
-        case "ink": material.color.set(PALETTE.rockDark); break;
-        case "forestDeep": material.color.set(PALETTE.grass).lerp(new Color(PALETTE.rockDark), 0.35); break;
-        case "forestLight": material.color.set(PALETTE.grass); break;
-        case "water": material.color.set(PALETTE.seaShallow); break;
-        default: material.color.set(PALETTE[surface]);
-      }
+      material.color.copy(surfaceColor(surface));
       const mesh = new Mesh(geometry, material);
       mesh.name = `last-postcard-${surface}`;
       mesh.castShadow = true;
