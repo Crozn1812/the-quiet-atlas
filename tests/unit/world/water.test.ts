@@ -31,7 +31,7 @@ describe("river ribbon", () => {
     geometry.dispose();
   });
 
-  it("widens from 4 to 10 metres then flares to 60 m and sinks into the sea", () => {
+  it("widens from a 0.6 m spring to 10 metres then flares to 60 m and sinks into the sea", () => {
     const geometry = createRibbonGeometry();
     const positions = geometry.getAttribute("position");
     const uv = geometry.getAttribute("uv");
@@ -47,7 +47,7 @@ describe("river ribbon", () => {
         const t = i / RIBBON_SEGMENTS;
         const blend = Math.max(0, (t - 0.96) / 0.04);
         const sink = 0.05 * blend * blend * (3 - 2 * blend);
-        expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
+        if (t >= 0.03) expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
         expect(normals.getY(vertex)).toBe(1);
         expect(uv.getY(vertex)).toBeCloseTo(i / RIBBON_SEGMENTS * riverLength(), 3);
       }
@@ -55,11 +55,11 @@ describe("river ribbon", () => {
       expect(uv.getX(i * 2 + 1)).toBe(1);
       previousWidth = width;
     }
-    expect(riverWidthAt(0)).toBe(4);
+    expect(riverWidthAt(0)).toBeCloseTo(0.6);
     expect(riverWidthAt(0.96)).toBeCloseTo(9.76);
     expect(riverWidthAt(0.98)).toBeCloseTo(34.88);
     expect(riverWidthAt(1)).toBeCloseTo(60);
-    expect(riverWidthAt(-1)).toBe(4);
+    expect(riverWidthAt(-1)).toBeCloseTo(0.6);
     expect(riverWidthAt(2)).toBeCloseTo(60);
     expect(positions.getY(RIBBON_SEGMENTS * 2)).toBeCloseTo(WATER_LEVEL - 0.05);
     for (const vertex of [RIBBON_SEGMENTS * 2, RIBBON_SEGMENTS * 2 + 1]) {

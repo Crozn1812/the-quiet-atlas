@@ -1,5 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
-import { waterLevelAt } from "../terrain/height";
+import { waterLevelAt, worldHeight } from "../terrain/height";
 import { clampProgress, riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
@@ -16,7 +16,10 @@ function mouthBlend(t: number): number {
 
 export function riverWidthAt(t: number): number {
   const progress = clampProgress(t);
-  return 4 + 6 * progress + 50 * mouthBlend(progress);
+  const width = 4 + 6 * progress + 50 * mouthBlend(progress);
+  const source = Math.min(1, progress / 0.03);
+  const blend = source * source * (3 - 2 * source);
+  return width + (0.6 - width) * (1 - blend);
 }
 
 /** Two vertices per row, UV.x across the ribbon, UV.y downstream in metres. */
@@ -29,12 +32,23 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
   const uvs: number[] = [];
   const indices: number[] = [];
   const length = riverLength();
+  const source = riverPointAt(0);
+  const sourceTangent = riverTangentAt(0);
+  const sourceHalfWidth = riverWidthAt(0) / 2;
+  const sourceBed = Math.min(...[-1, 0, 1].map(side => worldHeight(
+    source.x - sourceTangent.z * sourceHalfWidth * side,
+    source.z + sourceTangent.x * sourceHalfWidth * side,
+  )));
+  // Bury the entire cap with 6 cm clearance, then emerge smoothly inside the 4 m spring pool.
+  const sourceSink = Math.max(0, waterLevelAt(source.z) - sourceBed + 0.06);
   for (let i = 0; i <= segments; i++) {
     const t = i / segments;
     const centre = riverPointAt(t);
     const tangent = riverTangentAt(t);
     const halfWidth = riverWidthAt(t) / 2;
-    const level = waterLevelAt(centre.z) - 0.05 * mouthBlend(t);
+    const emergence = Math.min(1, t * length / 4);
+    const sink = sourceSink * (1 - emergence * emergence * (3 - 2 * emergence));
+    const level = waterLevelAt(centre.z) - 0.05 * mouthBlend(t) - sink;
     for (const side of [-1, 1]) {
       positions.push(centre.x - tangent.z * halfWidth * side, level,
         centre.z + tangent.x * halfWidth * side);

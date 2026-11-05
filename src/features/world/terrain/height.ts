@@ -1,10 +1,12 @@
 import { PATH_BRIDGES, pathLength } from "../layout/path";
+import { riverPointAt } from "../layout/river";
 import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "./samples";
 
 export const TERRAIN_SEED = 73021;
 export const PATH_WIDTH = 3;
 const routeLength = pathLength();
+const source = riverPointAt(0);
 
 function smoothstep(start: number, end: number, value: number): number {
   const t = Math.max(0, Math.min(1, (value - start) / (end - start)));
@@ -59,7 +61,9 @@ export function worldHeight(x: number, z: number): number {
   // Continue the channel through the beach instead of damming it with the shelf.
   const estuary = shore - Math.max(0, shore - (waterLevelAt(z) - 0.65))
     * (1 - smoothstep(0, 24, river.distance));
-  const land = valley + (estuary - valley) * smoothstep(760, 840, -z);
+  // A compact spring hollow; the zero-slope rim leaves the bank/path beyond 4 m untouched.
+  const sourcePool = 0.45 * (1 - smoothstep(0, 4, Math.hypot(x - source.x, z - source.z)));
+  const land = valley + (estuary - valley) * smoothstep(760, 840, -z) - sourcePool;
 
   // The heightfield follows a shallow ford under each future bridge. These
   // 36 m approaches keep the analytic path grade below 13%, including descent.
