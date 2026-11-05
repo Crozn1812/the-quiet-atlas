@@ -1,6 +1,6 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
-import { waterLevelAt, worldHeight } from "../terrain/height";
-import { clampProgress, riverLength, riverPointAt, riverTangentAt } from "../layout/river";
+import { riverWidthAt, waterLevelAt, worldHeight } from "../terrain/height";
+import { riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
 import { createWaterSurface, type WaterSurface } from "./surface";
@@ -14,13 +14,7 @@ function mouthBlend(t: number): number {
   return progress * progress * (3 - 2 * progress);
 }
 
-export function riverWidthAt(t: number): number {
-  const progress = clampProgress(t);
-  const width = 4 + 6 * progress + 50 * mouthBlend(progress);
-  const source = Math.min(1, progress / 0.03);
-  const blend = source * source * (3 - 2 * source);
-  return width + (0.6 - width) * (1 - blend);
-}
+export { riverWidthAt } from "../terrain/height";
 
 /** Two vertices per row, UV.x across the ribbon, UV.y downstream in metres. */
 export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry {

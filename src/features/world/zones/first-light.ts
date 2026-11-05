@@ -144,16 +144,18 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       const flat = geometry.index ? geometry.toNonIndexed() : geometry;
       if (flat !== geometry) geometry.dispose();
       // Normalize attributes for mergeGeometries; neutral vertex pigment multiplies palette hue.
+      const alpha = surface === "sun" ? flat.getAttribute("color") : undefined;
       for (const name of Object.keys(flat.attributes)) {
-        if (name !== "position") flat.deleteAttribute(name);
+        if (name !== "position" && !(alpha && name === "color")) flat.deleteAttribute(name);
       }
       const positions = flat.getAttribute("position");
       const colors: number[] = [];
       for (let i = 0; i < positions.count; i++) {
         const wash = 0.94 + Math.sin(positions.getX(i) * 7 + positions.getY(i) * 3 + positions.getZ(i) * 5) * 0.04;
         colors.push(wash, wash, wash);
+        if (alpha) colors.push(alpha.getW(i));
       }
-      flat.setAttribute("color", new Float32BufferAttribute(colors, 3));
+      flat.setAttribute("color", new Float32BufferAttribute(colors, alpha ? 4 : 3));
       flat.computeVertexNormals();
       buckets[surface].push(flat);
     }
@@ -242,21 +244,30 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   }
 
   for (const [x, z, width] of [[6.8, 8, 0.65], [-8.5, 10, 0.95]]) {
-    place([part(new PlaneGeometry(width!, 6).rotateZ(-0.28).rotateY(0.35).translate(0, 4.2, 0), "sun")], x!, z!);
+    const veil = new PlaneGeometry(width!, 6, 6, 8);
+    const positions = veil.getAttribute("position");
+    const colors: number[] = [];
+    for (let i = 0; i < positions.count; i++) {
+      const across = Math.max(0, 1 - Math.abs(positions.getX(i)) / (width! / 2));
+      const along = Math.max(0, 1 - Math.abs(positions.getY(i)) / 3);
+      // Feather all four edges, retaining one translucent draw call for both veils.
+      colors.push(1, 1, 1, Math.min(1, across * 2) * Math.min(1, along * 4));
+    }
+    veil.setAttribute("color", new Float32BufferAttribute(colors, 4));
+    place([part(veil.rotateZ(-0.28).rotateY(0.35).translate(0, 4.2, 0), "sun")], x!, z!);
   }
 
   const materials = {
     wood: createPropMaterial("wood"), paper: createPropMaterial("paper"),
     green: createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.crown), WORLD_DIRECTION.foliage.ramp),
     stone: createRampMaterial(tint("mist", "paper", 0.25), WORLD_DIRECTION.foliage.ramp),
-    // A stronger dawn-gold wash stays translucent against the real world's forest and mist.
-    sun: createRampMaterial(tint("dusk", "paper", 0.3)),
+    sun: createRampMaterial(tint("dusk", "paper", 0.7)),
     ink: createRampMaterial(tint("ink", "forestDeep", 0.3), WORLD_DIRECTION.foliage.ramp),
     flower: createRampMaterial(tint("flower", "paper", 0), WORLD_DIRECTION.foliage.ramp),
   };
   materials.green.side = DoubleSide;
   Object.assign(materials.sun, {
-    transparent: true, opacity: 0.42, depthWrite: false, side: DoubleSide, forceSinglePass: true,
+    transparent: true, opacity: 0.15, depthWrite: false, side: DoubleSide, forceSinglePass: true,
   });
   for (const surface of Object.keys(buckets) as Surface[]) {
     const material = materials[surface];
@@ -268,6 +279,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     geometry.computeBoundingSphere();
     const mesh = new Mesh(geometry, material);
     mesh.name = `first-light-${surface}`;
+    mesh.castShadow = false;
     group.add(mesh);
   }
 

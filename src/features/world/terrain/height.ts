@@ -1,5 +1,5 @@
 import { PATH_BRIDGES, pathLength } from "../layout/path";
-import { riverPointAt } from "../layout/river";
+import { clampProgress, riverLength, riverPointAt } from "../layout/river";
 import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "./samples";
 
@@ -7,6 +7,17 @@ export const TERRAIN_SEED = 73021;
 export const PATH_WIDTH = 3;
 const routeLength = pathLength();
 const source = riverPointAt(0);
+const streamLength = riverLength();
+
+/** Shared water/channel profile, including the narrow spring and the full sea flare. */
+export function riverWidthAt(t: number): number {
+  const progress = clampProgress(t);
+  const mouth = Math.max(0, (progress - 0.96) / 0.04);
+  const width = 4 + 6 * progress + 50 * mouth * mouth * (3 - 2 * mouth);
+  const source = Math.min(1, progress / 0.03);
+  const blend = source * source * (3 - 2 * source);
+  return width + (0.6 - width) * (1 - blend);
+}
 
 // Anchor relief to the layout, with the crest on the dry side of the route.
 function landmark(id: "milestones" | "horizon" | "workshop", offset: number, seaward = 0) {
@@ -90,11 +101,11 @@ export function worldHeight(x: number, z: number): number {
   const river = nearestRiver(x, z);
   const path = nearestPath(x, z);
   const coastal = coastWeight(z);
-  // A flat bed extends 1 m past each ribbon edge (width = 4 + 6t here).
-  // Fade back to the original channel at the spring and coastal reach.
-  const widened = smoothstep(0.08, 0.14, river.t) * (1 - smoothstep(0.84, 0.9, river.t));
-  const bedRadius = widened * (3 + 3 * river.t);
-  const bankRadius = 6 + 2 * widened;
+  // Keep the compact spring hollow, then extend the flat bed 1 m past BOTH
+  // ribbon edges along the entire reach, including the 60 m mouth flare.
+  const widened = smoothstep(4, 12, river.t * streamLength);
+  const bedRadius = widened * (riverWidthAt(river.t) / 2 + 1);
+  const bankRadius = Math.max(6 + 2 * widened, bedRadius + 2);
   const channel = -1.1 + 1.2 * smoothstep(bedRadius, bankRadius, river.distance);
   // B2-031: a readable valley (taste §5.2) — hills rise to ~7–12 m beyond the bank instead of 3–4 m.
   const hills = valleyHills(x, z, river.distance);
@@ -107,6 +118,10 @@ export function worldHeight(x: number, z: number): number {
   const sourcePool = 0.45 * (1 - smoothstep(0, 4, Math.hypot(x - source.x, z - source.z)));
   let land = valley + (estuary - valley) * smoothstep(760, 840, -z) - sourcePool
     + landmarkLift(x, z, river.distance);
+  // The coastal shelf must respect the same flat bed as the inland valley.
+  // Only lower intruding ground; retain the existing beach outside the channel.
+  land -= Math.max(0, land - Math.max(0.05, waterLevelAt(z) - 0.65))
+    * widened * (1 - smoothstep(bedRadius, bankRadius, river.distance));
   // A 10 x 8 m pad aligned with the bank, with a 6 m rounded transition.
   const dx = x - workshop.x;
   const dz = z - workshop.z;
