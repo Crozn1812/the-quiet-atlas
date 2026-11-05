@@ -109,6 +109,9 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let groundCapacity = 4096;
   const clearOfZones = (point: { x: number; z: number }) => !zoneBounds.some(box =>
     point.x >= box.min.x && point.x <= box.max.x && point.z >= box.min.z && point.z <= box.max.z);
+  // A leaning trunk collider is centred off its root (colliders.ts): keep both the root and that centre clear.
+  const treeClearOfZones = (tree: FoliageTree) => clearOfZones(tree)
+    && clearOfZones({ x: tree.x - Math.sin(tree.lean) * TRUNK_HEIGHT * tree.scale / 2, z: tree.z });
   function syncGround() {
     for (const key of groundCache.keys()) if (!pool.tiles.has(key)) groundCache.delete(key);
     for (const [key, resident] of pool.tiles) if (!groundCache.has(key)) groundCache.set(key, scatterGround(resident.tile).filter(clearOfZones));
@@ -261,7 +264,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     if (Math.abs(t - lastT) * pathLength() >= 8) {
       try {
         pool.update(t, Math.max(120, preloadAhead));
-        for (const [key, resident] of pool.tiles) if (!cells.has(key)) cells.set(key, createCell(scatterTile(resident.tile).filter(clearOfZones)));
+        for (const [key, resident] of pool.tiles) if (!cells.has(key)) cells.set(key, createCell(scatterTile(resident.tile).filter(treeClearOfZones)));
         for (const [key, cell] of cells) if (!pool.tiles.has(key)) { cell.dispose(); cells.delete(key); }
         syncGround();
         lastT = t;

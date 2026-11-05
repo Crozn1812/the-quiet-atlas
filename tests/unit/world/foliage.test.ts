@@ -1,8 +1,10 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Matrix4, Vector3 } from "three";
+import { Box3, Matrix4, Raycaster, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
-import { createFoliageColliders, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
-import { createFoliage, foliageVariantAt } from "../../../src/features/world/foliage/instances";
+import { createCrownFade } from "../../../src/features/world/crown-fade";
+import { createFoliageColliders, TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
+import { createFoliage, foliageVariantAt, selectFoliageOccludingCrowns } from "../../../src/features/world/foliage/instances";
+import { pineHeight } from "../../../src/features/world/foliage/shapes";
 import { foliageBiomeAt, MIN_TREE_DISTANCE, scatterTile, SHORE_MIN_HEIGHT, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
 import { riverPointAt } from "../../../src/features/world/layout/river";
@@ -84,7 +86,7 @@ describe("tile foliage", () => {
 });
 
 describe("foliage instances and colliders", () => {
-  it("displays evenly distributed 40/70/100% trees with matching transforms and all actual Rapier cylinders unchanged", async () => {
+  it("displays evenly distributed 40/70/100% trees with extended pine visuals and all actual Rapier cylinders unchanged", async () => {
     await RAPIER.init();
     const trees = tenForests.flat();
     const foliage = createFoliage(trees.length);
@@ -117,13 +119,17 @@ describe("foliage instances and colliders", () => {
           indices[tree.kind][variantIndex] = instanceIndex + 1;
           variant.trunks.getMatrixAt(instanceIndex, matrix);
           const center = new Vector3().setFromMatrixPosition(matrix);
-          expect(center.x).toBeCloseTo(colliders[index]!.x, 4);
-          expect(center.y).toBeCloseTo(colliders[index]!.y, 4);
+          const nominalHeight = pineHeight(variant.seed);
+          const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight : tree.scale;
+          const visualHeight = tree.kind === "pine" ? nominalHeight * (2 / 3 + 0.05) * heightScale : TRUNK_HEIGHT * tree.scale;
+          expect(center.x).toBeCloseTo(tree.x - Math.sin(tree.lean) * visualHeight / 2, 4);
+          expect(center.y).toBeCloseTo(tree.y + Math.cos(tree.lean) * visualHeight / 2, 4);
           expect(center.z).toBeCloseTo(colliders[index]!.z, 4);
+          expect(colliders[index]!.halfHeight).toBeCloseTo(5 * tree.scale / 2, 6);
           variant.crowns.getMatrixAt(instanceIndex, matrix);
           center.setFromMatrixPosition(matrix);
-          expect(center.x).toBeCloseTo(tree.x - Math.sin(tree.lean) * 5 * tree.scale, 4);
-          expect(center.y).toBeCloseTo(tree.y + Math.cos(tree.lean) * 5 * tree.scale, 4);
+          expect(center.x).toBeCloseTo(tree.x - Math.sin(tree.lean) * 5 * heightScale, 4);
+          expect(center.y).toBeCloseTo(tree.y + Math.cos(tree.lean) * 5 * heightScale, 4);
           expect(center.z).toBeCloseTo(tree.z, 4);
           expect(variant.crowns.count).toBe(variant.trunks.count);
         }
@@ -219,6 +225,93 @@ describe("procedural foliage variants", () => {
       expect(assignment()).toEqual(initial);
       foliage.setTiles([...trees].reverse());
       expect(assignment()).toEqual(initial);
+    } finally { foliage.dispose(); }
+  });
+
+  it("keeps every pine variant 14–18 m tall with two thirds bare at scatter scale extremes and lean", () => {
+    const foliage = createFoliage(1);
+    const matrix = new Matrix4();
+    try {
+      for (let variantIndex = 0; variantIndex < foliage.species.pine.variants.length; variantIndex++) {
+        const x = Array.from({ length: 100 }, (_, i) => i).find(x => foliageVariantAt(x, 5, 3) === variantIndex)!;
+        const variant = foliage.species.pine.variants[variantIndex]!;
+        for (const scale of [0.8, 1, 1.3]) for (const lean of [-0.06, 0, 0.06]) {
+          const tree: FoliageTree = { kind: "pine", x, y: 3, z: 5, scale, lean };
+          foliage.setTiles([tree]);
+          const root = new Vector3(x, 3, 5);
+          const axis = new Vector3(-Math.sin(lean), Math.cos(lean), 0);
+          variant.trunks.getMatrixAt(0, matrix);
+          expect(new Vector3(0, -0.5, 0).applyMatrix4(matrix).distanceTo(root)).toBeLessThan(1e-5);
+          const trunkTop = new Vector3(0, 0.5, 0).applyMatrix4(matrix).sub(root).dot(axis);
+          variant.crowns.getMatrixAt(0, matrix);
+          const bounds = variant.crowns.geometry.boundingBox!;
+          const base = new Vector3(0, bounds.min.y, 0).applyMatrix4(matrix).sub(root).dot(axis);
+          const top = new Vector3(0, bounds.max.y, 0).applyMatrix4(matrix).sub(root).dot(axis);
+          expect(top).toBeGreaterThanOrEqual(14 - 1e-5);
+          expect(top).toBeLessThanOrEqual(18 + 1e-5);
+          expect(base / top).toBeCloseTo(2 / 3, 6);
+          expect(trunkTop).toBeGreaterThan(base);
+          expect(trunkTop).toBeLessThan(top);
+          const collider = createFoliageColliders([tree])[0]!;
+          expect(collider.halfHeight).toBe(2.5 * scale);
+          expect(collider.radius).toBe(0.28);
+        }
+      }
+    } finally { foliage.dispose(); }
+  });
+
+  it("selects and fades real high pine crowns, including lean, scale and transformed parents", () => {
+    const foliage = createFoliage(1);
+    const matrix = new Matrix4();
+    foliage.group.position.set(2, 3, -4);
+    foliage.group.rotation.y = 0.4;
+    foliage.group.scale.setScalar(1.1);
+    try {
+      for (let variantIndex = 0; variantIndex < foliage.species.pine.variants.length; variantIndex++) {
+        const x = Array.from({ length: 100 }, (_, i) => i).find(x => foliageVariantAt(x, 5, 3) === variantIndex)!;
+        const crowns = foliage.species.pine.variants[variantIndex]!.crowns;
+        const fade = createCrownFade(crowns, 1);
+        for (const scale of [0.8, 1.3]) {
+          foliage.setTiles([{ kind: "pine", x, y: 0, z: 5, scale, lean: 0.06 }]);
+          crowns.updateWorldMatrix(true, false);
+          crowns.getMatrixAt(0, matrix);
+          matrix.premultiply(crowns.matrixWorld);
+          const bounds = crowns.geometry.boundingBox!;
+          const positions = crowns.geometry.getAttribute("position");
+          let tip = 0;
+          for (let i = 1; i < positions.count; i++) if (positions.getY(i) > positions.getY(tip)) tip = i;
+          // Raycast actual triangles at the bottom, middle and top of the raised
+          // canopy. The old sphere at 5 m misses these occlusions entirely.
+          for (const t of [0.15, 0.5, 0.85]) {
+            const center = new Vector3(positions.getX(tip), bounds.min.y + (bounds.max.y - bounds.min.y) * t, positions.getZ(tip));
+            const camera = center.clone().add(new Vector3(0, 0, 8)).applyMatrix4(matrix);
+            const player = center.clone().add(new Vector3(0, 0, -8)).applyMatrix4(matrix);
+            const direction = player.clone().sub(camera);
+            const ray = new Raycaster(camera, direction.clone().normalize(), 0, direction.length());
+            expect(ray.intersectObject(crowns).some(hit => hit.instanceId === 0), `variant=${variantIndex}, scale=${scale}, crown fraction=${t}`).toBe(true);
+            const blocked = selectFoliageOccludingCrowns(crowns, camera, player);
+            expect(blocked).toEqual([0]);
+            fade(new Set(blocked), 1);
+            expect(crowns.geometry.getAttribute("crownAlpha").getX(0)).toBeLessThan(0.2);
+          }
+          const worldBounds = new Box3().copy(bounds).applyMatrix4(matrix);
+          const center = worldBounds.getCenter(new Vector3());
+          const camera = center.clone().add(new Vector3(0, 0, 8));
+          const away = center.clone().add(new Vector3(0, 0, 16));
+          expect(selectFoliageOccludingCrowns(crowns, camera, away)).toEqual([]);
+          const lowCamera = new Vector3(center.x, worldBounds.min.y - 3, center.z + 8);
+          const lowPlayer = new Vector3(center.x, worldBounds.min.y - 3, center.z - 8);
+          expect(selectFoliageOccludingCrowns(crowns, lowCamera, lowPlayer)).toEqual([]);
+          const offset = new Vector3(worldBounds.max.x + 5 - center.x, 0, 0);
+          expect(selectFoliageOccludingCrowns(crowns, camera.clone().add(offset), center.clone().add(offset))).toEqual([]);
+          // Starting inside the canopy must also fade, then recover when clear.
+          expect(selectFoliageOccludingCrowns(crowns, center, away)).toEqual([0]);
+          fade(new Set(), 1);
+          expect(crowns.geometry.getAttribute("crownAlpha").getX(0)).toBeGreaterThan(0.99);
+          foliage.setTiles([]);
+          expect(selectFoliageOccludingCrowns(crowns, camera, center)).toEqual([]);
+        }
+      }
     } finally { foliage.dispose(); }
   });
 });

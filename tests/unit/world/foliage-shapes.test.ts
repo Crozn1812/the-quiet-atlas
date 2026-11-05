@@ -2,7 +2,7 @@ import { type BufferGeometry, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { TRUNK_HEIGHT } from "../../../src/features/world/foliage/colliders";
 import { createBroadleafCrown as legacyBroadleaf, createPineCrown as legacyPine } from "../../../src/features/world/foliage/instances";
-import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, PINE_VARIANT_SEEDS } from "../../../src/features/world/foliage/shapes";
+import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, pineHeight, PINE_VARIANT_SEEDS } from "../../../src/features/world/foliage/shapes";
 
 const variants = [
   ...PINE_VARIANT_SEEDS.map(seed => ({ kind: "pine", seed, create: createPineCrown })),
@@ -40,11 +40,23 @@ describe("painted procedural tree shapes", () => {
         const bounds = crown.boundingBox!;
         const size = bounds.getSize(new Vector3());
         expect(size.y).toBeGreaterThanOrEqual(3);
-        expect(size.y).toBeLessThanOrEqual(5.5);
+        expect(size.y).toBeLessThanOrEqual(kind === "pine" ? 6 : 5.5);
         expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(4.4);
-        if (kind === "broadleaf") expect(size.y).toBeLessThan(Math.max(size.x, size.z));
-        // Anchor stays at 5 m; the old 3 m exposed trunk is now 30% shorter.
-        expect(TRUNK_HEIGHT + bounds.min.y).toBeCloseTo(3 * 0.7, 5);
+        if (kind === "pine") {
+          // B2-129: Da Lat pines replace the 7–8 m fir silhouette with a high,
+          // narrow crown; its bottom exposes exactly the lower two thirds.
+          const totalHeight = TRUNK_HEIGHT + bounds.max.y;
+          expect(totalHeight).toBeCloseTo(pineHeight(seed), 5);
+          expect(totalHeight).toBeGreaterThanOrEqual(14);
+          expect(totalHeight).toBeLessThanOrEqual(18);
+          expect((TRUNK_HEIGHT + bounds.min.y) / totalHeight).toBeCloseTo(2 / 3, 6);
+          expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(2.7 + 1e-6);
+          expect(size.y / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(1.8);
+        } else {
+          expect(size.y).toBeLessThan(Math.max(size.x, size.z));
+          // Broadleaves retain their previous 2.1 m clearance and 5 m anchor.
+          expect(TRUNK_HEIGHT + bounds.min.y).toBeCloseTo(3 * 0.7, 5);
+        }
         const normals = crown.getAttribute("normal");
         expect(Array.from(normals.array).every(Number.isFinite)).toBe(true);
       } finally { crown.dispose(); repeated.dispose(); trunk.dispose(); }
@@ -76,7 +88,7 @@ describe("painted procedural tree shapes", () => {
     });
   }
 
-  it("tapers a full-height trunk without changing collider constants or transforms", () => {
+  it("tapers the unit visual trunk without changing collider constants", () => {
     const trunk = createTreeTrunk();
     try {
       const positions = trunk.getAttribute("position");

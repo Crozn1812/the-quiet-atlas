@@ -1,10 +1,15 @@
 import { BufferGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
-import { TRUNK_RADIUS } from "./colliders";
+import { TRUNK_HEIGHT, TRUNK_RADIUS } from "./colliders";
 
 export const PINE_VARIANT_SEEDS = [300, 301, 302] as const;
 export const BROADLEAF_VARIANT_SEEDS = [600, 602] as const;
-/** Crowns remain anchored at TRUNK_HEIGHT; the old exposed trunk was 3 m. */
+/** Broadleaf crowns retain their existing clearance relative to TRUNK_HEIGHT. */
 export const CROWN_BASE = -2.9;
+
+/** Nominal height before instance variation; the lower two thirds are bare. */
+export function pineHeight(seed: number): number {
+  return 15 + (seed >>> 0) % 3;
+}
 
 function randomFor(seed: number): () => number {
   let state = seed >>> 0;
@@ -23,7 +28,7 @@ function geometryFrom(positions: number[], indices: number[]): BufferGeometry {
 }
 
 /** Neutral, layered wash: the ramp material alone supplies hue. */
-function paintCrown(geometry: BufferGeometry, height: number, widthLimit?: number): BufferGeometry {
+function paintCrown(geometry: BufferGeometry, height: number, widthLimit?: number, base = CROWN_BASE): BufferGeometry {
   geometry.computeBoundingBox();
   const bounds = geometry.boundingBox!;
   const yScale = height / (bounds.max.y - bounds.min.y);
@@ -34,7 +39,7 @@ function paintCrown(geometry: BufferGeometry, height: number, widthLimit?: numbe
   const colors: number[] = [];
   for (let i = 0; i < positions.count; i++) {
     const t = (positions.getY(i) - bottom) * yScale / height;
-    positions.setXYZ(i, positions.getX(i) * widthScale, CROWN_BASE + t * height, positions.getZ(i) * widthScale);
+    positions.setXYZ(i, positions.getX(i) * widthScale, base + t * height, positions.getZ(i) * widthScale);
     // Broad transparent washes with a soft transition between each layer.
     const layer = t * 4;
     const fraction = layer - Math.floor(layer);
@@ -90,7 +95,10 @@ export function createPineCrown(seed: number = PINE_VARIANT_SEEDS[0]): BufferGeo
     }
   }
   // 44 triangles/tier, at most 220; the trunk adds 42.
-  return paintCrown(geometryFrom(positions, indices), 4.05 + (tiers - 3) * 0.2);
+  const height = pineHeight(seed);
+  // Lift and narrow the layered crown for a tall Da Lat pine rather than a low fir.
+  // Keep the legacy 5 m instance anchor; only the visual trunk grows above its collider.
+  return paintCrown(geometryFrom(positions, indices), height / 3, 2.7, height * 2 / 3 - TRUNK_HEIGHT);
 }
 
 /** 4–7 off-centre, flattened lobes; each seed changes spacing, size and rotation. */
@@ -123,7 +131,7 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
   return paintCrown(geometryFrom(positions, indices), 3.15 + random() * 0.15, 4.3);
 }
 
-/** Unit-height tapered trunk; the existing collider-aligned transform is unchanged. */
+/** Unit-height tapered visual trunk; collision dimensions are owned by colliders.ts. */
 export function createTreeTrunk(): BufferGeometry {
   const positions: number[] = [];
   const indices: number[] = [];

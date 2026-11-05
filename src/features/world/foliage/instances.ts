@@ -1,9 +1,9 @@
-import { Group, InstancedMesh, Object3D } from "three";
+import { Group, InstancedMesh, Matrix4, Object3D, Ray, Vector3 } from "three";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
 import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
-import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, PINE_VARIANT_SEEDS } from "./shapes";
+import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
 
@@ -16,6 +16,40 @@ export function foliageVariantAt(x: number, z: number, count: number): number {
   hash = Math.imul(hash, 0x7feb352d);
   hash ^= hash >>> 15;
   return (hash >>> 0) % count;
+}
+
+/**
+ * The legacy camera selector uses a fixed sphere at the collider top (5 m).
+ * Test the three sight segments against each actual crown's local bounding box
+ * instead, so tall crowns, lean, scale and parent transforms need no new threshold.
+ * Returned indices belong to this mesh, including after quality compaction.
+ */
+export function selectFoliageOccludingCrowns(crowns: InstancedMesh, camera: Vector3, player: Vector3): number[] {
+  if (!crowns.geometry.boundingBox) crowns.geometry.computeBoundingBox();
+  const bounds = crowns.geometry.boundingBox!;
+  crowns.updateWorldMatrix(true, false);
+  const inverse = new Matrix4();
+  const start = new Vector3(), end = new Vector3(), hit = new Vector3();
+  const ray = new Ray();
+  const selected: number[] = [];
+  for (let i = 0; i < crowns.count; i++) {
+    crowns.getMatrixAt(i, inverse);
+    inverse.premultiply(crowns.matrixWorld).invert();
+    start.copy(camera).applyMatrix4(inverse);
+    for (const offset of [-0.65, 0, 0.65]) {
+      end.copy(player);
+      end.y += offset;
+      end.applyMatrix4(inverse);
+      const length = end.distanceTo(start);
+      if (length === 0) continue;
+      ray.set(start, end.sub(start).divideScalar(length));
+      if (bounds.containsPoint(start) || (ray.intersectBox(bounds, hit) && start.distanceTo(hit) < length)) {
+        selected.push(i);
+        break;
+      }
+    }
+  }
+  return selected;
 }
 
 /** Capacity is per species. Overflow throws before changing the current scene. */
@@ -57,17 +91,23 @@ export function createFoliage(maxPerKind: number) {
     for (let i = 0; i < count; i++) {
       const tree = trees[Math.floor((i + 0.5) * trees.length / count)]!;
       const { variants } = species[tree.kind];
-      const { trunks, crowns } = variants[foliageVariantAt(tree.x, tree.z, variants.length)]!;
+      const { seed, trunks, crowns } = variants[foliageVariantAt(tree.x, tree.z, variants.length)]!;
       const index = trunks.count++;
       crowns.count++;
-      const height = TRUNK_HEIGHT * tree.scale;
+      // Scatter varies scale from 0.8 to 1.3. Limit pine height to 14–18 m while
+      // retaining its width variation and leaving every physics cylinder alone.
+      const nominalHeight = pineHeight(seed);
+      const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight : tree.scale;
+      const anchorHeight = TRUNK_HEIGHT * heightScale;
+      // Extend the visual trunk slightly into the crown to hide the join.
+      const height = tree.kind === "pine" ? nominalHeight * (2 / 3 + 0.05) * heightScale : anchorHeight;
       transform.rotation.set(0, 0, tree.lean);
       transform.position.set(tree.x - Math.sin(tree.lean) * height / 2, tree.y + Math.cos(tree.lean) * height / 2, tree.z);
       transform.scale.set(1, height, 1);
       transform.updateMatrix();
       trunks.setMatrixAt(index, transform.matrix);
-      transform.position.set(tree.x - Math.sin(tree.lean) * height, tree.y + Math.cos(tree.lean) * height, tree.z);
-      transform.scale.setScalar(tree.scale);
+      transform.position.set(tree.x - Math.sin(tree.lean) * anchorHeight, tree.y + Math.cos(tree.lean) * anchorHeight, tree.z);
+      transform.scale.set(tree.scale, heightScale, tree.scale);
       transform.updateMatrix();
       crowns.setMatrixAt(index, transform.matrix);
     }
