@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-05 (đợt 17: world hướng C, cinematic, Journal). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
+> Cập nhật lần cuối: 2026-11-05 (đợt 18–20: nhân vật, xe, dịch chuyển, secrets, mascot, âm thanh).
 
 ## Milestone hiện tại
 
@@ -348,12 +348,50 @@ Chưa push.
 
 Chưa push.
 
+### Đợt 18–20 (2026-11-05): world có sự sống
+
+Duy yêu cầu giao nhiều việc hơn cho Codex. 15 ticket, tối đa **12 worker song song**:
+- Ticket nào không sửa `index.ts` thì chạy song song.
+- 4 ticket sửa `index.ts` (dịch chuyển, xe, secrets/ending, mascot) chạy tuần tự.
+
+Chi tiết: `docs/tickets/queue.md`.
+
+**Đã có trong world:**
+- **Nhân vật D-23 đã rig:** 19 xương; đứng, đi, chạy. Lead chạy Blender và sửa lỗi trọng số trong script. Kích thước 134 KB sau meshopt.
+- **Biển chỉ đường và bàn** vẽ tay.
+- **Nguồn suối** thon dần.
+- **Cỏ và đá** theo từng ô đất.
+- **Dịch chuyển** giữa 8 biển, có hộp chọn khu.
+- **Xe GD110:** lên xe bằng E, lái tay, Auto Cruise bằng C.
+- **4 secrets và ending 36 s.**
+- **Mascot,** có nút tắt trong menu.
+- **Nút Sound** bật âm môi trường tổng hợp bằng WebAudio, không dùng file âm thanh.
+
+**Lead sửa khi tích hợp:**
+- Trọng số rig bị ghi đè.
+- Test cấm import audio, sửa để cho phép đúng ngoại lệ cầu nối.
+- Màu cỏ chìm vào nền đất.
+- **Khi pause, nhân vật vẫn thở và đồng hồ gợi ý mascot vẫn chạy.** E2E §6.1 và Q21 bắt được: 2 test fail. Đã sửa ở `abb6c2d`; tạm dừng giờ là đứng yên hoàn toàn.
+
+**Gate A đầy đủ trên main `abb6c2d`** (máy dev RTX 3060, Edge headless):
+
+| Kiểm tra | Kết quả |
+|---|---|
+| lint, typecheck, unit (773), build:artifacts, check:cv/bundle/leaks/licenses/assets | **PASS** |
+| e2e | **151/151 PASS** |
+| test:perf, tiêu chí: 3D tới playable | **PASS**: 1,92 MB / 8 MB |
+| test:perf, tiêu chí: thời gian tới playable (tệ nhất) | **PASS**: 3,77 s / 10 s. Trước đợt này 2,45 s; tăng chủ yếu do tải nhân vật |
+| test:perf, tiêu chí: Welcome JS | **PASS**: 137,4 / 150 KB |
+| Lighthouse | **PASS** |
+| T08/T09 | **NOT RUN** |
+
+Ending chưa xem được bằng mắt trong world (phải tìm đủ secret); hiện chỉ unit test phủ. Chưa push.
+
 ### Ticket tiếp theo
 
-1. B2-044: nguồn suối (hiện bị cắt thẳng ngay cạnh spawn).
-2. B2-045: rig và animation nhân vật đã duyệt, thay khối cam.
-3. B2-041 / B2-042: nối dịch chuyển và xe vào world (`index.ts`, tuần tự).
-4. B2-034: đo T08 trên laptop Iris Xe, không chạy tác vụ nào khác cùng lúc.
+1. B2-034: đo T08/T09 trên laptop Iris Xe. **Ưu tiên**, vì đợt này thêm nhiều thứ phải render (nhân vật có skin, cỏ, xe, mascot).
+2. B2-090: quay video ending bằng hook test, Art Director review.
+3. B2-091: âm riêng cho Forgotten Sound; đề xuất nhạc có giấy phép (Q-26).
 
 ### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 

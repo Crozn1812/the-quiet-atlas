@@ -7,6 +7,8 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
+| Q-32 | **Duyệt 5 câu phản hồi secrets** (EN/VI, ẩn dụ, không chuyện riêng) — giữ hoặc viết lại | L3 | Không (đang TBD) | Khi rảnh | `docs/showcase/20-world-life/checklist.md` mục "Câu chữ secrets" |
+| Q-33 | **Chấm showcase đợt 18–20** (giữ/sửa/bỏ 9 dòng) | L3 | Không | Khi rảnh | `docs/showcase/20-world-life/checklist.md` |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |

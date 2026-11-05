@@ -56,15 +56,30 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-039a | Dáng cây vẽ tay: 3 thông + 2 lá rộng (Codex; Lead nối fade theo biến thể) | merged `0c2c184` |
 | — | Lead review cinematic: fog kéo dài khi bay cao, tải trước 600 m, mặt nạ hành lang giấy, cận suối nhìn xuôi dòng | merged `9891cb9` |
 
+## Đợt 18–20 (2026-11-05): 15 ticket, tối đa 12 Codex worker song song
+
+| ID | Việc | Trạng thái |
+|---|---|---|
+| B2-046 | Biển chỉ đường + bàn vẽ tay | merged `31816d7`, nối `57a7be0` |
+| B2-045a/b | Rig nhân vật (Lead chạy Blender, sửa trọng số) + runtime nạp GLB/trộn animation | merged `f6424dc`, `1e47c2a`, nối `57a7be0` |
+| B2-047 | Cỏ + đá theo ô | merged `a55233f`, nối `211ae40`, màu `53156c7` |
+| B2-041a/b | Dịch chuyển: 8 biển + hộp chọn khu | merged `be46f57`, `fb63101` |
+| B2-048 / B2-042 | GD110 procedural + lên xe/lái/Auto Cruise | merged `14f4983`, `3d075b2` |
+| B2-070 / B2-071 / B2-061 / B2-073 | Secrets (mô hình, mốc cảnh, ending, nối world) | merged `5f437fc`, `d0f4e02`, `1154c21`, `b594265` |
+| B2-072 / B2-074 | Mascot (mô hình + nối, nút tắt trong menu) | merged `a161156`, `e95a4c8` |
+| B2-080 / B2-081 | Âm môi trường tổng hợp + nút Sound | merged `17a8e9a`, `ce1dbcb` |
+| — | Lead: tạm dừng = đứng yên hoàn toàn (e2e bắt) | `abb6c2d` |
+
 ## Tiếp theo (todo)
 
 | ID | Việc | Phụ thuộc |
 |---|---|---|
 | B2-034 | T08 trên laptop Iris Xe cho 3 hướng (chạy một mình) | B2-030 |
 | B2-044 | Nguồn suối: dải nước thu hẹp và tan vào đất ở t=0 (hiện cắt thẳng cạnh spawn) | — |
-| B2-045 | Rig + animation nhân vật (mô hình đã duyệt D-23) và thay khối cam trong world | D-23 |
-| B2-041 | Nối teleport vào world (E tại bảng, sương) | B2-013, 016 |
-| B2-042 | Xe GD110 graybox nối collider + phím E/C | B2-015, 016 |
+
+| B2-090 | Quay video ending trong world bằng hook test (chưa xem bằng mắt) | — |
+| B2-091 | Âm riêng cho Forgotten Sound (tổng hợp) + đề xuất nhạc có giấy phép (Q-26) | — |
+| B2-034 | T08/T09 FPS trên Iris Xe — **ưu tiên**: đợt này thêm skin, cỏ, xe, mascot | Duy chạy trên laptop |
 
 ## Sau khi Duy chọn hướng
 
