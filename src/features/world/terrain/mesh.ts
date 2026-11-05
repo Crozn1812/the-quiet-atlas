@@ -1,13 +1,39 @@
 import { BufferAttribute, BufferGeometry, Color, Mesh, type Material } from "three";
 import { hex } from "../art/palette";
-import { worldHeight } from "./height";
-import { nearestRiver } from "./samples";
+import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
+import { nearestPath } from "./samples";
 import type { TerrainTile } from "./tiles";
 
-const forestDeep = new Color(hex("forestDeep"));
-const forestLight = new Color(hex("forestLight"));
-const sand = new Color(hex("paper")).lerp(new Color(hex("dusk")), 0.22);
+const grass = new Color(hex("grass"));
+const grassDry = new Color(hex("grassDry"));
+const rock = new Color(hex("rock"));
+const rockDark = new Color(hex("rockDark"));
+const sand = new Color(hex("sand"));
+const seaDeep = new Color(hex("seaDeep"));
+const dirt = grassDry.clone().lerp(rockDark, 0.32);
+const cliffStart = Math.tan(35 * Math.PI / 180);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
+
+function smoothstep(start: number, end: number, value: number): number {
+  const t = clamp((value - start) / (end - start));
+  return t * t * (3 - 2 * t);
+}
+
+function pigmentAt(x: number, z: number): number {
+  let hash = Math.imul(x, 374761393) ^ Math.imul(z, 668265263) ^ TERRAIN_SEED;
+  hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+  return ((hash ^ (hash >>> 16)) >>> 0) / 4294967295;
+}
+
+/** Continuous world-space value noise: tile rebuilds and shared edges use identical pigment. */
+function pigmentNoise(x: number, z: number, scale: number): number {
+  const ix = Math.floor(x / scale), iz = Math.floor(z / scale);
+  const tx = smoothstep(0, 1, x / scale - ix);
+  const tz = smoothstep(0, 1, z / scale - iz);
+  const a = pigmentAt(ix, iz) * (1 - tx) + pigmentAt(ix + 1, iz) * tx;
+  const b = pigmentAt(ix, iz + 1) * (1 - tx) + pigmentAt(ix + 1, iz + 1) * tx;
+  return a * (1 - tz) + b * tz;
+}
 
 /** Local XZ coordinates start at the tile's minimum corner; Y comes from its heightmap. */
 export function createTileMesh<M extends Material>(tile: TerrainTile, material: M): Mesh<BufferGeometry, M> {
@@ -42,15 +68,33 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const length = Math.hypot(dx, 1, dz);
     normals.set([-dx / length, 1 / length, -dz / length], offset);
 
-    // Valley wash: deeper green by the river, lighter on hills (near-white multiplier keeps the material dominant).
-    const bankHeight = Math.max(0, wz + 900) * 0.008;
-    const hill = clamp((height - bankHeight) / 4 + Math.hypot(dx, dz) * 0.4);
-    const river = 1 - clamp(nearestRiver(wx, wz).distance / 24);
-    tint.copy(forestLight).lerp(forestDeep, river * (1 - hill));
-    color.setRGB(1, 1, 1).lerp(tint, 0.22);
-    // B2-037: height-based beach sand below 0.9 m, fading into the valley wash by 1.6 m.
-    const beachT = clamp((height - 0.9) / 0.7);
-    color.lerp(sand, 1 - beachT * beachT * (3 - 2 * beachT));
+    const aboveWater = origin.y + height - waterLevelAt(wz);
+    const broad = 0.7 * pigmentNoise(wx, wz, 64) + 0.3 * pigmentNoise(wx, wz, 32);
+    // Bake a slight golden bias on slopes facing the coastal sun (+X, -Z).
+    const sunward = Math.max(0, (-0.8 * dx + 0.6 * dz) / length);
+    const dryness = clamp(smoothstep(0.2, 0.8, broad)
+      + 0.16 * smoothstep(3, 45, aboveWater) + 0.1 * sunward);
+    color.copy(grass).lerp(grassDry, dryness);
+
+    // Rock starts above 35 degrees. Fine noise breaks up the soft cliff edge;
+    // every 45-degree face is fully rocky, with darker seams rather than a hard band.
+    const detail = pigmentNoise(wx, wz, 6);
+    const cliffEnd = Math.tan((41 + detail * 4) * Math.PI / 180);
+    const cliff = smoothstep(cliffStart, cliffEnd, Math.hypot(dx, dz));
+    tint.copy(rock).lerp(rockDark, 0.08 + 0.2 * detail);
+    color.lerp(tint, cliff);
+
+    // Local river level also covers the sea (0 m); blend the shallow bed into the shore.
+    tint.copy(sand).lerp(rock, 0.08 + 0.12 * detail);
+    color.lerp(tint, 1 - smoothstep(1.2, 2.2, aboveWater));
+    tint.copy(rockDark).lerp(seaDeep, 0.2 + 0.45 * smoothstep(0, 3, -aboveWater));
+    color.lerp(tint, 1 - smoothstep(-0.3, 0, aboveWater));
+
+    // The unpaved forest route stays light brown, including its low river-bank stretches.
+    const path = nearestPath(wx, wz);
+    const trail = (1 - smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance))
+      * (1 - smoothstep(0.8, 0.82, path.t)) * smoothstep(0, 0.15, aboveWater) * (1 - cliff);
+    color.lerp(dirt, trail);
     colors.set([color.r, color.g, color.b], offset);
 
     if (x < cells && z < cells) {

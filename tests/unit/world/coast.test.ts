@@ -156,7 +156,8 @@ describe("organic coast", () => {
     expect(worldHeight(zone.position.x, zone.position.z - 120)).toBeLessThan(-1);
   });
 
-  it("colours 0.3 m vertices with palette sand, fades at 0.9–1.6 m, and leaves 5 m on the valley wash", () => {
+  // B2-165 (direction A): shore vertices read as sand/rock, high ground as grass; the old cream valley wash is gone.
+  it("colours near-water vertices sandy and higher ground grassy (direction A)", () => {
     const material = new MeshToonMaterial();
     const mesh = createTileMesh({
       cells: 2, size: 4, origin: { x: 100, y: 0, z: -880 },
@@ -164,18 +165,13 @@ describe("organic coast", () => {
     }, material);
     try {
       const colors = mesh.geometry.getAttribute("color");
-      const sand = new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.22);
       const at = (index: number) => new Color().fromArray(colors.array, index * 3);
-      expect(at(0).toArray()).not.toEqual([1, 1, 1]);
-      expect(at(0).r).toBeCloseTo(sand.r, 6);
-      expect(at(0).g).toBeCloseTo(sand.g, 6);
-      expect(at(0).b).toBeCloseTo(sand.b, 6);
-      expect(at(1)).toEqual(at(0));
-      // Lead (B2-037 review): high ground keeps the near-white valley wash (>= 0.78), not sand.
-      expect(at(4).b).toBeGreaterThan(sand.b + 0.1);
-      expect(Math.min(at(4).r, at(4).g, at(4).b)).toBeGreaterThanOrEqual(0.78);
-      expect(at(2).b).toBeGreaterThan(at(0).b);
-      expect(at(2).b).toBeLessThan(at(3).b);
+      const distance = (a: Color, b: Color) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
+      const sand = new Color(PALETTE.sand);
+      const grass = new Color(PALETTE.grass);
+      expect(distance(at(0), sand)).toBeLessThan(distance(at(0), grass));
+      expect(distance(at(4), grass)).toBeLessThan(distance(at(4), sand));
+      expect(at(4).g).toBeGreaterThan(at(4).b);
       expect(material.vertexColors).toBe(true);
     } finally { mesh.geometry.dispose(); material.dispose(); }
   });

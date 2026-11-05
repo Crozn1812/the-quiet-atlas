@@ -1,7 +1,10 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { BufferGeometry, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
+import { BufferGeometry, Color, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
+import { hex } from "../../../src/features/world/art/palette";
+import { pathPointAt } from "../../../src/features/world/layout/path";
 import { createTileCollider, removeTileCollider, type TileRapier } from "../../../src/features/world/terrain/collider";
+import { waterLevelAt } from "../../../src/features/world/terrain/height";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { createTilePool } from "../../../src/features/world/terrain/pool";
 import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
@@ -20,6 +23,25 @@ function physicsMock() {
   return { rapier, world, descriptor, heightfield };
 }
 
+const paletteColor = (key: Parameters<typeof hex>[0]) => new Color(hex(key));
+const colorDistance = (a: Color, b: Color) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
+const luma = (color: Color) => 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+
+/** Interior vertex of a known plane, independent of the procedural heightfield at tile edges. */
+function sampleColor(x: number, z: number, height: number, dx = 0, dz = 0, originY = 0): Color {
+  const tile: TerrainTile = {
+    cells: 2, size: 4, origin: { x: x - 2, y: originY, z: z - 2 },
+    heights: Float32Array.from({ length: 9 }, (_, i) =>
+      height - originY + (Math.floor(i / 3) - 1) * 2 * dx + (i % 3 - 1) * 2 * dz),
+  };
+  const material = new MeshToonMaterial();
+  const mesh = createTileMesh(tile, material);
+  try {
+    const colors = mesh.geometry.getAttribute("color");
+    return new Color().setRGB(colors.getX(4), colors.getY(4), colors.getZ(4));
+  } finally { mesh.geometry.dispose(); material.dispose(); }
+}
+
 describe("terrain tile mesh", () => {
   it("builds 1089 vertices and 2048 upward triangles from the original heightfield", () => {
     const tile = buildTile(-2, -5);
@@ -34,6 +56,8 @@ describe("terrain tile mesh", () => {
       const position = mesh.geometry.getAttribute("position");
       const normal = mesh.geometry.getAttribute("normal");
       const indices = mesh.geometry.getIndex()!;
+      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["color", "normal", "position"]);
+      expect(mesh.geometry.groups).toHaveLength(0); // One material / draw call per tile.
       expect(position.count).toBe(33 * 33);
       expect(normal.count).toBe(position.count);
       expect(indices.array).toBeInstanceOf(Uint16Array);
@@ -80,27 +104,128 @@ describe("terrain tile mesh", () => {
     } finally { material.dispose(); }
   });
 
-  it("uses a subtle valley wash on high ground and warm palette sand on the low coast", () => {
+  it("paints 45-degree faces close to palette rock in every slope direction", () => {
+    const rock = paletteColor("rock");
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const color = sampleColor(400, -400, 20, dx, dz);
+      expect(colorDistance(color, rock)).toBeLessThan(0.08);
+      expect(colorDistance(color, rock)).toBeLessThan(colorDistance(color, paletteColor("grass")));
+    }
+  });
+
+  it("keeps flat meadows on the grass/grassDry palette blend", () => {
+    const grass = paletteColor("grass"), dry = paletteColor("grassDry");
+    for (const x of [300, 350, 400, 450, 500]) {
+      const color = sampleColor(x, -400, 20);
+      const t = (color.r - grass.r) / (dry.r - grass.r);
+      expect(t).toBeGreaterThanOrEqual(-1e-6);
+      expect(t).toBeLessThanOrEqual(1 + 1e-6); // Float32 vertex storage.
+      expect(colorDistance(color, grass.clone().lerp(dry, t))).toBeLessThan(1e-6);
+    }
+  });
+
+  it("adds a small dry-grass bias with elevation and on sun-facing slopes", () => {
+    const dry = paletteColor("grassDry");
+    expect(colorDistance(sampleColor(400, -400, 45), dry))
+      .toBeLessThan(colorDistance(sampleColor(400, -400, 8), dry));
+    expect(colorDistance(sampleColor(400, -400, 20, -0.4, 0.3), dry))
+      .toBeLessThan(colorDistance(sampleColor(400, -400, 20, 0.4, -0.3), dry));
+  });
+
+  it("softly exposes rock above 35 degrees instead of changing colour in one step", () => {
+    const rock = sampleColor(400, -400, 20, 1);
+    const distances = [35, 38, 41, 45].map(degrees =>
+      colorDistance(sampleColor(400, -400, 20, Math.tan(degrees * Math.PI / 180)), rock));
+    for (let i = 1; i < distances.length; i++) expect(distances[i]).toBeLessThan(distances[i - 1]!);
+    const below = sampleColor(400, -400, 20, Math.tan(34.99 * Math.PI / 180));
+    const above = sampleColor(400, -400, 20, Math.tan(35.01 * Math.PI / 180));
+    expect(colorDistance(below, above)).toBeLessThan(0.001);
+  });
+
+  it("uses sand with a little rock from 0 to 1.2 m above local river/sea level", () => {
+    const sand = paletteColor("sand"), rock = paletteColor("rock");
+    for (const z of [-400, -1000]) for (const rise of [0, 0.02, 0.6, 1.2]) {
+      const color = sampleColor(400, z, waterLevelAt(z) + rise);
+      const t = (color.r - sand.r) / (rock.r - sand.r);
+      expect(t).toBeGreaterThan(0.07);
+      expect(t).toBeLessThan(0.21);
+      expect(colorDistance(color, sand.clone().lerp(rock, t))).toBeLessThan(1e-6);
+      expect(colorDistance(color, sand)).toBeLessThan(0.12);
+    }
+    expect(colorDistance(sampleColor(400, -400, 8), sampleColor(400, -400, 8, 0, 0, 5)))
+      .toBeLessThan(1e-6);
+  });
+
+  it("blends submerged rockDark toward seaDeep with depth and joins the waterline continuously", () => {
+    const dark = paletteColor("rockDark"), deep = paletteColor("seaDeep");
+    for (const z of [-400, -1000]) {
+      const water = waterLevelAt(z);
+      const shallow = sampleColor(400, z, water - 0.4);
+      const bottom = sampleColor(400, z, water - 3);
+      for (const color of [shallow, bottom]) {
+        const t = (color.r - dark.r) / (deep.r - dark.r);
+        expect(t).toBeGreaterThan(0.19);
+        expect(t).toBeLessThan(0.66);
+        expect(colorDistance(color, dark.clone().lerp(deep, t))).toBeLessThan(1e-6);
+      }
+      expect(colorDistance(bottom, deep)).toBeLessThan(colorDistance(shallow, deep));
+      expect(colorDistance(sampleColor(400, z, water - 0.001), sampleColor(400, z, water + 0.001)))
+        .toBeLessThan(0.001);
+    }
+  });
+
+  it("keeps the forest trail light brown and leaves the coastal road terrain untinted by dirt", () => {
+    const dirt = paletteColor("grassDry").lerp(paletteColor("rockDark"), 0.32);
+    for (const t of [0.1, 0.3, 0.6, 0.79]) {
+      const p = pathPointAt(t);
+      expect(colorDistance(sampleColor(p.x, p.z, waterLevelAt(p.z) + 0.4), dirt)).toBeLessThan(1e-6);
+    }
+    const coast = pathPointAt(0.9);
+    expect(colorDistance(sampleColor(coast.x, coast.z, waterLevelAt(coast.z) + 0.4), paletteColor("sand")))
+      .toBeLessThan(0.12);
+  });
+
+  it("varies meadow luma by at least 0.03 over 200 m with smooth large-scale patches", () => {
     const material = new MeshToonMaterial();
-    const forest = createTileMesh(buildTile(0, -4), material);
-    const coast = createTileMesh(buildTile(0, -15), material);
+    const tile: TerrainTile = {
+      cells: 100, size: 200, origin: { x: 300, y: 0, z: -500 },
+      heights: new Float32Array(101 ** 2).fill(20),
+    };
+    const mesh = createTileMesh(tile, material);
     try {
-      for (const mesh of [forest, coast]) {
-        const colors = mesh.geometry.getAttribute("color");
-        expect(colors.count).toBe(1089);
-        for (const channel of colors.array) {
-          expect(Number.isFinite(channel)).toBe(true);
+      const colors = mesh.geometry.getAttribute("color");
+      const luminances: number[] = [];
+      for (let x = 1; x < 100; x++) for (let z = 1; z < 100; z++) {
+        const i = z + x * 101;
+        const color = new Color().setRGB(colors.getX(i), colors.getY(i), colors.getZ(i));
+        luminances.push(luma(color));
+        for (const channel of [color.r, color.g, color.b]) {
           expect(channel).toBeGreaterThan(0);
           expect(channel).toBeLessThanOrEqual(1);
         }
+        const nextLuma = 0.2126 * colors.getX(i + 1) + 0.7152 * colors.getY(i + 1) + 0.0722 * colors.getZ(i + 1);
+        if (z < 99) expect(Math.abs(luma(color) - nextLuma)).toBeLessThan(0.02);
       }
-      const greens = forest.geometry.getAttribute("color");
-      expect(new Set(greens.array).size).toBeGreaterThan(10);
-      const sand = coast.geometry.getAttribute("color");
-      expect(sand.getX(0)).toBeGreaterThan(sand.getY(0));
-      expect(sand.getY(0)).toBeGreaterThan(sand.getZ(0));
-      expect(sand.getZ(0)).toBeLessThan(greens.getZ(0)); // sand is warmer than the valley wash
-    } finally { forest.geometry.dispose(); coast.geometry.dispose(); material.dispose(); }
+      const mean = luminances.reduce((sum, value) => sum + value, 0) / luminances.length;
+      const deviation = Math.sqrt(luminances.reduce((sum, value) => sum + (value - mean) ** 2, 0) / luminances.length);
+      expect(deviation).toBeGreaterThanOrEqual(0.03);
+    } finally { mesh.geometry.dispose(); material.dispose(); }
+  });
+
+  it("rebuilds identical vertex colours without modifying heights or using random state", () => {
+    const tile = buildTile(-2, -5);
+    const heights = tile.heights.slice();
+    const material = new MeshToonMaterial();
+    const random = vi.spyOn(Math, "random").mockReturnValue(0.1);
+    const meshes: ReturnType<typeof createTileMesh>[] = [];
+    try {
+      meshes.push(createTileMesh(tile, material));
+      // Three.js uses random UUIDs; colour must stay identical even when that random state changes.
+      random.mockReturnValue(0.9);
+      meshes.push(createTileMesh(buildTile(0, -15), material), createTileMesh(tile, material));
+      expect(meshes[0]!.geometry.getAttribute("color").array).toEqual(meshes[2]!.geometry.getAttribute("color").array);
+      expect(tile.heights).toEqual(heights);
+    } finally { random.mockRestore(); for (const mesh of meshes) mesh.geometry.dispose(); material.dispose(); }
   });
 });
 

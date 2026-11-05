@@ -101,6 +101,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let preloadAhead = 0;
   let previousPosition: Vector3 | undefined;
   const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
+  // B2-165: terrain colour now lives in the tile vertex colours (grass/rock/sand); a tinted base would double it.
+  terrainMaterial.color.setRGB(1, 1, 1);
   const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
   const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
   const trunkMaterial = new MeshBasicMaterial();
