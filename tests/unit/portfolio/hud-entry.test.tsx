@@ -42,6 +42,8 @@ it("adds the icon only in world, targets that container, follows setLocale and r
   world.addEventListener("tqa:toggle-journal", toggle);
   expect(icon()).toBeNull();
   await act(async () => { button("Enter World").click(); });
+  // The HUD module loads lazily with the world menu chain (which now includes the overlay CSS module).
+  await vi.waitFor(() => expect(icon()).not.toBeNull());
   expect(icon()!.textContent).toBe("Atlas Journal");
   expect(icon()!.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
   await act(async () => { icon()!.click(); });

@@ -23,6 +23,12 @@ export async function GET(_request: Request, { params }: {
       role: profile.role,
       level: profile.level,
       introduction: profile.introduction,
+      // B2-115 (Lead): public contact layer only — the phone number stays in the CV (spec §4.4).
+      email: profile.email,
+      githubUrl: profile.githubUrl,
+      linkedinUrl: profile.linkedinUrl,
+      experience: profile.experience.map(({ employer, title, start, end, summary }) => ({ employer, title, start, end, summary })),
+      education: profile.education.map(({ institution, program, expectedGraduation, status }) => ({ institution, program, expectedGraduation, status })),
     },
     projects: content.projects.filter(p => p.locale === locale).map(project => ({
       id: project.id,

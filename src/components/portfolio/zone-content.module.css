@@ -1,0 +1,145 @@
+.page {
+  /* PALETTE values, kept local to avoid importing the world renderer. */
+  --paper: #eee8d8;
+  --ink: #2b2a26;
+  --forest: #5e8c6a;
+  --mist: #a9c8b8;
+  --water: #2e5e73;
+  --dusk: #e2b65c;
+  --gutter: clamp(1rem, 4vw, 3.5rem);
+  box-sizing: border-box;
+  isolation: isolate;
+  overflow: clip;
+  min-inline-size: 0;
+  padding: var(--gutter);
+  border: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: "Noto Serif", Georgia, serif;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.header,
+.body {
+  max-inline-size: 44rem;
+  margin-inline: auto;
+}
+
+.kicker {
+  margin: 0 0 1.5rem;
+  font-size: .875rem;
+  letter-spacing: .08em;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2rem, 1.1rem + 4vw, 4.75rem);
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+.lead {
+  font-size: clamp(1.125rem, 1rem + .4vw, 1.375rem);
+}
+
+.wash {
+  block-size: clamp(8rem, 22vw, 15rem);
+  margin: 2rem calc(-1 * var(--gutter)) 3rem;
+  background:
+    radial-gradient(ellipse at 77% 40%, var(--dusk) 0%, transparent 9%),
+    radial-gradient(ellipse at 64% 65%, color-mix(in srgb, var(--water) 40%, transparent), transparent 44%),
+    radial-gradient(ellipse at 40% 54%, color-mix(in srgb, var(--forest) 65%, transparent), transparent 49%),
+    radial-gradient(ellipse at 25% 45%, var(--mist), transparent 48%);
+  border-radius: 38% 62% 47% 53% / 43% 37% 63% 57%;
+  transform: rotate(-3deg);
+  opacity: .8;
+}
+
+.page[data-zone="milestones"],
+.page[data-zone="horizon"] {
+  --forest: #2f5446;
+}
+
+.page[data-zone="quiet-shore"],
+.page[data-zone="last-postcard"] {
+  --forest: #2e5e73;
+  --water: #23476b;
+}
+
+.page h2 {
+  margin: 0 0 .75rem;
+  font-size: clamp(1.25rem, 1rem + .7vw, 1.75rem);
+  line-height: 1.45;
+}
+
+.page a {
+  display: inline-block;
+  margin: 0;
+  min-block-size: 24px;
+  color: inherit;
+  text-underline-offset: .22em;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  margin-block-start: 2rem;
+}
+
+.entries,
+.timeline {
+  padding: 0;
+  list-style: none;
+}
+
+.entries > *,
+.timeline > li {
+  margin: 0 0 3rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid var(--mist);
+}
+
+.timeline {
+  padding-inline-start: 1.5rem;
+  border-inline-start: 1px solid var(--forest);
+}
+
+.meta {
+  font-size: .875rem;
+}
+
+.postcard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.postcard section {
+  min-inline-size: 0;
+  margin: 0;
+}
+
+.address {
+  padding-inline-start: 2rem;
+  border-inline-start: 1px solid var(--forest);
+}
+
+.address .links {
+  flex-direction: column;
+  align-items: flex-start;
+  font-style: normal;
+}
+
+@media (max-width: 40rem) {
+  .postcard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .address {
+    padding: 2rem 0 0;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--forest);
+  }
+}
