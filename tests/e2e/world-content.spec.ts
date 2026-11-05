@@ -152,8 +152,8 @@ test("T07 Workshop: walk to the desk with real keys (W+D), hint = workshop, E op
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-// B2-115: a zone still waiting for Duy's content says so honestly (no "Under construction", no TBD).
-test("§6.3 zone without data (roots): overlay says Duy is still writing it, links Quick Portfolio; × Close closes", async ({ page }) => {
+// Q-34 (batch 24): Roots now shows Duy's real skills (it used to say "Duy is still writing this page").
+test("§6.3 Roots: overlay shows Duy's skills with their level, links Quick Portfolio; × Close closes", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await setup(page);
 
@@ -162,7 +162,8 @@ test("§6.3 zone without data (roots): overlay says Duy is still writing it, lin
   await expect(world).toHaveAttribute("data-world-paused", "true");
   await expect(overlayTitle(page)).toHaveText("The Roots");
   await expect(overlayTitle(page)).toBeFocused();
-  await expect(overlay(page).getByText("Duy is still writing this page.")).toBeVisible({ timeout: 10_000 });
+  await expect(overlay(page).getByText("Linux and Python")).toBeVisible({ timeout: 10_000 });
+  await expect(overlay(page).getByText("Duy is still writing this page.")).toHaveCount(0);
   await expect(overlay(page).getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", "/en/quick/");
 
   await overlay(page).getByRole("button", { name: "× Close" }).click();
