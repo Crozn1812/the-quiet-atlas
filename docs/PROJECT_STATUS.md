@@ -385,7 +385,17 @@ Chi tiết: `docs/tickets/queue.md`.
 | Lighthouse | **PASS** |
 | T08/T09 | **NOT RUN** |
 
-Ending chưa xem được bằng mắt trong world (phải tìm đủ secret); hiện chỉ unit test phủ. Chưa push.
+Ending chưa xem được bằng mắt trong world (phải tìm đủ secret); hiện chỉ unit test phủ.
+
+**Sự cố CI (đợt 17 → 62ef088):** CI trên GitHub đỏ ở bước unit test từ lượt push đợt 17 (`91ed844`). Lead không kiểm kết quả CI sau lượt push đó, nên đỏ qua 3 lượt push.
+- **Nguyên nhân:** Node 24.22 (runtime của CI) không gỡ được listener khi gọi `removeEventListener(type, fn, true)`. DOM giả trong unit test kế thừa `EventTarget` của Node, nên trình bắt phím của dialog cũ còn sót lại.
+  - Tái hiện được trong Docker `node:24`.
+  - Node 26 (máy dev) và trình duyệt thật không bị. Code sản phẩm không lỗi.
+- **Lần sửa đầu sai:** `d1b0c85` dựa trên giả thuyết về thời gian; đã revert.
+- **Sửa thật ở `62ef088`:** file setup Vitest chuẩn hóa tham số capture, kèm test hồi quy.
+  - Trước khi push đã chạy trong Docker Node 24: unit 774/774 PASS, e2e Chromium 151/151 PASS.
+  - **CI GitHub lượt chạy cho `62ef088`: PASS cả 2 job** (gồm unit, build, e2e, perf, Lighthouse, terraform validate).
+- **Từ nay:** sau mỗi lần push, Lead đợi kết quả CI rồi mới báo cáo. Lỗi chỉ xảy ra trên CI thì tái hiện bằng `docker run node:24` trước khi sửa.
 
 ### Ticket tiếp theo
 
