@@ -6,7 +6,6 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
-| Q-30 | **Chấm turnaround nhân vật + GD110** (giữ/sửa/bỏ) | L3 (rig/animation) | B2 | Cùng lúc Q-29 | `docs/showcase/15-turnaround/checklist.md` |
 | Q-08 | **AWS credits**: tài khoản đăng ký sáng 2026-11-04, credit chưa duyệt. Khi duyệt: gửi số credit + ngày hết hạn | L5 | A2 | Khi có | `docs/runbook/aws-account-and-credits.md` bước 1–3 |
 | Q-09 | **Tên miền đang mua**: khi mua xong, gửi tên miền, nhà đăng ký, giá gia hạn năm sau. Chưa tạo hosted zone | L5 | A2 (Q24) | Trước A2 | `docs/runbook/domain-and-acm.md` bước 1 |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm): bật MFA root, xác nhận không có access key root, tạo user dùng hằng ngày. Xong thì báo "đã xong" | L5 | A2 | Khi có credit | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
@@ -58,3 +57,4 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 | D-20 | Q-27: ảnh nào dùng cũng được. Ảnh **biết người chụp** → dùng ảnh thật kèm credit, xóa EXIF/GPS; ảnh **không rõ người chụp** → Lead tự thiết kế minh họa dựa trên ảnh gốc (không đăng ảnh gốc). Không logo Chiefs/Suzuki trên bất kỳ bản nào | 2026-11-04 |
 | D-21 | Q-28: Duy đã lưu 16 ảnh vào `docs/art-bible/refs/` (6 ảnh cá nhân + 10 ảnh tham chiếu; gitignore, không commit) | 2026-11-04 |
 | D-22 | Q-29: Duy xem style frame đợt 16, **chốt sơ khởi là ổn**, không chọn hướng cụ thể → Lead (toàn quyền art, ADR 0012) chốt sơ khởi **hướng C** theo đề xuất Art Director; Duy có thể đổi khi xem cảnh chuẩn T10 | 2026-11-05 |
+| D-23 | Q-30: turnaround nhân vật + GD110 — **giữ hết** 17 hạng mục (tỷ lệ, tóc, kính, mặt, áo, quần/tất/giày, tote, da, mức cách điệu; dáng xe, ghi đông scrambler, vành, gương/đèn, baga, phụ kiện, ống xả, không huy hiệu) → bước tiếp: rig + animation | 2026-11-05 |
