@@ -10,7 +10,7 @@ import { scatterTile } from "../../../src/features/world/foliage/scatter";
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
-import { lightingAt } from "../../../src/features/world/sky/grade";
+import { applyCoastAtmosphere, lightingAt } from "../../../src/features/world/sky/grade";
 import { tilesToLoad } from "../../../src/features/world/terrain/streaming";
 import { TILE_SIZE, tileKey } from "../../../src/features/world/terrain/tiles";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
@@ -114,8 +114,8 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     const destination = pathPointAt(0.95);
     composed.update(destination, 0);
     track(composed);
-    // B2-038: sky/fog colours come from art direction C, blended by time of day.
-    expect(paper.setGrade.mock.lastCall![0].fogColor).toEqual(directGrade(lightingAt(0), timeOfDayAt(0.95)).fogColor);
+    // B2-038: sky/fog colours come from art direction C, blended by time of day; B2-155 adds the coast sunset on top.
+    expect(paper.setGrade.mock.lastCall![0].fogColor).toEqual(applyCoastAtmosphere(directGrade(lightingAt(0), timeOfDayAt(0.95)), 0.95).fogColor);
     expect(scene.fog!.color).toEqual(paper.setGrade.mock.lastCall![0].fogColor);
   } finally {
     composed.dispose();
@@ -176,8 +176,8 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
   expect(() => createWorldScene({ ...backend, scene, quality: "Balanced" })).toThrow("initial allocation failed");
   expect(scene.children).toHaveLength(0);
   // Failed tile, sky, river, sea and the shared camera trunk geometry.
-  expect(geometryDispose).toHaveBeenCalledTimes(10); // +5 ground-detail variants (B2-047)
-  expect(materialDispose).toHaveBeenCalledTimes(6); // +1 shared ground material (B2-047)
+  expect(geometryDispose).toHaveBeenCalledTimes(11); // +5 ground-detail variants (B2-047), +1 coast mist (B2-155)
+  expect(materialDispose).toHaveBeenCalledTimes(7); // +1 shared ground material (B2-047), +1 coast mist (B2-155)
 });
 
 it("grades paper fog without changing the paper pigment, across Low and High reallocations", async () => {
@@ -232,3 +232,14 @@ it("streams the river ahead while the intro overlooks it, then unloads after the
     expect(composed.contains(far)).toBe(false);
   } finally { composed.dispose(); physics.dispose?.(); }
 }, 60_000);
+
+// B2-155 wiring: the mist shelf (authored toward local +Z) turns to the walker's LEFT on the coast road, where the
+// forested ridge is (Duy, Q-37). Left of walking direction (fx, fz) in three.js is (fz, -fx).
+it("turns the coast mountain mist to the left of the coast road", async () => {
+  const { coastMistYaw } = await import("../../../src/features/world/scene/compose");
+  const start = pathPointAt(0.82), end = pathPointAt(1);
+  const forward = new Vector3(end.x - start.x, 0, end.z - start.z).normalize();
+  const left = new Vector3(forward.z, 0, -forward.x);
+  const facing = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), coastMistYaw());
+  expect(facing.dot(left)).toBeGreaterThan(0.999);
+});

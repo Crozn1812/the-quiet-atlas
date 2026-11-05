@@ -9,11 +9,23 @@ import { createGroundDetails, scatterGround, type GroundDetail } from "../foliag
 import { createCrownFade } from "../crown-fade";
 import { selectOccludingCrowns } from "../camera";
 import { timeOfDayAt } from "../layout/lighting";
-import { pathLength } from "../layout/path";
+import { pathLength, pathPointAt } from "../layout/path";
 import { ZONES } from "../layout/zones";
 import { createRampMaterial, RAMP_PRESETS, RAMP_STEPS } from "../materials/ramp";
-import { createSkyDome } from "../sky/dome";
-import { lightingAt, type LightingGrade } from "../sky/grade";
+import { createCoastMountainMist, createSkyDome } from "../sky/dome";
+import { applyCoastAtmosphere, lightingAt, type LightingGrade } from "../sky/grade";
+
+/**
+ * B2-155: the mist shelf is authored facing local +Z. Turn it to the coast road's LEFT (the forested ridge, Duy's
+ * coast scene Q-37): for walking direction (fx, fz) the left vector is (fz, -fx) in three.js (y up).
+ */
+export function coastMistYaw(): number {
+  const start = pathPointAt(0.82);
+  const end = pathPointAt(1);
+  const fx = end.x - start.x;
+  const fz = end.z - start.z;
+  return Math.atan2(fz, -fx);
+}
 
 const DIRECTED_SKY = {
   dawn: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.horizon)) },
@@ -87,6 +99,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   const trunkMaterial = new MeshBasicMaterial();
   const follower = createGradeFollower(2);
   const sky = createSkyDome();
+  const coastMist = createCoastMountainMist();
+  coastMist.mesh.rotation.y = coastMistYaw();
   const sun = new DirectionalLight();
   const hemisphere = new HemisphereLight();
   const previousFog = scene.fog;
@@ -250,6 +264,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     trunkMaterial.dispose();
     for (const surface of water) { surface.mesh.material.dispose(); surface.dispose(); }
     sky.dispose();
+    coastMist.dispose();
     sun.shadow.dispose();
     sun.removeFromParent();
     sun.target.removeFromParent();
@@ -284,7 +299,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     directed.sunDirection.copy(followed.sunDirection);
     directed.sunIntensity = followed.sunIntensity;
     directed.hemiIntensity = followed.hemiIntensity;
-    const grade = directGrade(directed, tod);
+    const grade = applyCoastAtmosphere(directGrade(directed, tod), t);
     previousPosition = player.clone();
     sun.color.copy(grade.sunColor);
     sun.intensity = grade.sunIntensity;
@@ -300,6 +315,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     fog.far = distances.far;
     paper?.setFog?.(distances);
     sky.update(grade);
+    coastMist.update(t, player, grade);
     paper?.setGrade(grade);
     paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });
     elapsed += dt;
@@ -309,7 +325,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
   }
 
-  scene.add(ground.group, pool.group, sky.mesh, sun, sun.target, hemisphere, ...water.map(surface => surface.mesh));
+  scene.add(ground.group, pool.group, sky.mesh, coastMist.mesh, sun, sun.target, hemisphere, ...water.map(surface => surface.mesh));
   try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
   return {
     update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,

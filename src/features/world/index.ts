@@ -36,7 +36,7 @@ import { SECRETS, nearestSecret } from "../story/secrets";
 import { initialStory, storyReducer } from "../story/story";
 import { POEM_TOGGLE, storyFeedbackText } from "../story/copy";
 import { createSecretLandmark, disposeLandmark } from "./props/secrets";
-import { lightingAt } from "./sky/grade";
+import { applyCoastAtmosphere, lightingAt } from "./sky/grade";
 import { timeOfDayAt } from "./layout/lighting";
 import { createVehicleView } from "./vehicle/view";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
@@ -982,9 +982,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function updateEndingGrade() {
     if (!sunsetBoost) return;
-    const base = timeOfDayAt(nearestPath(physics.position.x, physics.position.z).t);
+    const pathT = nearestPath(physics.position.x, physics.position.z).t;
+    const base = timeOfDayAt(pathT);
     const tod = base + (1 - base) * sunsetBoost;
-    const grade = directGrade(lightingAt(tod), tod);
+    // B2-155: the ending happens on the coast; keep the same sunset atmosphere compose applies.
+    const grade = applyCoastAtmosphere(directGrade(lightingAt(tod), tod), pathT);
     paper.setGrade(grade);
     scene.fog?.color.copy(grade.fogColor);
     sun.color.copy(grade.sunColor);
