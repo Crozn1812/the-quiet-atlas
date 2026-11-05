@@ -275,11 +275,10 @@ describe("painted procedural tree shapes", () => {
     const geometry = createBroadleafCrown(seed);
     try {
       const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
-      const surface = geometry.getAttribute("surface"), hanging = geometry.getAttribute("hanging");
+      const surface = geometry.getAttribute("surface");
       const ribbons = Array.from({ length: positions.count }, (_, i) => i).filter(i => surface.getX(i) === 2);
       expect(ribbons).toHaveLength(3 * 16);
       for (const i of ribbons) {
-        expect(hanging.getX(i)).toBe(1);
         expect(new Vector3().fromBufferAttribute(normals, i).length()).toBeCloseTo(1, 6);
         expect(positions.getY(i) + TRUNK_HEIGHT).toBeGreaterThan(1);
       }

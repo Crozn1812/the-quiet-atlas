@@ -39,7 +39,9 @@ function installBarkLighting(material: Material, branches = false) {
     previous(shader, renderer);
     shader.uniforms.forestBarkLuma = { value: new Vector2(0.15, 0.18) };
     if (branches) {
-      shader.vertexShader = "attribute float surface; varying float vForestWood;\n" + shader.vertexShader;
+      // surface may already be declared by the tree-shape install (it derives "hanging" from it).
+      if (!shader.vertexShader.includes("attribute float surface;")) shader.vertexShader = "attribute float surface;\n" + shader.vertexShader;
+      shader.vertexShader = "varying float vForestWood;\n" + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace("#include <color_vertex>", `#include <color_vertex>
 vForestWood = step(0.5, surface) * (1.0 - step(1.5, surface));
 #ifdef USE_INSTANCING_COLOR
@@ -68,15 +70,15 @@ function installTreeShapes(material: Material) {
   const previousKey = material.customProgramCacheKey.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
+    // Lead (batch 25): WebGL guarantees only 16 vertex attributes and instancing already spends 5 (matrix + colour).
+    // Variant normals are dropped (base normals light all three silhouettes) and "hanging" is surface == 2.
+    if (!shader.vertexShader.includes("attribute float surface;")) shader.vertexShader = "attribute float surface;\n" + shader.vertexShader;
     shader.vertexShader = `attribute vec2 treeStyle;
 attribute vec3 shapeA; attribute vec3 shapeB;
-attribute vec3 normalA; attribute vec3 normalB;
-attribute float hanging;
 float treeA() { return step(0.5, treeStyle.x) - step(1.5, treeStyle.x); }
 float treeB() { return step(1.5, treeStyle.x); }
 ` + shader.vertexShader;
     shader.vertexShader = shader.vertexShader
-      .replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nobjectNormal += normalA * treeA() + normalB * treeB();")
       .replace("#include <defaultnormal_vertex>", `#include <defaultnormal_vertex>
 #ifdef USE_INSTANCING
 // Three's default normal transform assumes orthogonal instance axes. Cofactors
@@ -92,9 +94,9 @@ transformedNormal = -transformedNormal;
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 transformed += shapeA * treeA() + shapeB * treeB();
 // Collapse every ribbon vertex to the same point on trees without vines.
-transformed *= 1.0 - hanging * (1.0 - treeStyle.y);`);
+transformed *= 1.0 - step(1.5, surface) * (1.0 - treeStyle.y);`);
   };
-  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v1|affine-normals-v1";
+  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v2|affine-normals-v1";
 }
 
 /**
@@ -162,10 +164,10 @@ export function createFoliage(maxPerKind: number) {
   function createSpecies(seeds: readonly number[], broadleaf: boolean) {
     const variants = seeds.map(seed => {
       const geometry = broadleaf ? createBroadleafCrown() : createPineCrown(seed);
-      const position = geometry.getAttribute("position"), normal = geometry.getAttribute("normal");
+      const position = geometry.getAttribute("position");
       for (const [targetIndex, suffix] of [[1, "A"], [2, "B"]] as const) {
         const target = broadleaf ? createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[targetIndex]) : undefined;
-        for (const [source, attribute] of [[position, "shape"], [normal, "normal"]] as const) {
+        for (const [source, attribute] of [[position, "shape"]] as const) {
           const values = new Float32Array(source.count * 3);
           if (target) {
             const end = target.getAttribute(attribute === "shape" ? "position" : "normal");
@@ -176,7 +178,6 @@ export function createFoliage(maxPerKind: number) {
         if (target) { geometry.boundingBox!.union(target.boundingBox!); target.dispose(); }
       }
       if (!broadleaf) {
-        geometry.setAttribute("hanging", new Float32BufferAttribute(new Float32Array(position.count), 1));
         geometry.setAttribute("surface", new Float32BufferAttribute(new Float32Array(position.count), 1));
       }
       // Bounds include all three real silhouettes; camera selection stays conservative.

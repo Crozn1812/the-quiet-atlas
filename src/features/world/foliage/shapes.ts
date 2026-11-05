@@ -215,7 +215,6 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
   }
   const geometry = geometryFrom(positions, indices);
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-  geometry.setAttribute("hanging", new Float32BufferAttribute(surfaces.map(surface => surface === 2 ? 1 : 0), 1));
   geometry.setAttribute("surface", new Float32BufferAttribute(surfaces, 1));
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   return geometry;

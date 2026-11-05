@@ -224,9 +224,10 @@ describe("procedural foliage variants", () => {
           if (ordered.length > 100) expect(used.size).toBe(3);
         }
       }
-      // Reconstruct the GPU-selected positions and normals from actual buffers.
+      // Reconstruct the GPU-selected positions from actual buffers (variant normals were dropped for the 16-attribute
+      // WebGL limit; base normals light all three silhouettes).
       for (const { crowns } of foliage.species.broadleaf.variants) for (let shape = 0; shape < shapes.length; shape++) {
-        for (const name of ["position", "normal"] as const) {
+        for (const name of ["position"] as const) {
           const base = crowns.geometry.getAttribute(name), target = shapes[shape]!.getAttribute(name);
           const delta = shape === 0 ? undefined : crowns.geometry.getAttribute((name === "position" ? "shape" : "normal") + (shape === 1 ? "A" : "B"));
           for (let i = 0; i < base.array.length; i++) {
@@ -253,8 +254,8 @@ describe("procedural foliage variants", () => {
         const shader = { vertexShader: source.vertexShader, fragmentShader: source.fragmentShader, uniforms: {} } as WebGLProgramParametersWithUniforms;
         material.onBeforeCompile(shader, {} as WebGLRenderer);
         expect(shader.vertexShader).toContain("transformed += shapeA");
-        expect(shader.vertexShader).toContain("hanging * (1.0 - treeStyle.y)");
-        expect(material.customProgramCacheKey()).toContain("forest-shapes-v1");
+        expect(shader.vertexShader).toContain("step(1.5, surface) * (1.0 - treeStyle.y)");
+        expect(material.customProgramCacheKey()).toContain("forest-shapes-v2");
         if (i === 0) {
           expect(shader.vertexShader).toContain("vCrownAlpha = crownAlpha");
           expect(shader.fragmentShader).toContain("rampShadowTint");
