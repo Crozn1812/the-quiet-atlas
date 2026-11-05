@@ -85,10 +85,15 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
       skyTop: { value: initial.skyTop.clone() },
       skyHorizon: { value: initial.skyHorizon.clone() },
       paper: { value: new Color(PALETTE.paper) },
+      sunDirection: { value: initial.sunDirection.clone() },
+      sunGlow: { value: new Color(PALETTE.dusk).lerp(new Color(PALETTE.flower), 0.25).lerp(new Color(PALETTE.paper), 0.45) },
+      coastWeight: { value: initial.coastWeight ?? 0 },
     },
     vertexShader: `
+      varying vec3 skyDirection;
       varying float skyHeight;
       void main() {
+        skyDirection = position;
         skyHeight = normalize(position).y;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
@@ -97,12 +102,29 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
       uniform vec3 skyTop;
       uniform vec3 skyHorizon;
       uniform vec3 paper;
+      uniform vec3 sunDirection;
+      uniform vec3 sunGlow;
+      uniform float coastWeight;
+      varying vec3 skyDirection;
       varying float skyHeight;
-      void main() {
-        float height = max(skyHeight, 0.0);
-        vec3 color = mix(skyHorizon, skyTop, smoothstep(0.0, 0.85, height));
+      vec3 skyColor(vec3 direction) {
+        // Keep the original vertex-interpolated height in the forest.
+        float height = max(mix(skyHeight, direction.y, coastWeight), 0.0);
+        // Bring the coast's blue-violet wash into the visible sky above a warm horizon.
+        float gradient = mix(smoothstep(0.0, 0.85, height), smoothstep(0.0, 0.65, sqrt(height)), coastWeight);
+        vec3 color = mix(skyHorizon, skyTop, gradient);
         float paperBand = 1.0 - smoothstep(0.0, 0.12, abs(skyHeight));
-        gl_FragColor = vec4(mix(color, paper, 0.06 * paperBand), 1.0);
+        color = mix(color, paper, mix(0.06, 0.02, coastWeight) * paperBand);
+        float alignment = dot(direction, normalize(sunDirection));
+        // Two-degree disc with a soft edge; a thirty-degree halo strongest at the sea horizon.
+        float disc = smoothstep(cos(radians(1.15)), cos(radians(0.85)), alignment);
+        float halo = smoothstep(cos(radians(30.0)), 1.0, alignment);
+        halo *= 1.0 - smoothstep(0.0, 0.5, abs(skyHeight));
+        float radiance = coastWeight * (0.32 * halo + 1.1 * disc);
+        return color + sunGlow * radiance;
+      }
+      void main() {
+        gl_FragColor = vec4(skyColor(normalize(skyDirection)), 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -127,6 +149,8 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
     update(grade: LightingGrade): void {
       material.uniforms.skyTop!.value.copy(grade.skyTop);
       material.uniforms.skyHorizon!.value.copy(grade.skyHorizon);
+      material.uniforms.sunDirection!.value.copy(grade.sunDirection);
+      material.uniforms.coastWeight!.value = grade.coastWeight ?? 0;
     },
     dispose(): void {
       if (disposed) return;

@@ -5,6 +5,9 @@ import {
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
+import { fogAt, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
+import { createGradedPaperPass } from "../../../src/features/world/scene/paper";
+import { applyCoastAtmosphere, lightingAt } from "../../../src/features/world/sky/grade";
 import {
   CORRIDOR_POINTS, createPaperPass, DEFAULT_MIST_BANDS, DEFAULT_MIST_HEIGHT, DEFAULT_MIST_STRENGTH,
 } from "../../../src/features/world/post/paper";
@@ -56,6 +59,79 @@ function shaderDepthJump(shader: string) {
 }
 
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); });
+
+describe("position-graded coast clarity", () => {
+  it.each(["Balanced", "High"] as const)("%s preserves at least 75%% contrast at 30 m, with <=25%% of forest mist/fog", quality => {
+    const { renderer, gpu } = mockRenderer();
+    const paper = createGradedPaperPass(gpu, quality);
+    const smoothstep = (a: number, b: number, x: number) => {
+      const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return u * u * (3 - 2 * u);
+    };
+    const measure = (t: number) => {
+      paper.setFog(fogAt(t));
+      paper.setGrade(applyCoastAtmosphere(lightingAt(1), t));
+      paper.render(new Scene(), new PerspectiveCamera());
+      const { material } = screenMaterial(renderer);
+      const u = material.uniforms;
+      const bands = (u.mistBands!.value as Vector3).toArray().map(d => smoothstep(d - 1.2, d + 1.2, 30));
+      // Evaluate the shader's actual layer composition at maximum ground mist.
+      const expression = material.fragmentShader.match(/float layeredMist = ([\s\S]*?);/)![1]!;
+      const layered = new Function("bands", "lowMist", `return ${expression}`)({ x: bands[0], y: bands[1], z: bands[2] }, 1) as number;
+      return {
+        mist: layered * (u.mistStrength!.value as number),
+        fog: smoothstep(u.fogNear!.value as number, u.fogFar!.value as number, 30),
+        fog120: smoothstep(u.fogNear!.value as number, u.fogFar!.value as number, 120),
+        far: u.fogFar!.value as number,
+      };
+    };
+    try {
+      const forest = measure(0.3);
+      expect(forest).toMatchInlineSnapshot(`
+        {
+          "far": 260,
+          "fog": 0,
+          "fog120": 0.3005259203606311,
+          "mist": 0.08999999999999997,
+        }
+      `);
+      for (const t of [0.82, 0.9, 1]) {
+        const coast = measure(t);
+        expect(coast.mist).toBeLessThanOrEqual(0.25 * forest.mist);
+        expect(coast.fog).toBeLessThanOrEqual(0.25 * forest.fog);
+        expect((1 - coast.mist) * (1 - coast.fog)).toBeGreaterThanOrEqual(0.75);
+      }
+      const coast = measure(0.9);
+      expect(coast).toMatchInlineSnapshot(`
+        {
+          "far": 400,
+          "fog": 0,
+          "fog120": 0.012740740740740742,
+          "mist": 0.008999999999999994,
+        }
+      `);
+      expect(coast.far).toBeGreaterThanOrEqual(380);
+      expect(coast.fog120).toBeLessThanOrEqual(0.25 * forest.fog120);
+      expect(measure(0.3)).toEqual(forest); // Walking back restores the forest.
+      paper.setQuality("Low");
+      paper.setFog(fogAt(0.9));
+      paper.setGrade(applyCoastAtmosphere(lightingAt(1), 0.9));
+      paper.setQuality(quality);
+      expect(measure(0.9)).toEqual(coast);
+    } finally { paper.dispose(); }
+  });
+
+  it("leaves forest cinematic mist overrides intact", () => {
+    const { renderer, gpu } = mockRenderer();
+    const paper = createGradedPaperPass(gpu, "Balanced");
+    try {
+      paper.setMist({ strength: WORLD_DIRECTION.background.mist.strength + 0.2 });
+      paper.setGrade(applyCoastAtmosphere(lightingAt(0), 0.3));
+      paper.render(new Scene(), new PerspectiveCamera());
+      expect(screenMaterial(renderer).material.uniforms.mistStrength!.value).toBe(0.7);
+    } finally { paper.dispose(); }
+  });
+});
 
 describe("paper post pass", () => {
   it("Low allocates no target/depth and renders directly, preserving scene fog", () => {

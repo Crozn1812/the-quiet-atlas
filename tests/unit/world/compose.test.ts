@@ -31,7 +31,7 @@ it("shares biome fog distances between native fog and paper at every quality, in
       for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
         const zone = ZONES.find(zone => zone.id === id)!;
         composed.update(new Vector3().copy(zone.position), 0);
-        const expected = { near: 40, far: zone.biome === "coast-dusk" ? 400 : 260 };
+        const expected = zone.biome === "coast-dusk" ? { near: 100, far: 400 } : { near: 40, far: 260 };
         expect(scene.fog).toBeInstanceOf(Fog);
         expect((scene.fog as Fog).near).toBe(expected.near);
         expect((scene.fog as Fog).far).toBeCloseTo(expected.far, 8);

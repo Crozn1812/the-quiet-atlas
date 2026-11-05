@@ -36,7 +36,7 @@ export interface StylePreset {
     terrain: PaletteRecipe;
     ramp: { steps: number; soft: boolean };
     /** World-scale linear fog to paper (m); the 15/65 m prototype values swallow a 900 m world. */
-    fog: { near: number; far: number; coastFar?: number };
+    fog: { near: number; far: number; coastFar?: number; coastNear?: number };
     /** warmth: 0 = palette mist (cool jade), 1 = the shot's painted horizon colour. */
     mist: { bands: [number, number, number]; strength: number; warmth: number };
     edges: { ink: boolean; bleed: number };
@@ -88,7 +88,7 @@ const B: StylePreset = {
     // AD r3: four linearly filtered washes soften the pale horizontal ground band.
     ramp: { steps: 4, soft: true },
     // Closer, stronger depth layers dissolve distance into paper (§5.4).
-    fog: { near: 40, far: 260, coastFar: 400 },
+    fog: { near: 40, far: 260, coastFar: 400, coastNear: 100 },
     // B keeps more cool jade in its mist to stay close to ink-wash monochrome.
     // AD r2: wider bands and lighter density so three distinct shelves read.
     mist: { bands: [60, 120, 210], strength: 0.5, warmth: 0.25 },
@@ -121,10 +121,11 @@ export const WORLD_DIRECTION: StylePreset = STYLE_PRESETS.C;
 
 /** Open the sea horizon from the last hill to the first coast zone; forest fog stays intact. */
 export function fogAt(pathT: number, preset: StylePreset = WORLD_DIRECTION): { near: number; far: number } {
-  const { near, far, coastFar = far } = preset.background.fog;
+  const { near, far, coastFar = far, coastNear = near } = preset.background.fog;
   const coastIndex = ZONES.findIndex(zone => zone.biome === "coast-dusk");
   const start = ZONES[coastIndex - 1]!.t;
   const end = ZONES[coastIndex]!.t;
   const u = Number.isNaN(pathT) ? 0 : Math.max(0, Math.min(1, (pathT - start) / (end - start)));
-  return { near, far: far + (coastFar - far) * u * u * (3 - 2 * u) };
+  const weight = u * u * (3 - 2 * u);
+  return { near: near + (coastNear - near) * weight, far: far + (coastFar - far) * weight };
 }

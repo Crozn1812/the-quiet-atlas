@@ -10,12 +10,40 @@ import { applyCoastAtmosphere, cloneGrade, coastAtmosphereWeight, GRADE_COLORS, 
 import { createGradeFollower } from "../../../src/features/world/sky/smoothing";
 import { createCoastMountainMist, createSkyDome } from "../../../src/features/world/sky/dome";
 
+// Execute the dome's actual GLSL arithmetic on the CPU; only vector syntax is adapted.
+function sampleDome(dome: ReturnType<typeof createSkyDome>, direction: Vector3, skyHeight = direction.clone().normalize().y): Color {
+  const { uniforms, fragmentShader } = dome.mesh.material;
+  const body = fragmentShader.match(/vec3 skyColor\(vec3 direction\) \{([\s\S]*?)\n      \}/)![1]!
+    .replace(/\b(?:float|vec3) (\w+) =/g, "let $1 =")
+    .replace("return color + sunGlow * radiance;", "return color.map((v, i) => v + sunGlow[i] * radiance);");
+  const mix = (a: number | number[], b: number | number[], t: number): number | number[] =>
+    Array.isArray(a) ? a.map((v, i) => v + ((b as number[])[i]! - v) * t) : a + ((b as number) - a) * t;
+  const smoothstep = (a: number, b: number, x: number) => {
+    const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return u * u * (3 - 2 * u);
+  };
+  const names = ["skyTop", "skyHorizon", "paper", "sunDirection", "sunGlow", "coastWeight"];
+  const values = names.map(name => {
+    const value = uniforms[name]!.value;
+    return value instanceof Color ? value.toArray() : value;
+  });
+  const evaluate = new Function("direction", "skyHeight", ...names, "mix", "smoothstep", "max", "abs", "sqrt", "cos", "radians", "dot", "normalize", body);
+  const rgb = evaluate(direction.clone().normalize(), skyHeight, ...values, mix, smoothstep, Math.max, Math.abs, Math.sqrt, Math.cos,
+    (degrees: number) => degrees * Math.PI / 180, (a: Vector3, b: Vector3) => a.dot(b), (v: Vector3) => v.clone().normalize()) as number[];
+  return new Color().setRGB(rgb[0]!, rgb[1]!, rgb[2]!);
+}
+
+function placedGrade(t: number) {
+  const tod = timeOfDayAt(t);
+  return applyCoastAtmosphere(directGrade(lightingAt(tod), tod), t);
+}
+
 function tint(key: keyof typeof PALETTE, amount: number) {
   return new Color(PALETTE.paper).lerp(new Color(PALETTE[key]), amount);
 }
 
-const coastHorizon = tint("dusk", 0.28).lerp(tint("flower", 0.28), 0.4);
-const coastTop = tint("indigo", 0.64).lerp(new Color(PALETTE.mist), 0.04);
+const coastHorizon = tint("dusk", 0.28).lerp(tint("flower", 0.28), 0.4).lerp(tint("vermilion", 0.28), 0.42);
+const coastTop = tint("indigo", 0.64).lerp(tint("vermilion", 0.64), 0.06);
 const coastFog = tint("mist", 0.18).lerp(coastHorizon, 0.2);
 
 describe("position-driven sky grade", () => {
@@ -100,14 +128,10 @@ describe("coast dusk atmosphere", () => {
     }
   });
 
-  it("dilutes the horizon between dusk and flower and retains pale blue overhead and 400 m fog", () => {
+  it("dilutes a peach-pink horizon and retains pale blue-violet overhead and 400 m fog", () => {
     const grade = lightingAt(1);
-    const a = tint("dusk", 0.28);
-    const b = tint("flower", 0.28);
-    for (const channel of ["r", "g", "b"] as const) {
-      expect(grade.skyHorizon[channel]).toBeGreaterThanOrEqual(Math.min(a[channel], b[channel]));
-      expect(grade.skyHorizon[channel]).toBeLessThanOrEqual(Math.max(a[channel], b[channel]));
-    }
+    expect(grade.skyHorizon.toArray()).toEqual(coastHorizon.toArray().map(v => expect.closeTo(v, 12)));
+    expect(grade.skyHorizon.r - grade.skyHorizon.g).toBeGreaterThan(grade.skyHorizon.g - grade.skyHorizon.b);
     expect(grade.skyTop.b).toBeGreaterThan(grade.skyTop.r);
     for (const color of [grade.skyHorizon, grade.skyTop]) {
       const srgb = color.clone().convertLinearToSRGB().toArray();
@@ -115,7 +139,7 @@ describe("coast dusk atmosphere", () => {
       expect(Math.max(...srgb) - Math.min(...srgb)).toBeLessThan(0.2);
     }
     for (const zone of ZONES.filter(zone => zone.biome === "coast-dusk")) {
-      expect(fogAt(zone.t)).toEqual({ near: 40, far: 400 });
+      expect(fogAt(zone.t)).toEqual({ near: 100, far: 400 });
     }
   });
 
@@ -199,6 +223,17 @@ describe("coast mountain mist without a GPU", () => {
 });
 
 describe("grade follower", () => {
+  it("copies the position mask without sharing state and clears it when snapping back to forest", () => {
+    const coast = placedGrade(0.9);
+    const follower = createGradeFollower(2);
+    const copy = cloneGrade(coast);
+    coast.coastWeight = 0.5;
+    expect(copy.coastWeight).toBe(1);
+    expect(follower.snap(copy).coastWeight).toBe(1);
+    expect(follower.update(placedGrade(0.3), 0.1).coastWeight).toBeCloseTo(Math.exp(-0.2), 12);
+    expect(follower.snap(placedGrade(0.3))).toEqual(placedGrade(0.3));
+  });
+
   it("follows exponentially, converges after reversal, and snaps on teleport", () => {
     const follower = createGradeFollower(3);
     const dawn = lightingAt(0);
@@ -239,6 +274,139 @@ describe("grade follower", () => {
 });
 
 describe("sky dome without a GPU", () => {
+  it("warms and brightens the sea-facing sky at 3 degrees, with a small disc and broad horizon halo", () => {
+    const grade = placedGrade(0.9);
+    const dome = createSkyDome(grade);
+    try {
+      const elevation = 3 * Math.PI / 180;
+      const toward = new Vector3(grade.sunDirection.x, 0, grade.sunDirection.z).normalize().multiplyScalar(Math.cos(elevation));
+      toward.y = Math.sin(elevation);
+      const away = new Vector3(-toward.x, toward.y, -toward.z);
+      const warm = sampleDome(dome, toward);
+      const cool = sampleDome(dome, away);
+      const luma = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+      expect(luma(warm) - luma(cool)).toBeGreaterThanOrEqual(0.08);
+      expect(Number((luma(warm) - luma(cool)).toFixed(6))).toMatchInlineSnapshot(`0.190087`);
+      expect(warm.r - warm.b).toBeGreaterThan(cool.r - cool.b);
+      const azimuth = new Vector3(0, 1, 0).cross(grade.sunDirection).normalize();
+      const atAngle = (degrees: number) => sampleDome(dome, grade.sunDirection.clone().applyAxisAngle(azimuth, degrees * Math.PI / 180));
+      expect(luma(atAngle(0)) - luma(atAngle(1.2))).toBeGreaterThan(0.3);
+      // A 20-degree sideways sample still catches the halo; at 35 degrees it is gone.
+      const haloAt = (degrees: number) => {
+        const ray = toward.clone().applyAxisAngle(new Vector3(0, 1, 0), degrees * Math.PI / 180);
+        const lit = sampleDome(dome, ray);
+        // Preserve the coast gradient while disabling radiance for the reference.
+        const glow = dome.mesh.material.uniforms.sunGlow!.value as Color;
+        const saved = glow.clone();
+        glow.setRGB(0, 0, 0);
+        dome.update(grade);
+        const unlit = sampleDome(dome, ray);
+        glow.copy(saved);
+        return luma(lit) - luma(unlit);
+      };
+      expect(haloAt(20)).toBeGreaterThan(0.01);
+      expect(haloAt(35)).toBeCloseTo(0, 12);
+      expect(grade.skyHorizon.r - grade.skyTop.r).toBeGreaterThan(0.25);
+      expect(grade.skyTop.b).toBeGreaterThan(grade.skyTop.r);
+    } finally { dome.dispose(); }
+  });
+
+  it("follows a changed graded sun direction and fades the glow to zero outside the coast", () => {
+    const grade = placedGrade(0.9);
+    const dome = createSkyDome(grade);
+    try {
+      const ray = grade.sunDirection.clone();
+      const before = sampleDome(dome, ray);
+      grade.sunDirection.set(-ray.x, ray.y, -ray.z);
+      dome.update(grade);
+      expect(dome.mesh.material.uniforms.sunDirection!.value).toEqual(grade.sunDirection);
+      expect(before.r - sampleDome(dome, ray).r).toBeGreaterThan(0.5);
+      dome.update(placedGrade(0.3));
+      expect(dome.mesh.material.uniforms.coastWeight!.value).toBe(0);
+      expect(sampleDome(dome, ray)).toEqual(sampleDome(dome, new Vector3(-ray.x, ray.y, -ray.z)));
+    } finally { dome.dispose(); }
+  });
+
+  it("preserves the forest's numeric grade and original sky shader at t=0.3", () => {
+    const grade = placedGrade(0.3);
+    const dome = createSkyDome(grade);
+    try {
+      const ray = new Vector3(1, Math.tan(3 * Math.PI / 180), 0).normalize();
+      expect({
+        colors: GRADE_COLORS.map(key => grade[key].toArray()),
+        sun: grade.sunDirection.toArray(),
+        sky: sampleDome(dome, ray).toArray(),
+        fog: fogAt(0.3),
+      }).toMatchInlineSnapshot(`
+        {
+          "colors": [
+            [
+              0.8318432930369228,
+              0.7277019708857474,
+              0.5517448703055415,
+            ],
+            [
+              0.7380892535353787,
+              0.7484360034149434,
+              0.6337833004173528,
+            ],
+            [
+              0.5473738707950861,
+              0.5281501439615677,
+              0.47228302818886064,
+            ],
+            [
+              0.8467818740603212,
+              0.8057091309989111,
+              0.712192091821843,
+            ],
+            [
+              0.7234460618820735,
+              0.7368300929057278,
+              0.658758744627183,
+            ],
+            [
+              0.8464259715192859,
+              0.8056552464209855,
+              0.7132977088753779,
+            ],
+            [
+              0.5884883529722503,
+              0.5704129285373672,
+              0.5150989374678748,
+            ],
+          ],
+          "fog": {
+            "far": 260,
+            "near": 40,
+          },
+          "sky": [
+            0.8454385839871801,
+            0.8049777482921014,
+            0.7117736223958504,
+          ],
+          "sun": [
+            -0.8849679658538999,
+            0.2294686059411989,
+            0.4051862020106478,
+          ],
+        }
+      `);
+      const smoothstep = (a: number, b: number, x: number) => {
+        const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+        return u * u * (3 - 2 * u);
+      };
+      const original = grade.skyHorizon.clone().lerp(grade.skyTop, smoothstep(0, 0.85, ray.y))
+        .lerp(new Color(PALETTE.paper), 0.06 * (1 - smoothstep(0, 0.12, ray.y)));
+      expect(sampleDome(dome, ray).toArray()).toEqual(original.toArray());
+      // Interior triangle samples use interpolated vertex height, not normalized ray height.
+      const interpolatedHeight = ray.y * 0.97;
+      const originalInterior = grade.skyHorizon.clone().lerp(grade.skyTop, smoothstep(0, 0.85, interpolatedHeight))
+        .lerp(new Color(PALETTE.paper), 0.06 * (1 - smoothstep(0, 0.12, interpolatedHeight)));
+      expect(sampleDome(dome, ray, interpolatedHeight).toArray()).toEqual(originalInterior.toArray());
+    } finally { dome.dispose(); }
+  });
+
   it("uses one cheap texture-free mesh, updates uniforms, follows the camera, and disposes once", () => {
     const dome = createSkyDome();
     const { mesh } = dome;
@@ -251,7 +419,8 @@ describe("sky dome without a GPU", () => {
     expect(material.depthTest).toBe(false);
     expect(material.fragmentShader).toContain("paperBand");
     expect(material.fragmentShader).toContain("#include <colorspace_fragment>");
-    expect(Object.values(material.uniforms).every(uniform => uniform.value instanceof Color)).toBe(true);
+    expect(material.uniforms.sunDirection!.value).toBeInstanceOf(Vector3);
+    expect(material.uniforms.coastWeight!.value).toBe(0);
     const top = material.uniforms.skyTop!.value;
     const grade = lightingAt(1);
     dome.update(grade);

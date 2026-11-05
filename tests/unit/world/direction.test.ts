@@ -39,7 +39,7 @@ describe("AD r3 direction C", () => {
 
   it("preserves forest and hill fog and opens both coast zones to 400 m", () => {
     for (const zone of ZONES) {
-      expect(fogAt(zone.t)).toEqual({ near: 40, far: zone.biome === "coast-dusk" ? 400 : 260 });
+      expect(fogAt(zone.t)).toEqual(zone.biome === "coast-dusk" ? { near: 100, far: 400 } : { near: 40, far: 260 });
     }
     expect(fogAt(-1)).toEqual(fogAt(0));
     expect(fogAt(NaN)).toEqual(fogAt(0));

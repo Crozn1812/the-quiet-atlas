@@ -3,6 +3,8 @@ import { PALETTE } from "../art/palette";
 
 /** Colors are in three.js linear working space; direction points toward the sun. */
 export interface LightingGrade {
+  /** Position-only coast mask; absent on unplaced time-of-day grades. */
+  coastWeight?: number;
   sunColor: Color;
   sunIntensity: number;
   sunDirection: Vector3;
@@ -25,9 +27,9 @@ function tint(key: keyof typeof PALETTE, amount: number): Color {
 
 // Dilute the warm pigment before covering a large horizon; orange stays a small accent.
 const COAST_HORIZON = new Color(PALETTE.paper).lerp(
-  new Color(PALETTE.dusk).lerp(new Color(PALETTE.flower), 0.4), 0.28,
+  new Color(PALETTE.dusk).lerp(new Color(PALETTE.flower), 0.4).lerp(new Color(PALETTE.vermilion), 0.42), 0.28,
 );
-const COAST_TOP = tint("indigo", 0.64).lerp(new Color(PALETTE.mist), 0.04);
+const COAST_TOP = tint("indigo", 0.64).lerp(tint("vermilion", 0.64), 0.06);
 const COAST_FOG = tint("mist", 0.18).lerp(COAST_HORIZON, 0.2);
 
 /** Same smooth hill-to-coast window as fogAt; position only, with no stored state. */
@@ -39,6 +41,8 @@ export function coastAtmosphereWeight(pathT: number): number {
 /** Apply AFTER art-direction sky overrides, leaving light following and fog distances intact. */
 export function applyCoastAtmosphere(grade: LightingGrade, pathT: number): LightingGrade {
   const weight = coastAtmosphereWeight(pathT);
+  if (weight > 0) grade.coastWeight = weight;
+  else delete grade.coastWeight;
   grade.skyTop.lerp(COAST_TOP, weight);
   grade.skyHorizon.lerp(COAST_HORIZON, weight);
   grade.fogColor.lerp(COAST_FOG, weight);
@@ -79,12 +83,17 @@ const KEYFRAMES: readonly LightingGrade[] = [
 export function blendGrade(out: LightingGrade, a: LightingGrade, b: LightingGrade, alpha: number): LightingGrade {
   if (alpha === 0 || alpha === 1) {
     const source = alpha === 0 ? a : b;
+    if (source.coastWeight === undefined) delete out.coastWeight;
+    else out.coastWeight = source.coastWeight;
     for (const key of GRADE_COLORS) out[key].copy(source[key]);
     out.sunIntensity = source.sunIntensity;
     out.hemiIntensity = source.hemiIntensity;
     out.sunDirection.copy(source.sunDirection);
     return out;
   }
+  if (a.coastWeight !== undefined || b.coastWeight !== undefined) {
+    out.coastWeight = (a.coastWeight ?? 0) + ((b.coastWeight ?? 0) - (a.coastWeight ?? 0)) * alpha;
+  } else delete out.coastWeight;
   for (const key of GRADE_COLORS) out[key].lerpColors(a[key], b[key], alpha);
   out.sunIntensity = a.sunIntensity + (b.sunIntensity - a.sunIntensity) * alpha;
   out.hemiIntensity = a.hemiIntensity + (b.hemiIntensity - a.hemiIntensity) * alpha;
