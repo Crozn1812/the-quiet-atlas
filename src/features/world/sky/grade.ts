@@ -23,6 +23,28 @@ function tint(key: keyof typeof PALETTE, amount: number): Color {
   return new Color(PALETTE.paper).lerp(new Color(PALETTE[key]), amount);
 }
 
+// Dilute the warm pigment before covering a large horizon; orange stays a small accent.
+const COAST_HORIZON = new Color(PALETTE.paper).lerp(
+  new Color(PALETTE.dusk).lerp(new Color(PALETTE.flower), 0.4), 0.28,
+);
+const COAST_TOP = tint("indigo", 0.64).lerp(new Color(PALETTE.mist), 0.04);
+const COAST_FOG = tint("mist", 0.18).lerp(COAST_HORIZON, 0.2);
+
+/** Same smooth hill-to-coast window as fogAt; position only, with no stored state. */
+export function coastAtmosphereWeight(pathT: number): number {
+  const u = Number.isNaN(pathT) ? 0 : Math.max(0, Math.min(1, (pathT - 0.76) / (0.89 - 0.76)));
+  return u * u * (3 - 2 * u);
+}
+
+/** Apply AFTER art-direction sky overrides, leaving light following and fog distances intact. */
+export function applyCoastAtmosphere(grade: LightingGrade, pathT: number): LightingGrade {
+  const weight = coastAtmosphereWeight(pathT);
+  grade.skyTop.lerp(COAST_TOP, weight);
+  grade.skyHorizon.lerp(COAST_HORIZON, weight);
+  grade.fogColor.lerp(COAST_FOG, weight);
+  return grade;
+}
+
 // Private snapshots: callers can freely mutate returned grades without changing keyframes.
 const KEYFRAMES: readonly LightingGrade[] = [
   {
@@ -43,11 +65,12 @@ const KEYFRAMES: readonly LightingGrade[] = [
   },
   {
     sunColor: tint("dusk", 0.4), sunIntensity: 1.7,
-    sunDirection: new Vector3(0.9, 0.16, 0.4).normalize(),
+    // Low over the sea (-Z), on the walking route's right (+X), with forward reach.
+    sunDirection: new Vector3(0.8, 0.14, -0.6).normalize(),
     hemiSky: tint("mist", 0.24), hemiGround: tint("indigo", 0.32).multiplyScalar(0.88), hemiIntensity: 0.95,
-    fogColor: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
-    skyTop: tint("mist", 0.36),
-    skyHorizon: tint("dusk", 0.22).lerp(new Color(PALETTE.flower), 0.025),
+    fogColor: COAST_FOG,
+    skyTop: COAST_TOP,
+    skyHorizon: COAST_HORIZON,
     shadowTint: tint("indigo", 0.36),
   },
 ];
