@@ -88,11 +88,13 @@ const fragmentShader = /* glsl */ `
       float shallows = (1.0 - smoothstep(12.0, 160.0, offshore)) * uHasShore;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
-    // Thin, gently wandering brush lanes with soft breaks along the current.
-    float lane = vWaterUv.x * 50.0 + 0.45 * sin(flow * 0.7);
-    float stroke = pow(0.5 + 0.5 * cos(lane), 12.0);
-    stroke *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(flow * 0.65 + vWaterUv.x * 37.0));
-    color = mix(color, uPaperColor, stroke * 0.065);
+    #ifndef SEA_WATER
+      // River-only lanes: stretching these UV strokes across the sea creates long white rays.
+      float lane = vWaterUv.x * 50.0 + 0.45 * sin(flow * 0.7);
+      float stroke = pow(0.5 + 0.5 * cos(lane), 12.0);
+      stroke *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(flow * 0.65 + vWaterUv.x * 37.0));
+      color = mix(color, uPaperColor, stroke * 0.065);
+    #endif
     #ifdef SEA_WATER
       // All sea motion shares the freezeable clock, including on Low.
       float phase = uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)};
@@ -131,23 +133,32 @@ const fragmentShader = /* glsl */ `
       float acrossSun = abs(signedAcrossSun);
       // Sun wash scalars: also evaluated directly by the CPU colour regression.
       float washWidth = mix(30.0, 7.0, smoothstep(12.0, 360.0, alongSun));
+      float washDistance = sqrt(alongSun * alongSun + acrossSun * acrossSun);
+      float distanceFade = 1.0 - smoothstep(120.0, 640.0, washDistance);
       float wash = 1.0 - smoothstep(washWidth * 0.18, washWidth, acrossSun);
       wash *= smoothstep(0.0, 12.0, alongSun);
-      wash *= 1.0 - smoothstep(180.0, 760.0, sqrt(alongSun * alongSun + acrossSun * acrossSun));
+      wash *= distanceFade;
       wash *= smoothstep(0.0, 0.08, uSunDirection.y) * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
       float core = (1.0 - smoothstep(washWidth * 0.12, washWidth * 0.4, acrossSun))
         * smoothstep(20.0, 220.0, alongSun);
+      // Break the entire wash, including its base/core, so it cannot form a continuous ray.
+      // Transverse soft bands compress with distance; lateral wobble keeps their edges organic.
+      float perspective = mix(1.0, 2.5, smoothstep(120.0, 600.0, alongSun));
+      float washMarks = smoothstep(0.0, 0.65,
+        cos(alongSun * 0.24 * perspective + 0.3 * sin(signedAcrossSun * 0.3)));
       // Thin transverse marks, interrupted every few metres across the sun axis.
       float glimmer = smoothstep(0.72, 0.98, 0.5 + 0.5 * sin(alongSun * 1.7 + phase
         + 0.35 * sin(signedAcrossSun * 0.42 + alongSun * 0.11)));
       glimmer *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(signedAcrossSun * 0.82 + 2.0 * sin(alongSun * 0.37)));
-      float washStrength = wash * (0.5 + 0.14 * core + 0.24 * glimmer);
+      glimmer *= distanceFade;
+      float washStrength = wash * washMarks * (0.5 + 0.14 * core + 0.24 * glimmer);
       // End sun wash scalars.
       color = mix(color, uSunWashColor, washStrength);
       float brush = 0.5 + 0.5 * sin(vWaterWorld.x * 0.73 + vWaterWorld.z * 0.27);
       // One thin cream-white edge runs up and retreats over an eight-second breath.
       float foamDistance = 0.45 + 1.1 * (0.5 + 0.5 * cos(phase));
-      float foamWidth = max(0.14, fwidth(offshore) * 0.8);
+      // A large horizon pixel must not inflate the shore edge into a broad white patch.
+      float foamWidth = clamp(fwidth(offshore) * 0.8, 0.14, 0.45);
       float foam = 1.0 - smoothstep(foamWidth * 0.3, foamWidth, abs(offshore - foamDistance));
       foam *= 1.0 - smoothstep(2.0, 5.0, offshore);
       foam *= smoothstep(0.0, 0.2, offshore) * (0.42 + 0.18 * brush) * uHasShore;

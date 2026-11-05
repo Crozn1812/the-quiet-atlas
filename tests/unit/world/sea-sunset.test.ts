@@ -1,13 +1,12 @@
 import { Color, Vector2, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
-import { riverLength, riverPointAt } from "../../../src/features/world/layout/river";
 import { worldHeight } from "../../../src/features/world/terrain/height";
 import {
-  createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, WATER_FLOW_SPEED, type WaterMaterial,
+  createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, type WaterMaterial,
 } from "../../../src/features/world/water/material";
 import { WATER_LEVEL } from "../../../src/features/world/water/ribbon";
-import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
+import { createSea, SEA_SIZE } from "../../../src/features/world/water/sea";
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -18,7 +17,16 @@ const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0
 
 // Execute the actual scalar GLSL in JS, so width/strength/foam regressions cannot
 // leave a separately copied CPU formula passing. Only trusted local shader text runs.
+const scalarPrograms = new WeakMap<WaterMaterial, Map<string, (inputs: Record<string, unknown>) => Record<string, number>>>();
 function scalars(material: WaterMaterial, start: string, end: string, inputs: Record<string, unknown>, outputs: string[]) {
+  const key = JSON.stringify([start, end, Object.keys(inputs), outputs]);
+  let programs = scalarPrograms.get(material);
+  if (!programs) {
+    programs = new Map();
+    scalarPrograms.set(material, programs);
+  }
+  const cached = programs.get(key);
+  if (cached) return cached(inputs);
   const startIndex = material.fragmentShader.indexOf(start);
   const endIndex = material.fragmentShader.indexOf(end, startIndex);
   expect(startIndex).toBeGreaterThanOrEqual(0);
@@ -31,12 +39,16 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
     .replace(/\b(sin|cos|sqrt|abs|max|min|floor)\(/g, "Math.$1(")
     .replace(/SEA_FOAM_MAX_SLOPE/g, String(SEA_FOAM_MAX_SLOPE))
     .replace(/fwidth\(offshore\)/g, "offshorePixelWidth");
-  return new Function("inputs", "smoothstep", "mix", "clamp", `
+  const evaluate = new Function("inputs", "smoothstep", "mix", "clamp", `
     "use strict";
     const { ${Object.keys(inputs).join(", ")} } = inputs;
     ${source}
     return { ${outputs.join(", ")} };
-  `)(inputs, smoothstep, mix, (x: number, a: number, b: number) => Math.max(a, Math.min(b, x))) as Record<string, number>;
+  `);
+  const program = (values: Record<string, unknown>) => evaluate(values, smoothstep, mix,
+    (x: number, a: number, b: number) => Math.max(a, Math.min(b, x))) as Record<string, number>;
+  programs.set(key, program);
+  return program(inputs);
 }
 
 function seaPigment(material: WaterMaterial, point: Vector3) {
@@ -56,27 +68,18 @@ function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: numb
     "// End sun wash scalars.", {
       alongSun, signedAcrossSun, acrossSun: Math.abs(signedAcrossSun), phase,
       sunElevation: material.uniforms.uSunDirection!.value.y,
-    }, ["washStrength", "washWidth", "core", "glimmer"]);
+    }, ["washStrength", "washWidth", "core", "glimmer", "washMarks", "distanceFade"]);
 }
 
-// Full sea pigment/strokes/swell/Fresnel/wash in linear working space, before
+// Full sea pigment/swell/Fresnel/wash in linear working space, before
 // renderer tone mapping and scene fog. Samples are offshore, beyond the foam.
 function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Color {
   const uniform = material.uniforms;
   const time = uniform.uTime!.value as number;
   const phase = time * Number((2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10));
-  const bounds = uniform.uShoreBounds!.value as Vector2;
   const { color, offshore } = seaPigment(material, point);
   expect(offshore).toBeGreaterThan(5);
   const skyMix = uniform.uSkyMix!.value as number;
-  const uvX = (point.x - bounds.x) / bounds.y;
-  const near = riverPointAt(1).z + SEA_INLAND_OVERLAP;
-  let flow = riverLength() - SEA_INLAND_OVERLAP + (near - point.z);
-  if (material.defines.WATER_FLOW) flow -= time * WATER_FLOW_SPEED;
-  const lane = uvX * 50 + 0.45 * Math.sin(flow * 0.7);
-  const stroke = (0.5 + 0.5 * Math.cos(lane)) ** 12
-    * smoothstep(0.1, 0.8, 0.5 + 0.5 * Math.sin(flow * 0.65 + uvX * 37));
-  color.lerp(uniform.uPaperColor!.value, stroke * 0.065);
   const swell = Math.sin(point.z * 0.65 + phase);
   const crossSwell = Math.sin(point.x * 0.31 + point.z * 0.21 - phase);
   color.lerp(uniform.uPaperColor!.value, (0.5 + 0.25 * swell + 0.25 * crossSwell) * 0.035);
@@ -144,6 +147,64 @@ describe("road-view sunset sea", () => {
     } finally { sea.dispose(); }
   });
 
+  it.each(["Low", "Balanced", "High"] as const)("has no continuous %s bright ray longer than 40 m toward the horizon", quality => {
+    const sea = createSea(quality);
+    try {
+      const material = sea.mesh.material;
+      // River UV lanes must be compiled out of the sea, rather than merely dimmed.
+      expect(material.fragmentShader).toMatch(/#ifndef SEA_WATER\s+\/\/ River-only lanes:[\s\S]*?float lane =[\s\S]*?stroke \* 0\.065\);\s+#endif/);
+      const step = 0.5;
+      let longest = 0;
+      let peak = 0;
+      // Rays span both sides of the sun axis and several points through the full frozen/animated cycle.
+      for (const angle of [-0.3, -0.12, -0.06, -0.02, 0, 0.02, 0.06, 0.12, 0.3]) {
+        for (let frame = 0; frame <= 8; frame++) {
+          let run = 0;
+          for (let distance = 0; distance <= 800; distance += step) {
+            const strength = washAt(material, distance * Math.cos(angle), distance * Math.sin(angle), frame * Math.PI / 4).washStrength!;
+            peak = Math.max(peak, strength);
+            // Even a 1% pigment contribution counts, including the wash base and core.
+            run = strength > 0.01 ? run + step : 0;
+            longest = Math.max(longest, run);
+          }
+        }
+      }
+      expect(peak).toBeGreaterThan(0.5); // A missing reflection must not pass this gate.
+      expect(longest).toBeLessThanOrEqual(40);
+      console.info(`${quality} horizon: longest continuous wash >1% = ${longest.toFixed(1)} m`);
+    } finally { sea.dispose(); }
+  });
+
+  it("compresses soft transverse wash marks and fades both wash and glimmer at distance", () => {
+    const sea = createSea("Balanced");
+    try {
+      const material = sea.mesh.material;
+      const longestMark = (from: number, to: number) => {
+        let run = 0;
+        let longest = 0;
+        for (let distance = from; distance <= to; distance += 0.1) {
+          run = washAt(material, distance, 0, 0).washMarks! > 0.01 ? run + 0.1 : 0;
+          longest = Math.max(longest, run);
+        }
+        return longest;
+      };
+      expect(longestMark(320, 500)).toBeLessThan(longestMark(20, 120) * 0.6);
+      const horizontal = Array.from({ length: 601 }, (_, i) => washAt(material, 80, (i - 300) / 10, 0).washStrength!);
+      expect(horizontal.filter(value => value > 0.1).length * 0.1).toBeGreaterThan(longestMark(20, 120));
+      expect(horizontal.some(value => value > 0 && value < 0.01)).toBe(true); // Soft edges.
+      const fades = [80, 160, 300, 500, 640, 800].map(distance => washAt(material, distance, 0, 0).distanceFade!);
+      expect(fades[0]).toBe(1);
+      expect(fades).toEqual([...fades].sort((a, b) => b - a));
+      for (const distance of [640, 800, 1600]) {
+        for (const across of [-20, 0, 20]) {
+          const sample = washAt(material, distance, across, Math.PI / 2);
+          expect(sample.washStrength).toBe(0);
+          expect(sample.glimmer).toBe(0);
+        }
+      }
+    } finally { sea.dispose(); }
+  });
+
   it.each(["Low", "Balanced", "High"] as const)("uses %s turquoise at 5 m and deep blue at 300 m from the sampled coast", quality => {
     const shallow = new Color(PALETTE.seaShallow);
     const deep = new Color(PALETTE.seaDeep);
@@ -199,6 +260,28 @@ describe("road-view sunset sea", () => {
         expect(foam(-SEA_FOAM_MAX_SLOPE, phase).foam).toBe(0);
       }
       expect(foam(0, 0).foamDistance).toBeCloseTo(foam(0, 2 * Math.PI).foamDistance!);
+    } finally { sea.dispose(); }
+  });
+
+  it.each(["Low", "Balanced", "High"] as const)("has zero %s foam at and beyond 5 m even with horizon-sized pixel derivatives", quality => {
+    const sea = createSea(quality);
+    try {
+      const material = sea.mesh.material;
+      for (const offshorePixelWidth of [0.001, 0.25, 4, 1000]) {
+        for (const slope of [-2, 0, 2, SEA_FOAM_MAX_SLOPE]) {
+          for (let frame = 0; frame <= 16; frame++) {
+            const phase = frame * Math.PI / 8;
+            for (const offshore of [5, 5.001, 6.001, 10, 40, 300, 800]) {
+              const sample = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+                "color = mix(color, uPaperColor, foam)", {
+                  phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, slope,
+                }, ["foam", "foamWidth"]);
+              expect(sample.foam).toBe(0);
+              expect(sample.foamWidth).toBeLessThanOrEqual(0.45);
+            }
+          }
+        }
+      }
     } finally { sea.dispose(); }
   });
 
