@@ -8,6 +8,7 @@ import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { PATH_CLEARANCE } from "../../../src/features/world/zones/types";
 import { createShore, createShoreLayout, SHORE_BUDGET, SHORE_ZONE_MARGIN } from "../../../src/features/world/shore";
 import { sampleShoreContour, shoreGroundHeight } from "../../../src/features/world/shore/contour";
+import { createShoreRockGeometry } from "../../../src/features/world/shore/geometry";
 
 const shore = createShore();
 const { layout } = shore;
@@ -136,6 +137,49 @@ describe("rocky shore layout", () => {
 });
 
 describe("shore rendering and lifecycle", () => {
+  it.each([4, 6] as const)("retains the legacy %i-sided rock collider bounds within 5%%", sides => {
+    const geometry = createShoreRockGeometry(sides);
+    try {
+      const bounds = geometry.boundingBox!;
+      const legacyMin = [-0.5, 0, -0.5], legacyMax = [0.5, 1, 0.5];
+      bounds.min.toArray().forEach((value, axis) => expect(Math.abs(value - legacyMin[axis]!)).toBeLessThanOrEqual(0.05));
+      bounds.max.toArray().forEach((value, axis) => expect(Math.abs(value - legacyMax[axis]!)).toBeLessThanOrEqual(0.05));
+      bounds.getSize(new Vector3()).toArray().forEach(value => expect(value).toBeCloseTo(1, 6));
+      expect(geometry.boundingSphere!.radius).toBeGreaterThan(0);
+    } finally { geometry.dispose(); }
+  });
+
+  it("keeps the High world triangle increase below 25% in Node", async () => {
+    const { Scene } = await import("three");
+    const { createWorldScene, surfaceHeight } = await import("../../../src/features/world/scene/compose");
+    const { createMeshPhysics } = await import("../../../src/features/world/scene/mesh-physics");
+    const { createFarLandscape } = await import("../../../src/features/world/scene/far-landscape");
+    const { placeDressing } = await import("../../../src/features/world/dressing");
+    const { placeZoneScenes, zoneFoliageBounds } = await import("../../../src/features/world/zones");
+    const scene = new Scene(), dressing = placeDressing(), zones = placeZoneScenes(surfaceHeight);
+    const far = createFarLandscape();
+    scene.add(...dressing.groups, ...zones.map(zone => zone.group), far.mesh);
+    const composed = createWorldScene({ ...createMeshPhysics(), scene, quality: "High", zoneBounds: zoneFoliageBounds(zones) });
+    try {
+      // The only production geometry change is shore; legacy rocks cost 20/32 triangles.
+      const oldShore = layout.pebbles.length * 20
+        + (layout.boulders.length + layout.cairns.flatMap(cairn => cairn.stones).length) * 32;
+      const newShore = shore.budget.triangles
+        - ((shore.group.getObjectByName("shore-sand-overlay") as Mesh).geometry.getAttribute("position").count / 3);
+      for (const t of [0, 0.9]) {
+        composed.update(pathPointAt(t), 0);
+        let after = 0;
+        scene.traverseVisible(object => {
+          if (object instanceof Mesh) after += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3
+            * (object instanceof InstancedMesh ? object.count : 1);
+        });
+        const before = after - newShore + oldShore;
+        expect(after).toBeLessThanOrEqual(before * 1.25);
+        console.info(`High world t=${t}: ${before} -> ${after} triangles; shore ${oldShore} -> ${newShore} (excluding unchanged sand).`);
+      }
+    } finally { composed.dispose(); dressing.dispose(); zones.forEach(zone => zone.dispose()); far.dispose(); }
+  }, 60_000);
+
   it("measures actual instance-expanded triangles and draw calls within budget", () => {
     let triangles = 0, draws = 0;
     shore.group.traverse(object => {

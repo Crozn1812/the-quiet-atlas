@@ -1,36 +1,25 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
+import { createRockGeometry } from "../props/rocks";
 import { worldHeight } from "../terrain/height";
 import { shoreGroundHeight } from "./contour";
 import { shorePlacementClear, type SandPatch } from "./layout";
 
-/** Chamfered irregular prisms, not spheres: 20 triangles for pebbles, 32 for large rocks.
- * The three rings have flat contact faces for stacking, and a broad broken shoulder.
- * Bounds are [-.5,.5] in XZ and [0,1] in Y before instance scaling.
- */
+/** Shared rock kit, normalized to the existing collider/instance coordinate system. */
 export function createShoreRockGeometry(sides: 4 | 6): BufferGeometry {
-  const outline = sides === 4
-    ? [[-0.5, -0.32], [0.35, -0.5], [0.5, 0.32], [-0.38, 0.5]]
-    : [[-0.5, -0.14], [-0.28, -0.5], [0.33, -0.43], [0.5, 0.15], [0.18, 0.5], [-0.4, 0.38]];
-  const rings = [{ inset: 0.7, y: 0 }, { inset: 1, y: 0.28 }, { inset: 0.65, y: 1 }];
-  const positions: number[] = [], colors: number[] = [];
-  function vertex(ring: number, i: number, shade: number) {
-    const p = outline[i]!, r = rings[ring]!;
-    positions.push(p[0]! * r.inset, r.y, p[1]! * r.inset);
-    colors.push(shade, shade, shade);
+  const geometry = createRockGeometry(sides === 4 ? "stone" : "boulder", sides);
+  const { min, max } = geometry.boundingBox!;
+  const x = max.x - min.x, y = max.y - min.y, z = max.z - min.z;
+  const cx = (min.x + max.x) / 2, cz = (min.z + max.z) / 2, bottom = min.y;
+  geometry.scale(1 / x, 1 / y, 1 / z);
+  geometry.translate(-cx / x, -bottom / y, -cz / z);
+  // Shore already owns PALETTE instance pigments; retain neutral facet multipliers.
+  const colors = geometry.getAttribute("color");
+  let brightest = 0;
+  for (let i = 0; i < colors.count; i++) brightest = Math.max(brightest, colors.getX(i));
+  for (let i = 0; i < colors.count; i++) {
+    const shade = 0.88 + 0.12 * colors.getX(i) / brightest;
+    colors.setXYZ(i, shade, shade, shade);
   }
-  for (let ring = 0; ring < 2; ring++) for (let i = 0; i < sides; i++) {
-    const j = (i + 1) % sides, shade = 0.92 + (i % 3) * 0.04;
-    vertex(ring, i, shade); vertex(ring + 1, i, shade); vertex(ring + 1, j, shade);
-    vertex(ring, i, shade); vertex(ring + 1, j, shade); vertex(ring, j, shade);
-  }
-  for (let i = 1; i < sides - 1; i++) {
-    vertex(0, 0, 0.92); vertex(0, i, 0.92); vertex(0, i + 1, 0.92);
-    vertex(2, 0, 1); vertex(2, i + 1, 1); vertex(2, i, 1);
-  }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-  geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
   return geometry;
