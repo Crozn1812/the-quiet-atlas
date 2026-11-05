@@ -6,6 +6,8 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
+import { createRockGeometry } from "../props/rocks";
+import { createStumpGeometry } from "../props/wood";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
   type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
@@ -14,6 +16,7 @@ import {
 type Surface = "wood" | "cut" | "moss" | "node" | "vine" | "ink" | "flower";
 type Part = {
   geometry: BufferGeometry; surface: Surface; level?: boolean; solid?: boolean;
+  collision?: BufferGeometry;
   ends?: { point: Vector3; radius: number }[];
 };
 type Placement = { side: number; z: number };
@@ -25,22 +28,27 @@ const INTERACT_HEIGHT = 1.15;
 const BANK_SETBACK = 3;
 const STUMP_RADIUS = 1.65 * 1.045 * STUMP_SCALE;
 const MAX_GRADE = 0.4;
-// About 25 cm across at the broad end; the buried half is omitted.
-const ROOT_RADIUS = 0.125;
+// Buttress roots stand well above the grass, then disappear into the soil.
+const ROOT_RADIUS = 0.58;
 const ROOT_STEPS = 12;
+const SOIL_DEPTH = 0.05;
 
 /** Separate selected faces without overlays, so creases cannot flicker over the wood. */
 function inkFaces(part: BufferGeometry, dark: (triangle: number) => boolean, level = false): Part[] {
   const positions = part.getAttribute("position");
+  const colors = part.getAttribute("color");
   const wood: number[] = [], ink: number[] = [];
+  const woodColors: number[] = [], inkColors: number[] = [];
   for (let i = 0; i < positions.count; i++) {
     const target = dark(Math.floor(i / 3)) ? ink : wood;
     target.push(positions.getX(i), positions.getY(i), positions.getZ(i));
+    if (colors) (target === wood ? woodColors : inkColors).push(colors.getX(i), colors.getY(i), colors.getZ(i));
   }
   part.dispose();
   return ([[wood, "wood"], [ink, "ink"]] as const).map(([vertices, surface]) => {
     const geometry = new BufferGeometry();
     geometry.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+    if (colors) geometry.setAttribute("color", new Float32BufferAttribute(surface === "wood" ? woodColors : inkColors, 3));
     return { geometry, surface, level, solid: true };
   });
 }
@@ -54,8 +62,8 @@ function geometry(positions: number[], indices: number[]): BufferGeometry {
   return result;
 }
 
-/** Uneven twelve-sided rings give the stump a small bevel and a broad, level cut. */
-function stump(phase: number): BufferGeometry {
+/** Preserve the original box footprints, including their terrain support samples. */
+function collisionStump(phase: number): BufferGeometry {
   const positions: number[] = [], indices: number[] = [];
   const radii = [1.65, 1.55, 1.42, 1.32];
   const heights = [0, 0.18, 1.16, 1.28];
@@ -74,24 +82,94 @@ function stump(phase: number): BufferGeometry {
   return geometry(positions, indices);
 }
 
-/** Flat annuli, including a filled centre for the pale end grain. */
-function annulus(inner: number, outer: number, y: number, phase: number): BufferGeometry {
-  const positions: number[] = [], indices: number[] = [];
-  const sides = 24;
-  for (let i = 0; i < sides; i++) {
-    const a = i * Math.PI * 2 / sides;
-    const wobble = 1 + Math.sin(a * 3 + phase) * 0.035;
-    for (const r of [inner, outer]) positions.push((Math.cos(a) * r * wobble + 0.054) * STUMP_SCALE,
-      y, Math.sin(a) * r * wobble * STUMP_SCALE);
-    const p = i * 2, q = ((i + 1) % sides) * 2;
-    if (inner === 0) indices.push(p, q + 1, p + 1);
-    else indices.push(p, q, p + 1, p + 1, q, q + 1);
+/** Enlarge the kit's buttresses and end grain, folding six V fissures into its bark.
+ * The cap's pigment rings remain part of the surface, with no coplanar overlays.
+ */
+function stumpParts(seed: number, phase: number): Part[] {
+  const kit = createStumpGeometry(seed);
+  const p = kit.getAttribute("position"), c = kit.getAttribute("color");
+  const height = kit.boundingBox!.max.y;
+  // Kit shoulder is at 30% height; its remaining stations belong to the cut rim.
+  const shoulder = p.getY(1);
+  const cutRadius = Math.hypot(p.getX(73) - 0.025, p.getZ(73) - 0.01);
+  let footRadius = 0;
+  for (let i = 0; i < 72; i++) {
+    if (p.getY(i) === 0) footRadius = Math.max(footRadius, Math.hypot(p.getX(i), p.getZ(i)));
   }
-  return geometry(positions, indices);
+  const map = (i: number): Vector3 => {
+    const y = p.getY(i), upper = y > shoulder + 0.001;
+    const cx = upper ? 0.025 : y > 0 ? 0.015 : 0;
+    const cz = upper ? 0.01 : 0;
+    const dx = p.getX(i) - cx, dz = p.getZ(i) - cz;
+    // Keep the kit's flared, alternating foot; broaden the working tabletop.
+    const scale = upper ? 2.1 / cutRadius
+      : y > 0 ? 2.33 / Math.hypot(p.getX(1) - 0.015, p.getZ(1)) : 2.7 / footRadius;
+    return new Vector3(dx * scale + (upper ? 0.0864 : 0),
+      upper ? CUT_HEIGHT : y / height * CUT_HEIGHT - SOIL_DEPTH,
+      dz * scale);
+  };
+  const bark: number[] = [], barkColors: number[] = [], cut: number[] = [], cutColors: number[] = [];
+  const emit = (target: number[], colors: number[], points: Vector3[], color: Color) => {
+    for (const point of points) { target.push(point.x, point.y, point.z); colors.push(color.r, color.g, color.b); }
+  };
+  // Kit sides are quads, six consecutive vertices each; bottom and cap follow.
+  for (let i = 0; i < 48 * 3; i += 6) {
+    const a = map(i), b = map(i + 1), d = map(i + 5), top = map(i + 2);
+    const fissure = Math.floor(i / 6) % 2 === 0;
+    const stops = fissure ? [0, 0.4, 0.5, 0.6, 1] : [0, 1];
+    const edge = (t: number, high: boolean) => {
+      const point = (high ? b : a).clone().lerp(high ? top : d, t);
+      if (t === 0.5) {
+        const inward = new Vector3(point.x - 0.04, 0, point.z).normalize();
+        point.addScaledVector(inward, -0.11);
+        point.x += Math.sin(phase + Math.floor(i / 6) % 12) * 0.025 * (point.y / CUT_HEIGHT * 2 - 1);
+      }
+      return point;
+    };
+    for (let j = 0; j < stops.length - 1; j++) {
+      const l = stops[j]!, r = stops[j + 1]!;
+      const color = new Color().fromBufferAttribute(c, i);
+      if (l === 0.4 || l === 0.5) color.lerp(new Color(PALETTE.rockDark), 0.6);
+      const upper = (t: number) => {
+        const point = edge(t, true);
+        if (i >= 72) {
+          point.addScaledVector(new Vector3(point.x - 0.0864, 0, point.z).normalize(), 0.07);
+          point.y -= 0.09;
+        }
+        return point;
+      };
+      emit(bark, barkColors, [edge(l, false), upper(l), upper(r),
+        edge(l, false), upper(r), edge(r, false)], color);
+      if (i >= 72) emit(bark, barkColors, [upper(l), edge(l, true), edge(r, true),
+        upper(l), edge(r, true), upper(r)], color);
+    }
+  }
+  for (let i = 48 * 3; i < p.count; i += 3) {
+    const isCut = i >= 60 * 3;
+    const color = new Color().fromBufferAttribute(c, i);
+    const ring = new Color(PALETTE.sand).lerp(new Color(PALETTE.dusk), 0.095);
+    if (isCut && Math.abs(color.r - ring.r) + Math.abs(color.g - ring.g) + Math.abs(color.b - ring.b) < 1e-6) {
+      color.set(PALETTE.sand).lerp(new Color(PALETTE.rockDark), 0.24);
+    }
+    emit(isCut ? cut : bark, isCut ? cutColors : barkColors,
+      [map(i), map(i + 1), map(i + 2)], color);
+  }
+  kit.dispose();
+  const make = (positions: number[], colors: number[]) => {
+    const result = new BufferGeometry();
+    result.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    result.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    return result;
+  };
+  const legacy = inkFaces(collisionStump(phase), triangle => triangle < 24, true);
+  const result = inkFaces(make(bark, barkColors), triangle => triangle % 12 === 0, true);
+  result.forEach((part, i) => { part.collision = legacy[i]!.geometry; });
+  result.push({ geometry: make(cut, cutColors), surface: "cut", level: true });
+  return result;
 }
 
-/** Only the exposed half of a low root is drawn; buried faces are clipped to the terrain. */
-function root(points: Vector3[], radius: number, buried = true): BufferGeometry {
+/** A broad half-section with an arched crest and a continuously buried underside. */
+function root(points: Vector3[], radius: number, buried = true, raised = true, arch = 0.35): BufferGeometry {
   const curve = new CatmullRomCurve3(points);
   const positions: number[] = [], indices: number[] = [];
   const steps = ROOT_STEPS, sides = 8;
@@ -101,8 +179,10 @@ function root(points: Vector3[], radius: number, buried = true): BufferGeometry 
     const r = radius * (1 - t * 0.87);
     for (let i = 0; i < sides; i++) {
       const a = i * Math.PI * 2 / sides;
-      const y = buried ? Math.max(0, radius * 0.2 * (1 - t * 0.75) + Math.sin(a) * r * 0.62)
-        : p.y + (1 + Math.sin(a)) * r * 0.62;
+      const lift = raised ? p.y + Math.sin(Math.PI * t) * radius * arch : 0;
+      const y = buried ? Math.max(0, radius * 0.2 * (1 - t * 0.75)
+        + Math.sin(a) * r * (raised ? 0.95 : 0.62) + lift * Math.max(0, Math.sin(a)))
+        - (raised ? SOIL_DEPTH : 0) : p.y + (1 + Math.sin(a)) * r * 0.62;
       positions.push(p.x + normal.x * Math.cos(a) * r, y, p.z + normal.z * Math.cos(a) * r);
       if (step < steps) {
         const v = step * sides + i, w = step * sides + (i + 1) % sides;
@@ -120,9 +200,13 @@ function root(points: Vector3[], radius: number, buried = true): BufferGeometry 
   return geometry(positions, indices);
 }
 
-function rootParts(points: Vector3[], radius: number): Part[] {
-  const parts = inkFaces(root(points, radius),
+function rootParts(points: Vector3[], radius: number, oldRadius: number, arch = 0.35): Part[] {
+  const parts = inkFaces(root(points, radius, true, true, arch),
     triangle => triangle < ROOT_STEPS * 16 && Math.floor(triangle / 2) % 8 === 3);
+  const legacyPoints = points.map(p => p.clone().setY(0));
+  const legacy = inkFaces(root(legacyPoints, oldRadius, true, false),
+    triangle => triangle < ROOT_STEPS * 16 && Math.floor(triangle / 2) % 8 === 3);
+  parts.forEach((part, i) => { part.collision = legacy[i]!.geometry; });
   parts[0]!.ends = [{ point: points[0]!, radius }, { point: points.at(-1)!, radius: radius * 0.13 }];
   return parts;
 }
@@ -130,12 +214,8 @@ function rootParts(points: Vector3[], radius: number): Part[] {
 function makeParts(seed: number): Part[] {
   const phase = (Math.imul(seed ^ 0x5f3759df, 1664525) >>> 0) / 4294967296 * Math.PI * 2;
   const parts: Part[] = [
-    ...inkFaces(stump(phase), triangle => triangle < 24, true),
-    { geometry: annulus(0, 1.31, CUT_HEIGHT, phase), surface: "cut", level: true },
+    ...stumpParts(seed, phase),
   ];
-  for (const r of [0.39, 0.76, 1.08]) {
-    parts.push({ geometry: annulus(r, r + 0.022, CUT_HEIGHT + 0.006, phase), surface: "wood", level: true });
-  }
   // Begin beneath the enlarged rim so both S bends emerge beyond the stump.
   // The road-facing tips turn along the verge, a metre clear.
   const ends = [
@@ -152,23 +232,35 @@ function makeParts(seed: number): Part[] {
       start.clone().lerp(end, 0.3).addScaledVector(normal, bend),
       start.clone().lerp(end, 0.7).addScaledVector(normal, -bend * 0.72), end];
     arms.push(points);
-    parts.push(...rootParts(points, ROOT_RADIUS - i % 3 * 0.0075));
+    parts.push(...rootParts(points, ROOT_RADIUS - i % 3 * 0.045, 0.125 - i % 3 * 0.0075, i % 2 ? 0.2 : 0.8));
   });
   // Two cross-links turn the radial silhouette into a small connected network.
   for (const [a, b] of [[3, 4], [5, 6]] as const) {
     const from = arms[a]![3]!, to = arms[b]![3]!;
-    parts.push(...rootParts([from, from.clone().lerp(to, 0.5).add(new Vector3(0.23, 0, 0.18)), to], 0.09));
+    parts.push(...rootParts([from, from.clone().lerp(to, 0.5).add(new Vector3(0.23, 0, 0.18)), to], 0.25, 0.09));
   }
   for (const index of [3, 4, 6]) {
     const p = arms[index]![3]!;
-    parts.push({ geometry: new IcosahedronGeometry(1, 0).scale(0.32, 0.1, 0.28)
-      .rotateY(phase + index).translate(p.x, 0.12, p.z), surface: "node", solid: true });
+    const pebble = createRockGeometry("pebble", seed + index);
+    const size = pebble.boundingBox!.getSize(new Vector3());
+    const colors = pebble.getAttribute("color");
+    const mist = new Color(PALETTE.mist), dark = new Color(PALETTE.rockDark);
+    for (let i = 0; i < colors.count; i++) {
+      const color = mist.clone().lerp(dark, 0.04 + (1 - colors.getX(i)) * 0.1);
+      colors.setXYZ(i, color.r, color.g, color.b);
+    }
+    pebble.scale(0.5 / size.x, 0.18 / size.y, 0.42 / size.z)
+      .rotateY(phase + index).translate(p.x, -SOIL_DEPTH, p.z);
+    parts.push({ geometry: pebble, surface: "node", solid: true,
+      collision: new IcosahedronGeometry(1, 0).scale(0.32, 0.1, 0.28)
+        .rotateY(phase + index).translate(p.x, 0.12, p.z) });
   }
   // Only two narrow blue-green vines; there is no emission or animated data effect.
   for (const index of [3, 6]) {
     const points = arms[index]!.map((p, i) => p.clone().add(new Vector3(0.04,
-      (ROOT_RADIUS - index % 3 * 0.0075) * (0.2 * (1 - i / 3 * 0.75)
-        + (1 - i / 3 * 0.87) * 0.62) + 0.015, 0.03)));
+      (ROOT_RADIUS - index % 3 * 0.045) * (0.2 * (1 - i / 3 * 0.75)
+        + (1 - i / 3 * 0.87) * 0.95 + Math.sin(Math.PI * i / 3) * (index % 2 ? 0.2 : 0.8))
+        - SOIL_DEPTH + 0.015, 0.03)));
     parts.push({ geometry: root(points, 0.025, false), surface: "vine" });
   }
   // Two tiny wildflowers at the near rim leave the end grain and its approach open.
@@ -262,21 +354,21 @@ export const createRootsScene: ZoneSceneFactory = context => {
     if (placement) break;
   }
   if (!placement) {
-    parts.forEach(part => part.geometry.dispose());
+    parts.forEach(part => { part.geometry.dispose(); part.collision?.dispose(); });
     throw new RangeError("The Roots needs a dry, gentle verge three metres clear of the bank.");
   }
   const { side, z: offsetZ } = placement;
   // Independent soft details never participate in choosing the stump site or its colliders.
-  // Two clusters at the rear foot: 2 × (40 fern + 20 moss) = at most 120 triangles.
+  // Two soft clusters at the rear foot; their foliage budget belongs to the shared kit.
   for (const [x, z, scale] of [[2.5, 1.3, 0.5], [2.35, -1.4, 0.42]]) {
     const fern = createFern().scale(scale!, scale!, scale!).rotateY(context.seed * 0.01 + x!)
-      .translate(x!, 0, z!);
+      .translate(x!, -SOIL_DEPTH, z!);
     const flat = fern.toNonIndexed();
     fern.dispose();
     const details: Part[] = [
       { geometry: flat, surface: "moss" },
       { geometry: new IcosahedronGeometry(1, 0).scale(0.4, 0.075, 0.3)
-        .translate(x! - 0.3, 0.08, z!), surface: "moss" },
+        .translate(x! - 0.3, 0.025, z!), surface: "moss" },
     ];
     if (fits(details, placement, context)) parts.push(...details);
     else details.forEach(part => part.geometry.dispose());
@@ -287,15 +379,21 @@ export const createRootsScene: ZoneSceneFactory = context => {
   for (const part of parts) {
     part.geometry.deleteAttribute("uv");
     const positions = part.geometry.getAttribute("position");
+    const originalColors = part.geometry.getAttribute("color");
+    const tint = part.surface === "wood"
+      ? new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.46).lerp(new Color(PALETTE.dusk), 0.08)
+      : part.surface === "ink" ? new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.35)
+        : new Color(1, 1, 1);
     const colors: number[] = [];
     for (let i = 0; i < positions.count; i++) {
       const x = side * (STUMP_X + positions.getX(i)), z = positions.getZ(i) + offsetZ;
       const y = positions.getY(i), terrain = context.heightAt(x, z);
       // The foot follows the hill, while the upper bevel and end grain stay level.
-      const base = part.level ? terrain + (ground - terrain) * Math.min(1, y / (1.16 * STUMP_SCALE)) : terrain;
+      const base = part.level ? terrain + (ground - terrain) * Math.max(0, Math.min(1, y / (1.16 * STUMP_SCALE))) : terrain;
       positions.setXYZ(i, x, y + base, z);
       const wash = 0.955 + Math.sin(x * 13 + z * 9 + y * 5) * 0.025;
-      colors.push(wash, wash, wash);
+      if (originalColors) colors.push(originalColors.getX(i) * wash, originalColors.getY(i) * wash, originalColors.getZ(i) * wash);
+      else colors.push(tint.r * wash, tint.g * wash, tint.b * wash);
     }
     // Reflection changes winding; keep the visible faces outward on the left verge.
     if (side < 0) {
@@ -314,8 +412,21 @@ export const createRootsScene: ZoneSceneFactory = context => {
     part.geometry.computeVertexNormals();
     part.geometry.computeBoundingBox();
     if (part.solid) {
-      const box = part.geometry.boundingBox!;
+      // Physics retains the authored pre-r4 boxes independently of the richer silhouette.
+      const collision = part.collision;
+      if (collision) {
+        const p = collision.getAttribute("position");
+        for (let i = 0; i < p.count; i++) {
+          const x = side * (STUMP_X + p.getX(i)), z = p.getZ(i) + offsetZ;
+          const y = p.getY(i), terrain = context.heightAt(x, z);
+          const base = part.level ? terrain + (ground - terrain) * Math.min(1, y / (1.16 * STUMP_SCALE)) : terrain;
+          p.setXYZ(i, x, y + base, z);
+        }
+        collision.computeBoundingBox();
+      }
+      const box = (collision ?? part.geometry).boundingBox!;
       colliders.push({ center: box.getCenter(new Vector3()), size: box.getSize(new Vector3()) });
+      collision?.dispose();
     }
     const batch = batches.get(part.surface) ?? [];
     batch.push(part.geometry);
@@ -329,13 +440,11 @@ export const createRootsScene: ZoneSceneFactory = context => {
     merged.computeBoundingBox();
     merged.computeBoundingSphere();
     const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
-    if (surface === "wood") material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.45);
-    if (surface === "cut") material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65);
     if (surface === "moss") material.color.set(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6);
-    if (surface === "node") material.color.set(PALETTE.rock);
     if (surface === "vine") material.color.set(PALETTE.forestDeep);
-    if (surface === "ink") material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.7);
     if (surface === "flower") material.color.set(PALETTE.flower);
+    // Kit pigments are already in linear vertex colors; avoid a second material tint.
+    if (["wood", "ink", "cut", "node"].includes(surface)) material.color.setRGB(1, 1, 1);
     const mesh = new Mesh(merged, material);
     mesh.name = `roots-${surface}`;
     mesh.castShadow = true;
