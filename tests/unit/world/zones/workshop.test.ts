@@ -73,7 +73,8 @@ describe("workshop bank set-piece", () => {
     }
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     const pigments = parts.map(mesh => mesh.material);
-    expect(new Set(pigments).size).toBe(6); // The animated sprig shares moss with the roof.
+    expect(new Set(pigments).size).toBe(7); // The animated sprig shares moss with the roof.
+    console.info(`Workshop budget: ${triangles} triangles, ${parts.length} draw calls`);
   });
 
   it("is exactly deterministic for a seed, including colliders, labels and vertex washes", () => {
@@ -129,6 +130,11 @@ describe("workshop bank set-piece", () => {
     expect(gap).toBeLessThanOrEqual(6);
     const edge = new Vector3(Math.sign(p.x) * PATH_CLEARANCE, context.heightAt(Math.sign(p.x) * PATH_CLEARANCE, p.z), p.z);
     expect(edge.distanceTo(p)).toBeLessThanOrEqual(2.5);
+    // A standing player can see the working surface on either bank and after relocation.
+    const eye = edge.clone().add(new Vector3(0, 1.6, 0));
+    const target = p.clone().add(new Vector3(0, 0.075, 0));
+    const sightline = new Raycaster(eye, target.clone().sub(eye).normalize(), 0, eye.distanceTo(target));
+    expect(sightline.intersectObjects(meshes(scene))).toHaveLength(0);
   });
 
   it("grounds separate bench legs and shed posts on a gentle slope while keeping the roof straight", () => {
@@ -145,7 +151,86 @@ describe("workshop bank set-piece", () => {
     }
     const roof = meshes(scene).find(mesh => mesh.name === "workshop-roof")!;
     const heights = [-7, -6, -5, -4].map(x => new Raycaster(new Vector3(x, 8, 0), new Vector3(0, -1, 0)).intersectObject(roof)[0]!.point.y);
-    for (let i = 1; i < heights.length; i++) expect(heights[i]! - heights[i - 1]!).toBeCloseTo(0.12, 5);
+    for (let i = 1; i < heights.length; i++) {
+      const degrees = Math.atan(heights[i]! - heights[i - 1]!) * 180 / Math.PI;
+      expect(degrees).toBeGreaterThanOrEqual(15);
+      expect(degrees).toBeLessThanOrEqual(20);
+      expect(heights[i]! - heights[i - 1]!).toBeCloseTo(heights[1]! - heights[0]!, 5);
+    }
+    const moss = meshes(scene).find(mesh => mesh.name === "workshop-moss")!;
+    expect(moss.material.color.getHex()).toBe(new Color(PALETTE.forestDeep).getHex());
+    for (const [x, z] of [[-6.9, 1.65], [-6.3, -2.1]]) {
+      const ray = new Raycaster(new Vector3(x!, 8, z!), new Vector3(0, -1, 0));
+      const roofTop = ray.intersectObject(roof)[0]!.point.y;
+      const mossTop = ray.intersectObject(moss)[0]!.point.y;
+      expect(mossTop - roofTop).toBeGreaterThan(0.02);
+      expect(mossTop - roofTop).toBeLessThan(0.1);
+    }
+  });
+
+  it("places two grounded wooden crates and a hollow rope coil outside the side wall", () => {
+    const heightAt = (x: number, z: number) => x * 0.035 + z * 0.02;
+    const scene = create({ heightAt });
+    const wood = meshes(scene).find(mesh => mesh.name === "workshop-wood")!;
+    const outdoor = scene.colliders.filter(collider => collider.center.x < 0 && collider.center.z > 3.35);
+    expect(outdoor).toHaveLength(3);
+    const [first, second, coil] = outdoor;
+    for (const crate of [first!, second!]) {
+      const { center, size } = crate;
+      expect(center.z - size.z / 2).toBeGreaterThan(3.35);
+      const foot = heightAt(center.x + (size.x - 0.025) / 2, center.z + size.z / 2);
+      expect(center.y - size.y / 2).toBeCloseTo(foot, 5);
+      const hit = new Raycaster(new Vector3(center.x, 4, center.z), new Vector3(0, -1, 0)).intersectObject(wood)[0];
+      expect(hit!.point.y).toBeCloseTo(foot + size.z, 5);
+    }
+    const { center, size } = coil!;
+    const foot = heightAt(center.x + size.x / 2, center.z + size.z / 2);
+    expect(center.y - size.y / 2).toBeCloseTo(foot, 5);
+    const down = new Vector3(0, -1, 0);
+    expect(new Raycaster(new Vector3(center.x, 4, center.z), down).intersectObject(wood)).toHaveLength(0);
+    const rim = new Raycaster(new Vector3(center.x + 0.28, 4, center.z), down).intersectObject(wood)[0];
+    expect(rim!.point.y).toBeCloseTo(foot + size.y, 5);
+  });
+
+  it("shows a small tool box, wound roll and blank paper on the bench", () => {
+    const scene = create();
+    const wood = meshes(scene).find(mesh => mesh.name === "workshop-wood")!;
+    const paper = meshes(scene).find(mesh => mesh.name === "workshop-paper")!;
+    const down = new Vector3(0, -1, 0);
+    const top = (mesh: Mesh, x: number, z: number) => new Raycaster(new Vector3(x, 2, z), down).intersectObject(mesh)[0]!.point.y;
+    expect(top(wood, -4.62, 1.25)).toBeCloseTo(1.25, 5);
+    expect(top(paper, -4.75, -1.1)).toBeCloseTo(1.26, 5);
+    expect(top(paper, -4.75, -0.4)).toBeCloseTo(1.022, 5);
+  });
+
+  it("uses broad ink accents and exactly two tiny flower-coloured details", () => {
+    const scene = create();
+    const area = (mesh: Mesh) => {
+      const points = vertices(mesh);
+      let total = 0;
+      for (let i = 0; i < points.length; i += 3) {
+        total += points[i + 1]!.clone().sub(points[i]!).cross(points[i + 2]!.clone().sub(points[i]!)).length() / 2;
+      }
+      return total;
+    };
+    const parts = meshes(scene);
+    const ink = parts.find(mesh => mesh.name === "workshop-ink")!;
+    const inkFraction = area(ink) / parts.reduce((total, mesh) => total + area(mesh), 0);
+    expect(inkFraction).toBeGreaterThan(0.07);
+    expect(inkFraction).toBeLessThan(0.15);
+    const flower = parts.find(mesh => mesh.name === "workshop-flower")!;
+    expect(flower.material.color.getHex()).toBe(new Color(PALETTE.flower).getHex());
+    // Each low-poly accent is a separate eight-face octahedron, 12 cm across.
+    const points = vertices(flower);
+    expect(points).toHaveLength(2 * 8 * 3);
+    for (let i = 0; i < points.length; i += 24) {
+      const size = new Box3().setFromPoints(points.slice(i, i + 24)).getSize(new Vector3());
+      for (const dimension of size.toArray()) {
+        expect(dimension).toBeGreaterThanOrEqual(0.1);
+        expect(dimension).toBeLessThanOrEqual(0.15);
+      }
+    }
+    expect(area(flower) / parts.reduce((total, mesh) => total + area(mesh), 0)).toBeLessThan(0.001);
   });
 
   it("reads as three walls, an open front, a usable bench and a paper sketch on an easel", () => {
@@ -176,10 +261,11 @@ describe("workshop bank set-piece", () => {
   it("uses only palette recipes with neutral multiplicative vertex washes, without lettering", () => {
     const colors = {
       wood: new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12),
-      roof: new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.ink), 0.24),
-      moss: new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.12),
+      roof: new Color(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.55),
+      moss: new Color(PALETTE.forestDeep),
       paper: new Color(PALETTE.paper), ink: new Color(PALETTE.ink),
       stone: new Color(PALETTE.mist).lerp(new Color(PALETTE.ink), 0.22),
+      flower: new Color(PALETTE.flower),
     };
     for (const mesh of meshes(create())) {
       expect(mesh.name).not.toMatch(/text|logo/i);

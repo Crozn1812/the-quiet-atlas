@@ -8,11 +8,11 @@ import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
 type Point = readonly [number, number, number];
-type Surface = "wood" | "roof" | "moss" | "paper" | "ink" | "stone";
+type Surface = "wood" | "roof" | "moss" | "paper" | "ink" | "stone" | "flower";
 type Footprint = readonly [number, number, number, number];
 
 /** Include overhangs and the easel, not just the four shed posts. */
-const SITE: Footprint = [-8.05, -3.15, -5.25, 3.55];
+const SITE: Footprint = [-8.05, -3.15, -5.25, 4.6];
 const SAMPLE_SPACING = 0.2;
 
 function dryFootprint(context: ZoneSceneContext, bounds: Footprint): boolean {
@@ -46,10 +46,11 @@ function timber(size: Point, center: Point): BufferGeometry {
 function materialFor(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
   switch (surface) {
-    case "roof": material.color.set(PALETTE.forestDeep).lerp(new Color(PALETTE.ink), 0.24); break;
-    case "moss": material.color.set(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.12); break;
+    case "roof": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.55); break;
+    case "moss": material.color.set(PALETTE.forestDeep); break;
     case "ink": material.color.set(PALETTE.ink); break;
     case "stone": material.color.set(PALETTE.mist).lerp(new Color(PALETTE.ink), 0.22); break;
+    case "flower": material.color.set(PALETTE.flower); break;
   }
   material.name = `workshop-${surface}`;
   return material;
@@ -120,12 +121,15 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
 
   // Straight mono-pitch roof: the raised front faces the walking path (+X).
   const base = highest([-7.7, -3.6, -3.05, 3.05]);
-  const roofY = (x: number) => base + 2.95 + (x + 5.65) * 0.12;
-  const pitch = Math.atan(0.12);
+  const pitch = 17 * Math.PI / 180;
+  const roofY = (x: number) => base + 2.95 + (x + 5.65) * Math.tan(pitch);
   for (let i = 0; i < 7; i++) {
     const z = (i - 3) * 0.96;
     add(timber([4.65, 0.14, 0.945], [0, 0, 0]).rotateZ(pitch).translate(-5.65, roofY(-5.65), z), "roof");
   }
+  // An ink soffit along the open eave keeps the silhouette legible in mist.
+  add(timber([1.25, 0.045, 6.65], [0, 0, 0]).rotateZ(pitch)
+    .translate(-4.2, roofY(-4.2) - 0.1, 0), "ink");
   for (const x of [-7.65, -3.65]) {
     for (const z of [-2.95, 2.95]) {
       upright(x, z, roofY(x) - 0.07, 0.17);
@@ -151,7 +155,8 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     }
     collider([4, 2.7, 0.16], [-5.65, base + 1.35, z]);
   }
-  collider([4.65, 0.72, 6.7], [-5.65, roofY(-5.65), 0]);
+  const roofHeight = 4.65 * Math.sin(pitch) + 0.14 * Math.cos(pitch);
+  collider([4.65, roofHeight, 6.71], [-5.65, roofY(-5.65), 0]);
 
   // A level working surface; each leg independently reaches the sampled ground.
   const benchX = -4.75;
@@ -163,6 +168,15 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   box("paper", [0.5, 0.014, 0.72], [-4.75, benchY + 0.075, -0.4]);
   box("ink", [0.035, 0.025, 0.44], [-4.55, benchY + 0.095, 0.6]);
   box("wood", [0.23, 0.09, 0.12], [-4.55, benchY + 0.12, 0.8]);
+  // A lidded tool box and a small wound roll leave the middle of the bench open.
+  box("wood", [0.38, 0.24, 0.44], [benchX, benchY + 0.19, 1.25]);
+  box("ink", [0.4, 0.025, 0.46], [benchX, benchY + 0.3225, 1.25]);
+  box("wood", [0.05, 0.06, 0.16], [benchX, benchY + 0.365, 1.25]);
+  for (const dx of [-0.07, 0, 0.07]) {
+    add(new TorusGeometry(0.1, 0.025, 4, 12).rotateY(Math.PI / 2)
+      .translate(benchX + dx, benchY + 0.195, -1.1), "paper");
+  }
+  add(new OctahedronGeometry(0.06, 0).translate(-4.54, benchY + 0.2, 1.25), "flower");
 
   // Tool shelf, two storage boxes and a recognisable wound cable spool.
   const shelfY = highest([-7.55, -6.75, -2.2, 2.2]);
@@ -182,6 +196,28 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     for (const dz of [-0.22, 0.22]) box("ink", [size + 0.006, 0.028, 0.028], [x, y + size - 0.075, z + dz]);
     collider([size, size, size], [x, y + size / 2, z]);
   }
+
+  // Outside the side wall: two crates and a low rope coil, clear of the open front.
+  for (const [x, size] of [[-6.6, 0.72], [-5.65, 0.58]] as const) {
+    const z = 4.05;
+    const y = highest([x - size / 2, x + size / 2, z - size / 2, z + size / 2]);
+    box("wood", [size, size, size], [x, y + size / 2, z]);
+    for (const fraction of [0.33, 0.66]) {
+      box("ink", [0.012, 0.018, size * 0.9], [x + size / 2, y + size * fraction, z]);
+    }
+    for (const dz of [-size * 0.32, size * 0.32]) {
+      box("wood", [size + 0.025, 0.045, 0.08], [x, y + size + 0.0225, z + dz]);
+    }
+    collider([size + 0.025, size + 0.045, size], [x, y + (size + 0.045) / 2, z]);
+  }
+  const ropeX = -4.55, ropeZ = 4.05;
+  const ropeY = highest([ropeX - 0.325, ropeX + 0.325, ropeZ - 0.325, ropeZ + 0.325]);
+  for (let i = 0; i < 3; i++) {
+    add(new TorusGeometry(0.28, 0.045, 4, 12).rotateX(Math.PI / 2)
+      .translate(ropeX, ropeY + 0.045 + i * 0.07, ropeZ), "wood");
+  }
+  collider([0.65, 0.23, 0.65], [ropeX, ropeY + 0.115, ropeZ]);
+  add(new OctahedronGeometry(0.06, 0).translate(ropeX + 0.28, ropeY + 0.17, ropeZ), "flower");
 
   // Making-of corner: paper faces the path. The ink marks are an abstract frame,
   // diagonal roof study and ground line, never glyphs, branding or a texture.
