@@ -1,7 +1,9 @@
 import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
+import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
+import { nearestPath } from "../terrain/samples";
 import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
 import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
@@ -44,12 +46,24 @@ float treeB() { return step(1.5, treeStyle.x); }
 ` + shader.vertexShader;
     shader.vertexShader = shader.vertexShader
       .replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nobjectNormal += normalA * treeA() + normalB * treeB();")
+      .replace("#include <defaultnormal_vertex>", `#include <defaultnormal_vertex>
+#ifdef USE_INSTANCING
+// Three's default normal transform assumes orthogonal instance axes. Cofactors
+// also handle reaching limbs; positive determinants let normalization cancel it.
+mat3 forestAxes = mat3(instanceMatrix);
+mat3 forestNormal = mat3(cross(forestAxes[1], forestAxes[2]),
+  cross(forestAxes[2], forestAxes[0]), cross(forestAxes[0], forestAxes[1]));
+transformedNormal = normalMatrix * forestNormal * objectNormal;
+#ifdef FLIP_SIDED
+transformedNormal = -transformedNormal;
+#endif
+#endif`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 transformed += shapeA * treeA() + shapeB * treeB();
 // Collapse every ribbon vertex to the same point on trees without vines.
 transformed *= 1.0 - hanging * (1.0 - treeStyle.y);`);
   };
-  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v1";
+  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v1|affine-normals-v1";
 }
 
 /**
@@ -91,8 +105,32 @@ export function createFoliage(maxPerKind: number) {
   if (!Number.isSafeInteger(maxPerKind) || maxPerKind < 0) throw new RangeError("Foliage capacity must be a non-negative integer");
   const group = new Group();
   const trunkGeometry = createTreeTrunk(true);
-  const trunkMaterial = createRampMaterial(RAMP_PRESETS.trunk);
+  const trunkMaterial = createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.trunk), WORLD_DIRECTION.foliage.ramp);
   trunkMaterial.vertexColors = true;
+  // B2-166's relative vertex wash encoded its own dark bark, cancelling the
+  // preset. Rebuild that wash from the active bark recipe, retaining its moss.
+  const bark = trunkMaterial.color.clone().lerp(new Color(PALETTE.forestDeep), 0.12);
+  const trunkPositions = trunkGeometry.getAttribute("position");
+  const trunkNormals = trunkGeometry.getAttribute("normal");
+  const trunkColors = trunkGeometry.getAttribute("color");
+  for (let i = 0; i < trunkPositions.count; i++) {
+    const height = trunkPositions.getY(i) + 0.5;
+    const damp = (trunkNormals.getZ(i) + 1) / 2;
+    const coverage = Math.min(1, 0.22 + (1 - height) * 0.48 + Math.max(0, trunkNormals.getY(i)) * 0.2 + damp * 0.22);
+    const moss = new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.grass), 0.04 + height * 0.24);
+    const color = bark.clone().lerp(moss, coverage);
+    trunkColors.setXYZ(i, color.r / trunkMaterial.color.r, color.g / trunkMaterial.color.g, color.b / trunkMaterial.color.b);
+  }
+  // A pigment-coloured shade floor keeps humid-forest trunks legible even with
+  // no direct light. It runs inside the existing ramp, before ACES, with no pass.
+  const trunkCompile = trunkMaterial.onBeforeCompile.bind(trunkMaterial);
+  const trunkKey = trunkMaterial.customProgramCacheKey.bind(trunkMaterial);
+  trunkMaterial.onBeforeCompile = (shader, renderer) => {
+    trunkCompile(shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>",
+      "outgoingLight = max(outgoingLight, diffuseColor.rgb * 0.85);\n#include <opaque_fragment>");
+  };
+  trunkMaterial.customProgramCacheKey = () => trunkKey() + "|forest-bark-shade-v1";
   const crownMaterial = createRampMaterial(RAMP_PRESETS.crown);
   crownMaterial.vertexColors = true;
   const depthMaterial = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
@@ -144,6 +182,9 @@ export function createFoliage(maxPerKind: number) {
   let quality: Quality = "High";
   let disposed = false;
   const transform = new Object3D();
+  // A crown-local shear grows from the leader's foot (-0.8 m), so its limbs
+  // reach inward while the lower leader remains joined to the upright trunk.
+  const reachingLimbs = new Matrix4().set(1, 0.3, 0, 0.24, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
   function update() {
     if (disposed) throw new Error("Foliage has been disposed");
     for (const mesh of meshes) mesh.count = 0;
@@ -155,7 +196,8 @@ export function createFoliage(maxPerKind: number) {
       const { seed, trunks, crowns } = variants[foliageVariantAt(tree.x, tree.z, variants.length)]!;
       const index = trunks.count++;
       crowns.count++;
-      // Scatter varies scale from 0.8 to 1.3. Limit pine height to 14–18 m while
+      // Ordinary trees vary from 0.8 to 1.3; mature trail broadleaves reach 2.
+      // Limit pine height to 14–18 m while
       // retaining its width variation and leaving every physics cylinder alone.
       const nominalHeight = pineHeight(seed);
       const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight : tree.scale;
@@ -169,7 +211,15 @@ export function createFoliage(maxPerKind: number) {
       trunks.setMatrixAt(index, transform.matrix);
       transform.position.set(tree.x - Math.sin(tree.lean) * anchorHeight, tree.y + Math.cos(tree.lean) * anchorHeight, tree.z);
       transform.scale.set(tree.scale, heightScale, tree.scale);
+      if (tree.trailCanopy && tree.kind === "broadleaf") {
+        const path = nearestPath(tree.x, tree.z);
+        // Rotate the existing limbs toward the trail; stretch only the crown,
+        // keeping the trunk, root and physics cylinder fixed.
+        transform.rotateY(Math.atan2(tree.z - path.z, path.x - tree.x));
+        transform.scale.set(tree.scale * 4.2, heightScale, tree.scale * 2.2);
+      }
       transform.updateMatrix();
+      if (tree.trailCanopy && tree.kind === "broadleaf") transform.matrix.multiply(reachingLimbs);
       crowns.setMatrixAt(index, transform.matrix);
       crowns.setColorAt(index, isDeepCrown(tree.x, tree.z) ? deep : neutral);
       const style = crowns.geometry.getAttribute("treeStyle");
@@ -183,6 +233,9 @@ export function createFoliage(maxPerKind: number) {
       if (style) style.needsUpdate = true;
       mesh.computeBoundingBox();
       mesh.computeBoundingSphere();
+      // Box-derived bounds remain conservative for inward-sheared crowns;
+      // max-column sphere scaling alone underestimates a shear's stretch.
+      if (species.broadleaf.variants.some(variant => variant.crowns === mesh)) mesh.boundingBox!.getBoundingSphere(mesh.boundingSphere!);
     }
   }
   return {

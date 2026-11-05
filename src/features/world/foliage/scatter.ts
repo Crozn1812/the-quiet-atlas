@@ -1,9 +1,10 @@
-import { PATH_BRIDGES } from "../layout/path";
+import { PATH_BRIDGES, pathLength, pathPointAt } from "../layout/path";
 import { ZONES, type Biome } from "../layout/zones";
 import { PATH_WIDTH, TERRAIN_SEED, worldHeight } from "../terrain/height";
 import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
 import { TILE_SIZE, tileKey, type TerrainTile, type TileAddress } from "../terrain/tiles";
 import { isDeepCrown } from "./instances";
+import { FOREST_SUN_SHAFT_PROGRESS } from "../zones/first-light";
 
 export interface FoliageTree {
   readonly x: number;
@@ -13,6 +14,8 @@ export interface FoliageTree {
   readonly kind: "pine" | "broadleaf";
   /** Low coastal broadleaf, reusing the existing meshes and instance budget. */
   readonly growth?: "shrub";
+  /** Broader, path-facing limbs on the sheltered forest shoulder. */
+  readonly trailCanopy?: true;
   /** Radians about world Z, rooted at the terrain surface. */
   readonly lean: number;
 }
@@ -27,6 +30,30 @@ export const BRIDGE_CLEARANCE = 6;
 export const SHORE_MIN_HEIGHT = 0.8;
 export const ZONE_APPROACH_REACH = 15;
 const APPROACH_COSINE = Math.cos(Math.PI / 6);
+const routeLength = pathLength();
+const firstHill = ZONES.findIndex(zone => zone.biome === "hill");
+const forestEdge = (ZONES[firstHill - 1]!.t + ZONES[firstHill]!.t) / 2;
+const sunGaps = FOREST_SUN_SHAFT_PROGRESS.map(pathPointAt);
+
+/** Metres back from the hill boundary in the path-defined biome map. */
+export function forestHillDistanceAt(x: number, z: number): number {
+  return Math.max(0, (forestEdge - nearestPath(x, z).t) * routeLength);
+}
+
+function hasCanopyRoom(x: number, z: number, scale: number, path: ReturnType<typeof nearestPath>): boolean {
+  const nx = (path.x - x) / path.distance, nz = (path.z - z) / path.distance;
+  // Conservative projected bounds of every B2-166 shape, including inward
+  // shear, crown anchor lean and hanging ribbons. Keep whole pads in the sky.
+  const min = -2.2 * 4.2 * scale - 1, max = 3.3 * 4.2 * scale + 1;
+  const across = 2.2 * 2.2 * scale + 1;
+  const clears = (px: number, pz: number, radius: number) => {
+    const dx = px - x, dz = pz - z;
+    const along = dx * nx + dz * nz, sideways = -dx * nz + dz * nx;
+    return Math.hypot(Math.max(min - along, 0, along - max), Math.max(0, Math.abs(sideways) - across)) > radius;
+  };
+  return ZONES.every(zone => clears(zone.position.x, zone.position.z, zone.radius + 1))
+    && sunGaps.every(point => clears(point.x, point.z, 9));
+}
 
 function randomFor(key: string): () => number {
   let state = TERRAIN_SEED;
@@ -73,10 +100,11 @@ export function isFoliageExcluded(x: number, z: number): boolean {
   return path.distance < PATH_CLEARANCE || nearestRiver(x, z).distance < RIVER_CLEARANCE
     || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE)
     || isZoneApproach(x, z)
+    || (biomeAtProgress(path.t) === "forest-dawn" && sunGaps.some(point => Math.hypot(x - point.x, z - point.z) < 13))
     || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < BRIDGE_CLEARANCE);
 }
 
-interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number; growth?: "shrub"; canopy?: true }
+interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number; growth?: "shrub"; canopy?: true; trailCanopy?: true }
 interface Clump { x: number; z: number; radius: number }
 const CLUMP_SIZE = TILE_SIZE / 2;
 const coastalPoints = PATH_SAMPLES.filter(point => point.t >= 0.82);
@@ -85,6 +113,13 @@ const coastalTiles = {
   maxX: Math.floor((Math.max(...coastalPoints.map(p => p.x)) + 260) / TILE_SIZE),
   minZ: Math.floor((Math.min(...coastalPoints.map(p => p.z)) - 260) / TILE_SIZE),
   maxZ: Math.floor((Math.max(...coastalPoints.map(p => p.z)) + 260) / TILE_SIZE),
+};
+const forestPoints = PATH_SAMPLES.filter(point => point.t <= forestEdge);
+const forestTiles = {
+  minX: Math.floor((Math.min(...forestPoints.map(p => p.x)) - 25) / TILE_SIZE),
+  maxX: Math.floor((Math.max(...forestPoints.map(p => p.x)) + 25) / TILE_SIZE),
+  minZ: Math.floor((Math.min(...forestPoints.map(p => p.z)) - 25) / TILE_SIZE),
+  maxZ: Math.floor((Math.max(...forestPoints.map(p => p.z)) + 25) / TILE_SIZE),
 };
 
 function onCoastalSlope(x: number, z: number, far = 260, path = nearestPath(x, z)): boolean {
@@ -126,7 +161,8 @@ function candidates(ix: number, iz: number): Candidate[] {
   }));
   const result: Candidate[] = [];
   const coastalTile = ix >= coastalTiles.minX && ix <= coastalTiles.maxX && iz >= coastalTiles.minZ && iz <= coastalTiles.maxZ;
-  for (let i = 0; i < (coastalTile ? 720 : 180); i++) {
+  const forestTile = ix >= forestTiles.minX && ix <= forestTiles.maxX && iz >= forestTiles.minZ && iz <= forestTiles.maxZ;
+  for (let i = 0; i < (coastalTile || forestTile ? 720 : 180); i++) {
     const x = (ix + random()) * TILE_SIZE;
     const z = (iz + random()) * TILE_SIZE;
     const densityRoll = random();
@@ -140,24 +176,30 @@ function candidates(ix: number, iz: number): Candidate[] {
     const distance = path.distance;
     const inland = path.t >= 0.82 ? coastInlandDistance(x, z, path) : 0;
     const canopy = onCoastalSlope(x, z, 260, path);
-    if (i >= 180 && !canopy) continue;
-    // Extra proposals are confined to the coastal slope. Cull hidden forest
-    // interiors while retaining ordinary forest beside the road.
+    const shoulder = biome === "forest-dawn" && distance >= 4 && distance <= 25;
+    if (i >= 180 && !canopy && !shoulder) continue;
+    // Extra proposals serve the forest shoulder and coastal slope. Keep the
+    // existing hidden-interior reduction instead of filling the whole biome.
     const forestWeight = distance > 40 ? 0.32 : distance > 22 ? 0.85 : 1;
     // Colour comes from the renderer's position hash: favour its deep buckets
     // without another material, mesh, colour override or extra random draws.
     const density = canopy ? (isDeepCrown(x, z) ? 0.98 : 0.2) * (distance > 200 ? 0.25 : 1)
-      : biome === "forest-dawn" ? clump * forestWeight : biome === "hill" ? clump * 0.2
+      : biome === "forest-dawn" ? Math.min(1, clump * (shoulder ? 2.4 : forestWeight)) : biome === "hill" ? clump * 0.2
         : inland > 260 ? clump * 0.01 : clump * 0.25;
     if (densityRoll >= density || isFoliageExcluded(x, z)) continue;
     if (biome === "forest-dawn" && clearings.some(c => Math.hypot(x - c.x, z - c.z) < c.radius)) continue;
     const shrub = biome === "coast-dusk" && !canopy;
-    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 0.9 + scaleRoll * 0.6 : 0.8 + scaleRoll * 0.5,
+    const pineChance = biome === "forest-dawn" ? ((forestEdge - path.t) * routeLength <= 40 ? 0.72 : 0.12) : 0.6;
+    const kind = shrub || canopy ? "broadleaf" : kindRoll < pineChance ? "pine" : "broadleaf";
+    const trailScale = 1.6 + scaleRoll * 0.4;
+    const trailCanopy = shoulder && kind === "broadleaf" && hasCanopyRoom(x, z, trailScale, path);
+    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 0.9 + scaleRoll * 0.6 : trailCanopy ? trailScale : 0.8 + scaleRoll * 0.5,
       // Broad crowns overlap in projection up the slope and reuse the coastal
       // shrub species, so the denser coast does not activate extra draw calls.
-      kind: shrub || canopy ? "broadleaf" : kindRoll < (biome === "forest-dawn" ? 0.88 : 0.6) ? "pine" : "broadleaf", lean,
+      kind, lean,
       ...(shrub ? { growth: "shrub" as const } : {}),
       ...(canopy ? { canopy: true as const } : {}),
+      ...(trailCanopy ? { trailCanopy: true as const } : {}),
     });
   }
   return result;
@@ -270,7 +312,8 @@ export function scatterTile(tile: TileAddress | TerrainTile): FoliageTree[] {
   if ("size" in tile && tile.size !== TILE_SIZE) throw new RangeError("Foliage requires standard terrain tiles");
   return poissonCandidates(ix, iz)
     .filter(tree => !tree.canopy || selectedCoastalCanopy().has(candidateKey(tree)))
-    .map(({ x, z, scale, kind, lean, growth }) => ({ x, z, y: worldHeight(x, z), scale, kind, lean,
+    .map(({ x, z, scale, kind, lean, growth, trailCanopy }) => ({ x, z, y: worldHeight(x, z), scale, kind, lean,
       ...(growth ? { growth } : {}),
+      ...(trailCanopy ? { trailCanopy } : {}),
     }));
 }

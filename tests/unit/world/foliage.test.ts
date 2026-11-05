@@ -94,8 +94,8 @@ describe("tile foliage", () => {
     const forestDensity = stats["forest-dawn"].count / stats["forest-dawn"].area;
     expect(stats.hill.count / stats.hill.area).toBeLessThan(forestDensity * 0.6);
     expect(stats["coast-dusk"].count).toBe(0);
-    // Original deterministic route population before the B2-153 reallocation.
-    expect(total).toBeLessThanOrEqual(577);
+    // B2-170 permits +25% while concentrating trees around the forest trail.
+    expect(total).toBeLessThanOrEqual(Math.floor(577 * 1.25));
     console.info(`B2-018 route: ${total} trees across ${route.length} tiles; density (trees/tile): forest=${forestDensity.toFixed(2)}, hill=${(stats.hill.count / stats.hill.area).toFixed(2)}, coast=${(stats["coast-dusk"].count / stats["coast-dusk"].area).toFixed(2)}`);
   });
 });
@@ -143,9 +143,16 @@ describe("foliage instances and colliders", () => {
           expect(colliders[index]!.halfHeight).toBeCloseTo(5 * tree.scale / 2, 6);
           variant.crowns.getMatrixAt(instanceIndex, matrix);
           center.setFromMatrixPosition(matrix);
-          expect(center.x).toBeCloseTo(tree.x - Math.sin(tree.lean) * 5 * heightScale, 4);
-          expect(center.y).toBeCloseTo(tree.y + Math.cos(tree.lean) * 5 * heightScale, 4);
-          expect(center.z).toBeCloseTo(tree.z, 4);
+          const expected = new Vector3(tree.x - Math.sin(tree.lean) * 5 * heightScale, tree.y + Math.cos(tree.lean) * 5 * heightScale, tree.z);
+          if (tree.trailCanopy) {
+            const path = nearestPath(tree.x, tree.z);
+            const reach = 0.24 * 4.2 * tree.scale;
+            const dx = (path.x - tree.x) / path.distance * reach;
+            expected.add(new Vector3(Math.cos(tree.lean) * dx, Math.sin(tree.lean) * dx, (path.z - tree.z) / path.distance * reach));
+          }
+          expect(center.x).toBeCloseTo(expected.x, 4);
+          expect(center.y).toBeCloseTo(expected.y, 4);
+          expect(center.z).toBeCloseTo(expected.z, 4);
           expect(variant.crowns.count).toBe(variant.trunks.count);
         }
         expect(createFoliageColliders(trees)).toEqual(colliders);
