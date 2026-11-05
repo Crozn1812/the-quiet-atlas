@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
 import { createPropMaterial } from "../../../../src/features/world/props/materials";
+import { surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { placeZoneScenes, ZONE_FACTORIES } from "../../../../src/features/world/zones";
 import { createRootsScene } from "../../../../src/features/world/zones/roots";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
@@ -79,6 +81,26 @@ function rootSections(scene: ZoneScene): Vector3[][][] {
       unique(caps.filter((_, i) => i % 2 === 1).flat())];
   });
 }
+const ringCenter = (ring: Vector3[]) => ring.reduce((sum, p) => sum.add(p), new Vector3()).divideScalar(ring.length);
+
+function expectBankSetback(scene: ZoneScene, ctx: ZoneSceneContext, step = 0.3) {
+  const side = Math.sign(scene.interactable.position.x);
+  // Independently probe a dense disk around the full stump foot, then the E target.
+  const supports = [[side * 6.4, scene.interactable.position.z, 1.65 * 1.045 * 1.6],
+    [scene.interactable.position.x, scene.interactable.position.z, 0]] as const;
+  for (const [x, z, radius] of supports) {
+    for (let dx = -radius - 3; dx <= radius + 3; dx += step) {
+      for (let dz = -radius - 3; dz <= radius + 3; dz += step) {
+        if (Math.hypot(dx, dz) > radius + 3) continue;
+        const px = x + dx, pz = z + dz;
+        const gradeX = (ctx.heightAt(px + 0.1, pz) - ctx.heightAt(px - 0.1, pz)) / 0.2;
+        const gradeZ = (ctx.heightAt(px, pz + 0.1) - ctx.heightAt(px, pz - 0.1)) / 0.2;
+        expect(Math.hypot(gradeX, gradeZ)).toBeLessThanOrEqual(0.4 + 1e-6);
+        expect(ctx.underWater(px, pz)).toBe(false);
+      }
+    }
+  }
+}
 function signature(scene: ZoneScene) {
   return {
     zone: scene.zoneId, interactable: scene.interactable, colliders: scene.colliders,
@@ -99,6 +121,53 @@ afterEach(() => {
 });
 
 describe("The Roots procedural zone", () => {
+  it("places the complete world on the rendered terrain without throwing", () => {
+    let terrain: ZoneSceneContext | undefined;
+    vi.spyOn(ZONE_FACTORIES, "roots").mockImplementation(ctx => {
+      terrain = ctx;
+      return createRootsScene(ctx);
+    });
+    const zones = placeZoneScenes(surfaceHeight);
+    try {
+      expect(zones).toHaveLength(8);
+      const roots = zones.find(zone => zone.zoneId === "roots")!;
+      expect(roots.target.position.toArray().every(Number.isFinite)).toBe(true);
+      // Analytic bank fixtures below cover the dense disk. Keep this full-world
+      // smoke test light enough to run alongside all the other mounted worlds.
+      expectBankSetback(roots, terrain!, 1);
+      for (const mesh of meshes(roots)) {
+        const positions = mesh.geometry.getAttribute("position");
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
+          expect(Number.isFinite(y)).toBe(true);
+          expect(Math.hypot(x, y, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+        }
+      }
+      console.info("roots real terrain:", roots.interactable.position.toArray(), roots.target.position.toArray());
+    } finally { zones.forEach(zone => zone.dispose()); }
+  });
+
+  it("moves the stump and interaction three metres away from a dry bank in every direction", () => {
+    const banks = [
+      (x: number) => Math.max(0, x - 10),
+      (x: number) => Math.max(0, -x - 10),
+      (_x: number, z: number) => Math.max(0, z - 4),
+      (_x: number, z: number) => Math.max(0, -z - 4),
+      (x: number, z: number) => Math.max(0, (x + z) / Math.SQRT2 - 8),
+    ];
+    for (const bank of banks) {
+      const ctx = context({ heightAt: (x, z) => -bank(x, z) });
+      const scene = create(ctx);
+      expectBankSetback(scene, ctx);
+      const p = scene.interactable.position;
+      expect(p.y).toBeCloseTo(ctx.heightAt(p.x, p.z) + 1.15);
+    }
+  });
+
+  it("rejects a steep support even when it is dry and has no water predicate", () => {
+    expect(() => createRootsScene(context({ heightAt: x => x * 0.6 }))).toThrow(RangeError);
+    expect(() => createRootsScene(context({ heightAt: () => Number.NaN }))).toThrow(RangeError);
+  });
   it("merges each pigment into one draw call within the triangle and radius budgets", () => {
     const scene = create(), parts = meshes(scene);
     const triangles = parts.reduce((sum, mesh) => sum
@@ -193,21 +262,21 @@ describe("The Roots procedural zone", () => {
       const scene = create(ctx);
       const cut = scene.group.getObjectByName("roots-cut") as PaintedMesh;
       const bounds = new Box3().setFromObject(cut), size = bounds.getSize(new Vector3());
-      expect(size.x).toBeGreaterThan(2.5);
-      expect(size.z).toBeGreaterThan(2.5);
+      expect(size.x).toBeGreaterThan(2.5 * 1.6);
+      expect(size.z).toBeGreaterThan(2.5 * 1.6);
       expect(size.y).toBeLessThan(1e-5);
-      expect(bounds.min.y).toBeCloseTo(scene.interactable.position.y, 5);
-      const p = scene.interactable.position;
+      const p = new Vector3(side * 6.4, ctx.heightAt(side * 6.4, scene.interactable.position.z) + 1.28 * 1.6,
+        scene.interactable.position.z);
+      expect(bounds.min.y).toBeCloseTo(p.y, 5);
       const hits = new Raycaster(new Vector3(p.x + 0.2, p.y + 2, p.z), new Vector3(0, -1, 0))
         .intersectObject(scene.group);
       expect(hits[0]?.object.name).toBe("roots-cut");
       const wood = scene.group.getObjectByName("roots-wood") as PaintedMesh;
-      for (const [x, z] of [[-0.65, -3.5], [-0.7, 3.6], [1.5, 5], [4.6, 3.8],
-        [5.9, 0.6], [4.4, -3.7], [1, -5.1]]) {
-        // Aim just inside the tapered tip, away from its terminal triangle edge.
-        const from = new Vector3(p.x + side * x! * 0.99, 5, p.z + z! * 0.99);
+      for (const rings of rootSections(scene).slice(0, 7)) {
+        // Follow the actual S tangent into the narrow tip, away from the cap edge.
+        const from = ringCenter(rings.at(-2)!).lerp(ringCenter(rings.at(-1)!), 0.5).setY(5);
         expect(new Raycaster(from, new Vector3(0, -1, 0)).intersectObject(wood).length,
-          `visible root tip at ${side * x!}, ${z}`).toBeGreaterThan(0);
+          `visible root tip at ${from.x}, ${from.z}`).toBeGreaterThan(0);
       }
     }
   });
@@ -217,14 +286,19 @@ describe("The Roots procedural zone", () => {
       const scene = create(context({ seed }));
       const roots = rootSections(scene);
       expect(roots).toHaveLength(9);
-      const center = (ring: Vector3[]) => ring.reduce((sum, p) => sum.add(p), new Vector3()).divideScalar(ring.length);
       const curves = roots.map(rings => {
         rings.forEach(ring => expect(ring).toHaveLength(8));
-        return rings.map(center);
+        return rings.map(ringCenter);
       });
-      const stump = scene.interactable.position;
-      const main = curves.filter(curve => Math.hypot(curve[0]!.x - stump.x, curve[0]!.z - stump.z) < 1);
+      const stump = new Box3().setFromObject(scene.group.getObjectByName("roots-cut")!).getCenter(new Vector3());
+      const main = curves.filter(curve => Math.hypot(curve[0]!.x - stump.x, curve[0]!.z - stump.z) < 2.4);
       expect(main).toHaveLength(7);
+      for (const rings of roots.slice(0, 7)) {
+        const ring = rings[0]!;
+        const width = Math.max(...ring.flatMap(a => ring.map(b => Math.hypot(a.x - b.x, a.z - b.z))));
+        expect(width).toBeGreaterThanOrEqual(0.21);
+        expect(width).toBeLessThanOrEqual(0.251);
+      }
       for (const curve of main) {
         const length = curve.slice(1).reduce((sum, p, i) => sum + p.distanceTo(curve[i]!), 0);
         expect(length).toBeGreaterThanOrEqual(2);
@@ -247,7 +321,7 @@ describe("The Roots procedural zone", () => {
 
   it("keeps both ends of every root at least a metre from straight and curved corridors", () => {
     const curved = (x: number, z: number) => Math.abs(x) <= PATH_CLEARANCE
-      || (x > 3.05 && x < 3.25 && z > 3.4 && z < 3.8);
+      || (x > 4.75 && x < 4.95 && z > 3.4 && z < 3.8);
     for (const ctx of [context(), context({ underWater: x => x > 2.6 }), context({ onPath: curved })]) {
       const scene = create(ctx);
       for (const rings of rootSections(scene)) {
@@ -265,14 +339,15 @@ describe("The Roots procedural zone", () => {
     }
   });
 
-  it("leaves the end grain visible and reachable from the road on either verge", () => {
+  it("keeps the enlarged stump's road-facing interaction reachable on either verge", () => {
     for (const side of [1, -1]) {
       const scene = create(context({ underWater: x => side * x < -2.6 }));
       scene.group.updateMatrixWorld(true);
       const target = new Vector3().copy(scene.interactable.position);
       const eye = new Vector3(side * PATH_CLEARANCE, 1.65, target.z);
       const hits = new Raycaster(eye, target.clone().sub(eye).normalize()).intersectObject(scene.group);
-      expect(hits[0]?.object.name).toBe("roots-cut");
+      // The 1.6x stump is above eye level; E now targets its visible near side.
+      expect(hits[0]?.object.name).toBe("roots-wood");
       expect(eye.distanceTo(target)).toBeLessThan(2.5);
     }
   });

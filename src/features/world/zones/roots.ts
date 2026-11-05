@@ -16,8 +16,16 @@ type Part = {
   ends?: { point: Vector3; radius: number }[];
 };
 type Placement = { side: number; z: number };
-const STUMP_X = 4.7;
-const CUT_HEIGHT = 1.28;
+const STUMP_SCALE = 1.6;
+const STUMP_X = 6.4;
+const CUT_HEIGHT = 1.28 * STUMP_SCALE;
+const INTERACT_X = 4.7;
+const INTERACT_HEIGHT = 1.15;
+const BANK_SETBACK = 3;
+const STUMP_RADIUS = 1.65 * 1.045 * STUMP_SCALE;
+const MAX_GRADE = 0.4;
+// About 25 cm across at the broad end; the buried half is omitted.
+const ROOT_RADIUS = 0.125;
 const ROOT_STEPS = 12;
 
 /** Separate selected faces without overlays, so creases cannot flicker over the wood. */
@@ -49,12 +57,13 @@ function geometry(positions: number[], indices: number[]): BufferGeometry {
 function stump(phase: number): BufferGeometry {
   const positions: number[] = [], indices: number[] = [];
   const radii = [1.65, 1.55, 1.42, 1.32];
-  const heights = [0, 0.18, 1.16, CUT_HEIGHT];
+  const heights = [0, 0.18, 1.16, 1.28];
   for (let ring = 0; ring < 4; ring++) {
     for (let i = 0; i < 12; i++) {
       const a = i * Math.PI / 6;
       const r = radii[ring]! * (1 + Math.sin(a * 3 + phase) * 0.045);
-      positions.push(Math.cos(a) * r + ring * 0.018, heights[ring]!, Math.sin(a) * r);
+      positions.push((Math.cos(a) * r + ring * 0.018) * STUMP_SCALE,
+        heights[ring]! * STUMP_SCALE, Math.sin(a) * r * STUMP_SCALE);
       if (ring < 3) {
         const p = ring * 12 + i, q = ring * 12 + (i + 1) % 12;
         indices.push(p, p + 12, q, q, p + 12, q + 12);
@@ -71,7 +80,8 @@ function annulus(inner: number, outer: number, y: number, phase: number): Buffer
   for (let i = 0; i < sides; i++) {
     const a = i * Math.PI * 2 / sides;
     const wobble = 1 + Math.sin(a * 3 + phase) * 0.035;
-    for (const r of [inner, outer]) positions.push(Math.cos(a) * r * wobble + 0.054, y, Math.sin(a) * r * wobble);
+    for (const r of [inner, outer]) positions.push((Math.cos(a) * r * wobble + 0.054) * STUMP_SCALE,
+      y, Math.sin(a) * r * wobble * STUMP_SCALE);
     const p = i * 2, q = ((i + 1) % sides) * 2;
     if (inner === 0) indices.push(p, q + 1, p + 1);
     else indices.push(p, q, p + 1, p + 1, q, q + 1);
@@ -90,7 +100,7 @@ function root(points: Vector3[], radius: number, buried = true): BufferGeometry 
     const r = radius * (1 - t * 0.87);
     for (let i = 0; i < sides; i++) {
       const a = i * Math.PI * 2 / sides;
-      const y = buried ? Math.max(0, 0.1 * (1 - t * 0.75) + Math.sin(a) * r * 0.62)
+      const y = buried ? Math.max(0, radius * 0.2 * (1 - t * 0.75) + Math.sin(a) * r * 0.62)
         : p.y + (1 + Math.sin(a)) * r * 0.62;
       positions.push(p.x + normal.x * Math.cos(a) * r, y, p.z + normal.z * Math.cos(a) * r);
       if (step < steps) {
@@ -125,7 +135,8 @@ function makeParts(seed: number): Part[] {
   for (const r of [0.39, 0.76, 1.08]) {
     parts.push({ geometry: annulus(r, r + 0.022, CUT_HEIGHT + 0.006, phase), surface: "wood", level: true });
   }
-  // Seven unequal S curves. The road-facing tips turn along the verge, a metre clear.
+  // Begin beneath the enlarged rim so both S bends emerge beyond the stump.
+  // The road-facing tips turn along the verge, a metre clear.
   const ends = [
     [-0.65, -3.5], [-0.7, 3.6], [1.5, 5], [4.6, 3.8],
     [5.9, 0.6], [4.4, -3.7], [1, -5.1],
@@ -133,19 +144,19 @@ function makeParts(seed: number): Part[] {
   const arms: Vector3[][] = [];
   ends.forEach(([x, z], i) => {
     const end = new Vector3(x, 0, z);
-    const start = end.clone().normalize().multiplyScalar(0.75);
+    const start = end.clone().normalize().multiplyScalar(2.2);
     const normal = new Vector3(-end.z, 0, end.x).normalize();
-    const bend = (0.59 + Math.sin(phase + i * 1.7) * 0.07) * (i % 2 ? -1 : 1);
+    const bend = (0.95 + Math.sin(phase + i * 1.7) * 0.07) * (i % 2 ? -1 : 1);
     const points = [start,
       start.clone().lerp(end, 0.3).addScaledVector(normal, bend),
       start.clone().lerp(end, 0.7).addScaledVector(normal, -bend * 0.72), end];
     arms.push(points);
-    parts.push(...rootParts(points, 0.48 - i % 3 * 0.045));
+    parts.push(...rootParts(points, ROOT_RADIUS - i % 3 * 0.0075));
   });
   // Two cross-links turn the radial silhouette into a small connected network.
   for (const [a, b] of [[3, 4], [5, 6]] as const) {
     const from = arms[a]![3]!, to = arms[b]![3]!;
-    parts.push(...rootParts([from, from.clone().lerp(to, 0.5).add(new Vector3(0.23, 0, 0.18)), to], 0.23));
+    parts.push(...rootParts([from, from.clone().lerp(to, 0.5).add(new Vector3(0.23, 0, 0.18)), to], 0.09));
   }
   for (const index of [3, 4, 6]) {
     const p = arms[index]![3]!;
@@ -155,23 +166,46 @@ function makeParts(seed: number): Part[] {
   // Only two narrow blue-green vines; there is no emission or animated data effect.
   for (const index of [3, 6]) {
     const points = arms[index]!.map((p, i) => p.clone().add(new Vector3(0.04,
-      0.1 * (1 - i / 3 * 0.75) + (0.48 - index % 3 * 0.045) * (1 - i / 3 * 0.87) * 0.62 + 0.015, 0.03)));
+      (ROOT_RADIUS - index % 3 * 0.0075) * (0.2 * (1 - i / 3 * 0.75)
+        + (1 - i / 3 * 0.87) * 0.62) + 0.015, 0.03)));
     parts.push({ geometry: root(points, 0.025, false), surface: "vine" });
   }
   // Two tiny wildflowers at the near rim leave the end grain and its approach open.
   for (const [x, z] of [[-0.95, -0.45], [-0.88, -0.65]]) {
     parts.push({ geometry: new IcosahedronGeometry(0.075, 0).scale(1, 0.55, 1)
-      .translate(x!, CUT_HEIGHT + 0.06, z!), surface: "flower", level: true });
+      .translate(x! * STUMP_SCALE, CUT_HEIGHT + 0.06, z! * STUMP_SCALE), surface: "flower", level: true });
   }
   for (const [x, z] of [[0.8, 0.7], [-0.8, -0.6]]) {
     parts.push({ geometry: new IcosahedronGeometry(1, 0).scale(0.46, 0.1, 0.31)
-      .rotateY(phase).translate(x!, CUT_HEIGHT + 0.04, z!), surface: "moss", level: true });
+      .rotateY(phase).translate(x! * STUMP_SCALE, CUT_HEIGHT + 0.04, z! * STUMP_SCALE), surface: "moss", level: true });
   }
   return parts;
 }
 
+/** Sample the whole support and a three-metre buffer, rejecting banks in any direction.
+ * A half-metre guard covers gaps between the half-metre grid samples.
+ */
+function awayFromBank(x: number, z: number, radius: number, context: ZoneSceneContext): boolean {
+  if (context.underWater(x, z)) return false;
+  const reach = radius + BANK_SETBACK + 0.5;
+  for (let dx = -reach; dx <= reach; dx += 0.5) {
+    for (let dz = -reach; dz <= reach; dz += 0.5) {
+      if (Math.hypot(dx, dz) > reach) continue;
+      const px = x + dx, pz = z + dz;
+      const h = context.heightAt(px, pz);
+      const gradeX = (context.heightAt(px + 0.25, pz) - context.heightAt(px - 0.25, pz)) / 0.5;
+      const gradeZ = (context.heightAt(px, pz + 0.25) - context.heightAt(px, pz - 0.25)) / 0.5;
+      if (!Number.isFinite(h) || !Number.isFinite(gradeX) || !Number.isFinite(gradeZ)
+        || Math.hypot(gradeX, gradeZ) > MAX_GRADE || context.underWater(px, pz)) return false;
+    }
+  }
+  return true;
+}
+
 /** Check whole conservative footprints, including the interiors of collider boxes. */
 function fits(parts: Part[], placement: Placement, context: ZoneSceneContext): boolean {
+  if (!awayFromBank(placement.side * STUMP_X, placement.z, STUMP_RADIUS, context)
+    || !awayFromBank(placement.side * INTERACT_X, placement.z, 0, context)) return false;
   for (const { geometry, ends } of parts) {
     for (const { point, radius } of ends ?? []) {
       const x = placement.side * (STUMP_X + point.x), z = placement.z + point.z;
@@ -198,7 +232,7 @@ function fits(parts: Part[], placement: Placement, context: ZoneSceneContext): b
         const x = minX + (maxX - minX) * ix / nx, z = minZ + (maxZ - minZ) * iz / nz;
         if (Math.abs(x) <= PATH_CLEARANCE || context.onPath(x, z) || context.underWater(x, z)) return false;
         const h = context.heightAt(x, z);
-        if (!Number.isFinite(h) || Math.hypot(x, Math.abs(h) + 2, z) > ZONE_BUDGET.radius) return false;
+        if (!Number.isFinite(h) || Math.hypot(x, Math.abs(h) + CUT_HEIGHT + 0.15, z) > ZONE_BUDGET.radius) return false;
       }
     }
   }
@@ -206,9 +240,20 @@ function fits(parts: Part[], placement: Placement, context: ZoneSceneContext): b
 }
 
 export const createRootsScene: ZoneSceneFactory = context => {
+  // Neighbouring candidates overlap; reuse pure terrain samples during this build only.
+  const heights = new Map<string, number>();
+  const sampleHeight = context.heightAt.bind(context);
+  context = { ...context, heightAt(x, z) {
+    const key = `${x},${z}`;
+    let h = heights.get(key);
+    if (h === undefined) { h = sampleHeight(x, z); heights.set(key, h); }
+    return h;
+  } };
   const parts = makeParts(context.seed);
   let placement: Placement | undefined;
-  for (const z of [0, -5, 5, -10, 10, -15, 15]) {
+  // The approach end offers a broad shoulder on the authored terrain. Prefer it
+  // after the origin so repeated world mounts do not exhaust the bank-side sites.
+  for (const z of [0, -20, -5, 5, -10, 10, -15, 15, 20]) {
     for (const side of [1, -1]) {
       const candidate = { side, z };
       if (fits(parts, candidate, context)) { placement = candidate; break; }
@@ -217,7 +262,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
   }
   if (!placement) {
     parts.forEach(part => part.geometry.dispose());
-    throw new RangeError("The Roots needs a dry, clear verge within the zone radius.");
+    throw new RangeError("The Roots needs a dry, gentle verge three metres clear of the bank.");
   }
   const { side, z: offsetZ } = placement;
   const ground = context.heightAt(side * STUMP_X, offsetZ);
@@ -230,7 +275,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
       const x = side * (STUMP_X + positions.getX(i)), z = positions.getZ(i) + offsetZ;
       const y = positions.getY(i), terrain = context.heightAt(x, z);
       // The foot follows the hill, while the upper bevel and end grain stay level.
-      const base = part.level ? terrain + (ground - terrain) * Math.min(1, y / 1.16) : terrain;
+      const base = part.level ? terrain + (ground - terrain) * Math.min(1, y / (1.16 * STUMP_SCALE)) : terrain;
       positions.setXYZ(i, x, y + base, z);
       const wash = 0.955 + Math.sin(x * 13 + z * 9 + y * 5) * 0.025;
       colors.push(wash, wash, wash);
@@ -283,7 +328,8 @@ export const createRootsScene: ZoneSceneFactory = context => {
   return {
     zoneId: "roots", group, colliders,
     interactable: {
-      position: new Vector3(side * STUMP_X, ground + CUT_HEIGHT, offsetZ),
+      position: new Vector3(side * INTERACT_X,
+        context.heightAt(side * INTERACT_X, offsetZ) + INTERACT_HEIGHT, offsetZ),
       label: { en: "The root stump", vi: "Gốc rễ" },
     },
     // A still tableau: the thick roots and their tiny vines never move.
