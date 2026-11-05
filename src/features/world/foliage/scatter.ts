@@ -1,8 +1,9 @@
 import { PATH_BRIDGES } from "../layout/path";
 import { ZONES, type Biome } from "../layout/zones";
 import { PATH_WIDTH, TERRAIN_SEED, worldHeight } from "../terrain/height";
-import { nearestPath, nearestRiver } from "../terrain/samples";
+import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
 import { TILE_SIZE, tileKey, type TerrainTile, type TileAddress } from "../terrain/tiles";
+import { isDeepCrown } from "./instances";
 
 export interface FoliageTree {
   readonly x: number;
@@ -36,10 +37,24 @@ function randomFor(key: string): () => number {
   };
 }
 
+function biomeAtProgress(t: number): Biome {
+  return ZONES.reduce((best, zone) => Math.abs(zone.t - t) < Math.abs(best.t - t) ? zone : best).biome;
+}
+
 /** Nearest zone in walking distance; no separate biome map to drift from layout. */
 export function foliageBiomeAt(x: number, z: number): Biome {
-  const { t } = nearestPath(x, z);
-  return ZONES.reduce((best, zone) => Math.abs(zone.t - t) < Math.abs(best.t - t) ? zone : best).biome;
+  return biomeAtProgress(nearestPath(x, z).t);
+}
+
+/** Signed metres along the road normal facing away from the sea (-Z).
+ * Only the layout determines the side; terrain relief can change independently.
+ */
+function coastInlandDistance(x: number, z: number, path: ReturnType<typeof nearestPath>): number {
+  const index = Math.min(PATH_SAMPLES.length - 2, Math.floor(path.t * (PATH_SAMPLES.length - 1)));
+  const a = PATH_SAMPLES[index]!, b = PATH_SAMPLES[index + 1]!;
+  let nx = a.z - b.z, nz = b.x - a.x;
+  if (nz < 0) { nx = -nx; nz = -nz; }
+  return ((x - path.x) * nx + (z - path.z) * nz) / Math.hypot(nx, nz);
 }
 
 /** Layout anchors lie on the path: -lookDirection points back along the approach. */
@@ -105,14 +120,26 @@ function candidates(ix: number, iz: number): Candidate[] {
     const scaleRoll = random();
     const kindRoll = random();
     const lean = (random() - 0.5) * 0.12;
-    const biome = foliageBiomeAt(x, z);
+    const path = nearestPath(x, z);
+    const biome = biomeAtProgress(path.t);
     const clump = clumpDensity(x, z, clumps);
-    const density = biome === "forest-dawn" ? clump : biome === "hill" ? clump * 0.2 : clump * 0.25;
+    const distance = path.distance;
+    const inland = biome === "coast-dusk" ? coastInlandDistance(x, z, path) : 0;
+    const canopy = biome === "coast-dusk" && inland > 0 && distance >= 22 && distance <= 160;
+    // Spend the existing candidate pool on the visible coastal slope. Cull hidden
+    // forest interiors, leaving the ordinary forest beside the road unchanged.
+    const forestWeight = distance > 40 ? 0.48 : distance > 22 ? 0.85 : 1;
+    // Colour comes from the renderer's position hash: favour its deep buckets
+    // without another material, mesh, colour override or extra random draws.
+    const density = biome === "forest-dawn" ? clump * forestWeight : biome === "hill" ? clump * 0.2
+      : canopy ? (isDeepCrown(x, z) ? 0.98 : 0.12) : inland > 160 ? clump * 0.01 : clump * 0.25;
     if (densityRoll >= density || isFoliageExcluded(x, z)) continue;
     if (biome === "forest-dawn" && clearings.some(c => Math.hypot(x - c.x, z - c.z) < c.radius)) continue;
-    const shrub = biome === "coast-dusk" && kindRoll >= 0.02;
-    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : 0.8 + scaleRoll * 0.5,
-      kind: shrub ? "broadleaf" : kindRoll < (biome === "forest-dawn" ? 0.88 : 0.6) ? "pine" : "broadleaf", lean,
+    const shrub = biome === "coast-dusk" && !canopy;
+    result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 1.1 + scaleRoll * 0.2 : 0.8 + scaleRoll * 0.5,
+      // Broad crowns overlap in projection up the slope and reuse the coastal
+      // shrub species, so the denser coast does not activate extra draw calls.
+      kind: shrub || canopy ? "broadleaf" : kindRoll < (biome === "forest-dawn" ? 0.88 : 0.6) ? "pine" : "broadleaf", lean,
       ...(shrub ? { growth: "shrub" as const } : {}),
     });
   }

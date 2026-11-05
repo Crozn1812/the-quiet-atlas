@@ -4,13 +4,27 @@ import { PALETTE } from "../../../src/features/world/art/palette";
 import { createFoliage, foliageVariantAt, isDeepCrown } from "../../../src/features/world/foliage/instances";
 import { foliageBiomeAt, foliageClumpAt, isFoliageExcluded, isZoneApproach, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { pathPointAt } from "../../../src/features/world/layout/path";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { PRESETS } from "../../../src/features/world/terrain";
 import { TILE_SIZE, tilesAlongPath } from "../../../src/features/world/terrain/tiles";
+import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { placeZoneScenes } from "../../../src/features/world/zones";
+import { worldHeight } from "../../../src/features/world/terrain/height";
 
 const tiles = tilesAlongPath();
 const forest = tiles.flatMap(tile => scatterTile(tile));
+
+// Measure against the curve's finite-difference normal, independently of scatter's
+// sampled-segment normal. Pick the normal opposing the world-space sea (-Z).
+function coastalPosition(tree: { x: number; z: number }) {
+  const path = nearestPath(tree.x, tree.z);
+  const before = pathPointAt(Math.max(0, path.t - 0.00001));
+  const after = pathPointAt(Math.min(1, path.t + 0.00001));
+  const nx = before.z - after.z, nz = after.x - before.x;
+  const inland = ((tree.x - path.x) * nx + (tree.z - path.z) * nz) * (nz < 0 ? -1 : 1) > 0;
+  return { ...path, inland };
+}
 
 it("concentrates forest trees in continuous clumps without increasing the 180-candidate tile budget", () => {
   const area = [0, 0], count = [0, 0];
@@ -63,8 +77,11 @@ it("clears the full 60-degree incoming cone through 15 m beyond each zone edge",
 it("uses existing broadleaf instances for sparse coastal shrubs below 1.6 m", () => {
   const shrubs = forest.filter(tree => tree.growth === "shrub");
   expect(shrubs.length).toBeGreaterThan(10);
-  const coast = forest.filter(tree => foliageBiomeAt(tree.x, tree.z) === "coast-dusk");
-  expect(shrubs.length / coast.length).toBeGreaterThan(0.9);
+  // B2-153 adds mature inland forest; the low-shrub ratio applies seaward.
+  const coast = forest.filter(tree => foliageBiomeAt(tree.x, tree.z) === "coast-dusk" && !coastalPosition(tree).inland);
+  const seaShrubs = coast.filter(tree => tree.growth === "shrub");
+  expect(seaShrubs.length).toBeGreaterThan(0);
+  expect(seaShrubs.length / coast.length).toBe(1);
   const foliage = createFoliage(shrubs.length);
   try {
     foliage.setTiles(shrubs);
@@ -83,6 +100,82 @@ it("uses existing broadleaf instances for sparse coastal shrubs below 1.6 m", ()
     }
     expect(foliage.group.children).toHaveLength(10);
   } finally { foliage.dispose(); }
+});
+
+it("layers a denser, mostly forestDeep inland canopy while keeping the sea view open within the old instance budget", () => {
+  // Include the complete 160 m band, its tile seams and the hidden interior
+  // beyond it. These are the unmodified seed's populations, not raised caps.
+  const wideTiles = tilesAlongPath(240);
+  const wideForest = wideTiles.flatMap(tile => scatterTile(tile));
+  expect(wideForest.length).toBeLessThanOrEqual(2841);
+  for (const tile of wideTiles) expect(scatterTile(tile).length).toBeLessThanOrEqual(180);
+  const coast = wideForest.filter(tree => foliageBiomeAt(tree.x, tree.z) === "coast-dusk");
+  const stretch = coast.filter(tree => {
+    const path = coastalPosition(tree);
+    return path.t >= 0.85 && path.t <= 0.97;
+  });
+  const tall = stretch.filter(tree => tree.growth !== "shrub");
+  const inland = tall.filter(tree => coastalPosition(tree).inland && nearestPath(tree.x, tree.z).distance >= 22
+    && nearestPath(tree.x, tree.z).distance <= 160);
+  const seaward = tall.filter(tree => !coastalPosition(tree).inland && nearestPath(tree.x, tree.z).distance >= 22
+    && nearestPath(tree.x, tree.z).distance <= 160);
+  expect(inland.length).toBeGreaterThan(100);
+  expect(inland.length).toBeGreaterThanOrEqual(seaward.length * 4);
+  expect(stretch.filter(tree => !coastalPosition(tree).inland && nearestPath(tree.x, tree.z).distance <= 40
+    && tree.growth !== "shrub")).toHaveLength(0);
+  // The whole coastal sea side remains open, including beyond the 40 m strip.
+  expect(coast.filter(tree => !coastalPosition(tree).inland && tree.growth !== "shrub")).toHaveLength(0);
+  for (const [near, far] of [[22, 60], [60, 100], [100, 160]] as const) {
+    expect(inland.filter(tree => {
+      const distance = nearestPath(tree.x, tree.z).distance;
+      return distance >= near && distance < far;
+    }).length).toBeGreaterThan(10);
+  }
+  for (const tree of coast.filter(tree => tree.growth !== "shrub")) {
+    expect(tree.kind).toBe("broadleaf");
+    expect(tree.y).toBe(worldHeight(tree.x, tree.z));
+    expect(nearestPath(tree.x, tree.z).distance).toBeGreaterThanOrEqual(22);
+    expect(nearestPath(tree.x, tree.z).distance).toBeLessThanOrEqual(160);
+  }
+
+  const area = { coast: 0, forest: 0 };
+  for (const tile of wideTiles) for (let x = 4; x < TILE_SIZE; x += 8) for (let z = 4; z < TILE_SIZE; z += 8) {
+    const px = tile.ix * TILE_SIZE + x, pz = tile.iz * TILE_SIZE + z;
+    const path = coastalPosition({ x: px, z: pz });
+    if (path.distance < 22 || path.distance > 160 || isFoliageExcluded(px, pz)) continue;
+    const biome = foliageBiomeAt(px, pz);
+    if (biome === "forest-dawn") area.forest++;
+    if (biome === "coast-dusk" && path.inland && path.t >= 0.85 && path.t <= 0.97) area.coast++;
+  }
+  const ordinary = wideForest.filter(tree => {
+    const path = nearestPath(tree.x, tree.z);
+    return foliageBiomeAt(tree.x, tree.z) === "forest-dawn" && path.distance >= 22 && path.distance <= 160;
+  });
+  expect(area.coast).toBeGreaterThan(0);
+  expect(area.forest).toBeGreaterThan(0);
+  expect(inland.length / area.coast).toBeGreaterThan(ordinary.length / area.forest * 1.5);
+
+  // Verify rendered instance colours as well as the hash, at every quality.
+  const foliage = createFoliage(inland.length);
+  const actual = new Color(), deep = new Color(PALETTE.forestDeep);
+  try {
+    foliage.setTiles(inland);
+    for (const quality of ["Low", "Balanced", "High"] as const) {
+      foliage.setQuality(quality);
+      let deepCount = 0, total = 0;
+      for (const { crowns } of foliage.species.broadleaf.variants) for (let i = 0; i < crowns.count; i++) {
+        crowns.getColorAt(i, actual);
+        actual.multiply(crowns.material.color);
+        if (Math.hypot(actual.r - deep.r, actual.g - deep.g, actual.b - deep.b) < 1e-5) deepCount++;
+        total++;
+      }
+      expect(total).toBeGreaterThan(0);
+      expect(deepCount / total).toBeGreaterThanOrEqual(0.6);
+      expect(Object.values(foliage.species).flatMap(species => species.variants)
+        .flatMap(variant => [variant.trunks, variant.crowns]).filter(mesh => mesh.count > 0).length).toBeLessThanOrEqual(4);
+    }
+  } finally { foliage.dispose(); }
+  console.info(`B2-153: inland=${inland.length}, seaward=${seaward.length}, deep=${inland.filter(tree => isDeepCrown(tree.x, tree.z)).length}; instances=${wideForest.length}/2841`);
 });
 
 it("assigns about 30% forestDeep crowns, preserving per-position colour through LOD, reorder and compaction", () => {

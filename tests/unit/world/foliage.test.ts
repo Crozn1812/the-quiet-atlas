@@ -66,7 +66,7 @@ describe("tile foliage", () => {
     assertSpacing(block);
   });
 
-  it("keeps hills sparse and mature coast trees at most 5% of forest density; reports complete route count", () => {
+  it("keeps hills sparse and the seaward coast free of mature trees; reports complete route count", () => {
     const stats = { "forest-dawn": { area: 0, count: 0 }, hill: { area: 0, count: 0 }, "coast-dusk": { area: 0, count: 0 } };
     let total = 0;
     for (const tile of route) {
@@ -75,13 +75,27 @@ describe("tile foliage", () => {
       // Count only tiles wholly in one biome for an equal-area density comparison.
       const biomes = [0, 0.5, 1].flatMap(x => [0, 0.5, 1].map(z => foliageBiomeAt((tile.ix + x) * TILE_SIZE, (tile.iz + z) * TILE_SIZE)));
       const biome = biomes[0]!;
-      // B2-149 adds low coastal shrubs in the same pool. Keep the original mature-tree density limit.
-      if (biomes.every(value => value === biome)) { stats[biome].area++; stats[biome].count += trees.filter(tree => tree.growth !== "shrub").length; }
+      // B2-153 deliberately replaces the inland coast's old 5% limit with a
+      // dense canopy. The sea view retains the sparse-coast contract.
+      if (biomes.every(value => value === biome)) {
+        stats[biome].area++;
+        stats[biome].count += trees.filter(tree => {
+          if (tree.growth === "shrub") return false;
+          if (biome !== "coast-dusk") return true;
+          const path = nearestPath(tree.x, tree.z);
+          const before = pathPointAt(Math.max(0, path.t - 0.00001));
+          const after = pathPointAt(Math.min(1, path.t + 0.00001));
+          const nx = before.z - after.z, nz = after.x - before.x;
+          return ((tree.x - path.x) * nx + (tree.z - path.z) * nz) * (nz < 0 ? -1 : 1) < 0;
+        }).length;
+      }
     }
     for (const stat of Object.values(stats)) expect(stat.area).toBeGreaterThan(0);
     const forestDensity = stats["forest-dawn"].count / stats["forest-dawn"].area;
     expect(stats.hill.count / stats.hill.area).toBeLessThan(forestDensity * 0.6);
-    expect(stats["coast-dusk"].count / stats["coast-dusk"].area).toBeLessThanOrEqual(forestDensity * 0.05);
+    expect(stats["coast-dusk"].count).toBe(0);
+    // Original deterministic route population before the B2-153 reallocation.
+    expect(total).toBeLessThanOrEqual(577);
     console.info(`B2-018 route: ${total} trees across ${route.length} tiles; density (trees/tile): forest=${forestDensity.toFixed(2)}, hill=${(stats.hill.count / stats.hill.area).toFixed(2)}, coast=${(stats["coast-dusk"].count / stats["coast-dusk"].area).toFixed(2)}`);
   });
 });
