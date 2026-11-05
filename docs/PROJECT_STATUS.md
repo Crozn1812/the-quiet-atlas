@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-05 (đợt 16: style frame A/B/C). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
+> Cập nhật lần cuối: 2026-11-05 (đợt 17: world hướng C, cinematic, Journal). Spec: `docs/spec/The_Quiet_Atlas_Master_Prompt_V6.md`.
 
 ## Milestone hiện tại
 
@@ -313,12 +313,47 @@ Kiểm trên main `2d75e5f` (máy dev, Edge): lint, typecheck, unit (tất cả 
 
 Chưa push.
 
+### Đợt 17 (2026-11-05): world theo hướng C, cinematic, Atlas Journal
+
+- Quyết định của Duy:
+  - **D-22:** Duy chốt sơ khởi là ổn; Lead chọn hướng C theo đề xuất Art Director.
+  - **D-23:** turnaround nhân vật và xe giữ hết.
+- **B2-038** (Lead, `4964fba`): world render theo hướng C.
+  - Preset chuyển vào `src/features/world/art/direction.ts`.
+  - Fog cỡ thế giới 40/260 m (trước dùng số thử 15/65 m).
+  - Sương, viền và màu trời theo C.
+- **B2-043b** (Codex + Lead, `35e4283`): cinematic 22 s mỗi lần Enter World.
+  - Có Skip, Esc cũng bỏ qua được.
+  - Reduced motion: fade giấy 0,4 s.
+  - Lead sửa: sương nền theo C; Esc không bị menu bắt; fixture e2e bỏ intro cho các spec gameplay và T08/T09.
+- **B2-043a** (Codex + Lead, `e96d143`): Atlas Journal trong world.
+  - Phím J hoặc menu; mở sổ thì world dừng (pause reason `journal`).
+  - Sổ trống mỗi phiên, không lưu tiến trình.
+- **B2-039a** (Codex + Lead, `0c2c184`): 3 dáng thông + 2 dáng lá rộng. Lead nối hiệu ứng làm mờ tán theo từng biến thể.
+- **Lead review cinematic** (`9891cb9`): ảnh chụp cho thấy 3 lỗi mà unit test không bắt được.
+  - Cảnh trên cao trắng xóa vì fog. Sửa: fog kéo dài khi bay cao.
+  - Mép ô đất hình chữ nhật lộ ra. Sửa: tải trước 600 m và mặt nạ hành lang giấy.
+  - Cận suối nhìn vào đầu nguồn bị cắt. Sửa: nhìn xuôi dòng.
+- Showcase: `docs/showcase/17-world-c/checklist.md`.
+
+**Gate A đầy đủ trên main `9891cb9`** (máy dev RTX 3060, Edge headless):
+
+| Kiểm tra | Kết quả |
+|---|---|
+| lint, typecheck, unit (505), build:artifacts, check:cv/bundle/leaks/licenses/assets | **PASS** |
+| e2e (thêm world-intro, world-journal) | **147/147 PASS** |
+| test:perf | **PASS**: 3D tới playable 1,73 MB / 8 MB; thời gian tới playable tệ nhất 2,45 s / 10 s; Welcome JS 137,1 / 150 KB |
+| Lighthouse | **PASS** |
+| T08/T09 | **NOT RUN** |
+
+Chưa push.
+
 ### Ticket tiếp theo
 
-1. Duy chọn hướng A/B/C, rồi B2-038: áp hướng đó vào world (world vẫn dùng fog 15/65 m) và B2-039: cây vẽ tay.
-2. B2-034: đo T08 trên laptop Iris Xe, không chạy tác vụ nào khác cùng lúc.
-3. Nối Journal (J), teleport, cinematic, xe vào world (`index.ts`, làm tuần tự, một worker).
-4. Theo kết quả Duy chấm turnaround: sửa nhân vật/xe, rồi rig/animation.
+1. B2-044: nguồn suối (hiện bị cắt thẳng ngay cạnh spawn).
+2. B2-045: rig và animation nhân vật đã duyệt, thay khối cam.
+3. B2-041 / B2-042: nối dịch chuyển và xe vào world (`index.ts`, tuần tự).
+4. B2-034: đo T08 trên laptop Iris Xe, không chạy tác vụ nào khác cùng lúc.
 
 ### Ticket tiếp theo (cũ, trước đợt 14 — giữ để tra)
 

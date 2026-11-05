@@ -46,16 +46,25 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 | B2-037 | Bờ biển hữu cơ: đường bờ cong, bãi cát, cửa suối tan vào biển (Lead giữ lại màu thung lũng, mở lòng suối qua nền khô) | merged `7c370e8`, `4bdc00c` |
 | B2-033 | Showcase: 6 ảnh + 6 video 18 s + checklist (`docs/showcase/16-styleframes/`) | xong (video chỉ local) |
 
+## Đợt 17 (2026-11-05)
+
+| ID | Việc | Trạng thái |
+|---|---|---|
+| B2-038 | World theo hướng C (Lead): preset vào `art/direction.ts`, fog 40/260 m, sương/viền/trời C | merged `4964fba` |
+| B2-043b | Cinematic mở đầu nối vào world + Skip (Codex; Lead sửa sương nền, Esc qua menu, e2e fixture) | merged `35e4283` |
+| B2-043a | Atlas Journal trong world, phím J (Codex; Lead thêm pause reason `journal`, chặn J khi intro, e2e) | merged `e96d143` |
+| B2-039a | Dáng cây vẽ tay: 3 thông + 2 lá rộng (Codex; Lead nối fade theo biến thể) | merged `0c2c184` |
+| — | Lead review cinematic: fog kéo dài khi bay cao, tải trước 600 m, mặt nạ hành lang giấy, cận suối nhìn xuôi dòng | merged `9891cb9` |
+
 ## Tiếp theo (todo)
 
 | ID | Việc | Phụ thuộc |
 |---|---|---|
 | B2-034 | T08 trên laptop Iris Xe cho 3 hướng (chạy một mình) | B2-030 |
-| B2-043 | Nối Journal (J), cinematic vào world | B2-040, B2-060 |
+| B2-044 | Nguồn suối: dải nước thu hẹp và tan vào đất ở t=0 (hiện cắt thẳng cạnh spawn) | — |
+| B2-045 | Rig + animation nhân vật (mô hình đã duyệt D-23) và thay khối cam trong world | D-23 |
 | B2-041 | Nối teleport vào world (E tại bảng, sương) | B2-013, 016 |
 | B2-042 | Xe GD110 graybox nối collider + phím E/C | B2-015, 016 |
-| B2-038 | Áp **hướng C** (chốt sơ khởi, D-22) vào world: fog/sương cỡ thế giới (world vẫn dùng fog 15/65 m), màu tán/đất/trời theo preset C | sẵn sàng |
-| B2-039 | Asset cây vẽ tay (Blender, 2–3 dáng thông + 2 cây lá rộng, ≤ 300 tam giác) thay khối hình học, theo hướng C | sẵn sàng |
 
 ## Sau khi Duy chọn hướng
 
