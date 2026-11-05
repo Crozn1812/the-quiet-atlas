@@ -1,12 +1,14 @@
 import {
   ACESFilmicToneMapping, BufferGeometry, Color, DepthTexture, Fog, HalfFloatType,
-  Matrix4, Mesh, OrthographicCamera, PerspectiveCamera, Scene, ShaderMaterial,
+  Matrix3, Matrix4, Mesh, OrthographicCamera, PerspectiveCamera, Scene, ShaderChunk, ShaderMaterial,
   SRGBColorSpace, Vector2, Vector3, Vector4, WebGLRenderTarget, type WebGLRenderer,
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
-import { fogAt, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
+import { fogAt as directedFogAt, STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { createGradedPaperPass } from "../../../src/features/world/scene/paper";
+import { directGrade } from "../../../src/features/world/scene/compose";
+import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { applyCoastAtmosphere, lightingAt } from "../../../src/features/world/sky/grade";
 import {
   CORRIDOR_POINTS, createPaperPass, DEFAULT_MIST_BANDS, DEFAULT_MIST_HEIGHT, DEFAULT_MIST_STRENGTH,
@@ -60,10 +62,157 @@ function shaderDepthJump(shader: string) {
 
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); });
 
-describe("position-graded coast clarity", () => {
-  it.each(["Balanced", "High"] as const)("%s preserves at least 75%% contrast at 30 m, with <=25%% of forest mist/fog", quality => {
+// Resolve the material's feature switches before checking which reads/operations
+// execute. Merely finding grain text in an inactive #ifdef would miss this contract.
+function activeShader(material: ShaderMaterial) {
+  const enabled = [true];
+  return material.fragmentShader.split("\n").filter(line => {
+    const directive = line.trim().match(/^#(ifdef|ifndef|endif)\s*(\w*)/);
+    if (directive?.[1] === "ifdef" || directive?.[1] === "ifndef") {
+      const defined = Object.hasOwn(material.defines, directive[2]!);
+      enabled.push(enabled.at(-1)! && (directive[1] === "ifdef" ? defined : !defined));
+      return false;
+    }
+    if (directive?.[1] === "endif") { enabled.pop(); return false; }
+    return enabled.at(-1);
+  }).join("\n");
+}
+
+function aces(color: Color, exposure: number): Color {
+  // Execute the installed Three shader's coefficients and scalar fit on the CPU.
+  const source = ShaderChunk.tonemapping_pars_fragment;
+  const matrix = (name: string) => {
+    const body = source.match(new RegExp(`const mat3 ${name} = mat3\\(([\\s\\S]*?)\\);`))![1]!;
+    const values = [...body.matchAll(/vec3\(\s*([^)]*)\)/g)].flatMap(match => match[1]!.split(",").map(Number));
+    return new Matrix3().fromArray(values);
+  };
+  const body = source.match(/vec3 RRTAndODTFit\( vec3 v \) \{([\s\S]*?)\}/)![1]!;
+  const fit = new Function("v", body.replaceAll("vec3", "const")) as (v: number) => number;
+  const value = new Vector3(...color.toArray()).multiplyScalar(exposure / 0.6).applyMatrix3(matrix("ACESInputMat"));
+  value.set(...value.toArray().map(fit) as [number, number, number]).applyMatrix3(matrix("ACESOutputMat"));
+  return new Color().setRGB(...value.toArray().map(channel => Math.max(0, Math.min(1, channel))) as [number, number, number]);
+}
+
+describe("R clear post", () => {
+  it.each(["Balanced", "High"] as const)("%s retains >=85%% green saturation at 40 m, including the screen rim", quality => {
     const { renderer, gpu } = mockRenderer();
     const paper = createGradedPaperPass(gpu, quality);
+    const smoothstep = (a: number, b: number, x: number) => {
+      const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return u * u * (3 - 2 * u);
+    };
+    const saturation = (color: Color) => {
+      const rgb = color.getRGB({ r: 0, g: 0, b: 0 }, SRGBColorSpace);
+      return (Math.max(rgb.r, rgb.g, rgb.b) - Math.min(rgb.r, rgb.g, rgb.b)) / Math.max(rgb.r, rgb.g, rgb.b);
+    };
+    try {
+      for (const t of [0.3, 0.9]) {
+        paper.setFog(directedFogAt(t));
+        paper.setGrade(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)));
+        paper.render(new Scene(), new PerspectiveCamera());
+        const { material } = screenMaterial(renderer);
+        const u = material.uniforms;
+        const source = activeShader(material);
+        expect(source).not.toMatch(/float grain\s*=|float vignette\s*=|pooling \* paperRim/);
+        expect(u.inkEnabled!.value).toBe(false);
+        expect(u.bleedStrength!.value).toBeLessThanOrEqual(0.04);
+        const bands = (u.mistBands!.value as Vector3).toArray().map(d => smoothstep(d - 1.2, d + 1.2, 40));
+        const expression = source.match(/float layeredMist = ([\s\S]*?);/)![1]!;
+        const layered = new Function("bands", "lowMist", `return ${expression}`)({ x: bands[0], y: bands[1], z: bands[2] }, 1) as number;
+        const original = new Color(PALETTE.grass);
+        // Include ACES at the renderer exposure, maximum ground mist and edge
+        // pooling toward a black neighbour. Grain/vignette/rim are compiled out.
+        const after = aces(original, renderer.toneMappingExposure).multiplyScalar(1 - u.bleedStrength!.value * 0.12)
+          .lerp(u.mistColor!.value, layered * u.mistStrength!.value)
+          .lerp(u.fogColor!.value, smoothstep(u.fogNear!.value, u.fogFar!.value, 40));
+        expect(saturation(after) / saturation(original)).toBeGreaterThanOrEqual(0.85);
+        expect(layered * u.mistStrength!.value).toBeLessThanOrEqual(0.004);
+        expect(smoothstep(u.fogNear!.value, u.fogFar!.value, 119.99)).toBe(0);
+      }
+    } finally { paper.dispose(); }
+  });
+
+  it.each([0.3, 0.9])("directs fog at path t=%s toward blue air rather than paper", t => {
+    const tod = timeOfDayAt(t);
+    const fog = directGrade(lightingAt(tod), tod).fogColor;
+    const distance = (color: Color) => new Vector3(...fog.toArray()).distanceTo(new Vector3(...color.toArray()));
+    const blueAir = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.3);
+    expect(distance(blueAir)).toBeLessThan(distance(new Color(PALETTE.paper)));
+    expect(distance(new Color(PALETTE.skyLow))).toBeLessThan(distance(new Color(PALETTE.paper)));
+    expect(fog.b).toBeGreaterThan(fog.r);
+  });
+
+  it("keeps grain off across quality changes, reads no paper texture, and retains one post triangle", () => {
+    const { renderer, gpu } = mockRenderer();
+    const paper = createGradedPaperPass(gpu, "Balanced");
+    try {
+      for (const quality of ["High", "Balanced", "Low", "High"] as const) {
+        paper.setQuality(quality);
+        renderer.render.mockClear();
+        paper.render(new Scene(), new PerspectiveCamera());
+        expect(renderer.render).toHaveBeenCalledTimes(quality === "Low" ? 1 : 2);
+        if (quality === "Low") continue;
+        const { material, triangle } = screenMaterial(renderer);
+        const source = activeShader(material);
+        expect(source.match(/uniform sampler2D \w+;/g)).toEqual(["uniform sampler2D tColor;", "uniform sampler2D tDepth;"]);
+        expect(source).not.toContain("float grain =");
+        expect(source).not.toContain("float vignette =");
+        expect(triangle.geometry.getAttribute("position").count).toBe(3);
+        expect(material.uniforms.inkEnabled!.value).toBe(false);
+      }
+    } finally { paper.dispose(); }
+  });
+
+  it("keeps actual coast/forest fog blue in both native Low and post rendering", () => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createGradedPaperPass(gpu, "Balanced");
+    const scene = new Scene();
+    const native = new Fog(PALETTE.paper, 120, 700);
+    scene.fog = native;
+    const expected = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.3);
+    try {
+      for (const quality of ["Balanced", "High", "Low", "High"] as const) {
+        pass.setQuality(quality);
+        for (const t of [0.3, 0.9, 0.3]) {
+          const distances = directedFogAt(t);
+          const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t);
+          native.color.copy(grade.fogColor); // Composer sets this before paper.render.
+          Object.assign(native, distances);
+          pass.setFog(distances);
+          pass.setGrade(grade);
+          pass.render(scene, new PerspectiveCamera());
+          expect(scene.fog).toBe(native);
+          expect(native.color).toEqual(expected);
+          expect(native.near).toBe(distances.near);
+          expect(native.far).toBe(distances.far);
+          if (quality !== "Low") {
+            const { material } = screenMaterial(renderer);
+            expect(material.uniforms.fogColor!.value).toEqual(expected);
+            expect(material.uniforms.mistColor!.value).toEqual(expected);
+          }
+        }
+      }
+    } finally { pass.dispose(); }
+  });
+
+  it.each(["A", "B", "C"] as const)("preserves the %s paper/grain profile", id => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createGradedPaperPass(gpu, "High", STYLE_PRESETS[id]);
+    try {
+      pass.render(new Scene(), new PerspectiveCamera());
+      const { material } = screenMaterial(renderer);
+      expect(activeShader(material)).toContain("float grain =");
+      expect(activeShader(material)).toContain("float vignette =");
+      expect(material.uniforms.inkEnabled!.value).toBe(STYLE_PRESETS[id].background.edges.ink);
+    } finally { pass.dispose(); }
+  });
+});
+
+describe("position-graded coast clarity", () => {
+  const fogAt = (t: number) => directedFogAt(t, STYLE_PRESETS.C);
+  it.each(["Balanced", "High"] as const)("%s preserves at least 75%% contrast at 30 m, with <=25%% of forest mist/fog", quality => {
+    const { renderer, gpu } = mockRenderer();
+    const paper = createGradedPaperPass(gpu, quality, STYLE_PRESETS.C);
     const smoothstep = (a: number, b: number, x: number) => {
       const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
       return u * u * (3 - 2 * u);
@@ -123,9 +272,9 @@ describe("position-graded coast clarity", () => {
 
   it("leaves forest cinematic mist overrides intact", () => {
     const { renderer, gpu } = mockRenderer();
-    const paper = createGradedPaperPass(gpu, "Balanced");
+    const paper = createGradedPaperPass(gpu, "Balanced", STYLE_PRESETS.C);
     try {
-      paper.setMist({ strength: WORLD_DIRECTION.background.mist.strength + 0.2 });
+      paper.setMist({ strength: STYLE_PRESETS.C.background.mist.strength + 0.2 });
       paper.setGrade(applyCoastAtmosphere(lightingAt(0), 0.3));
       paper.render(new Scene(), new PerspectiveCamera());
       expect(screenMaterial(renderer).material.uniforms.mistStrength!.value).toBe(0.7);

@@ -121,8 +121,8 @@ const R: StylePreset = {
     terrain: recipe("grass", "grassDry", 0.25, 1, 1),
     ramp: { steps: 4, soft: true },
     fog: { near: 120, far: 700, coastFar: 900, coastNear: 160 },
-    mist: { bands: [160, 320, 600], strength: 0.12, warmth: 0.3 },
-    edges: { ink: false, bleed: 0.1 },
+    mist: { bands: [160, 320, 600], strength: 0.02, warmth: 1 },
+    edges: { ink: false, bleed: 0.04 },
     sky: {
       dawn: { top: recipe("skyHigh", "skyLow", 0.15), horizon: recipe("skyLow", "cloud", 0.35) },
       dusk: { top: recipe("skyHigh", "indigo", 0.25), horizon: recipe("sunGold", "skyLow", 0.35) },
@@ -143,7 +143,7 @@ export const STYLE_PRESETS: Record<"A" | "B" | "C" | "R", StylePreset> = {
 export type PresetId = keyof typeof STYLE_PRESETS;
 
 /** The direction the world renders (provisional, D-22). */
-export const WORLD_DIRECTION: StylePreset = STYLE_PRESETS.C;
+export const WORLD_DIRECTION: StylePreset = STYLE_PRESETS.R;
 
 /** Open the sea horizon from the last hill to the first coast zone; forest fog stays intact. */
 export function fogAt(pathT: number, preset: StylePreset = WORLD_DIRECTION): { near: number; far: number } {

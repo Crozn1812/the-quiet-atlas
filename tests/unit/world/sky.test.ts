@@ -4,7 +4,7 @@ import { PALETTE } from "../../../src/features/world/art/palette";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
-import { fogAt } from "../../../src/features/world/art/direction";
+import { fogAt, STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { directGrade } from "../../../src/features/world/scene/compose";
 import { applyCoastAtmosphere, cloneGrade, coastAtmosphereWeight, GRADE_COLORS, lightingAt } from "../../../src/features/world/sky/grade";
 import { createGradeFollower } from "../../../src/features/world/sky/smoothing";
@@ -139,7 +139,7 @@ describe("coast dusk atmosphere", () => {
       expect(Math.max(...srgb) - Math.min(...srgb)).toBeLessThan(0.2);
     }
     for (const zone of ZONES.filter(zone => zone.biome === "coast-dusk")) {
-      expect(fogAt(zone.t)).toEqual({ near: 100, far: 400 });
+      expect(fogAt(zone.t, STYLE_PRESETS.C)).toEqual({ near: 100, far: 400 });
     }
   });
 
@@ -328,7 +328,8 @@ describe("sky dome without a GPU", () => {
   });
 
   it("preserves the forest's numeric grade and original sky shader at t=0.3", () => {
-    const grade = placedGrade(0.3);
+    const tod = timeOfDayAt(0.3);
+    const grade = applyCoastAtmosphere(directGrade(lightingAt(tod), tod, STYLE_PRESETS.C), 0.3);
     const dome = createSkyDome(grade);
     try {
       const ray = new Vector3(1, Math.tan(3 * Math.PI / 180), 0).normalize();
@@ -336,7 +337,7 @@ describe("sky dome without a GPU", () => {
         colors: GRADE_COLORS.map(key => grade[key].toArray()),
         sun: grade.sunDirection.toArray(),
         sky: sampleDome(dome, ray).toArray(),
-        fog: fogAt(0.3),
+        fog: fogAt(0.3, STYLE_PRESETS.C),
       }).toMatchInlineSnapshot(`
         {
           "colors": [

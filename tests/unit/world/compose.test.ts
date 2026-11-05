@@ -1,4 +1,4 @@
-import { WORLD_DIRECTION } from "../../../src/features/world/art/direction";
+import { STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { afterEach, expect, it, vi } from "vitest";
 import { BufferGeometry, Fog, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
@@ -31,7 +31,7 @@ it("shares biome fog distances between native fog and paper at every quality, in
       for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
         const zone = ZONES.find(zone => zone.id === id)!;
         composed.update(new Vector3().copy(zone.position), 0);
-        const expected = zone.biome === "coast-dusk" ? { near: 100, far: 400 } : { near: 40, far: 260 };
+        const expected = zone.biome === "coast-dusk" ? { near: 160, far: 900 } : { near: 120, far: 700 };
         expect(scene.fog).toBeInstanceOf(Fog);
         expect((scene.fog as Fog).near).toBe(expected.near);
         expect((scene.fog as Fog).far).toBeCloseTo(expected.far, 8);
@@ -181,6 +181,7 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
 });
 
 it("grades paper fog without changing the paper pigment, across Low and High reallocations", async () => {
+  const WORLD_DIRECTION = STYLE_PRESETS.C;
   const { Color, OrthographicCamera, PerspectiveCamera, Vector2 } = await import("three");
   const materials: import("three").ShaderMaterial[] = [];
   const renderer = {
@@ -193,7 +194,7 @@ it("grades paper fog without changing the paper pigment, across Low and High rea
       if (camera instanceof OrthographicCamera) materials.push((scene.children[0] as Mesh).material as import("three").ShaderMaterial);
     },
   } as unknown as import("three").WebGLRenderer;
-  const paper = createGradedPaperPass(renderer, "Balanced");
+  const paper = createGradedPaperPass(renderer, "Balanced", WORLD_DIRECTION);
   try {
     for (const quality of ["Balanced", "Low", "High"] as const) {
       paper.setQuality(quality);

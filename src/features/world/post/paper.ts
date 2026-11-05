@@ -5,6 +5,7 @@ import {
   type PerspectiveCamera, type WebGLRenderer,
 } from "three";
 import { PALETTE } from "../art/palette";
+import { STYLE_PRESETS, type StylePreset } from "../art/direction";
 
 type Quality = "Low" | "Balanced" | "High";
 
@@ -155,7 +156,9 @@ const fragmentShader = /* glsl */ `
       color = mix(color, darker * 0.97, pooling * 0.12);
       // The rear side carries a fine paper-light band beside the pooled pigment.
       float paperRim = signedEdge < 0.0 ? 0.07 : 0.02;
-      color = mix(color, paperColor, pooling * paperRim);
+      #ifndef CLEAR_AIR
+        color = mix(color, paperColor, pooling * paperRim);
+      #endif
     }
     #ifdef INK_OUTLINE
       if (inkEnabled && depth < 1.0) {
@@ -215,31 +218,42 @@ const fragmentShader = /* glsl */ `
     }
     // Pixel-locked, time-independent grain. Both noises are in [0, 1],
     // so their weighted sum gives at most +/-2% multiplicative variation.
-    float grain = (hash(pixel) - 0.5) * 0.028
-                + (fiber - 0.5) * 0.012;
-    color.rgb *= 1.0 + grain;
-    vec2 edge = vUv * 2.0 - 1.0;
-    float vignette = smoothstep(0.3, 1.5, dot(edge, edge)) * 0.025;
-    color.rgb = mix(color.rgb, paperColor, vignette);
+    #ifndef CLEAR_AIR
+      float grain = (hash(pixel) - 0.5) * 0.028
+                  + (fiber - 0.5) * 0.012;
+      color.rgb *= 1.0 + grain;
+    #endif
+    #ifndef CLEAR_AIR
+      vec2 edge = vUv * 2.0 - 1.0;
+      float vignette = smoothstep(0.3, 1.5, dot(edge, edge)) * 0.025;
+      color.rgb = mix(color.rgb, paperColor, vignette);
+    #endif
     gl_FragColor = color;
     #include <colorspace_fragment>
   }
 `;
 
 /** One merged paper pass on Balanced/High; Low leaves rendering and scene.fog to the caller. */
-export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Quality }) {
+export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Quality; preset?: StylePreset }) {
+  // An omitted preset preserves the original bench/API behaviour for A/B/C.
+  const clearAir = opts.preset === STYLE_PRESETS.R;
   let quality = opts.quality;
   const size = renderer.getSize(new Vector2());
   let disposed = false;
   let resources: ReturnType<typeof allocate> | undefined;
-  const edges: { bleed: number; ink?: boolean } = { bleed: 0.5 };
-  const fog = { near: 15, far: 65, color: new Color(PALETTE.paper) };
+  const background = opts.preset?.background;
+  const edges: { bleed: number; ink?: boolean } = { bleed: 0.5, ...background?.edges };
+  const fog = {
+    near: background?.fog.near ?? 15,
+    far: background?.fog.far ?? 65,
+    color: clearAir ? new Color(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.25) : new Color(PALETTE.paper),
+  };
   const corridor = { points: Array.from({ length: CORRIDOR_POINTS }, () => new Vector2()), count: 0, radius: 1 };
   const mist = {
-    bands: new Vector3(...DEFAULT_MIST_BANDS),
+    bands: new Vector3(...(background?.mist.bands ?? DEFAULT_MIST_BANDS)),
     height: DEFAULT_MIST_HEIGHT,
-    strength: DEFAULT_MIST_STRENGTH,
-    color: new Color(PALETTE.mist),
+    strength: background?.mist.strength ?? DEFAULT_MIST_STRENGTH,
+    color: clearAir ? fog.color.clone() : new Color(PALETTE.mist),
   };
 
   function physicalSize() {
@@ -258,7 +272,11 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     const material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
-      defines: { CORRIDOR_POINTS, ...(quality === "High" ? { MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 } : {}) },
+      defines: {
+        CORRIDOR_POINTS,
+        ...(clearAir ? { CLEAR_AIR: 1 } : {}),
+        ...(quality === "High" ? { MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 } : {}),
+      },
       uniforms: {
         tColor: { value: target.texture },
         tDepth: { value: depth },
@@ -309,6 +327,9 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
   return {
     render(scene: Scene, camera: PerspectiveCamera | OrthographicCamera): void {
       if (disposed) return;
+      // R's native Low fallback must use the same clear air as the merged pass,
+      // even when the caller's legacy coast grade still supplies paper fog.
+      if (clearAir && scene.fog) scene.fog.color.copy(fog.color);
       if (!resources) {
         renderer.render(scene, camera);
         return;
@@ -318,7 +339,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
       material.uniforms.cameraFar!.value = camera.far;
       material.uniforms.perspective!.value = "isPerspectiveCamera" in camera;
       const destination = renderer.getRenderTarget();
-      const fog = scene.fog;
+      const sceneFog = scene.fog;
       try {
         scene.fog = null; // The depth pass supplies fog once, rather than layering scene fog.
         renderer.setRenderTarget(target);
@@ -327,11 +348,11 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         // Scene rendering updates camera.matrixWorld before reconstruction consumes it.
         material.uniforms.cameraProjectionMatrixInverse!.value.copy(camera.projectionMatrixInverse);
         material.uniforms.cameraMatrixWorld!.value.copy(camera.matrixWorld);
-        scene.fog = fog;
+        scene.fog = sceneFog;
         renderer.setRenderTarget(destination);
         renderer.render(screen, screenCamera);
       } finally {
-        scene.fog = fog;
+        scene.fog = sceneFog;
         renderer.setRenderTarget(destination);
       }
     },

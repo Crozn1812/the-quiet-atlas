@@ -65,13 +65,12 @@ describe("painted toon ramp", () => {
     for (const material of [a, b, hard]) material.dispose();
   });
 
-  it("uses palette colours and an ink/paper blend for the trunk", () => {
-    // B2-038: world colours come from art direction C (palette recipes), not raw palette entries.
+  it("uses palette recipes from the active R direction", () => {
     expect(RAMP_PRESETS.terrain).toBe(paletteColor(WORLD_DIRECTION.background.terrain));
     expect(RAMP_PRESETS.crown).toBe(paletteColor(WORLD_DIRECTION.foliage.crown));
     expect(RAMP_PRESETS.water).toBe(hex("water"));
     expect(RAMP_PRESETS.trunk).toBe(paletteColor(WORLD_DIRECTION.foliage.trunk));
-    expect(WORLD_DIRECTION).toBe(STYLE_PRESETS.C);
+    expect(WORLD_DIRECTION).toBe(STYLE_PRESETS.R);
     for (const color of Object.values(RAMP_PRESETS)) {
       const material = createRampMaterial(color);
       expect(material.color.getHex()).toBe(color);
@@ -80,7 +79,7 @@ describe("painted toon ramp", () => {
   });
 
   it("injects a linear-space shadow tint after lighting and before tone mapping/fog", () => {
-    const material = createRampMaterial(RAMP_PRESETS.terrain);
+    const material = createRampMaterial(RAMP_PRESETS.terrain, { preset: STYLE_PRESETS.C });
     const shader = compile(material);
     expect(shader.uniforms.rampShadowTint!.value).toEqual(
       new Color(hex("mist")).lerp(new Color(hex("indigo")), 0.5),
@@ -106,6 +105,41 @@ describe("painted toon ramp", () => {
     expect(compile(a).uniforms.rampShadowTint!.value).not.toBe(compile(b).uniforms.rampShadowTint!.value);
     expect(compile(c).uniforms.rampShadowTint!.value).toEqual(new Color(0));
     for (const material of [a, b, c]) material.dispose();
+  });
+
+  it("keeps R shadows cool and chromatic, highlights slightly warm and shade readable", () => {
+    const material = createRampMaterial(hex("grass"));
+    try {
+      const shader = compile(material);
+      expect(shader.uniforms.rampClearLight!.value).toBe(true);
+      const tint = shader.uniforms.rampShadowTint!.value as Color;
+      expect(tint).toEqual(new Color(hex("indigo")).lerp(new Color(hex("skyHigh")), 0.25));
+      const highlight = shader.uniforms.rampHighlightTint!.value as Color;
+      expect(highlight).toEqual(new Color(hex("cloud")).lerp(new Color(hex("sunGold")), 0.12));
+      expect(highlight.r).toBeGreaterThan(highlight.g);
+      expect(highlight.g).toBeGreaterThan(highlight.b);
+      expect(shader.fragmentShader).toContain("rampShadow = diffuseColor.rgb * mix( vec3( 0.25 ), rampShadowTint, 0.6 );");
+      expect(shader.fragmentShader).toContain("smoothstep( 0.5, 1.0, rampLight ) * 0.12");
+      const base = material.color;
+      const shadow = base.clone().multiply(new Color().setRGB(0.25, 0.25, 0.25).lerp(tint, 0.6));
+      const light = base.clone().multiply(new Color().setRGB(1, 1, 1).lerp(highlight, 0.12));
+      const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+      expect(luma(light) / luma(shadow)).toBeGreaterThan(4);
+      expect(shadow.b / shadow.g).toBeGreaterThan(base.b / base.g);
+      expect(shadow.g).toBeGreaterThan(shadow.r);
+      expect(shadow.g).toBeGreaterThan(shadow.b);
+      expect(light.r / light.b).toBeGreaterThan(base.r / base.b);
+    } finally { material.dispose(); }
+  });
+
+  it.each(["A", "B", "C"] as const)("preserves the legacy %s ramp/tint profile", id => {
+    const material = createRampMaterial(hex("forestLight"), { preset: STYLE_PRESETS[id] });
+    try {
+      const shader = compile(material);
+      expect(shader.uniforms.rampClearLight!.value).toBe(false);
+      expect(shader.uniforms.rampShadowTint!.value).toEqual(new Color(hex("mist")).lerp(new Color(hex("indigo")), 0.5));
+      expect(Array.from((material.gradientMap as import("three").DataTexture).image.data as Uint8Array)).toEqual([64, 128, 191, 255]);
+    } finally { material.dispose(); }
   });
 
   it("disposes every cached texture once, clears the cache and recreates on demand", () => {

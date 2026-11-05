@@ -31,17 +31,24 @@ const DIRECTED_SKY = {
   dawn: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dawn.horizon)) },
   dusk: { top: new Color(paletteColor(WORLD_DIRECTION.background.sky.dusk.top)), horizon: new Color(paletteColor(WORLD_DIRECTION.background.sky.dusk.horizon)) },
 };
-/** Share of the sky horizon in distance fog at dawn/dusk: gold fog over jade sea mixes to olive (B2-031). */
-const FOG_HORIZON = { dawn: 1, dusk: 0.25 };
+/** R distance fog stays blue at dusk; only the cloud fraction changes. */
+const FOG_HORIZON = { dawn: 0.25, dusk: 0.35, low: new Color(PALETTE.skyLow), cloud: new Color(PALETTE.cloud) };
 /** Sea mirror of the dusk sky; the bench's coast frame uses 0.35. */
 const SEA_SKY_MIX = 0.35;
 
 /** Replace the grade's sky/fog colours with the art direction's, blended by time of day (0 dawn → 1 dusk). */
-export function directGrade(grade: LightingGrade, timeOfDay: number): LightingGrade {
-  const t = Math.max(0, Math.min(1, timeOfDay));
+export function directGrade(grade: LightingGrade, timeOfDay: number, preset = WORLD_DIRECTION): LightingGrade {
+  const t = Number.isNaN(timeOfDay) ? 0 : Math.max(0, Math.min(1, timeOfDay));
+  if (preset !== WORLD_DIRECTION) {
+    const { dawn, dusk } = preset.background.sky;
+    grade.skyTop.setHex(paletteColor(dawn.top)).lerp(new Color(paletteColor(dusk.top)), t);
+    grade.skyHorizon.setHex(paletteColor(dawn.horizon)).lerp(new Color(paletteColor(dusk.horizon)), t);
+    grade.fogColor.set(PALETTE.paper).lerp(grade.skyHorizon, 1 - 0.75 * t);
+    return grade;
+  }
   grade.skyTop.copy(DIRECTED_SKY.dawn.top).lerp(DIRECTED_SKY.dusk.top, t);
   grade.skyHorizon.copy(DIRECTED_SKY.dawn.horizon).lerp(DIRECTED_SKY.dusk.horizon, t);
-  grade.fogColor.set(PALETTE.paper).lerp(grade.skyHorizon, FOG_HORIZON.dawn + (FOG_HORIZON.dusk - FOG_HORIZON.dawn) * t);
+  grade.fogColor.copy(FOG_HORIZON.low).lerp(FOG_HORIZON.cloud, FOG_HORIZON.dawn + (FOG_HORIZON.dusk - FOG_HORIZON.dawn) * t);
   return grade;
 }
 import { createGradeFollower } from "../sky/smoothing";

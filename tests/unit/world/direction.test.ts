@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Color, LinearFilter, SRGBColorSpace, type DataTexture } from "three";
-import { fogAt, paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
+import { fogAt as directedFogAt, paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { createRampMaterial, disposeRampGradients, RAMP_PRESETS, RAMP_STEPS } from "../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
@@ -10,9 +10,9 @@ afterEach(disposeRampGradients);
 
 describe("AD r3 direction C", () => {
   it("lowers the ground's displayed value by 9% while preserving its palette hue", () => {
-    const recipe = WORLD_DIRECTION.background.terrain;
+    const recipe = STYLE_PRESETS.C.background.terrain;
     const previous = new Color(paletteColor({ ...recipe, brightness: 1 }));
-    const actual = new Color(RAMP_PRESETS.terrain);
+    const actual = new Color(paletteColor(recipe));
     const oldRGB = previous.getRGB({ r: 0, g: 0, b: 0 }, SRGBColorSpace);
     const newRGB = actual.getRGB({ r: 0, g: 0, b: 0 }, SRGBColorSpace);
     // Changed expectation: r2's paper-light ground washed out the real terrain.
@@ -38,6 +38,7 @@ describe("AD r3 direction C", () => {
   });
 
   it("preserves forest and hill fog and opens both coast zones to 400 m", () => {
+    const fogAt = (t: number, preset = STYLE_PRESETS.C) => directedFogAt(t, preset);
     for (const zone of ZONES) {
       expect(fogAt(zone.t)).toEqual(zone.biome === "coast-dusk" ? { near: 100, far: 400 } : { near: 40, far: 260 });
     }
@@ -67,5 +68,21 @@ describe("AD r3 direction C", () => {
         expect(y).toBe(surfaceHeight(x, z));
       }
     } finally { zones.forEach(zone => zone.dispose()); }
+  });
+});
+
+describe("R clear-air world direction", () => {
+  it("activates natural colours, four soft levels, faint bleed and almost no ground mist", () => {
+    expect(WORLD_DIRECTION).toBe(STYLE_PRESETS.R);
+    expect(RAMP_PRESETS.terrain).toBe(paletteColor(STYLE_PRESETS.R.background.terrain));
+    expect(WORLD_DIRECTION.background.ramp).toEqual({ steps: 4, soft: true });
+    expect(WORLD_DIRECTION.foliage.ramp).toEqual({ steps: 4, soft: true });
+    expect(WORLD_DIRECTION.background.edges).toEqual({ ink: false, bleed: 0.04 });
+    expect(WORLD_DIRECTION.background.mist.strength).toBeLessThanOrEqual(0.02);
+    for (const t of [0, 0.3, 0.9, 1]) expect(directedFogAt(t).near).toBeGreaterThanOrEqual(120);
+    expect(directedFogAt(0.3)).toEqual({ near: 120, far: 700 });
+    expect(directedFogAt(0.9)).toEqual({ near: 160, far: 900 });
+    expect(directedFogAt(NaN)).toEqual(directedFogAt(0));
+    expect(directedFogAt(Infinity)).toEqual(directedFogAt(1));
   });
 });

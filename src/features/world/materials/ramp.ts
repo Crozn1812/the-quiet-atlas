@@ -1,4 +1,4 @@
-import { paletteColor, WORLD_DIRECTION } from "../art/direction";
+import { paletteColor, STYLE_PRESETS, WORLD_DIRECTION, type StylePreset } from "../art/direction";
 import {
   Color,
   DataTexture,
@@ -12,6 +12,8 @@ import { hex } from "../art/palette";
 
 const gradients = new Map<string, DataTexture>();
 const defaultShadowTint = new Color(hex("mist")).lerp(new Color(hex("indigo")), 0.5);
+const clearShadowTint = new Color(hex("indigo")).lerp(new Color(hex("skyHigh")), 0.25);
+const clearHighlightTint = new Color(hex("cloud")).lerp(new Color(hex("sunGold")), 0.12);
 
 /** One linear-data row, with a nonzero shadow end. Callers must not dispose it individually. */
 export function createRampGradient(steps = 4, soft = true): DataTexture {
@@ -43,24 +45,32 @@ export function disposeRampGradients(): void {
 
 export function createRampMaterial(
   color: number,
-  opts: { shadowTint?: number; soft?: boolean; steps?: number } = {},
+  opts: { shadowTint?: number; soft?: boolean; steps?: number; preset?: StylePreset } = {},
 ): MeshToonMaterial {
   const material = new MeshToonMaterial({
     color,
     gradientMap: createRampGradient(opts.steps ?? 4, opts.soft ?? true),
   });
+  const clearLight = (opts.preset ?? WORLD_DIRECTION) === STYLE_PRESETS.R;
   const shadowTint = opts.shadowTint === undefined
-    ? defaultShadowTint.clone()
+    ? (clearLight ? clearShadowTint : defaultShadowTint).clone()
     : new Color(opts.shadowTint);
 
   material.onBeforeCompile = (shader) => {
     shader.uniforms.rampShadowTint = { value: shadowTint };
+    shader.uniforms.rampClearLight = { value: clearLight };
+    shader.uniforms.rampHighlightTint = { value: clearHighlightTint.clone() };
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform vec3 rampShadowTint;")
+      .replace("#include <common>", "#include <common>\nuniform vec3 rampShadowTint;\nuniform bool rampClearLight;\nuniform vec3 rampHighlightTint;")
       .replace("#include <opaque_fragment>", `
 // Mix after lighting/AO so occlusion and absent lights also retain diluted ink.
 float rampLight = dot( outgoingLight, vec3( 0.2126, 0.7152, 0.0722 ) );
 vec3 rampShadow = mix( rampShadowTint, diffuseColor.rgb, 0.5 );
+if ( rampClearLight ) {
+  // Preserve the surface pigment in cool shade instead of lifting it toward pale mist.
+  rampShadow = diffuseColor.rgb * mix( vec3( 0.25 ), rampShadowTint, 0.6 );
+  outgoingLight *= mix( vec3( 1.0 ), rampHighlightTint, smoothstep( 0.5, 1.0, rampLight ) * 0.12 );
+}
 outgoingLight = mix( rampShadow, outgoingLight, smoothstep( 0.0, 0.5, rampLight ) );
 #include <opaque_fragment>`);
   };
@@ -69,14 +79,14 @@ outgoingLight = mix( rampShadow, outgoingLight, smoothstep( 0.0, 0.5, rampLight 
   return material;
 }
 
-/** Base colours for createRampMaterial, from the world art direction (B2-038, direction C). */
+/** Base colours for createRampMaterial, from the active world art direction. */
 export const RAMP_PRESETS = {
   terrain: paletteColor(WORLD_DIRECTION.background.terrain),
   crown: paletteColor(WORLD_DIRECTION.foliage.crown),
   trunk: paletteColor(WORLD_DIRECTION.foliage.trunk),
   water: hex("water"),
 } as const;
-/** Ramp bands per surface family (direction C: 3 soft washes on ground, 4 on foliage). */
+/** Ramp bands per surface family (R: four soft levels on ground and foliage). */
 export const RAMP_STEPS = {
   terrain: WORLD_DIRECTION.background.ramp,
   foliage: WORLD_DIRECTION.foliage.ramp,
