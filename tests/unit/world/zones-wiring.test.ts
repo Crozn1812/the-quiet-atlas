@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { Matrix4, Mesh, PerspectiveCamera, Scene, Vector3 } from "three";
+import { InstancedMesh, Matrix4, Mesh, PerspectiveCamera, Scene, Vector3 } from "three";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { ZONE_IDS } from "../../../src/features/interaction/targets";
 import { HEIGHT } from "../../../src/features/world/scene";
@@ -13,6 +13,7 @@ const h = vi.hoisted(() => ({
   canvas: undefined as unknown, scene: undefined as unknown, camera: undefined as unknown,
   zones: [] as ReturnType<typeof import("../../../src/features/world/zones").placeZoneScenes>,
   next: undefined as ((now: number) => void) | undefined,
+  collisionMeshes: [] as Mesh[],
   position: undefined as unknown, reduced: vi.fn(), idleMotion: vi.fn(),
 }));
 vi.mock("three", async original => {
@@ -33,10 +34,12 @@ vi.mock("../../../src/features/world/scene/compose", async original => ({
   ...await original<typeof import("../../../src/features/world/scene/compose")>(),
   surfaceHeight: () => 100,
   worldSpawn: () => new Vector3(ZONES[0]!.position.x, 100 + HEIGHT, ZONES[0]!.position.z),
-  createWorldScene: ({ zoneBoxes }: { zoneBoxes: Mesh[] }) => ({
+  createWorldScene: ({ zoneBoxes }: { zoneBoxes: Mesh[] }) => {
+    h.collisionMeshes = zoneBoxes;
+    return ({
     sun: { castShadow: false }, collisionMeshes: zoneBoxes, visibleMeshes: [], foliageMeshes: [],
     update() {}, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload() {}, dispose() {}, setReducedMotion: h.reduced,
-  }),
+  }); },
 }));
 vi.mock("../../../src/features/world/raycast", () => ({ createController: async () => {
   const position = new Vector3(); h.position = position;
@@ -103,7 +106,7 @@ beforeEach(() => {
   vi.stubGlobal("requestAnimationFrame", (cb: (now: number) => void) => { h.next = cb; return 1; });
   vi.stubGlobal("cancelAnimationFrame", () => {});
 });
-afterEach(() => { unmount?.(); unmount = undefined; vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { unmount?.(); unmount = undefined; vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 it("places eight groups at anchors, aims +Z along the path and opens every localized target via E and click", async () => {
   await mount();
@@ -183,7 +186,10 @@ it("grounds all eight real scenes, keeps fixed colliders across qualities and ex
   const bounds = zoneFoliageBounds(zones);
   const boxes = zones.flatMap(zone => zone.boxes);
   const backend = createMeshPhysics(); const scene = new Scene();
+  performance.mark("world:real-composition:start");
   const composed = actual.createWorldScene({ ...backend, scene, quality: "High", zoneBounds: bounds, zoneBoxes: boxes });
+  console.log("B2-179 real composition (Node, High):", performance.measure("world:real-composition", "world:real-composition:start").duration.toFixed(2), "ms");
+  performance.clearMarks("world:real-composition:start"); performance.clearMeasures("world:real-composition");
   try {
     for (const zone of zones) {
       expect(zone.group.position.y).toBe(actual.surfaceHeight(zone.layout.position.x, zone.layout.position.z));
@@ -204,4 +210,82 @@ it("grounds all eight real scenes, keeps fixed colliders across qualities and ex
       });
     }
   } finally { composed.dispose(); zones.forEach(zone => zone.dispose()); }
+});
+
+// B2-179: development User Timing brackets the actual mount steps (composer is stubbed here).
+it("reports mount construction timings", async () => {
+  performance.clearMeasures();
+  await mount();
+  console.log("B2-179 mount (Node, composer stub):", performance.getEntriesByType("measure")
+    .filter(entry => entry.name.startsWith("world:mount:"))
+    .map(entry => `${entry.name}=${entry.duration.toFixed(2)}ms`).join(", "));
+  performance.clearMeasures();
+});
+
+// B2-179: a separate frame queue lets us advance optional construction without advancing the game loop.
+function deferredClock() {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const frames = new Map<number, (now: number) => void>(); let id = 0;
+  vi.stubGlobal("requestAnimationFrame", (callback: (now: number) => void) => { frames.set(++id, callback); return id; });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => { frames.delete(id); });
+  return { frames, paint() {
+    const [id, callback] = [...frames.entries()].at(-1)!;
+    frames.delete(id); callback(0);
+  } };
+}
+
+it("mounts fixed dressing colliders before any optional build, then finishes every visual after control/paint", async () => {
+  const clock = deferredClock();
+  await mount(false);
+  const scene = h.scene as Scene;
+  expect(h.collisionMeshes.length).toBeGreaterThan(h.zones.flatMap(zone => zone.boxes).length + 70);
+  expect(h.collisionMeshes.some(mesh => mesh.name.startsWith("bridge-"))).toBe(true);
+  const far = scene.getObjectByName("far-landscape") as Mesh;
+  expect(far.visible).toBe(false);
+  expect(scene.getObjectByName("rocky-shore")!.children).toHaveLength(0);
+  expect(scene.getObjectByName("coast-road")!.children).toHaveLength(0);
+  expect(scene.getObjectByName("forest-sun-shafts")).toBeUndefined();
+  vi.advanceTimersByTime(100);
+  expect(scene.getObjectByName("forest-sun-shafts")).toBeUndefined();
+  // The intro's public skip control hands input back to the player.
+  const skip = container.children.find(child => child.dataset.worldIntroSkip === "true")!;
+  skip.dispatchEvent(new Event("click"));
+  expect(container.dataset.worldIntro).toBe("done");
+  vi.advanceTimersByTime(16);
+  expect(far.visible).toBe(false);
+  clock.paint(); vi.runAllTimers();
+  expect(far.visible).toBe(true);
+  expect(scene.getObjectByName("rocky-shore")!.children.map(child => child.name))
+    .toEqual(["shore-pebbles", "shore-boulders-and-cairns", "shore-sand-overlay"]);
+  expect(scene.getObjectByName("coast-road")!.children.map(child => child.name))
+    .toEqual(["coast-asphalt-and-markings", "coast-bollards", "coast-utility-poles", "coast-utility-wires"]);
+  const shafts = scene.getObjectByName("forest-path-sun") as InstancedMesh;
+  expect(shafts).toBeDefined();
+  const instanceDispose = vi.spyOn(shafts, "dispose");
+  const geometryDispose = vi.spyOn(far.geometry, "dispose");
+  expect(vi.getTimerCount()).toBe(0);
+  unmount!(); unmount!(); unmount = undefined;
+  expect(instanceDispose).toHaveBeenCalledOnce(); expect(geometryDispose).toHaveBeenCalledOnce();
+  expect(clock.frames.size).toBe(0); expect(vi.getTimerCount()).toBe(0);
+});
+
+it("cancels pending optional work when unmounted before a timer, a paint or midway through construction", async () => {
+  for (const phase of ["timer", "paint", "partial"] as const) {
+    const clock = deferredClock();
+    await mount();
+    const scene = h.scene as Scene;
+    const far = scene.getObjectByName("far-landscape") as Mesh;
+    const geometryDispose = vi.spyOn(far.geometry, "dispose");
+    const materialDispose = vi.spyOn(far.material as import("three").Material, "dispose");
+    if (phase !== "timer") vi.advanceTimersByTime(16);
+    if (phase === "partial") { clock.paint(); vi.advanceTimersByTime(16); }
+    unmount!(); unmount!(); unmount = undefined;
+    expect(clock.frames.size).toBe(0); expect(vi.getTimerCount()).toBe(0);
+    expect(geometryDispose).toHaveBeenCalledOnce(); expect(materialDispose).toHaveBeenCalledOnce();
+    expect(far.parent).toBeNull();
+    vi.runAllTimers();
+    expect(scene.getObjectByName("shore-pebbles")).toBeUndefined();
+    expect(scene.getObjectByName("forest-path-sun")).toBeUndefined();
+    vi.useRealTimers();
+  }
 });

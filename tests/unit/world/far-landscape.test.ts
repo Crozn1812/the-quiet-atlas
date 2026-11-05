@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
 import { Color } from "three";
 import { hex } from "../../../src/features/world/art/palette";
 import { createFarLandscape, FAR_LANDSCAPE, GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
@@ -50,4 +51,48 @@ describe("far landscape", () => {
     far.dispose();
     far.dispose();
   });
+});
+
+// Captured from the pre-B2-179 factory: every byte of the final vertex/index buffers is unchanged.
+it("constructs in small steps and matches the original mesh byte for byte", () => {
+  const far = createFarLandscape({ deferred: true });
+  try {
+    expect(far.mesh.visible).toBe(false);
+    expect(far.mesh.geometry.getAttribute("position")).toBeUndefined();
+    let steps = 0, maximum = 0;
+    while (true) {
+      const start = performance.now();
+      const result = far.build.next();
+      maximum = Math.max(maximum, performance.now() - start);
+      steps++;
+      if (result.done) break;
+    }
+    expect(steps).toBeGreaterThan(FAR_LANDSCAPE.cells * 2);
+    expect(far.mesh.visible).toBe(true);
+    const expected = {
+      position: "9136626728d0fdc18c8c49c4d2087818f0c7bd78ff725488444ec7972399e38a",
+      normal: "fbcd5177abd405f8857a1446b8c5b3f196ca81bc6f0b804a37c83246f7e802eb",
+      color: "dbc592165cab5ab896db1b5c1c654be0919117e63f77d1c9c347324a8c033bb3",
+      index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
+    };
+    for (const [name, digest] of Object.entries(expected)) {
+      const array = name === "index" ? far.mesh.geometry.index!.array : far.mesh.geometry.getAttribute(name).array;
+      expect(createHash("sha256").update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength)).digest("hex"), name).toBe(digest);
+    }
+    console.log(`B2-179 far landscape: ${steps} steps, max ${maximum.toFixed(2)}ms (Node)`);
+  } finally { far.dispose(); }
+});
+
+it("releases resources once and cannot resume after cancellation at any build phase", () => {
+  for (const steps of [0, 40, 300, 1800, 1924]) {
+    const far = createFarLandscape({ deferred: true });
+    const geometry = vi.spyOn(far.mesh.geometry, "dispose");
+    const material = vi.spyOn(far.mesh.material, "dispose");
+    for (let i = 0; i < steps; i++) far.build.next();
+    far.dispose(); far.dispose();
+    expect(far.build.next().done).toBe(true);
+    expect(geometry).toHaveBeenCalledOnce();
+    expect(material).toHaveBeenCalledOnce();
+    expect(far.mesh.parent).toBeNull();
+  }
 });

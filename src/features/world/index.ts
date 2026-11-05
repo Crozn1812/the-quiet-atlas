@@ -89,21 +89,42 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let forestSun: ReturnType<typeof createForestSunShafts> | undefined;
   let farLandscape: ReturnType<typeof createFarLandscape> | undefined;
   try {
+    // User Timing is compiled out of production; development can inspect each mount step.
+    const measure = <T,>(name: string, build: () => T): T => {
+      if (process.env.NODE_ENV === "production") return build();
+      const start = `world:mount:${name}:start`;
+      performance.mark(start);
+      try { return build(); }
+      finally {
+        performance.clearMeasures(`world:mount:${name}`);
+        performance.measure(`world:mount:${name}`, start);
+        performance.clearMarks(start);
+      }
+    };
     const physicsBackend = opts.collision === "raycast"
       ? createMeshPhysics()
       : await (await import("./rapier")).createController(undefined, [], { streamed: true });
     if ("step" in physicsBackend) controller = physicsBackend;
-    zones = placeZoneScenes(surfaceHeight);
-    dressing = placeDressing();
+    zones = measure("zones", () => placeZoneScenes(surfaceHeight));
+    dressing = measure("dressing", () => placeDressing({ deferred: true }));
     const zoneBoxes = [...zones.flatMap(zone => zone.boxes), ...dressing.boxes];
     for (const zone of zones) scene.add(zone.group);
     for (const group of dressing.groups) scene.add(group);
-    // B2-169: three soft sun shafts along the forest trail (First Light keeps its own two).
-    forestSun = createForestSunShafts(surfaceHeight);
-    scene.add(forestSun.group);
-    // Lead batch 25: built during loading (≈0.2–0.5 s) rather than mid-play, so the long view never hitches.
-    farLandscape = createFarLandscape();
+    // B2-179: the first playable frame only needs the nearby world and fixed colliders.
+    // Optional visuals share a 4 ms queue, started after the intro hands control to the player.
+    dressing.defer((function* () {
+      const shafts = measure("forest-sun", () => createForestSunShafts(surfaceHeight));
+      forestSun = { ...shafts, dispose() {
+        // The original shaft factory owns geometry/material; the instance buffer needs its own release.
+        for (const child of shafts.group.children) if ("dispose" in child && typeof child.dispose === "function") child.dispose();
+        shafts.dispose();
+      } };
+      scene.add(forestSun.group);
+    })());
+    farLandscape = measure("far-landscape", () => createFarLandscape({ deferred: true }));
     scene.add(farLandscape.mesh);
+    dressing.defer(farLandscape.build);
+    dressing.startDeferred(() => container.dataset.worldIntro === "done");
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     if (opts.collision !== "raycast") for (const box of zoneBoxes) {
       const size = box.geometry.parameters;
@@ -116,13 +137,13 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paperPass = createGradedPaperPass(renderer, quality);
-    composition = createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: [...zoneBoxes, ...dressing.surfaces], zoneBounds: zoneFoliageBounds(zones) });
+    composition = measure("composition", () => createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: [...zoneBoxes, ...dressing!.surfaces], zoneBounds: zoneFoliageBounds(zones) }));
     if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
     controller.teleport(worldSpawn());
   } catch (error) {
+    dressing?.dispose();
     zones.forEach(zone => zone.dispose());
     removeDressingTrimeshes?.();
-    dressing?.dispose();
     forestSun?.dispose();
     farLandscape?.dispose();
     composition?.dispose();
@@ -1256,10 +1277,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     document.removeEventListener("focusin", focusin);
     clear();
     motionPreference?.removeEventListener("change", updateMotionPreference);
+    dressing?.dispose();
     composed.dispose();
     zones.forEach(zone => zone.dispose());
     removeDressingTrimeshes?.();
-    dressing?.dispose();
     forestSun?.dispose();
     farLandscape?.dispose();
     physics.dispose();
