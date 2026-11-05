@@ -5,8 +5,9 @@ import { PATH_BRIDGES, pathLength } from "../../../src/features/world/layout/pat
 import { riverLength, riverPointAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { worldHeight } from "../../../src/features/world/terrain/height";
+import { lightingAt } from "../../../src/features/world/sky/grade";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
-import { createWaterMaterial, WATER_FLOW_SPEED } from "../../../src/features/world/water/material";
+import { createWaterMaterial, SEA_WAVE_PERIOD, WATER_FLOW_SPEED } from "../../../src/features/world/water/material";
 import {
   createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
 } from "../../../src/features/world/water/ribbon";
@@ -224,6 +225,83 @@ describe("painted water material", () => {
 });
 
 describe("sea and water lifecycle", () => {
+  it("takes the reflection direction from the grade and follows subsequent sun changes without aliasing", () => {
+    const grade = lightingAt(0.93);
+    const sea = createSea("Balanced", { sunDirection: grade.sunDirection });
+    const other = createWaterMaterial("Balanced", { surface: "sea" });
+    try {
+      const material = sea.mesh.material;
+      expect(material.defines.SEA_WATER).toBe(1);
+      expect(material.uniforms.uSunDirection!.value.distanceTo(grade.sunDirection)).toBeLessThan(1e-12);
+      expect(material.uniforms.uSunDirection!.value).not.toBe(grade.sunDirection);
+      expect(other.uniforms.uSunDirection!.value.distanceTo(lightingAt(1).sunDirection)).toBeLessThan(1e-12);
+      const original = material.uniforms.uSunDirection!.value.clone();
+      grade.sunDirection.set(-4, 1, -2);
+      expect(material.uniforms.uSunDirection!.value).toEqual(original);
+      material.setSunDirection(grade.sunDirection);
+      expect(material.uniforms.uSunDirection!.value.distanceTo(grade.sunDirection.clone().normalize())).toBeLessThan(1e-12);
+      expect(other.uniforms.uSunDirection!.value.distanceTo(lightingAt(1).sunDirection)).toBeLessThan(1e-12);
+      expect(material.vertexShader).toContain("modelMatrix * vec4(position, 1.0)");
+      expect(material.fragmentShader).toContain("uniform vec3 uSunDirection;");
+      expect(material.fragmentShader).toContain("uSunDirection.xz");
+      expect(material.fragmentShader).toContain("vWaterWorld.xz - cameraPosition.xz");
+      sea.dispose();
+      const finalDirection = material.uniforms.uSunDirection!.value.clone();
+      material.setSunDirection(new Vector3(1, 1, 0));
+      expect(material.uniforms.uSunDirection!.value).toEqual(finalDirection);
+    } finally { sea.dispose(); other.dispose(); }
+  });
+
+  it.each([new Vector3(), new Vector3(NaN, 1, 0), new Vector3(1, Infinity, 0)])(
+    "rejects unusable sun directions (%s)", direction => {
+      const material = createWaterMaterial("High", { surface: "sea" });
+      try {
+        const before = material.uniforms.uSunDirection!.value.clone();
+        expect(() => material.setSunDirection(direction)).toThrow(RangeError);
+        expect(material.uniforms.uSunDirection!.value).toEqual(before);
+      } finally { material.dispose(); }
+    },
+  );
+
+  it.each(["Low", "Balanced", "High"] as const)("freezes %s sea waves and foam while keeping the sun wash", quality => {
+    const sea = createSea(quality);
+    try {
+      const material = sea.mesh.material;
+      expect(SEA_WAVE_PERIOD).toBeGreaterThanOrEqual(6);
+      expect(SEA_WAVE_PERIOD).toBeLessThanOrEqual(10);
+      expect(material.fragmentShader).toContain(`uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)}`);
+      expect(material.fragmentShader).toContain("cos(phase)");
+      expect(material.fragmentShader).toContain("uSunWashColor");
+      sea.setTime(3);
+      const frozenTime = material.uniforms.uTime!.value;
+      expect(frozenTime).toBe(3);
+      const sunWash = material.uniforms.uSunWashColor!.value.clone();
+      sea.setReducedMotion(true);
+      for (const seconds of [4, 12, 100]) sea.setTime(seconds);
+      expect(material.uniforms.uTime!.value).toBe(frozenTime);
+      expect(material.uniforms.uSunWashColor!.value).toEqual(sunWash);
+      // Lighting still follows the grade when animation is frozen.
+      const direction = lightingAt(0.86).sunDirection;
+      material.setSunDirection(direction);
+      expect(material.uniforms.uSunDirection!.value.distanceTo(direction)).toBeLessThan(1e-12);
+      sea.setReducedMotion(false);
+      sea.setTime(200);
+      expect(material.uniforms.uTime!.value).toBe(frozenTime);
+      sea.setTime(202);
+      expect(material.uniforms.uTime!.value).toBe(frozenTime + 2);
+    } finally { sea.dispose(); }
+  });
+
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s sea within 110 percent of its two-triangle budget", quality => {
+    const sea = createSea(quality);
+    try {
+      expect(sea.mesh.geometry.index!.count / 3).toBeLessThanOrEqual(2 * 1.1);
+      expect(sea.mesh.geometry.getAttribute("position").count).toBe(4);
+      expect(sea.mesh.children).toHaveLength(0);
+      expect(Array.isArray(sea.mesh.material)).toBe(false);
+    } finally { sea.dispose(); }
+  });
+
   it("overlaps 80 m inland at sea level, covers 800 m offshore and keeps one quad", () => {
     const sea = createSea("Balanced");
     const mouth = riverPointAt(1);

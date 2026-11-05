@@ -5,12 +5,66 @@ import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
+import { SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES } from "../../../src/features/world/water/material";
+import { createSea } from "../../../src/features/world/water/sea";
 
 /** Zones stay dry except the open river channel (not walkable ground; Lead B2-037 review). */
 const inChannel = (x: number, z: number) => nearestRiver(x, z).distance < 14;
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 
 describe("organic coast", () => {
+  it("anchors sea foam to the terrain coastline, including the headland", () => {
+    const sea = createSea("Balanced");
+    try {
+      const uniforms = sea.mesh.material.uniforms;
+      const shore = uniforms.uShoreZ!.value as number[];
+      const bounds = uniforms.uShoreBounds!.value;
+      expect(shore).toHaveLength(SEA_SHORE_SAMPLES);
+      expect(uniforms.uHasShore!.value).toBe(1);
+      const near = sea.mesh.geometry.boundingBox!.max.z;
+      for (let i = 0; i < shore.length; i++) {
+        const x = bounds.x + i / (shore.length - 1) * bounds.y;
+        const z = shore[i]!;
+        if (z > near) {
+          expect(worldHeight(x, near)).toBeLessThan(0);
+        } else {
+          expect(worldHeight(x, z - 0.001), `sea at x=${x}`).toBeLessThan(0);
+          expect(worldHeight(x, z + 0.001), `land at x=${x}`).toBeGreaterThan(0);
+        }
+      }
+      // Between samples the beach stays within half a metre, plus the linear-interpolation error of the local
+      // shoreline slope over half a sample (6.25 m spacing): B2-152b's ridge toe and bay sides turn sharply.
+      const spacing = bounds.y / (shore.length - 1);
+      for (let x = -390; x <= 390; x += 20) {
+        if (Math.abs(x) < 50) continue;
+        const sample = (x - bounds.x) / bounds.y * (shore.length - 1);
+        const index = Math.floor(sample);
+        const z = shore[index]! + (shore[index + 1]! - shore[index]!) * (sample - index);
+        const slopes = [index - 1, index, index + 1].filter(i => i >= 0 && i + 1 < shore.length)
+          .map(i => Math.abs(shore[i + 1]! - shore[i]!) / spacing);
+        // The shader fades foam where |slope| ≥ SEA_FOAM_MAX_SLOPE; only spans with a visible foam line are checked.
+        if (Math.abs(shore[index + 1]! - shore[index]!) / spacing >= SEA_FOAM_MAX_SLOPE * 0.5) continue;
+        const tolerance = 0.5 + Math.max(...slopes) * spacing / 2;
+        // Open estuary samples (no crossing before the near edge) carry no foam line; skip spans that touch one.
+        if (shore[index]! > near || shore[index + 1]! > near) continue;
+        expect(worldHeight(x, z - tolerance), `sea between samples at x=${x}`).toBeLessThan(0);
+        expect(worldHeight(x, z + tolerance), `land between samples at x=${x}`).toBeGreaterThan(0);
+      }
+    } finally { sea.dispose(); }
+  });
+
+  // B2-152b's bay reaches z ≈ −680: every point below sea level near the coast must sit under the sea plane.
+  it("covers the whole curved bay with the sea surface (no dry seabed)", () => {
+    const sea = createSea("Balanced");
+    try {
+      const box = sea.mesh.geometry.boundingBox!;
+      for (let z = -880; z <= -500; z += 10) for (let x = -400; x <= 400; x += 10) {
+        if (worldHeight(x, z) >= 0 || nearestRiver(x, z).distance < 14) continue;
+        expect(x >= box.min.x && x <= box.max.x && z >= box.min.z && z <= box.max.z, `seabed at (${x}, ${z})`).toBe(true);
+      }
+    } finally { sea.dispose(); }
+  });
+
   it("retains pre-landmark shoreline zero crossings, including the protected headland", () => {
     // B2-109 adds clearance above water without moving the existing coastline.
     for (const [x, baseline] of [

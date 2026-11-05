@@ -240,6 +240,14 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       material.setTime(elapsed);
       material.uniforms.uTime!.value = previous.uniforms.uTime!.value;
       material.setReducedMotion(reducedMotion);
+      // B2-154: the sea's sampled coastline (foam) and sun direction survive a quality change.
+      for (const key of ["uShoreBounds", "uShoreZ", "uHasShore", "uSunDirection"]) {
+        const from = previous.uniforms[key];
+        const to = material.uniforms[key];
+        if (!from || !to) continue;
+        to.value = typeof from.value?.clone === "function" ? from.value.clone()
+          : Array.isArray(from.value) ? [...from.value] : from.value;
+      }
       // WaterSurface owns its original material; dispose replacements explicitly below.
       surface.mesh.material = material;
       previous.dispose();
@@ -319,6 +327,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     paper?.setGrade(grade);
     paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });
     elapsed += dt;
+    water[1]!.mesh.material.setSunDirection(grade.sunDirection);
     for (const surface of water) {
       surface.mesh.material.setTime(elapsed);
       surface.mesh.material.setSkyMix(surface === water[1] ? SEA_SKY_MIX * tod : tod);

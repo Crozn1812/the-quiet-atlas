@@ -243,3 +243,24 @@ it("turns the coast mountain mist to the left of the coast road", async () => {
   const facing = new Vector3(0, 0, 1).applyAxisAngle(new Vector3(0, 1, 0), coastMistYaw());
   expect(facing.dot(left)).toBeGreaterThan(0.999);
 });
+
+// B2-154 wiring: the sea follows the graded sun, and keeps its foam coastline across quality changes.
+it("feeds the graded sun to the sea and keeps the sea coastline when quality changes", () => {
+  const backend = createMeshPhysics();
+  const scene = new Scene();
+  const composed = createWorldScene({ ...backend, scene, quality: "High" });
+  type SeaUniforms = { uniforms: Record<string, { value: unknown }> };
+  const sea = () => (scene.children.filter((child): child is Mesh => child instanceof Mesh)
+    .find(child => (child.material as unknown as SeaUniforms).uniforms?.uHasShore?.value === 1)!.material as unknown as SeaUniforms);
+  try {
+    composed.update(pathPointAt(0.95), 0);
+    const sun = composed.sun.position.clone().sub(composed.sun.target.position).normalize();
+    expect((sea().uniforms.uSunDirection!.value as Vector3).dot(sun)).toBeGreaterThan(0.999);
+    const shore = [...(sea().uniforms.uShoreZ!.value as number[])];
+    composed.setQuality("Low");
+    expect(sea().uniforms.uHasShore!.value).toBe(1);
+    expect(sea().uniforms.uShoreZ!.value).toEqual(shore);
+  } finally {
+    composed.dispose();
+  }
+});
