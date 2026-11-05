@@ -11,7 +11,8 @@ import { createGradeFollower } from "../../../src/features/world/sky/smoothing";
 import { createCoastMountainMist, createSkyDome } from "../../../src/features/world/sky/dome";
 
 // Execute the shipped GLSL arithmetic on the CPU; only GLSL types/vector syntax are adapted.
-type DomeEvaluator = (...args: unknown[]) => { color: number[]; density: number };
+type CloudShape = { x: number; y: number; z: number };
+type DomeEvaluator = (...args: unknown[]) => { color: number[]; density: number; shape: CloudShape };
 const evaluators = new WeakMap<ReturnType<typeof createSkyDome>["mesh"]["material"], DomeEvaluator>();
 function sampleDomeData(dome: ReturnType<typeof createSkyDome>, direction: Vector3) {
   const { uniforms, fragmentShader } = dome.mesh.material;
@@ -23,8 +24,8 @@ function sampleDomeData(dome: ReturnType<typeof createSkyDome>, direction: Vecto
         "function " + name + "(" + params.replace(/\b(?:float|vec3) /g, "") + ") {")
       .replace(/\b(?:float|vec3) (\w+) =/g, "let $1 =")
       .replace("return color + sunGlow * radiance;", "return color.map((v, i) => v + sunGlow[i] * radiance);");
-    evaluate = new Function("direction", ...names, "mix", "smoothstep", "max", "abs", "sqrt", "cos", "sin", "radians", "dot", "normalize", "fract", "floor", "mod", "atan",
-      body + " return { color: skyColor(direction), density: cloudDensity(direction) };") as DomeEvaluator;
+    evaluate = new Function("direction", ...names, "mix", "smoothstep", "max", "abs", "sqrt", "cos", "sin", "radians", "dot", "normalize", "fract", "floor", "mod", "atan", "min", "vec3",
+      body + " return { color: skyColor(direction), density: cloudDensity(direction), shape: cloudShape(direction) };") as DomeEvaluator;
     evaluators.set(dome.mesh.material, evaluate);
   }
   const mix = (a: number | number[], b: number | number[], t: number): number | number[] =>
@@ -39,8 +40,9 @@ function sampleDomeData(dome: ReturnType<typeof createSkyDome>, direction: Vecto
   });
   const result = evaluate(direction.clone().normalize(), ...values, mix, smoothstep, Math.max, Math.abs, Math.sqrt, Math.cos, Math.sin,
     (degrees: number) => degrees * Math.PI / 180, (a: Vector3, b: Vector3) => a.dot(b), (v: Vector3) => v.clone().normalize(),
-    (v: number) => v - Math.floor(v), Math.floor, (a: number, b: number) => a - b * Math.floor(a / b), Math.atan2);
-  return { color: new Color().setRGB(result.color[0]!, result.color[1]!, result.color[2]!), density: result.density };
+    (v: number) => v - Math.floor(v), Math.floor, (a: number, b: number) => a - b * Math.floor(a / b), Math.atan2,
+    Math.min, (x: number, y: number, z: number) => ({ x, y, z }));
+  return { color: new Color().setRGB(result.color[0]!, result.color[1]!, result.color[2]!), density: result.density, shape: result.shape };
 }
 function sampleDome(dome: ReturnType<typeof createSkyDome>, direction: Vector3): Color {
   return sampleDomeData(dome, direction).color;
@@ -49,6 +51,49 @@ const luma = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 const rayAt = (azimuth: number, elevation: number) => new Vector3(
   Math.cos(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.sin(azimuth) * Math.cos(elevation),
 );
+
+// Frozen pre-B2-188 density, evaluated by the same CPU GLSL adapter as production.
+const legacyCloudDensity = `
+      float oldCloudNoise(float x, float y, float period) {
+        float ix = floor(x);
+        float iy = floor(y);
+        float fx = fract(x);
+        float fy = fract(y);
+        float ux = fx * fx * (3.0 - 2.0 * fx);
+        float uy = fy * fy * (3.0 - 2.0 * fy);
+        return mix(mix(cloudHash(ix, iy, period), cloudHash(ix + 1.0, iy, period), ux),
+          mix(cloudHash(ix, iy + 1.0, period), cloudHash(ix + 1.0, iy + 1.0, period), ux), uy);
+      }
+      float cloudDensity(vec3 direction) {
+        float band = smoothstep(sin(radians(5.0)), sin(radians(10.0)), direction.y);
+        band *= 1.0 - smoothstep(sin(radians(30.0)), sin(radians(35.0)), direction.y);
+        float x = atan(direction.z, direction.x) * 5.09295818 + 16.0 + cloudTime * 0.025;
+        float y = direction.y * 12.0;
+        float puffs = 0.72 * oldCloudNoise(x, y, 32.0) + 0.21 * oldCloudNoise(x * 2.0, y * 2.0, 64.0);
+        puffs += 0.07 * oldCloudNoise(x * 4.0, y * 4.0, 128.0);
+        return band * smoothstep(0.52, 0.66, puffs);
+      }
+`;
+
+// Interpolated angular distances between actual 10% and 90% crossings, in both
+// directions. Ignore incomplete wisps that never reach an opaque core.
+function edgeWidths(densities: number[], step: number) {
+  const widths: number[] = [];
+  for (const invert of [false, true]) {
+    let start: number | undefined;
+    for (let i = 1; i < densities.length; i++) {
+      const a = invert ? 1 - densities[i - 1]! : densities[i - 1]!;
+      const b = invert ? 1 - densities[i]! : densities[i]!;
+      if (b <= 0.1) start = undefined;
+      if (a <= 0.1 && b > 0.1) start = i - 1 + (0.1 - a) / (b - a);
+      if (start !== undefined && a < 0.9 && b >= 0.9) {
+        widths.push((i - 1 + (0.9 - a) / (b - a) - start) * step);
+        start = undefined;
+      }
+    }
+  }
+  return widths.sort((a, b) => a - b);
+}
 
 function placedGrade(t: number) {
   const tod = timeOfDayAt(t);
@@ -370,6 +415,126 @@ describe("grade follower", () => {
 });
 
 describe("sky dome without a GPU", () => {
+  it("makes painted 10–90 percent silhouette edges at least four times narrower than the old blur", () => {
+    const dome = createSkyDome();
+    const old = createSkyDome();
+    old.mesh.material.fragmentShader = old.mesh.material.fragmentShader.replace(
+      /float cloudDensity\(vec3 direction\) \{[^}]+\}/, legacyCloudDensity,
+    );
+    try {
+      const step = 2 * Math.PI / 16384;
+      const widths: number[][] = [[], []];
+      for (const elevation of [12, 16, 20, 24, 28]) {
+        for (const [index, sky] of [dome, old].entries()) {
+          const samples = Array.from({ length: 16385 }, (_, i) =>
+            sampleDomeData(sky, rayAt(-Math.PI + i * step, elevation * Math.PI / 180)).density);
+          widths[index]!.push(...edgeWidths(samples, step));
+        }
+      }
+      widths.forEach(values => {
+        values.sort((a, b) => a - b);
+        expect(values.length).toBeGreaterThan(40);
+      });
+      // Compare the distributions, rather than one convenient hand-picked edge.
+      for (const quantile of [0.1, 0.5, 0.9]) {
+        const current = widths[0]![Math.floor((widths[0]!.length - 1) * quantile)]!;
+        const previous = widths[1]![Math.floor((widths[1]!.length - 1) * quantile)]!;
+        expect(current).toBeLessThanOrEqual(previous / 4);
+      }
+    } finally { dome.dispose(); old.dispose(); }
+  });
+
+  it.each([0.15, 0.93])("gives individual cloud crowns at least 15 percent more luma than their bases at path %s", pathT => {
+    const dome = createSkyDome(placedGrade(pathT));
+    try {
+      let pairs = 0;
+      for (let column = 0; column < 96; column++) {
+        let base: ReturnType<typeof sampleDomeData> | undefined;
+        for (let row = 0; row < 512; row++) {
+          const sample = sampleDomeData(dome, rayAt(column * 2 * Math.PI / 96, Math.asin((row + 0.5) / 512)));
+          if (sample.density < 0.99) { base = undefined; continue; }
+          if (sample.shape.y >= 0.12 && sample.shape.y <= 0.2) base = sample;
+          if (base && sample.shape.y >= 0.72 && sample.shape.y <= 0.82) {
+            expect(luma(sample.color)).toBeGreaterThanOrEqual(luma(base.color) * 1.15);
+            pairs++;
+            base = undefined;
+          }
+        }
+      }
+      expect(pairs).toBeGreaterThan(40);
+      const crown = dome.mesh.material.uniforms.cloud!.value as Color;
+      const base = dome.mesh.material.uniforms.cloudBase!.value as Color;
+      expect(base.r).toBeGreaterThan(base.b); // Pink/peach condensation base.
+      if (pathT === 0.15) expect(base.b).toBeGreaterThan(base.g); // Grey-pink, rather than brown.
+      if (pathT === 0.93) {
+        expect(crown.r).toBeGreaterThan(crown.g);
+        expect(crown.b).toBeGreaterThan(crown.g); // Muted violet-grey away from the warm rim.
+        expect(Math.max(crown.r, crown.g, crown.b) - Math.min(crown.r, crown.g, crown.b)).toBeLessThan(0.1);
+      }
+    } finally { dome.dispose(); }
+  });
+
+  it.each([0.15, 0.93])("puts the warm cloud rim on the sun-facing shoulder at path %s", pathT => {
+    const dome = createSkyDome(placedGrade(pathT));
+    try {
+      let checked = 0;
+      for (let row = 0; row < 32; row++) {
+        const elevation = Math.asin(0.52 + row * 0.012);
+        for (let column = 0; column < 128; column++) {
+          const azimuth = column * 2 * Math.PI / 128;
+          const ray = rayAt(azimuth, elevation);
+          const { shape, density } = sampleDomeData(dome, ray);
+          if (shape.x < 0.03 || shape.x > 0.12 || shape.y < 0.6 || Math.abs(shape.z) < 0.3 || density < 0.99) continue;
+          // Above the halo and well away from the sun disc: only cloud lighting changes.
+          const turn = Math.sign(shape.z) * Math.PI / 2;
+          dome.mesh.material.uniforms.sunDirection!.value.copy(rayAt(azimuth + turn, 0.05));
+          const lit = sampleDome(dome, ray);
+          dome.mesh.material.uniforms.sunDirection!.value.copy(rayAt(azimuth - turn, 0.05));
+          const shaded = sampleDome(dome, ray);
+          expect(lit.r - lit.b).toBeGreaterThan(shaded.r - shaded.b);
+          checked++;
+        }
+      }
+      expect(checked).toBeGreaterThan(10);
+    } finally { dome.dispose(); }
+  });
+
+  it("makes distant silhouettes smaller and flatter than the high cumulus crowns", () => {
+    const dome = createSkyDome();
+    const spans = (samples: number[], coordinates: number[]) => {
+      const widths: number[] = [];
+      let start: number | undefined;
+      for (let i = 0; i < samples.length; i++) {
+        if (samples[i]! >= 0.5) start ??= coordinates[i];
+        else if (start !== undefined) {
+          widths.push(coordinates[i]! - start);
+          start = undefined;
+        }
+      }
+      return widths;
+    };
+    const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+    try {
+      const sizes = [1, 3].map(band => {
+        const elevation = Math.asin(((band + 0.46) / 4) ** 2);
+        const azimuths = Array.from({ length: 4097 }, (_, i) => i * 2 * Math.PI / 4096);
+        const widths = spans(azimuths.map(a => sampleDomeData(dome, rayAt(a, elevation)).density), azimuths)
+          .map(width => width * Math.cos(elevation)); // Angular width on the unit sphere.
+        const heights: number[] = [];
+        const elevations = Array.from({ length: 257 }, (_, i) => Math.asin(Math.min(1, ((band + 0.15 + i * 0.85 / 256) / 4) ** 2)));
+        for (let column = 0; column < 64; column++) {
+          heights.push(...spans(elevations.map(e => sampleDomeData(dome, rayAt(column * 2 * Math.PI / 64, e)).density), elevations));
+        }
+        expect(widths.length).toBeGreaterThan(10);
+        expect(heights.length).toBeGreaterThan(10);
+        return { width: mean(widths), height: mean(heights) };
+      });
+      expect(sizes[0]!.width).toBeLessThan(sizes[1]!.width * 0.9);
+      expect(sizes[0]!.height).toBeLessThan(sizes[1]!.height * 0.5);
+      expect(sizes[0]!.height / sizes[0]!.width).toBeLessThan(sizes[1]!.height / sizes[1]!.width * 0.75);
+    } finally { dome.dispose(); }
+  });
+
   it("makes the dusk halo warmer than dawn and gives dusk clouds orange undersides", () => {
     const grades = [placedGrade(0.15), placedGrade(0.93)];
     const domes = grades.map(grade => createSkyDome(grade));
@@ -399,50 +564,41 @@ describe("sky dome without a GPU", () => {
     } finally { domes.forEach(dome => dome.dispose()); }
   });
 
-  it.each([0.3, 0.9])("keeps 15–35 percent solid-angle cloud cover in the 5–35 degree band at path %s", pathT => {
+  // B2-188 replaces the old 5–35 degree shelf: cover is now measured over the whole
+  // upper hemisphere, with darker condensation bases instead of uniformly white cores.
+  it.each([0.15, 0.3, 0.9, 0.93])("keeps 25–40 percent solid-angle cloud cover above the horizon at path %s", pathT => {
     const dome = createSkyDome(placedGrade(pathT));
-    const reference = createSkyDome(placedGrade(pathT));
     try {
-      // Isolate clouds from sunlight. A black cloud reference would distort contrast:
-      // replace only the density return in the same shader to sample the unobscured sky.
-      reference.mesh.material.fragmentShader = reference.mesh.material.fragmentShader
-        .replace("return band * smoothstep(0.52, 0.66, puffs);", "return 0.0;");
       dome.mesh.material.uniforms.sunGlow!.value.setRGB(0, 0, 0);
-      reference.mesh.material.uniforms.sunGlow!.value.setRGB(0, 0, 0);
-      const low = Math.sin(5 * Math.PI / 180);
-      const high = Math.sin(35 * Math.PI / 180);
       for (const seconds of [0, 120, 600]) {
         dome.mesh.material.uniforms.cloudTime!.value = seconds;
         let cloudy = 0;
-        let minimumContrast = Infinity;
         const densities: number[] = [];
         for (let row = 0; row < 48; row++) {
           // Equal increments of sin(elevation) give equal solid-angle samples.
-          const elevation = Math.asin(low + (high - low) * (row + 0.5) / 48);
+          const elevation = Math.asin((row + 0.5) / 48);
           for (let column = 0; column < 192; column++) {
             const ray = rayAt((column + 0.5) * 2 * Math.PI / 192, elevation);
             const sample = sampleDomeData(dome, ray);
             densities.push(sample.density);
             if (sample.density >= 0.5) {
               cloudy++;
-              minimumContrast = Math.min(minimumContrast, luma(sample.color) - luma(sampleDome(reference, ray)));
+              expect(luma(sample.color)).toBeGreaterThan(0.06);
             }
           }
         }
         const coverage = cloudy / (48 * 192);
-        expect(coverage).toBeGreaterThanOrEqual(0.15);
-        expect(coverage).toBeLessThanOrEqual(0.35);
-        // Dawn's warm cloud edges have softer contrast than the old white noon clouds.
-        expect(minimumContrast).toBeGreaterThanOrEqual(0.14);
+        expect(coverage).toBeGreaterThanOrEqual(0.25);
+        expect(coverage).toBeLessThanOrEqual(0.40);
         expect(densities.some(value => value > 0 && value < 0.5)).toBe(true); // Soft painted edges.
         expect(densities.some(value => value > 0.99)).toBe(true); // White opaque cores.
       }
-      for (const elevation of [-20, 0, 5, 35, 60, 90]) {
+      for (const elevation of [-20, 0, 90]) {
         for (let azimuth = 0; azimuth < 360; azimuth += 15) {
           expect(sampleDomeData(dome, rayAt(azimuth * Math.PI / 180, elevation * Math.PI / 180)).density).toBeCloseTo(0, 12);
         }
       }
-    } finally { dome.dispose(); reference.dispose(); }
+    } finally { dome.dispose(); }
   });
 
   it("drifts slowly, pauses without jumping under reduced motion, resumes and is frame independent", () => {
@@ -482,10 +638,11 @@ describe("sky dome without a GPU", () => {
         dome.update(lightingAt(0), seconds);
         twin.update(lightingAt(0), seconds);
         for (let elevation = 6; elevation < 35; elevation++) {
-          const ray = rayAt(Math.PI - 1e-8, elevation * Math.PI / 180);
+          // Resolve the seam at 1e-10 radians now that painted edges are much steeper.
+          const ray = rayAt(Math.PI - 1e-10, elevation * Math.PI / 180);
           const sample = sampleDomeData(dome, ray);
           expect(sampleDomeData(twin, ray)).toEqual(sample);
-          expect(sampleDomeData(dome, rayAt(-Math.PI + 1e-8, elevation * Math.PI / 180)).density).toBeCloseTo(sample.density, 5);
+          expect(sampleDomeData(dome, rayAt(-Math.PI + 1e-10, elevation * Math.PI / 180)).density).toBeCloseTo(sample.density, 5);
         }
       }
     } finally { dome.dispose(); twin.dispose(); }
@@ -574,8 +731,8 @@ describe("sky dome without a GPU", () => {
     expect(material.fragmentShader).toContain("cloudDensity");
     expect(mesh.geometry.index!.count / 3).toBe(528); // One draw, no extra cloud geometry/pass.
     expect(Object.values(material.uniforms).some(u => u.value?.isTexture)).toBe(false);
-    expect(material.uniforms.cloud!.value).toEqual(new Color(PALETTE.cloud).lerp(lightingAt(0).sunColor, 0.12));
-    expect(material.uniforms.cloudBase!.value).toEqual(new Color(PALETTE.cloud).lerp(dawnHorizon, 0.28).lerp(lightingAt(0).sunColor, 0.25));
+    expect(material.uniforms.cloud!.value).toEqual(new Color(PALETTE.cloud).lerp(lightingAt(0).skyTop, 0.25).lerp(lightingAt(0).sunColor, 0.12));
+    expect(material.uniforms.cloudBase!.value).toEqual(new Color(PALETTE.cloud).lerp(new Color(PALETTE.indigo), 0.7).lerp(new Color(PALETTE.vermilion), 0.18).lerp(dawnHorizon, 0.06).lerp(lightingAt(0).sunColor, 0.03));
     expect(material.fragmentShader).toContain("#include <colorspace_fragment>");
     expect(material.uniforms.sunDirection!.value).toBeInstanceOf(Vector3);
     expect(material.uniforms.coastWeight!.value).toBe(0);
