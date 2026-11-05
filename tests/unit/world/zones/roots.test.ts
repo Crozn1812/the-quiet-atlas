@@ -27,6 +27,58 @@ function meshes(scene: ZoneScene): PaintedMesh[] {
   scene.group.traverse(node => { if (node instanceof Mesh) result.push(node as PaintedMesh); });
   return result;
 }
+
+/** Recover connected pieces from the final batches, independent of material boundaries. */
+function connectedParts(parts: PaintedMesh[]): Vector3[][][] {
+  const parents = new Map<string, string>();
+  const triangles: Vector3[][] = [];
+  const key = (p: Vector3) => p.toArray().join(",");
+  const find = (id: string): string => {
+    const parent = parents.get(id)!;
+    if (parent === id) return id;
+    const root = find(parent);
+    parents.set(id, root);
+    return root;
+  };
+  for (const mesh of parts) {
+    const positions = mesh.geometry.getAttribute("position");
+    for (let i = 0; i < positions.count; i += 3) {
+      const triangle = [0, 1, 2].map(j => new Vector3().fromBufferAttribute(positions, i + j));
+      const ids = triangle.map(key);
+      ids.forEach(id => { if (!parents.has(id)) parents.set(id, id); });
+      parents.set(find(ids[1]!), find(ids[0]!));
+      parents.set(find(ids[2]!), find(ids[0]!));
+      triangles.push(triangle);
+    }
+  }
+  const pieces = new Map<string, Vector3[][]>();
+  for (const triangle of triangles) {
+    const id = find(key(triangle[0]!)), piece = pieces.get(id) ?? [];
+    piece.push(triangle);
+    pieces.set(id, piece);
+  }
+  return [...pieces.values()];
+}
+
+function rootSections(scene: ZoneScene): Vector3[][][] {
+  const wood = scene.group.getObjectByName("roots-wood") as PaintedMesh;
+  const positions = wood.geometry.getAttribute("position");
+  const triangles = Array.from({ length: positions.count / 3 }, (_, i) =>
+    [0, 1, 2].map(j => new Vector3().fromBufferAttribute(positions, i * 3 + j)));
+  const unique = (points: Vector3[]) => [...new Map(points.map(p => [p.toArray().join(","), p])).values()];
+  // The stump and its three growth rings precede the roots. Each root has twelve
+  // eight-sided spans (one ink flank) and two caps. Shared buried tips join the cross-links.
+  const rootTriangles = triangles.slice(48 + 3 * 48);
+  expect(rootTriangles.length % 180).toBe(0);
+  return Array.from({ length: rootTriangles.length / 180 }, (_, index) => {
+    const piece = rootTriangles.slice(index * 180, (index + 1) * 180);
+    const spans = Array.from({ length: 12 }, (_, i) => unique(piece.slice(i * 14, (i + 1) * 14).flat()));
+    const caps = piece.slice(168, 180);
+    return [unique(caps.filter((_, i) => i % 2 === 0).flat()),
+      ...spans.slice(1).map((span, i) => span.filter(p => spans[i]!.some(q => p.equals(q)))),
+      unique(caps.filter((_, i) => i % 2 === 1).flat())];
+  });
+}
 function signature(scene: ZoneScene) {
   return {
     zone: scene.zoneId, interactable: scene.interactable, colliders: scene.colliders,
@@ -134,7 +186,7 @@ describe("The Roots procedural zone", () => {
       .toEqual(meshes(normal).map(mesh => mesh.geometry.getAttribute("position").count));
   });
 
-  it("has a broad, flat end-grain table and eight visible root tips on either verge", () => {
+  it("has a broad, flat end-grain table and seven visible root tips on either verge", () => {
     for (const side of [1, -1]) {
       const ctx = context({ heightAt: (x, z) => x * 0.03 - z * 0.01,
         underWater: x => side * x < -2.6 });
@@ -150,13 +202,105 @@ describe("The Roots procedural zone", () => {
         .intersectObject(scene.group);
       expect(hits[0]?.object.name).toBe("roots-cut");
       const wood = scene.group.getObjectByName("roots-wood") as PaintedMesh;
-      for (const [x, z] of [[-1.15, -3.3], [-1.05, 3.1], [1.2, 4.7], [4.4, 4],
-        [6, 1.4], [5.7, -2.5], [3, -4.5], [0.2, -4.7]]) {
+      for (const [x, z] of [[-0.65, -3.5], [-0.7, 3.6], [1.5, 5], [4.6, 3.8],
+        [5.9, 0.6], [4.4, -3.7], [1, -5.1]]) {
         // Aim just inside the tapered tip, away from its terminal triangle edge.
         const from = new Vector3(p.x + side * x! * 0.99, 5, p.z + z! * 0.99);
         expect(new Raycaster(from, new Vector3(0, -1, 0)).intersectObject(wood).length,
           `visible root tip at ${side * x!}, ${z}`).toBeGreaterThan(0);
       }
+    }
+  });
+
+  it("builds seven asymmetric low S roots of 2–6 metres and two transverse connections", () => {
+    for (const seed of [1, 102, 9371]) {
+      const scene = create(context({ seed }));
+      const roots = rootSections(scene);
+      expect(roots).toHaveLength(9);
+      const center = (ring: Vector3[]) => ring.reduce((sum, p) => sum.add(p), new Vector3()).divideScalar(ring.length);
+      const curves = roots.map(rings => {
+        rings.forEach(ring => expect(ring).toHaveLength(8));
+        return rings.map(center);
+      });
+      const stump = scene.interactable.position;
+      const main = curves.filter(curve => Math.hypot(curve[0]!.x - stump.x, curve[0]!.z - stump.z) < 1);
+      expect(main).toHaveLength(7);
+      for (const curve of main) {
+        const length = curve.slice(1).reduce((sum, p, i) => sum + p.distanceTo(curve[i]!), 0);
+        expect(length).toBeGreaterThanOrEqual(2);
+        expect(length).toBeLessThanOrEqual(6);
+        const first = curve[0]!, last = curve.at(-1)!;
+        const normal = new Vector3(-(last.z - first.z), 0, last.x - first.x).normalize();
+        const offsets = curve.map(p => p.clone().sub(first).dot(normal));
+        expect(Math.min(...offsets)).toBeLessThan(-0.3);
+        expect(Math.max(...offsets)).toBeGreaterThan(0.3);
+        expect(Math.abs(Math.min(...offsets) + Math.max(...offsets))).toBeGreaterThan(0.08);
+        curve.forEach(p => expect(p.y).toBeLessThan(0.17));
+      }
+      for (const link of curves.filter(curve => !main.includes(curve))) {
+        for (const end of [link[0]!, link.at(-1)!]) {
+          expect(main.some(curve => Math.hypot(end.x - curve.at(-1)!.x, end.z - curve.at(-1)!.z) < 1e-5)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("keeps both ends of every root at least a metre from straight and curved corridors", () => {
+    const curved = (x: number, z: number) => Math.abs(x) <= PATH_CLEARANCE
+      || (x > 3.05 && x < 3.25 && z > 3.4 && z < 3.8);
+    for (const ctx of [context(), context({ underWater: x => x > 2.6 }), context({ onPath: curved })]) {
+      const scene = create(ctx);
+      for (const rings of rootSections(scene)) {
+        for (const ring of [rings[0]!, rings.at(-1)!]) {
+          for (const p of ring) {
+            expect(Math.abs(p.x) - PATH_CLEARANCE).toBeGreaterThanOrEqual(1);
+            for (let i = 0; i < 32; i++) {
+              const angle = i / 32 * Math.PI * 2;
+              expect(ctx.onPath(p.x + Math.cos(angle), p.z + Math.sin(angle))).toBe(false);
+            }
+          }
+        }
+      }
+      if (ctx.onPath === curved) expect(scene.interactable.position.x).toBeLessThan(0);
+    }
+  });
+
+  it("leaves the end grain visible and reachable from the road on either verge", () => {
+    for (const side of [1, -1]) {
+      const scene = create(context({ underWater: x => side * x < -2.6 }));
+      scene.group.updateMatrixWorld(true);
+      const target = new Vector3().copy(scene.interactable.position);
+      const eye = new Vector3(side * PATH_CLEARANCE, 1.65, target.z);
+      const hits = new Raycaster(eye, target.clone().sub(eye).normalize()).intersectObject(scene.group);
+      expect(hits[0]?.object.name).toBe("roots-cut");
+      expect(eye.distanceTo(target)).toBeLessThan(2.5);
+    }
+  });
+
+  it("reserves about a tenth of the surface for ink and two tiny flower accents", () => {
+    const scene = create();
+    const areas = meshes(scene).map(mesh => {
+      const p = mesh.geometry.getAttribute("position");
+      let area = 0;
+      for (let i = 0; i < p.count; i += 3) {
+        const a = new Vector3().fromBufferAttribute(p, i);
+        const b = new Vector3().fromBufferAttribute(p, i + 1);
+        const c = new Vector3().fromBufferAttribute(p, i + 2);
+        area += b.sub(a).cross(c.sub(a)).length() / 2;
+      }
+      return { name: mesh.name, area };
+    });
+    const ink = areas.find(part => part.name === "roots-ink")!.area;
+    const total = areas.reduce((sum, part) => sum + part.area, 0);
+    expect(ink / total).toBeGreaterThanOrEqual(0.07);
+    expect(ink / total).toBeLessThanOrEqual(0.15);
+    const flower = scene.group.getObjectByName("roots-flower") as PaintedMesh;
+    const flowers = connectedParts([flower]);
+    expect(flowers).toHaveLength(2);
+    for (const piece of flowers) {
+      const size = new Box3().setFromPoints(piece.flat()).getSize(new Vector3());
+      expect(Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.1);
+      expect(Math.max(size.x, size.z)).toBeLessThanOrEqual(0.15);
     }
   });
 
@@ -189,6 +333,7 @@ describe("The Roots procedural zone", () => {
       "roots-cut": new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.28),
       "roots-moss": new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.forestLight), 0.35),
       "roots-node": new Color(PALETTE.mist), "roots-vine": new Color(PALETTE.water),
+      "roots-ink": new Color(PALETTE.ink), "roots-flower": new Color(PALETTE.flower),
     };
     wood.dispose();
     const scene = create();
