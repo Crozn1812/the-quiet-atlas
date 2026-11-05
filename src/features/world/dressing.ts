@@ -1,7 +1,8 @@
 // Lead (batch 25): world-space set dressing that is not a zone: rocky shore (B2-164), the coast road (B2-163)
 // and path bridges (B2-168). Each module reports oriented box colliders; they join the zone boxes so Rapier and the
 // raycast fallback treat them the same way.
-import { BoxGeometry, Mesh, MeshBasicMaterial, Vector3, type Group } from "three";
+import { BoxGeometry, BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, Vector3, type Group } from "three";
+import { createBridges, type BridgeCollider } from "./bridges";
 import { createShore } from "./shore";
 import { createCoastRoad } from "./road/road";
 
@@ -28,6 +29,8 @@ export interface DressingCollider {
 interface DressingModule {
   readonly group: Group;
   readonly colliders: readonly DressingCollider[];
+  /** Walkable decks and rails (B2-168): Rapier trimeshes; the raycast fallback uses matching meshes. */
+  readonly trimeshes?: readonly BridgeCollider[];
   update?(dt: number, reducedMotion: boolean): void;
   dispose(): void;
 }
@@ -35,8 +38,10 @@ interface DressingModule {
 export function placeDressing() {
   const modules: DressingModule[] = [];
   const boxes: Mesh<BoxGeometry, MeshBasicMaterial>[] = [];
+  const surfaces: Mesh<BufferGeometry, MeshBasicMaterial>[] = [];
   try {
-    modules.push(createShore(), coastRoadDressing());
+    const bridges = createBridges();
+    modules.push(createShore(), coastRoadDressing(), { group: bridges.group, colliders: [], trimeshes: bridges.colliders, dispose: () => bridges.dispose() });
     for (const piece of modules) for (const collider of piece.colliders) {
       const box = new Mesh(new BoxGeometry(collider.size.x, collider.size.y, collider.size.z), new MeshBasicMaterial());
       box.position.copy(collider.center);
@@ -44,15 +49,29 @@ export function placeDressing() {
       box.updateMatrixWorld(true);
       boxes.push(box);
     }
+    for (const piece of modules) for (const trimesh of piece.trimeshes ?? []) {
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new BufferAttribute(trimesh.vertices, 3));
+      geometry.setIndex(new BufferAttribute(trimesh.indices, 1));
+      geometry.computeBoundingBox();
+      geometry.computeBoundingSphere();
+      const surface = new Mesh(geometry, new MeshBasicMaterial());
+      surface.name = `bridge-${trimesh.bridgeIndex}-${trimesh.kind}-collider`;
+      surface.updateMatrixWorld(true);
+      surfaces.push(surface);
+    }
   } catch (error) {
     modules.forEach(piece => piece.dispose());
-    boxes.forEach(box => { box.geometry.dispose(); box.material.dispose(); });
+    [...boxes, ...surfaces].forEach(mesh => { mesh.geometry.dispose(); mesh.material.dispose(); });
     throw error;
   }
   let disposed = false;
   return {
     groups: modules.map(piece => piece.group),
     boxes,
+    /** Raycast-backend obstacles/ground for decks and rails; never cuboids. */
+    surfaces,
+    trimeshes: modules.flatMap(piece => piece.trimeshes ?? []),
     update(dt: number, reducedMotion: boolean) {
       for (const piece of modules) piece.update?.(dt, reducedMotion);
     },
@@ -60,7 +79,7 @@ export function placeDressing() {
       if (disposed) return;
       disposed = true;
       for (const piece of modules) { piece.dispose(); piece.group.removeFromParent(); }
-      for (const box of boxes) { box.geometry.dispose(); box.material.dispose(); }
+      for (const mesh of [...boxes, ...surfaces]) { mesh.geometry.dispose(); mesh.material.dispose(); }
     },
   };
 }

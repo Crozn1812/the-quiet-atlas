@@ -34,3 +34,19 @@ it("stands the coast road's posts and poles up as collision boxes", async () => 
     }
   } finally { dressing.dispose(); }
 });
+
+// B2-168: each bridge deck/rail trimesh has a matching raycast mesh with the same triangles.
+it("exposes bridge trimeshes for Rapier and identical meshes for the raycast fallback", () => {
+  const dressing = placeDressing();
+  try {
+    expect(dressing.groups.length).toBe(3);
+    expect(dressing.trimeshes.length).toBeGreaterThanOrEqual(3);
+    expect(dressing.surfaces).toHaveLength(dressing.trimeshes.length);
+    dressing.trimeshes.forEach((trimesh, i) => {
+      const surface = dressing.surfaces[i]!;
+      expect(surface.geometry.getAttribute("position").array).toEqual(trimesh.vertices);
+      expect(surface.geometry.getIndex()!.count).toBe(trimesh.indices.length);
+    });
+    expect(dressing.trimeshes.filter(t => t.kind === "deck").length).toBeGreaterThanOrEqual(1);
+  } finally { dressing.dispose(); }
+});

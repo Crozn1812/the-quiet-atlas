@@ -12,6 +12,7 @@ import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import { createZoneEntryTracker, placeZoneScenes, zoneFoliageBounds } from "./zones";
 import { placeDressing } from "./dressing";
+import { addBridgeColliders } from "./bridges";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
 import { ACESFilmicToneMapping, Box3, Color, HemisphereLight, PerspectiveCamera, Ray, Scene, Raycaster, Vector2, Vector3, WebGLRenderer, type Mesh, type ShaderMaterial } from "three";
@@ -82,6 +83,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let renderer: WebGLRenderer | undefined;
   let zones: ReturnType<typeof placeZoneScenes> = [];
   let dressing: ReturnType<typeof placeDressing> | undefined;
+  let removeDressingTrimeshes: (() => void) | undefined;
   try {
     const physicsBackend = opts.collision === "raycast"
       ? createMeshPhysics()
@@ -98,15 +100,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       physicsBackend.world.createCollider(physicsBackend.RAPIER.ColliderDesc.cuboid(size.width / 2, size.height / 2, size.depth / 2)
         .setTranslation(box.position.x, box.position.y, box.position.z).setRotation(box.quaternion));
     }
+    // B2-168: bridge decks and rails are trimeshes in Rapier; the raycast backend gets matching meshes below.
+    if (opts.collision !== "raycast") removeDressingTrimeshes = addBridgeColliders(physicsBackend.RAPIER, physicsBackend.world, dressing.trimeshes);
     renderer = new WebGLRenderer({ antialias: true });
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paperPass = createGradedPaperPass(renderer, quality);
-    composition = createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes, zoneBounds: zoneFoliageBounds(zones) });
+    composition = createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: [...zoneBoxes, ...dressing.surfaces], zoneBounds: zoneFoliageBounds(zones) });
     if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
     controller.teleport(worldSpawn());
   } catch (error) {
     zones.forEach(zone => zone.dispose());
+    removeDressingTrimeshes?.();
     dressing?.dispose();
     composition?.dispose();
     controller?.dispose();
@@ -1236,6 +1241,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     motionPreference?.removeEventListener("change", updateMotionPreference);
     composed.dispose();
     zones.forEach(zone => zone.dispose());
+    removeDressingTrimeshes?.();
     dressing?.dispose();
     physics.dispose();
     character.dispose();
