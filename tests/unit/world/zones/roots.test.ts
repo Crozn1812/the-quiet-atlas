@@ -1,10 +1,10 @@
+import { createHash } from "node:crypto";
 import {
   Box3, BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3,
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
-import { createPropMaterial } from "../../../../src/features/world/props/materials";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
 import { placeZoneScenes, ZONE_FACTORIES } from "../../../../src/features/world/zones";
 import { createRootsScene } from "../../../../src/features/world/zones/roots";
@@ -402,21 +402,22 @@ describe("The Roots procedural zone", () => {
   });
 
   it("uses only palette pigment recipes with neutral washes, matte ramps and no text or glow", () => {
-    const wood = createPropMaterial("wood");
     const pigments: Record<string, Color> = {
-      "roots-wood": wood.color.clone(),
-      "roots-cut": new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.28),
-      "roots-moss": new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.forestLight), 0.35),
-      "roots-node": new Color(PALETTE.mist), "roots-vine": new Color(PALETTE.water),
-      "roots-ink": new Color(PALETTE.ink), "roots-flower": new Color(PALETTE.flower),
+      "roots-wood": new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.45),
+      "roots-cut": new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65),
+      "roots-moss": new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6),
+      "roots-node": new Color(PALETTE.rock), "roots-vine": new Color(PALETTE.forestDeep),
+      "roots-ink": new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.7),
+      "roots-flower": new Color(PALETTE.flower),
     };
-    wood.dispose();
     const scene = create();
     scene.group.traverse(node => expect(node.name).not.toMatch(/text|logo/i));
     for (const mesh of meshes(scene)) {
       const material = mesh.material;
       expect(material).toBeInstanceOf(MeshToonMaterial);
       expect(material.color.toArray()).toEqual(pigments[mesh.name]!.toArray());
+      const paper = new Vector3(...new Color(PALETTE.paper).toArray());
+      expect(new Vector3(...material.color.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
       expect(material.emissive.getHex()).toBe(0);
       expect(material.vertexColors).toBe(true);
       expect(material.transparent).toBe(false);
@@ -429,8 +430,28 @@ describe("The Roots procedural zone", () => {
         expect(colors.getX(i)).toBeLessThanOrEqual(0.981);
         expect(colors.getY(i)).toBe(colors.getX(i));
         expect(colors.getZ(i)).toBe(colors.getX(i));
+        const pigment = material.color.clone().multiplyScalar(colors.getX(i));
+        expect(new Vector3(...pigment.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
       }
     }
+  });
+
+  it("adds at most 120 grounded triangles at the stump foot without enlarging its colliders", () => {
+    const scene = create();
+    const moss = scene.group.getObjectByName("roots-moss") as PaintedMesh;
+    const positions = moss.geometry.getAttribute("position");
+    // The original two cut-top moss patches are 40 triangles; the new clusters stay at the foot.
+    const extra = positions.count / 3 - 40;
+    expect(extra).toBe(120);
+    expect(extra).toBeLessThanOrEqual(300);
+    for (let i = 40 * 3; i < positions.count; i++) {
+      const p = new Vector3().fromBufferAttribute(positions, i);
+      expect(Math.hypot(p.x - 6.4, p.z)).toBeLessThan(3.4);
+      expect(p.y).toBeGreaterThanOrEqual(0);
+      expect(p.y).toBeLessThanOrEqual(0.5);
+    }
+    const total = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+    expect(total - 2624).toBe(extra);
   });
 
   it("has finite, nondegenerate triangles with matching flat normals", () => {
@@ -482,4 +503,24 @@ describe("The Roots procedural zone", () => {
     expect(() => createRootsScene(context({ onPath: () => true }))).toThrow(RangeError);
     expect(dispose).toHaveBeenCalled();
   });
+
+  it("preserves all original triangles, transforms, colliders and interaction", () => {
+    const scene = create();
+    scene.group.updateMatrixWorld(true);
+    const triangles: string[] = [];
+    for (const mesh of meshes(scene)) {
+      const positions = mesh.geometry.getAttribute("position");
+      // Only the new soft detail triangles are excluded from the pre-ticket fingerprint.
+      const added = mesh.name === "roots-moss" ? 120 * 3 : 0;
+      for (let i = 0; i < positions.count - added; i += 3) {
+        triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
+          .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
+      }
+    }
+    const fingerprint = createHash("sha256").update(JSON.stringify({
+      triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
+    })).digest("hex");
+    expect(fingerprint).toBe("9ad79312becf3cf247681c7a7e44030a964cae33730992230ffec96991b86477");
+  });
+
 });

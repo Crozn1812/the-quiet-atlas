@@ -4,6 +4,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
+import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
@@ -265,10 +266,26 @@ export const createRootsScene: ZoneSceneFactory = context => {
     throw new RangeError("The Roots needs a dry, gentle verge three metres clear of the bank.");
   }
   const { side, z: offsetZ } = placement;
+  // Independent soft details never participate in choosing the stump site or its colliders.
+  // Two clusters at the rear foot: 2 × (40 fern + 20 moss) = at most 120 triangles.
+  for (const [x, z, scale] of [[2.5, 1.3, 0.5], [2.35, -1.4, 0.42]]) {
+    const fern = createFern().scale(scale!, scale!, scale!).rotateY(context.seed * 0.01 + x!)
+      .translate(x!, 0, z!);
+    const flat = fern.toNonIndexed();
+    fern.dispose();
+    const details: Part[] = [
+      { geometry: flat, surface: "moss" },
+      { geometry: new IcosahedronGeometry(1, 0).scale(0.4, 0.075, 0.3)
+        .translate(x! - 0.3, 0.08, z!), surface: "moss" },
+    ];
+    if (fits(details, placement, context)) parts.push(...details);
+    else details.forEach(part => part.geometry.dispose());
+  }
   const ground = context.heightAt(side * STUMP_X, offsetZ);
   const batches = new Map<Surface, BufferGeometry[]>();
   const colliders: ZoneCollider[] = [];
   for (const part of parts) {
+    part.geometry.deleteAttribute("uv");
     const positions = part.geometry.getAttribute("position");
     const colors: number[] = [];
     for (let i = 0; i < positions.count; i++) {
@@ -312,11 +329,12 @@ export const createRootsScene: ZoneSceneFactory = context => {
     merged.computeBoundingBox();
     merged.computeBoundingSphere();
     const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
-    if (surface === "cut") material.color.set(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.28);
-    if (surface === "moss") material.color.set(PALETTE.forestDeep).lerp(new Color(PALETTE.forestLight), 0.35);
-    if (surface === "node") material.color.set(PALETTE.mist);
-    if (surface === "vine") material.color.set(PALETTE.water);
-    if (surface === "ink") material.color.set(PALETTE.ink);
+    if (surface === "wood") material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.45);
+    if (surface === "cut") material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65);
+    if (surface === "moss") material.color.set(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6);
+    if (surface === "node") material.color.set(PALETTE.rock);
+    if (surface === "vine") material.color.set(PALETTE.forestDeep);
+    if (surface === "ink") material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.7);
     if (surface === "flower") material.color.set(PALETTE.flower);
     const mesh = new Mesh(merged, material);
     mesh.name = `roots-${surface}`;

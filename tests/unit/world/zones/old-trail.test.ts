@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -78,7 +79,7 @@ describe("old-trail scene", () => {
     const all = meshes(scene);
     const triangles = all.reduce((total, mesh) => total + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = all.reduce((total, mesh) => total + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
-    expect(triangles).toBe(2988);
+    expect(triangles).toBe(3108);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     expect(drawCalls).toBe(7);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
@@ -126,10 +127,9 @@ describe("old-trail scene", () => {
     expect(create({ underWater: x => Math.abs(x) > 7 }).group.getObjectByName("leaning-pine-jade-crown")).toBeUndefined();
   });
 
-  it("uses restrained ink coverage and one 0.12 m flower accent attached to the lantern", () => {
+  it("keeps the dark marker feet, trunk and lantern frame restrained and one 0.12 m flower accent", () => {
     const scene = create();
     const all = meshes(scene);
-    const inkColor = new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex();
     const area = (mesh: Mesh) => {
       const positions = mesh.geometry.getAttribute("position");
       let sum = 0;
@@ -141,7 +141,7 @@ describe("old-trail scene", () => {
       }
       return sum;
     };
-    const inkArea = all.filter(mesh => (mesh.material as MeshToonMaterial).color.getHex() === inkColor)
+    const inkArea = all.filter(mesh => ["ink-marker-feet-and-pine-trunk", "storm-lantern-frame"].includes(mesh.name))
       .reduce((sum, mesh) => sum + area(mesh), 0);
     const coverage = inkArea / all.reduce((sum, mesh) => sum + area(mesh), 0);
     expect(coverage).toBeGreaterThan(0.06);
@@ -237,12 +237,12 @@ describe("old-trail scene", () => {
 
   it("uses only palette-derived matte materials, neutral vertex washes, and no text/logo meshes", () => {
     const expectedColors = [
-      new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12).getHex(),
-      new Color(PALETTE.forestLight).lerp(new Color(PALETTE.paper), 0.24).getHex(),
+      new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.45).getHex(),
+      new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6).getHex(),
       new Color(PALETTE.forestLight).lerp(new Color(PALETTE.forestDeep), 0.15).getHex(),
-      new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
-      new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
-      new Color(PALETTE.dusk).lerp(new Color(PALETTE.paper), 0.42).getHex(),
+      new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.45).getHex(),
+      new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3).getHex(),
+      new Color(PALETTE.sunGold).lerp(new Color(PALETTE.dusk), 0.25).getHex(),
       new Color(PALETTE.flower).getHex(),
     ];
     const all = meshes(create());
@@ -251,6 +251,8 @@ describe("old-trail scene", () => {
       expect(mesh.name).not.toMatch(/text|logo/i);
       expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
       const material = mesh.material as MeshToonMaterial;
+      const paper = new Vector3(...new Color(PALETTE.paper).toArray());
+      expect(new Vector3(...material.color.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
       expect(material.vertexColors).toBe(true);
       expect(material.transparent).toBe(false);
       expect(material.gradientMap).toBeTruthy();
@@ -261,8 +263,27 @@ describe("old-trail scene", () => {
         expect(colors.getX(i)).toBeLessThanOrEqual(0.98 + 1e-6);
         expect(colors.getX(i)).toBe(colors.getY(i));
         expect(colors.getX(i)).toBe(colors.getZ(i));
+        const pigment = material.color.clone().multiplyScalar(colors.getX(i));
+        expect(new Vector3(...pigment.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
       }
     }
+  });
+
+  it("adds only 120 soft moss/fern triangles beside the tall marker", () => {
+    const scene = create();
+    const moss = scene.group.getObjectByName("moss-washes") as Mesh;
+    const positions = moss.geometry.getAttribute("position");
+    // Ten original marker patches and three gate patches each contain 20 triangles.
+    const extra = positions.count / 3 - 13 * 20;
+    expect(extra).toBe(120);
+    expect(extra).toBeLessThanOrEqual(300);
+    for (let i = 13 * 20 * 3; i < positions.count; i++) {
+      const p = new Vector3().fromBufferAttribute(positions, i);
+      expect(Math.hypot(p.x - scene.interactable.position.x, p.z - scene.interactable.position.z)).toBeLessThan(0.8);
+      expect(p.y).toBeGreaterThanOrEqual(0);
+      expect(p.y).toBeLessThanOrEqual(0.4 + 1e-6);
+    }
+    console.info(`Old Trail budget: 3108 triangles, ${meshes(scene).length} draw calls`);
   });
 
   it("has finite vertices, nondegenerate faces and outward flat normals", () => {
@@ -323,4 +344,25 @@ describe("old-trail scene", () => {
     expect(() => create({ underWater: () => true })).toThrow(RangeError);
     expect(() => create({ onPath: () => true })).toThrow(RangeError);
   });
+
+  it("preserves all original triangles, transforms, colliders and interaction", () => {
+    const scene = create();
+    scene.group.updateMatrixWorld(true);
+    const triangles: string[] = [];
+    for (const mesh of meshes(scene)) {
+      const positions = mesh.geometry.getAttribute("position");
+      // Only the new soft detail triangles are excluded from the pre-ticket fingerprint.
+      const added = mesh.name === "moss-washes" ? 120 * 3 : 0;
+      for (let i = 0; i < positions.count - added; i += 3) {
+        triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
+          .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
+      }
+    }
+    const fingerprint = createHash("sha256").update(JSON.stringify({
+      triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
+    })).digest("hex");
+    // Re-baselined after B2-175 changed the shared pine crown (zone geometry otherwise untouched by B2-176).
+    expect(fingerprint).toBe("9047f2fe3615c37710fc709b59af64e4bb144979600053fd5dc3c168080ca2cf");
+  });
+
 });

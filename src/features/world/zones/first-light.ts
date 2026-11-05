@@ -8,7 +8,6 @@ import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import type { PaletteKey } from "../art/palette";
 import { createPineCrown, createTreeTrunk } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
-import { createPropMaterial } from "../props/materials";
 import { pathPointAt } from "../layout/path";
 import { ZONES } from "../layout/zones";
 import { lightingAt } from "../sky/grade";
@@ -16,7 +15,7 @@ import { waterLevelAt } from "../terrain/height";
 import { nearestRiver } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
-type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower";
+type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower" | "petal";
 type Part = { geometry: BufferGeometry; surface: Surface };
 const part = (geometry: BufferGeometry, surface: Surface): Part => ({ geometry, surface });
 const tint = (base: PaletteKey, mix: PaletteKey, amount: number) =>
@@ -181,22 +180,23 @@ function notebook(): Part[] {
 }
 
 /** Five arched fronds, paired leaflets: a few readable clusters rather than scattered grass. */
-function fern(): BufferGeometry {
+function fern(compact = false): BufferGeometry {
   const positions: number[] = [];
-  for (let frond = 0; frond < 5; frond++) {
-    const angle = frond * Math.PI * 2 / 5;
+  const fronds = compact ? 4 : 5, segments = compact ? 4 : 5, leaflets = compact ? 3 : 5;
+  for (let frond = 0; frond < fronds; frond++) {
+    const angle = frond * Math.PI * 2 / fronds;
     const point = (r: number, side: number, y: number) => {
       positions.push(Math.cos(angle) * r - Math.sin(angle) * side, y,
         Math.sin(angle) * r + Math.cos(angle) * side);
     };
-    for (let segment = 0; segment < 5; segment++) {
+    for (let segment = 0; segment < segments; segment++) {
       const a = segment / 6, b = (segment + 1) / 6;
       point(a * 0.72, -0.009, Math.sin(a * Math.PI * 0.8) * 0.52);
       point(a * 0.72, 0.009, Math.sin(a * Math.PI * 0.8) * 0.52);
       point(b * 0.72, 0, Math.sin(b * Math.PI * 0.8) * 0.52);
     }
-    for (let leaf = 0; leaf < 5; leaf++) {
-      const t = (leaf + 1) / 6;
+    for (let leaf = 0; leaf < leaflets; leaf++) {
+      const t = (leaf + 1) / (leaflets + 1);
       const r = t * 0.72;
       const y = Math.sin(t * Math.PI * 0.8) * 0.52;
       const width = 0.16 * (1 - t * 0.6);
@@ -216,7 +216,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   const group = new Group();
   group.name = "first-light-clearing";
   const buckets: Record<Surface, BufferGeometry[]> = {
-    wood: [], paper: [], green: [], stone: [], sun: [], ink: [], flower: [],
+    wood: [], paper: [], green: [], stone: [], sun: [], ink: [], flower: [], petal: [],
   };
   const colliders: ZoneCollider[] = [];
 
@@ -289,9 +289,9 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
 
   // Fallen pine seat: low bark cylinder, exposed end grain, one broad moss wash.
   const logPlaced = place([
-    part(new CylinderGeometry(0.39, 0.46, 3.7, 9).rotateZ(Math.PI / 2).rotateY(-0.18).translate(0, 0.46, 0), "wood"),
+    part(new CylinderGeometry(0.39, 0.46, 3.7, 9).rotateZ(Math.PI / 2).rotateY(-0.18).translate(0, 0.46, 0), "ink"),
     ...[-1, 1].map(side => part(new CylinderGeometry(0.34, 0.34, 0.018, 9)
-      .rotateZ(Math.PI / 2).translate(side * 1.86, 0, 0).rotateY(-0.18).translate(0, 0.46, 0), "paper")),
+      .rotateZ(Math.PI / 2).translate(side * 1.86, 0, 0).rotateY(-0.18).translate(0, 0.46, 0), "wood")),
     part(new IcosahedronGeometry(1, 0).scale(1.45, 0.09, 0.29).rotateY(-0.18).translate(0, 0.84, 0), "green"),
   ], -7.2, 3.8, true);
 
@@ -355,7 +355,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       for (let petal = 0; petal < 5; petal++) {
         const angle = petal * Math.PI * 2 / 5;
         flowers.push(part(new IcosahedronGeometry(1, 0).scale(0.052, 0.015, 0.035).rotateY(-angle)
-          .translate(fx + Math.cos(angle) * 0.04, 0.26 + i * 0.04, fz + Math.sin(angle) * 0.04), "paper"));
+          .translate(fx + Math.cos(angle) * 0.04, 0.26 + i * 0.04, fz + Math.sin(angle) * 0.04), "petal"));
       }
     }
     place(flowers, x!, z!);
@@ -366,13 +366,24 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     place([part(veil.rotateZ(-0.28).rotateY(0.35).translate(0, 4.2, 0), "sun")], x!, z!);
   }
 
+  // Two damp clusters beside the greeting post: 2 × (40 fern + 20 moss) = 120 triangles.
+  // Independent placement leaves the post footprint, collider and interaction untouched.
+  for (const [dx, dz, scale] of [[0.65, 0.35, 0.42], [-0.6, -0.35, 0.36]]) {
+    place([
+      part(fern(true).scale(scale!, scale!, scale!).rotateY(context.seed * 0.01 + dx!), "green"),
+      part(new IcosahedronGeometry(1, 0).scale(0.25, 0.055, 0.19).translate(-dx! * 0.5, 0.06, 0), "green"),
+    ], greetingX + dx!, greetingZ + dz!);
+  }
+
   const materials = {
-    wood: createPropMaterial("wood"), paper: createPropMaterial("paper"),
-    green: createRampMaterial(paletteColor(WORLD_DIRECTION.foliage.crown), WORLD_DIRECTION.foliage.ramp),
-    stone: createRampMaterial(tint("mist", "paper", 0.25), WORLD_DIRECTION.foliage.ramp),
+    wood: createRampMaterial(tint("dusk", "rockDark", 0.65), WORLD_DIRECTION.foliage.ramp),
+    paper: createRampMaterial(tint("cloud", "cloud", 0), WORLD_DIRECTION.foliage.ramp),
+    green: createRampMaterial(tint("grass", "forestDeep", 0.6), WORLD_DIRECTION.foliage.ramp),
+    stone: createRampMaterial(tint("rock", "rockDark", 0.2), WORLD_DIRECTION.foliage.ramp),
     sun: createRampMaterial(tint("sunGold", "cloud", 0.7)),
-    ink: createRampMaterial(tint("ink", "forestDeep", 0.3), WORLD_DIRECTION.foliage.ramp),
-    flower: createRampMaterial(tint("flower", "paper", 0), WORLD_DIRECTION.foliage.ramp),
+    ink: createRampMaterial(tint("rockDark", "forestDeep", 0.45), WORLD_DIRECTION.foliage.ramp),
+    flower: createRampMaterial(tint("flower", "flower", 0), WORLD_DIRECTION.foliage.ramp),
+    petal: createRampMaterial(tint("grassDry", "grassDry", 0), WORLD_DIRECTION.foliage.ramp),
   };
   materials.green.side = DoubleSide;
   for (const surface of Object.keys(buckets) as Surface[]) {

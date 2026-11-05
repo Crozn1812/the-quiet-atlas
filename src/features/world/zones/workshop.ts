@@ -1,9 +1,10 @@
 import {
-  BufferGeometry, Color, ExtrudeGeometry, Float32BufferAttribute, Group, Mesh,
+  BufferGeometry, Color, ExtrudeGeometry, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh,
   OctahedronGeometry, Shape, TorusGeometry, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
+import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
@@ -46,12 +47,12 @@ function timber(size: Point, center: Point): BufferGeometry {
 function materialFor(surface: Surface): MeshToonMaterial {
   const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
   switch (surface) {
-    case "wood": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38)
-      .lerp(new Color(PALETTE.paper), 0.12); break;
-    case "roof": material.color.set(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.55); break;
+    case "wood": material.color.set(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65); break;
+    case "roof": material.color.set(PALETTE.rockDark); break;
     case "moss": material.color.set(PALETTE.forestDeep); break;
-    case "ink": material.color.set(PALETTE.ink); break;
-    case "stone": material.color.set(PALETTE.mist).lerp(new Color(PALETTE.ink), 0.22); break;
+    case "paper": material.color.set(PALETTE.cloud); break;
+    case "ink": material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3); break;
+    case "stone": material.color.set(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.2); break;
     case "flower": material.color.set(PALETTE.flower); break;
   }
   material.name = `workshop-${surface}`;
@@ -180,7 +181,7 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   box("wood", [0.05, 0.06, 0.16], [benchX, benchY + 0.365, 1.25]);
   for (const dx of [-0.07, 0, 0.07]) {
     add(new TorusGeometry(0.1, 0.025, 4, 12).rotateY(Math.PI / 2)
-      .translate(benchX + dx, benchY + 0.195, -1.1), "paper");
+      .translate(benchX + dx, benchY + 0.195, -1.1), "wood");
   }
   add(new OctahedronGeometry(0.06, 0).translate(-4.54, benchY + 0.2, 1.25), "flower");
 
@@ -278,6 +279,22 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     const y = highest([x - 0.31, x + 0.31, z - 0.8, z + 0.8]);
     box("stone", [0.62, height, 1.6], [x, y + height / 2, z]);
     collider([0.62, height, 1.6], [x, y + height / 2, z]);
+  }
+
+  // Two grounded clusters beside posts, inside the already validated shed footprint.
+  // 2 × (40 fern + 20 moss) = 120 triangles; reuse the static moss batch.
+  for (const [x, z, scale] of [[-7.35, 2.55, 0.4], [-6.85, -2.55, 0.34]]) {
+    const parts = [
+      createFern().scale(scale!, scale!, scale!).rotateY(seedPhase + x!).translate(x!, 0, z!),
+      new IcosahedronGeometry(1, 0).scale(0.28, 0.065, 0.2).translate(x! - 0.1, 0.07, z!),
+    ];
+    for (const part of parts) {
+      const positions = part.getAttribute("position");
+      for (let i = 0; i < positions.count; i++) {
+        positions.setY(i, positions.getY(i) + ground(positions.getX(i), positions.getZ(i)));
+      }
+      add(part, "moss");
+    }
   }
 
   for (const [parent, surfaces] of batches) {

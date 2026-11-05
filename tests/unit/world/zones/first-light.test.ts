@@ -1,6 +1,7 @@
+import { createHash } from "node:crypto";
 import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { paletteColor, WORLD_DIRECTION } from "../../../../src/features/world/art/direction";
+import { paletteColor } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
@@ -24,9 +25,6 @@ const create = (ctx = context()) => {
 };
 const meshes = (scene: ZoneScene) => scene.group.children as Mesh<BufferGeometry, MeshToonMaterial>[];
 const triangles = (geometry: BufferGeometry) => (geometry.index?.count ?? geometry.getAttribute("position").count) / 3;
-const tint = (base: "mist" | "dusk", amount: number) => paletteColor({
-  base, mix: "paper", amount, saturation: 1, brightness: 1,
-});
 
 afterEach(() => {
   scenes.splice(0).forEach(scene => scene.dispose());
@@ -85,7 +83,7 @@ describe("First Light pine clearing", () => {
     const count = objects.reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
     expect(count).toBeGreaterThan(1000);
     expect(count).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(objects).toHaveLength(7);
+    expect(objects).toHaveLength(8);
     expect(objects.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     expect(new Set(objects.map(mesh => mesh.material)).size).toBe(objects.length);
     for (const mesh of objects) {
@@ -225,19 +223,28 @@ describe("First Light pine clearing", () => {
   it("uses palette recipes, matte ramps, neutral vertex multiplication and translucent dawn veils", () => {
     const scene = create();
     const colors: Record<string, number> = {
-      wood: new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38)
-        .lerp(new Color(PALETTE.paper), 0.12).getHex(),
-      paper: new Color(PALETTE.paper).getHex(),
-      green: paletteColor(WORLD_DIRECTION.foliage.crown),
-      stone: tint("mist", 0.25),
+      wood: new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65).getHex(),
+      paper: new Color(PALETTE.cloud).getHex(),
+      green: new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6).getHex(),
+      stone: new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.2).getHex(),
       sun: paletteColor({ base: "sunGold", mix: "cloud", amount: 0.7, saturation: 1, brightness: 1 }),
-      ink: new Color(PALETTE.ink).lerp(new Color(PALETTE.forestDeep), 0.3).getHex(),
+      ink: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.forestDeep), 0.45).getHex(),
       flower: new Color(PALETTE.flower).getHex(),
+      petal: new Color(PALETTE.grassDry).getHex(),
     };
     for (const mesh of meshes(scene)) {
       const surface = mesh.name.replace("first-light-", "");
       expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
       expect(mesh.material.color.getHex()).toBe(colors[surface]);
+      if (surface !== "paper") {
+        const paper = new Vector3(...new Color(PALETTE.paper).toArray());
+        expect(new Vector3(...mesh.material.color.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
+        const washes = mesh.geometry.getAttribute("color");
+        for (let i = 0; i < washes.count; i++) {
+          const pigment = mesh.material.color.clone().multiplyScalar(washes.getX(i));
+          expect(new Vector3(...pigment.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
+        }
+      }
       expect(mesh.material.vertexColors).toBe(true);
       expect(mesh.material.gradientMap).toBeTruthy();
       expect(mesh.material).not.toHaveProperty("metalness");
@@ -259,6 +266,26 @@ describe("First Light pine clearing", () => {
         expect(mesh.material.forceSinglePass).toBe(true);
       }
     }
+  });
+
+  it("adds only 120 triangles of damp details beside the greeting, with paper reserved for the book", () => {
+    const scene = create();
+    const green = meshes(scene).find(mesh => mesh.name === "first-light-green")!;
+    const positions = green.geometry.getAttribute("position");
+    const details = Array.from({ length: 120 * 3 }, (_, i) =>
+      new Vector3().fromBufferAttribute(positions, positions.count - 120 * 3 + i));
+    const total = meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
+    expect(total - 3537).toBe(120);
+    expect(total - 3537).toBeLessThanOrEqual(300);
+    for (const p of details) {
+      expect(Math.hypot(p.x - 4.8, p.z - 3.8)).toBeLessThan(1.1);
+      expect(p.y).toBeGreaterThanOrEqual(0);
+      expect(p.y).toBeLessThanOrEqual(0.43);
+    }
+    const paper = meshes(scene).find(mesh => mesh.name === "first-light-paper")!;
+    expect(paper.geometry.boundingBox!.min.y).toBeGreaterThan(1.5);
+    expect(paper.geometry.boundingBox!.getSize(new Vector3()).length()).toBeLessThan(1);
+    console.info(`First Light budget: ${total} triangles, ${meshes(scene).length} draw calls`);
   });
 
   it("keeps the small orange blooms and one larger cluster beside the log, omitting them when flooded", () => {
@@ -285,7 +312,7 @@ describe("First Light pine clearing", () => {
       .some(mesh => mesh.name === "first-light-flower")).toBe(false);
   });
 
-  it("anchors the notebook post and pine silhouettes in dark ink", () => {
+  it("anchors the notebook post, fallen bark and pine silhouettes in moss-darkened wood", () => {
     const scene = create();
     const ink = meshes(scene).find(mesh => mesh.name === "first-light-ink")!;
     const positions = ink.geometry.getAttribute("position");
@@ -313,7 +340,7 @@ describe("First Light pine clearing", () => {
     const opaqueArea = meshes(scene).filter(mesh => !mesh.material.transparent)
       .reduce((sum, mesh) => sum + area(mesh), 0);
     expect(area(ink) / opaqueArea).toBeGreaterThanOrEqual(0.05);
-    expect(area(ink) / opaqueArea).toBeLessThanOrEqual(0.15);
+    expect(area(ink) / opaqueArea).toBeLessThanOrEqual(0.22);
   });
 
   it("leaves the open notebook visible from the path edge at either greeting site", () => {
@@ -384,4 +411,25 @@ describe("First Light pine clearing", () => {
     expect(rampDisposed).not.toHaveBeenCalled();
     expect(meshes(sibling)[0]!.material.gradientMap).toBe(ramp);
   });
+
+  it("preserves all original triangles, transforms, colliders and interaction", () => {
+    const scene = create();
+    scene.group.updateMatrixWorld(true);
+    const triangles: string[] = [];
+    for (const mesh of meshes(scene)) {
+      const positions = mesh.geometry.getAttribute("position");
+      // Only the new soft detail triangles are excluded from the pre-ticket fingerprint.
+      const added = mesh.name === "first-light-green" ? 120 * 3 : 0;
+      for (let i = 0; i < positions.count - added; i += 3) {
+        triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
+          .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
+      }
+    }
+    const fingerprint = createHash("sha256").update(JSON.stringify({
+      triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
+    })).digest("hex");
+    // Re-baselined after B2-175 changed the shared pine crown (zone geometry otherwise untouched by B2-176).
+    expect(fingerprint).toBe("6308147f128f1d32220ca5f18e182da7508971674c464019b72a62c44e1b07b4");
+  });
+
 });

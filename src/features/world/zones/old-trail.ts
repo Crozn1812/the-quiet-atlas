@@ -5,9 +5,9 @@ import {
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
+import { createFern } from "../foliage/ground";
 import { createPineCrown } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
-import { createPropMaterial } from "../props/materials";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
 /** Uneven, chamfered timber with a chipped shoulder; y = 0 is its foot. */
@@ -172,13 +172,25 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     return object;
   }
 
-  mesh(wood, createPropMaterial("wood"), "weathered-trail-timber");
-  const moss = createRampMaterial(paletteColor({ base: "forestLight", mix: "paper", amount: 0.24,
+  // Two small clusters beside the tall marker: 120 triangles, no new collider or draw call.
+  for (const [dx, dz, scale] of [[0.4, 0.05, 0.4], [-0.45, -0.08, 0.34]]) {
+    const x = anchor.x + dx!, z = anchor.z + dz!;
+    if (!safe(x, z, 0.32, 0.31)) continue;
+    green.push(wash(ground(createFern().scale(scale!, scale!, scale!).rotateY(phase + dx!)
+      .translate(x, 0, z)), phase));
+    green.push(wash(ground(new IcosahedronGeometry(1, 0).scale(0.22, 0.06, 0.19)
+      .translate(x - dx! * 0.5, 0.065, z)), phase));
+  }
+  const timberMaterial = createRampMaterial(paletteColor({ base: "rockDark", mix: "forestDeep", amount: 0.45,
+    saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
+  timberMaterial.vertexColors = true;
+  mesh(wood, timberMaterial, "weathered-trail-timber");
+  const moss = createRampMaterial(paletteColor({ base: "grass", mix: "forestDeep", amount: 0.6,
     saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
   moss.vertexColors = true;
   mesh(green, moss, "moss-washes");
 
-  const metal = createRampMaterial(paletteColor({ base: "ink", mix: "forestDeep", amount: 0.3,
+  const metal = createRampMaterial(paletteColor({ base: "rockDark", mix: "indigo", amount: 0.3,
     saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
   metal.vertexColors = true;
   // A single outward-leaning pine frames the edge without screening the interactable.
@@ -196,7 +208,7 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     jade.vertexColors = true;
     mesh([wash(crown, phase)], jade, "leaning-pine-jade-crown");
   }
-  mesh(ink, metal, "ink-marker-feet-and-pine-trunk");
+  mesh(ink, timberMaterial, "ink-marker-feet-and-pine-trunk");
 
   const lantern = new Group();
   lantern.name = "storm-lantern-pivot";
@@ -210,7 +222,7 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     ...[-0.17, 0.17].map(x => beam(new Vector3(x, -0.38, 0), new Vector3(x, -0.70, 0), 0.025)),
   ];
   mesh(frame.map(part => wash(part, phase)), metal, "storm-lantern-frame", lantern);
-  const light = createRampMaterial(paletteColor({ base: "dusk", mix: "paper", amount: 0.42,
+  const light = createRampMaterial(paletteColor({ base: "sunGold", mix: "dusk", amount: 0.25,
     saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
   light.vertexColors = true;
   mesh([wash(new CylinderGeometry(0.115, 0.13, 0.30, 6).translate(0, -0.53, 0), phase)],

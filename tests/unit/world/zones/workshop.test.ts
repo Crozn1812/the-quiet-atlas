@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -196,7 +197,7 @@ describe("workshop bank set-piece", () => {
   it("has one broad ink inner wall visible through the open front behind the tools", () => {
     const parts = meshes(create());
     const ink = parts.find(mesh => mesh.name === "workshop-ink")!;
-    expect(ink.material.color.getHex()).toBe(new Color(PALETTE.ink).getHex());
+    expect(ink.material.color.getHex()).toBe(new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3).getHex());
     // Several rays across the upper rear wall must see ink before wood or the bank.
     for (const z of [-2.4, -1.2, 0, 1.2, 2.4]) {
       const hit = new Raycaster(new Vector3(-2.8, 2.05, z), new Vector3(-1, 0, 0)).intersectObjects(parts)[0];
@@ -223,7 +224,7 @@ describe("workshop bank set-piece", () => {
     const heightAt = (x: number, z: number) => x * 0.035 + z * 0.02;
     const scene = create({ heightAt });
     const wood = meshes(scene).find(mesh => mesh.name === "workshop-wood")!;
-    const woodColor = new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12);
+    const woodColor = new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65);
     expect(wood.material.color.getHex()).toBe(woodColor.getHex());
     const outdoor = scene.colliders.filter(collider => collider.center.x < 0 && collider.center.z > 3.35);
     expect(outdoor).toHaveLength(3);
@@ -253,7 +254,7 @@ describe("workshop bank set-piece", () => {
     const down = new Vector3(0, -1, 0);
     const top = (mesh: Mesh, x: number, z: number) => new Raycaster(new Vector3(x, 2, z), down).intersectObject(mesh)[0]!.point.y;
     expect(top(wood, -4.62, 1.25)).toBeCloseTo(1.25, 5);
-    expect(top(paper, -4.75, -1.1)).toBeCloseTo(1.26, 5);
+    expect(top(wood, -4.75, -1.1)).toBeCloseTo(1.26, 5);
     expect(top(paper, -4.75, -0.4)).toBeCloseTo(1.022, 5);
   });
 
@@ -314,11 +315,11 @@ describe("workshop bank set-piece", () => {
 
   it("uses only palette recipes with neutral multiplicative vertex washes, without lettering", () => {
     const colors = {
-      wood: new Color(PALETTE.ink).lerp(new Color(PALETTE.dusk), 0.38).lerp(new Color(PALETTE.paper), 0.12),
-      roof: new Color(PALETTE.ink).lerp(new Color(PALETTE.paper), 0.55),
+      wood: new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.65),
+      roof: new Color(PALETTE.rockDark),
       moss: new Color(PALETTE.forestDeep),
-      paper: new Color(PALETTE.paper), ink: new Color(PALETTE.ink),
-      stone: new Color(PALETTE.mist).lerp(new Color(PALETTE.ink), 0.22),
+      paper: new Color(PALETTE.cloud), ink: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3),
+      stone: new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.2),
       flower: new Color(PALETTE.flower),
     };
     for (const mesh of meshes(create())) {
@@ -326,6 +327,10 @@ describe("workshop bank set-piece", () => {
       expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
       const pigment = mesh.material.name.replace("workshop-", "") as keyof typeof colors;
       expect(mesh.material.color.getHex()).toBe(colors[pigment].getHex());
+      const paper = new Vector3(...new Color(PALETTE.paper).toArray());
+      if (pigment !== "paper") {
+        expect(new Vector3(...mesh.material.color.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
+      }
       expect(mesh.material.vertexColors).toBe(true);
       expect(mesh.material.gradientMap).not.toBeNull();
       const wash = mesh.geometry.getAttribute("color");
@@ -336,9 +341,31 @@ describe("workshop bank set-piece", () => {
         expect(wash.getX(i)).toBeGreaterThanOrEqual(0.91);
         expect(wash.getX(i)).toBeLessThanOrEqual(1);
         shades.add(wash.getX(i));
+        if (pigment !== "paper") {
+          const color = mesh.material.color.clone().multiplyScalar(wash.getX(i));
+          expect(new Vector3(...color.toArray()).distanceTo(paper)).toBeGreaterThan(0.08);
+        }
       }
       expect(shades.size).toBeGreaterThan(3);
     }
+  });
+
+  it("adds only 120 grounded moss/fern triangles beside the posts within the existing footprint", () => {
+    const scene = create();
+    const moss = meshes(scene).find(mesh => mesh.name === "workshop-moss")!;
+    const positions = moss.geometry.getAttribute("position");
+    const details = Array.from({ length: 120 * 3 }, (_, i) =>
+      new Vector3().fromBufferAttribute(positions, positions.count - 120 * 3 + i));
+    for (const p of details) {
+      expect(p.x).toBeGreaterThan(-8.05);
+      expect(p.x).toBeLessThan(-3.15);
+      expect(Math.abs(p.z)).toBeLessThan(2.95);
+      expect(p.y).toBeGreaterThanOrEqual(0);
+      expect(p.y).toBeLessThanOrEqual(0.4 + 1e-6);
+    }
+    const total = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+    expect(total - 3560).toBe(120);
+    expect(total - 3560).toBeLessThanOrEqual(300);
   });
 
   it("exports the workshop target with the exact EN/VI labels and a reachable bench centre", () => {
@@ -394,4 +421,24 @@ describe("workshop bank set-piece", () => {
     expect(() => createWorkshopScene({ ...flat, underWater: () => true })).toThrow(/dry bank/);
     expect(dispose).not.toHaveBeenCalled();
   });
+
+  it("preserves all original triangles, transforms, colliders and interaction", () => {
+    const scene = create();
+    scene.group.updateMatrixWorld(true);
+    const triangles: string[] = [];
+    for (const mesh of meshes(scene)) {
+      const positions = mesh.geometry.getAttribute("position");
+      // Only the new soft detail triangles are excluded from the pre-ticket fingerprint.
+      const added = mesh.name === "workshop-moss" ? 120 * 3 : 0;
+      for (let i = 0; i < positions.count - added; i += 3) {
+        triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
+          .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
+      }
+    }
+    const fingerprint = createHash("sha256").update(JSON.stringify({
+      triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
+    })).digest("hex");
+    expect(fingerprint).toBe("922271182434112d38462a64f85b9f0c7ad2ca479a9ff63d34f54e6e05ae41f5");
+  });
+
 });
