@@ -5,7 +5,8 @@ import type { Quality } from "../terrain";
 
 export const WATER_FLOW_SPEED = 0.05;
 export const SEA_WAVE_PERIOD = 8;
-export const SEA_SHORE_SAMPLES = 129;
+// 109 coast samples + 29 colour, clock, direction and fog floats = 138 floats.
+export const SEA_SHORE_SAMPLES = 109;
 /** Shoreline slope |dz/dx| above which the foam line fades out (bay corners after B2-152b). */
 export const SEA_FOAM_MAX_SLOPE = 3;
 
@@ -74,6 +75,20 @@ const fragmentShader = /* glsl */ `
     #endif
     float edge = abs(vWaterUv.x * 2.0 - 1.0);
     vec3 color = mix(uDeepColor, uEdgeColor, smoothstep(0.0, 1.0, edge));
+    #ifdef SEA_WATER
+      // Metres offshore, rather than the quad's UV edge, control the warm shallows.
+      float shoreSample = clamp((vWaterWorld.x - uShoreBounds.x) / uShoreBounds.y,
+                                0.0, 1.0) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)};
+      int shoreIndex = int(min(floor(shoreSample), ${(SEA_SHORE_SAMPLES - 2).toFixed(1)}));
+      float shoreA = uShoreZ[shoreIndex];
+      float shoreB = uShoreZ[shoreIndex + 1];
+      float shoreZ = mix(shoreA, shoreB, shoreSample - float(shoreIndex));
+      float slope = (shoreB - shoreA) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)} / uShoreBounds.y;
+      float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + slope * slope);
+      float shallows = (1.0 - smoothstep(12.0, 160.0, offshore)) * uHasShore;
+      float shoreWarmth = shallows * (0.25 + 0.75 * uSkyMix);
+      color = mix(uDeepColor, uEdgeColor, shoreWarmth);
+    #endif
     // Thin, gently wandering brush lanes with soft breaks along the current.
     float lane = vWaterUv.x * 50.0 + 0.45 * sin(flow * 0.7);
     float stroke = pow(0.5 + 0.5 * cos(lane), 12.0);
@@ -101,6 +116,10 @@ const fragmentShader = /* glsl */ `
       float grazing = 1.0 - clamp(dot(surfaceNormal, normalize(vViewDirection)), 0.0, 1.0);
       float fresnel = grazing * grazing * grazing;
       vec3 sky = mix(uPaperColor, uDuskColor, uSkyMix);
+      #ifdef SEA_WATER
+        // Keep distant water blue-violet beneath the warm horizon.
+        sky = mix(mix(uDeepColor, uPaperColor, 0.28), uDuskColor, uSkyMix * 0.18);
+      #endif
       color = mix(color, sky, fresnel * SKY_REFLECTION);
     #endif
     #ifdef SEA_WATER
@@ -109,25 +128,24 @@ const fragmentShader = /* glsl */ `
       vec2 sunAxis = uSunDirection.xz / max(length(uSunDirection.xz), 0.0001);
       vec2 fromViewer = vWaterWorld.xz - cameraPosition.xz;
       float alongSun = dot(fromViewer, sunAxis);
-      float acrossSun = abs(dot(fromViewer, vec2(-sunAxis.y, sunAxis.x)));
-      float washWidth = 2.0 + max(alongSun, 0.0) * 0.12;
-      float wash = 1.0 - smoothstep(washWidth * 0.25, washWidth, acrossSun);
+      float signedAcrossSun = dot(fromViewer, vec2(-sunAxis.y, sunAxis.x));
+      float acrossSun = abs(signedAcrossSun);
+      // Sun wash scalars: also evaluated directly by the CPU colour regression.
+      float washWidth = mix(30.0, 7.0, smoothstep(12.0, 360.0, alongSun));
+      float wash = 1.0 - smoothstep(washWidth * 0.18, washWidth, acrossSun);
       wash *= smoothstep(0.0, 12.0, alongSun);
-      wash *= 1.0 - smoothstep(180.0, 760.0, length(fromViewer));
+      wash *= 1.0 - smoothstep(180.0, 760.0, sqrt(alongSun * alongSun + acrossSun * acrossSun));
       wash *= smoothstep(0.0, 0.08, uSunDirection.y) * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
-      float glimmer = 0.5 + 0.5 * sin(vWaterWorld.z * 1.7 + crossSwell * 0.6 + phase);
+      float core = (1.0 - smoothstep(washWidth * 0.12, washWidth * 0.4, acrossSun))
+        * smoothstep(20.0, 220.0, alongSun);
+      // Thin transverse marks, interrupted every few metres across the sun axis.
+      float glimmer = smoothstep(0.72, 0.98, 0.5 + 0.5 * sin(alongSun * 1.7 + phase
+        + 0.35 * sin(signedAcrossSun * 0.42 + alongSun * 0.11)));
+      glimmer *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(signedAcrossSun * 0.82 + 2.0 * sin(alongSun * 0.37)));
+      float washStrength = wash * (0.5 + 0.14 * core + 0.24 * glimmer);
+      // End sun wash scalars.
+      color = mix(color, uSunWashColor, washStrength);
       float brush = 0.5 + 0.5 * sin(vWaterWorld.x * 0.73 + vWaterWorld.z * 0.27);
-      color = mix(color, uSunWashColor, wash * (0.12 + 0.22 * glimmer * brush));
-
-      // Interpolate terrain-derived coastline samples, then measure metres offshore.
-      float shoreSample = clamp((vWaterWorld.x - uShoreBounds.x) / uShoreBounds.y,
-                                0.0, 1.0) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)};
-      int shoreIndex = int(min(floor(shoreSample), ${(SEA_SHORE_SAMPLES - 2).toFixed(1)}));
-      float shoreA = uShoreZ[shoreIndex];
-      float shoreB = uShoreZ[shoreIndex + 1];
-      float shoreZ = mix(shoreA, shoreB, shoreSample - float(shoreIndex));
-      float slope = (shoreB - shoreA) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)} / uShoreBounds.y;
-      float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + slope * slope);
       // One thin cream-white edge runs up and retreats over an eight-second breath.
       float foamDistance = 0.45 + 1.1 * (0.5 + 0.5 * cos(phase));
       float foamWidth = max(0.14, fwidth(offshore) * 0.8);
@@ -161,9 +179,9 @@ export class WaterMaterial extends ShaderMaterial {
     const edge = new Color(PALETTE.water);
     const deep = new Color(PALETTE.indigo);
     if (sea) {
-      // B2-031: the open sea is jade-teal water, not indigo; indigo under a warm horizon wash reads grey.
-      deep.set(PALETTE.water).lerp(new Color(PALETTE.mist), 0.18);
-      edge.set(PALETTE.water).lerp(new Color(PALETTE.dusk), 0.14);
+      // Dilute a little warm pigment into indigo for the blue-violet distance.
+      deep.lerp(new Color(PALETTE.flower), 0.1).lerp(new Color(PALETTE.paper), 0.06);
+      edge.lerp(new Color(PALETTE.dusk), 0.2);
     }
     // The broad sea mirrors more of the painted sky than the shaded river.
     const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22 };
@@ -186,8 +204,8 @@ export class WaterMaterial extends ShaderMaterial {
           uSkyMix: { value: 0 },
           uTime: { value: 0 },
           uSunDirection: { value: new Vector3() },
-          uSunWashColor: { value: new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.65)
-            .lerp(new Color(PALETTE.flower), 0.18) },
+          uSunWashColor: { value: new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.72)
+            .lerp(new Color(PALETTE.flower), 0.1) },
           uShoreBounds: { value: new Vector2(options.shoreline?.minX ?? 0, options.shoreline?.width ?? 1) },
           uShoreZ: { value: options.shoreline ? [...options.shoreline.z] : Array<number>(SEA_SHORE_SAMPLES).fill(0) },
           uHasShore: { value: options.shoreline ? 1 : 0 },

@@ -316,9 +316,11 @@ describe("sea and water lifecycle", () => {
     expect(sea.mesh.geometry.index!.count).toBe(6);
     expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength() - SEA_INLAND_OVERLAP, 3);
     const material = sea.mesh.material;
-    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.mist), 0.18));
+    // B2-160: the offshore pigment is blue-violet; warmth now follows the sampled coast.
+    expect(material.uniforms.uDeepColor!.value).toEqual(new Color(PALETTE.indigo)
+      .lerp(new Color(PALETTE.flower), 0.1).lerp(new Color(PALETTE.paper), 0.06));
     expect(material.defines.SKY_REFLECTION).toBe(0.5);
-    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.dusk), 0.14));
+    expect(material.uniforms.uEdgeColor!.value).toEqual(new Color(PALETTE.water).lerp(new Color(PALETTE.dusk), 0.2));
     expect(material.uniforms.uSkyMix!.value).toBe(1);
     sea.dispose();
   });
