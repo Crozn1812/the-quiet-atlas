@@ -8,6 +8,7 @@ import { createGradedPaperPass } from "../../src/features/world/scene/paper";
 import { placeZoneScenes, zoneFoliageBounds } from "../../src/features/world/zones";
 import { pathPointAt } from "../../src/features/world/layout/path";
 import { placeDressing } from "../../src/features/world/dressing";
+import { createFarLandscape, GAMEPLAY_FAR } from "../../src/features/world/scene/far-landscape";
 import { createForestSunShafts } from "../../src/features/world/zones/first-light";
 
 declare global { interface Window { __frameReady: boolean } }
@@ -35,6 +36,7 @@ async function start() {
   const dressing = placeDressing();
   for (const group of dressing.groups) scene.add(group);
   scene.add(createForestSunShafts(surfaceHeight).group);
+  scene.add(createFarLandscape().mesh);
   const composed = createWorldScene({
     RAPIER, world, scene, quality: "High", paper,
     zoneBounds: zoneFoliageBounds(zones), zoneBoxes: [...zones.flatMap(zone => zone.boxes), ...dressing.boxes, ...dressing.surfaces],
@@ -47,7 +49,7 @@ async function start() {
   const forward = new Vector3(zone.layout.lookDirection.x, 0, zone.layout.lookDirection.z).normalize();
   const right = new Vector3(forward.z, 0, -forward.x);
   const towardObject = Math.sign(right.dot(zone.target.position.clone().sub(anchor))) || 1;
-  const camera = new PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 320);
+  const camera = new PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, GAMEPLAY_FAR.High);
   const eye = view === "wide"
     ? anchor.clone().addScaledVector(forward, -26).addScaledVector(right, -towardObject * 10)
     : anchor.clone().addScaledVector(forward, -11).addScaledVector(right, -towardObject * 3);

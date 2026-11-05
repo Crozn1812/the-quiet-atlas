@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
 import { PerspectiveCamera, Scene, Vector3 } from "three";
 import { WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 const DIRECTED_MIST = WORLD_DIRECTION.background.mist.strength;
@@ -213,7 +214,9 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
   expect(harness.corridor.mock.calls[0]![0]).toHaveLength(48);
   expect(harness.corridor).toHaveBeenLastCalledWith(null);
   expect(harness.fog).toHaveBeenLastCalledWith({ near: WORLD_DIRECTION.background.fog.near, far: WORLD_DIRECTION.background.fog.far });
-  expect(camera().far).toBe(harness.firstPose!.far);
+  // Lead batch 25: the gameplay far plane follows quality (adaptive quality may have stepped down meanwhile).
+  expect(Object.values(GAMEPLAY_FAR)).toContain(camera().far);
+  expect(camera().far).toBeLessThanOrEqual(harness.firstPose!.far);
   expect(harness.mist).toHaveBeenLastCalledWith({ strength: DIRECTED_MIST });
   expect(doc.activeElement).toBe(canvas);
   expect(states.map(event => event.detail)).toEqual([{ state: "playing" }, { state: "done" }]);

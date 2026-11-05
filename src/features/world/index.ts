@@ -13,6 +13,7 @@ import { ZONES } from "./layout/zones";
 import { createZoneEntryTracker, placeZoneScenes, zoneFoliageBounds } from "./zones";
 import { createForestSunShafts } from "./zones/first-light";
 import { placeDressing } from "./dressing";
+import { createFarLandscape, GAMEPLAY_FAR } from "./scene/far-landscape";
 import { addBridgeColliders } from "./bridges";
 import type { Controller } from "./scene";
 import { inputReducer, isInputTarget, type InputAction } from "../interaction/input";
@@ -86,6 +87,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let dressing: ReturnType<typeof placeDressing> | undefined;
   let removeDressingTrimeshes: (() => void) | undefined;
   let forestSun: ReturnType<typeof createForestSunShafts> | undefined;
+  let farLandscape: ReturnType<typeof createFarLandscape> | undefined;
   try {
     const physicsBackend = opts.collision === "raycast"
       ? createMeshPhysics()
@@ -99,6 +101,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // B2-169: three soft sun shafts along the forest trail (First Light keeps its own two).
     forestSun = createForestSunShafts(surfaceHeight);
     scene.add(forestSun.group);
+    // Lead batch 25: built during loading (≈0.2–0.5 s) rather than mid-play, so the long view never hitches.
+    farLandscape = createFarLandscape();
+    scene.add(farLandscape.mesh);
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     if (opts.collision !== "raycast") for (const box of zoneBoxes) {
       const size = box.geometry.parameters;
@@ -119,6 +124,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     removeDressingTrimeshes?.();
     dressing?.dispose();
     forestSun?.dispose();
+    farLandscape?.dispose();
     composition?.dispose();
     controller?.dispose();
     paperPass?.dispose();
@@ -262,7 +268,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   container.dataset.worldChunk = WORLD_CHUNK_MARKER;
   let state = sessionReducer(initialSession(), { type: "mode", mode: "world" });
   let cinematicUI: { skip: HTMLButtonElement; bars: HTMLDivElement[]; fade: HTMLDivElement } | undefined;
-  const gameplayFar = camera.far;
+  // Lead batch 25: the view reaches the sea horizon and far ridges; shorter on lower quality.
+  let gameplayFar = GAMEPLAY_FAR[quality];
+  camera.far = gameplayFar;
+  camera.updateProjectionMatrix();
   const introPending = () => intro?.state !== "done";
   const cinematicLocked = () => introPending() || ending?.inputLocked === true;
   let teleport = createTeleport({ reducedMotion });
@@ -771,6 +780,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function applyQuality(next: Quality) {
     if (quality === next) return;
     quality = next;
+    gameplayFar = GAMEPLAY_FAR[quality];
+    if (!introPending() && !ending?.inputLocked) { camera.far = gameplayFar; camera.updateProjectionMatrix(); }
     composed.setQuality(quality);
     gpu.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paper.setQuality(quality);
@@ -1250,6 +1261,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     removeDressingTrimeshes?.();
     dressing?.dispose();
     forestSun?.dispose();
+    farLandscape?.dispose();
     physics.dispose();
     character.dispose();
     for (const { root } of secretTargets) {
