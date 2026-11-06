@@ -6,7 +6,9 @@ import { createPineCrownV2 } from "../../../../src/features/world/foliage/pine";
 import { disposeRampGradients, RAMP_PRESETS } from "../../../../src/features/world/materials/ramp";
 import { HEIGHT } from "../../../../src/features/world/scene";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
-import { TERRAIN_SEED } from "../../../../src/features/world/terrain/height";
+import { ZONES } from "../../../../src/features/world/layout/zones";
+import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt } from "../../../../src/features/world/terrain/height";
+import { nearestPath } from "../../../../src/features/world/terrain/samples";
 import { placeZoneScenes } from "../../../../src/features/world/zones";
 import { createMilestonesScene } from "../../../../src/features/world/zones/milestones";
 import {
@@ -37,13 +39,6 @@ function points(mesh: Mesh, start = 0, count = mesh.geometry.getAttribute("posit
   const vertices = mesh.geometry.getAttribute("position");
   return Array.from({ length: count }, (_, i) => new Vector3().fromBufferAttribute(vertices, start + i));
 }
-function moundAt(scene: ZoneScene, x: number, z: number) {
-  scene.group.updateMatrixWorld(true);
-  const origin = scene.group.localToWorld(new Vector3(x, 20, z));
-  const hit = new Raycaster(origin, new Vector3(0, -1, 0))
-    .intersectObject(named(scene, "mound"))[0];
-  return hit ? scene.group.worldToLocal(hit.point.clone()).y : 0;
-}
 function rockPoints(scene: ZoneScene, index: number) {
   const surface = index < 7 ? "weathered" : "future";
   // Upright kit slabs have refined caps (104 triangles); horizontal slots retain 80.
@@ -52,6 +47,24 @@ function rockPoints(scene: ZoneScene, index: number) {
 }
 function unique(points: Vector3[]) {
   return [...new Map(points.map(point => [point.toArray().map(n => n.toFixed(5)).join(","), point])).values()];
+}
+/** Convex silhouette in the road-facing YZ plane, ignoring collinear ring/subdivision vertices. */
+function outline(vertices: Vector3[]) {
+  const sorted = [...new Map(vertices.map(p => [`${p.y.toFixed(5)},${p.z.toFixed(5)}`, p])).values()]
+    .sort((a, b) => a.y - b.y || a.z - b.z);
+  const half = (points: Vector3[]) => {
+    const hull: Vector3[] = [];
+    for (const point of points) {
+      while (hull.length >= 2) {
+        const a = hull[hull.length - 2]!, b = hull[hull.length - 1]!;
+        if ((b.y - a.y) * (point.z - a.z) - (b.z - a.z) * (point.y - a.y) > 1e-5) break;
+        hull.pop();
+      }
+      hull.push(point);
+    }
+    return hull.slice(0, -1);
+  };
+  return [...half(sorted), ...half([...sorted].reverse())];
 }
 function snapshot(scene: ZoneScene) {
   scene.group.updateMatrixWorld(true);
@@ -107,14 +120,12 @@ describe("The Milestones hillside", () => {
       const edge = new Vector3(-PATH_CLEARANCE, 0, target.z);
       edge.y = heightAt(edge.x, edge.z) + HEIGHT;
       expect(edge.distanceTo(target)).toBeLessThanOrEqual(2.5);
-      const flat = create({ seed: TERRAIN_SEED + ZONE_IDS.indexOf("milestones") });
-      const offsetZ = target.z - flat.interactable.position.z;
       const localHeights = unique(rockPoints(scene, 0)).map(point =>
-        point.y - heightAt(point.x, point.z) - moundAt(flat, -point.x, point.z - offsetZ));
+        point.y - heightAt(point.x, point.z));
       expect(Math.min(...localHeights)).toBeCloseTo(-0.05, 5);
       expect(Math.max(...localHeights)).toBeCloseTo(2.4, 5);
       // Near-foot, middle and upper-body sight lines must reach rock before any terrain lip.
-      const ground = moundAt(scene, target.x, target.z);
+      const ground = heightAt(target.x, target.z);
       for (const lift of [0.2, 1.2, 2.1]) {
         const eye = scene.group.localToWorld(edge.clone());
         const aim = scene.group.localToWorld(new Vector3(target.x, ground + lift, target.z));
@@ -147,10 +158,10 @@ describe("The Milestones hillside", () => {
     }
     expect(triangles).toBeLessThanOrEqual(1466 * 1.5);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(drawCalls).toBe(6);
+    expect(drawCalls).toBe(5);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
-    // New kit slabs, refined cut faces and V2 pine replace the old 1,466-triangle silhouette.
-    if (seed === 104) expect(triangles).toBe(1854);
+    // Removing the 432-triangle mound keeps the kit slabs and V2 pine under the previous budget.
+    if (seed === 104) expect(triangles).toBe(1422);
     if (seed === 104) console.info(`milestones: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
@@ -158,6 +169,54 @@ describe("The Milestones hillside", () => {
     const first = create(), second = create();
     expect(snapshot(first)).toEqual(snapshot(second));
     expect(snapshot(create({ seed: 105 }))).not.toEqual(snapshot(first));
+  });
+
+  it.each([0, 1, 104, 105, 65535, 73024, 2147483647, 4294967295])("seed %i: has 5–9 unequal silhouette edges and a nonplanar front", seed => {
+    for (const side of [1, -1]) {
+      const scene = create({ seed, underWater: x => side * x < 0 });
+      const vertices = rockPoints(scene, 0), hull = outline(vertices);
+      expect(hull.length).toBeGreaterThanOrEqual(5);
+      expect(hull.length).toBeLessThanOrEqual(9);
+      const lengths = hull.map((p, i) => {
+        const next = hull[(i + 1) % hull.length]!;
+        return Math.hypot(next.y - p.y, next.z - p.z);
+      });
+      const variation = (Math.max(...lengths) - Math.min(...lengths)) / (lengths.reduce((sum, n) => sum + n, 0) / lengths.length);
+      expect(variation).toBeGreaterThanOrEqual(0.2);
+      // The kit's 72 side triangles precede its refined cut faces; exclude bevel normals.
+      const normals = named(scene, "weathered").geometry.getAttribute("normal");
+      const front: Vector3[] = [];
+      for (let i = 72 * 3; i < vertices.length; i += 3) {
+        const normal = new Vector3().fromBufferAttribute(normals, i);
+        if (side * normal.x < -0.95) front.push(normal);
+      }
+      expect(new Set(front.map(n => n.toArray().map(v => v.toFixed(3)).join(","))).size).toBeGreaterThanOrEqual(2);
+      expect(Math.max(...front.flatMap(a => front.map(b => a.distanceTo(b))))).toBeGreaterThan(0.03);
+    }
+  });
+
+  it("constructs the real-terrain zone within 450 ms of Node CPU time", () => {
+    const layout = ZONES.find(zone => zone.id === "milestones")!;
+    const yaw = Math.atan2(layout.lookDirection.x, layout.lookDirection.z);
+    const anchorY = surfaceHeight(layout.position.x, layout.position.z);
+    const world = (x: number, z: number) => ({
+      x: layout.position.x + x * Math.cos(yaw) + z * Math.sin(yaw),
+      z: layout.position.z - x * Math.sin(yaw) + z * Math.cos(yaw),
+    });
+    const real = context({
+      seed: TERRAIN_SEED + ZONE_IDS.indexOf("milestones"),
+      heightAt(x, z) { const p = world(x, z); return surfaceHeight(p.x, p.z) - anchorY; },
+      onPath(x, z) { const p = world(x, z); return Math.abs(x) <= PATH_CLEARANCE || nearestPath(p.x, p.z).distance <= PATH_WIDTH / 2; },
+      underWater(x, z) { const p = world(x, z); return surfaceHeight(p.x, p.z) <= waterLevelAt(p.z); },
+    });
+    const start = performance.now();
+    const cpuStart = process.cpuUsage();
+    create(real);
+    const elapsed = performance.now() - start;
+    const cpu = process.cpuUsage(cpuStart), cpuMs = (cpu.user + cpu.system) / 1000;
+    // Full-suite workers compete for wall time; CPU work is the stable regression gate.
+    console.info(`milestones real-terrain construction: ${elapsed.toFixed(1)} ms wall, ${cpuMs.toFixed(1)} ms CPU (budget 450 ms)`);
+    expect(cpuMs).toBeLessThanOrEqual(450);
   });
 
   it.each([0, 1, 104, 65535])("seed %i: has six rough leaning rocks, a broad 2.4 m target and two detached low slots", seed => {
@@ -170,7 +229,9 @@ describe("The Milestones hillside", () => {
     for (const [index, stone] of stones.entries()) {
       const faceVertices = rockPoints(scene, index);
       const vertices = unique(faceVertices);
-      const local = vertices.map(point => new Vector3(point.x, point.y - moundAt(scene, point.x, point.z), point.z));
+      const colliderBounds = new Box3().setFromCenterAndSize(stone.center, stone.size).expandByScalar(1e-5);
+      for (const point of vertices) expect(colliderBounds.containsPoint(point)).toBe(true);
+      const local = vertices;
       const height = Math.max(...local.map(point => point.y));
       if (index === 0) expect(height).toBeCloseTo(2.4, 5);
       else if (index < 7) {
@@ -184,22 +245,21 @@ describe("The Milestones hillside", () => {
         // Broad cut faces really face the road and lean slightly; bevels remain distinct.
         let frontArea = 0;
         const normals = new Set<string>();
-        const localFaces = faceVertices.map(point =>
-          new Vector3(point.x, point.y - moundAt(scene, point.x, point.z), point.z));
+        const localFaces = faceVertices;
         for (let i = 0; i < localFaces.length; i += 3) {
           const [a, b, c] = localFaces.slice(i, i + 3) as [Vector3, Vector3, Vector3];
           const cross = b.clone().sub(a).cross(c.clone().sub(a)), normal = cross.clone().normalize();
           normals.add(normal.toArray().map(value => value.toFixed(2)).join(","));
-          if (normal.x < -0.99) {
+          if (normal.x < -0.95) {
             frontArea += cross.length() / 2;
-            expect(Math.abs(normal.y)).toBeGreaterThan(0.01);
-            expect(Math.abs(normal.y)).toBeLessThan(0.06);
+            expect(Math.abs(normal.y)).toBeLessThan(0.32);
           }
         }
         expect(frontArea).toBeGreaterThan(stone.size.z * height * 0.35);
         expect(normals.size).toBeGreaterThan(6);
       } else {
-        expect(stone.size.y).toBeLessThan(0.6);
+        // The stable collider centre needs a taller envelope after removing the mound.
+        expect(new Box3().setFromPoints(vertices).getSize(new Vector3()).y).toBeLessThan(0.6);
         expect(Math.abs(stone.center.z)).toBeGreaterThan(6.5);
         const topY = Math.max(...vertices.map(point => point.y));
         const top = vertices.filter(point => Math.abs(point.y - topY) < 1e-5);
@@ -214,21 +274,12 @@ describe("The Milestones hillside", () => {
     expect(named(scene, "future").material.color.r).toBeGreaterThan(named(scene, "weathered").material.color.r);
   });
 
-  it.each([false, true])("has a soft 0.8 m mound outside the corridor and a clear view from the road (mirrored: %s)", wet => {
+  it.each([false, true])("grounds stones directly without a raised or mismatched mound and keeps a clear road view (mirrored: %s)", wet => {
     const scene = create({ underWater: x => wet && x > 0 });
-    const mound = named(scene, "mound"), vertices = points(mound);
-    expect(Math.max(...vertices.map(point => point.y))).toBeCloseTo(0.8, 5);
-    for (let i = 0; i < vertices.length; i += 3) {
-      const [a, b, c] = vertices.slice(i, i + 3) as [Vector3, Vector3, Vector3];
-      const normal = b.clone().sub(a).cross(c.clone().sub(a)).normalize();
-      expect(normal.y).toBeGreaterThan(0);
-      expect(Math.hypot(normal.x, normal.z) / normal.y).toBeLessThan(0.3);
-    }
-    for (const point of vertices) {
-      if (Math.abs(point.x - 3 * (wet ? -1 : 1)) < 1e-5 || Math.abs(point.z) === 9) expect(point.y).toBeCloseTo(0, 5);
-    }
+    // With no overlay, every visible ground point retains the terrain's own height and luma.
+    expect(named(scene, "mound")).toBeUndefined();
     for (let i = 0; i < 9; i++) {
-      const foot = Math.min(...rockPoints(scene, i).map(point => point.y - moundAt(scene, point.x, point.z)));
+      const foot = Math.min(...rockPoints(scene, i).map(point => point.y));
       expect(foot).toBeCloseTo(-0.05, 5);
     }
     const pine = points(named(scene, "needles"));
@@ -283,7 +334,7 @@ describe("The Milestones hillside", () => {
     expect(floodedCentre.interactable.position.z).toBeCloseTo(-16, 1);
   });
 
-  it("drapes the mound, rocks and trunk over a slope with shallowly embedded feet", () => {
+  it("drapes rocks and trunk over a slope with shallowly embedded feet", () => {
     const heightAt = (x: number, z: number) => 0.04 * x + 0.025 * z;
     const flat = create(), slope = create({ heightAt });
     const flatMeshes = meshes(flat), slopeMeshes = meshes(slope);
@@ -300,7 +351,7 @@ describe("The Milestones hillside", () => {
           feet++;
         }
       }
-      if (["milestones-mound", "milestones-ink"].includes(mesh.name)) expect(feet).toBeGreaterThan(0);
+      if (mesh.name === "milestones-ink") expect(feet).toBeGreaterThan(0);
     }
   });
 
@@ -343,7 +394,6 @@ describe("The Milestones hillside", () => {
       new Color(PALETTE.rock).getHex(),
       new Color(PALETTE.rockDark).getHex(),
       new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.42).getHex(),
-      new Color(PALETTE.grass).lerp(new Color(PALETTE.grassDry), 0.18).getHex(),
       new Color(PALETTE.flower).getHex(),
     ];
     for (const mesh of meshes(scene)) {
@@ -387,7 +437,7 @@ describe("The Milestones hillside", () => {
     // Inspect the interactable's actual surface, not the nearby loose chips.
     const vertices = rockPoints(scene, 0);
     for (let i = 0; i < vertices.length; i++) {
-      const point = vertices[i]!, localY = point.y - moundAt(scene, point.x, point.z);
+      const point = vertices[i]!, localY = point.y;
       const pigment = new Color().fromBufferAttribute(colors, i).multiply(mesh.material.color);
       if (pigment.g > pigment.r * 1.15) green.push(localY);
       if (pigment.r > kitHighlight.r + 0.04 && pigment.b > kitHighlight.b + 0.04) pale.push(localY);
@@ -397,10 +447,9 @@ describe("The Milestones hillside", () => {
     expect(pale.length).toBeGreaterThan(2);
     expect(Math.min(...pale)).toBeGreaterThan(0.2);
     expect(pale.length).toBeLessThan(vertices.length * 0.3);
-    // The four loose kit chips are embedded, rather than floating over the mound.
+    // The four loose kit chips are embedded directly in the terrain.
     for (let chip = 0; chip < 4; chip++) {
-      const foot = Math.min(...points(mesh, 7 * 312 + chip * 78, 78).map(point =>
-        point.y - moundAt(scene, point.x, point.z)));
+      const foot = Math.min(...points(mesh, 7 * 312 + chip * 78, 78).map(point => point.y));
       expect(foot).toBeCloseTo(-0.04, 5);
     }
     const propTriangles = (mesh.geometry.getAttribute("position").count

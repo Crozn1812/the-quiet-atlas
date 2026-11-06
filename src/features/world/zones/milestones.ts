@@ -1,5 +1,5 @@
 import {
-  BufferGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh,
+  Box3, BufferGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh,
   Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -14,25 +14,26 @@ import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
 } from "./types";
 
-type Surface = "weathered" | "future" | "ink" | "needles" | "mound" | "flower";
+type Surface = "weathered" | "future" | "ink" | "needles" | "flower";
 interface Part {
   geometry: BufferGeometry;
   surface: Surface;
   x: number;
   z: number;
   solid: boolean;
-  /** Flat, clean tops of the two future slots use one mound sample. */
-  capHeight?: number;
+  /** Preserve the previous collision/interaction centres while grounding the visible stone. */
+  collisionGeometry?: BufferGeometry;
+  collisionCapHeight?: number;
 }
 
-// A coarser, still gently graded shoulder reserves triangles for stone surface detail.
+// The removed mound survives only as a reference for the existing collider centres.
 const MOUND = { x: 8.8, radiusX: 5.8, radiusZ: 9, columns: 12, rows: 18, height: 0.8 };
 function moundVertexHeight(x: number, z: number) {
   const r2 = ((x - MOUND.x) / MOUND.radiusX) ** 2 + (z / MOUND.radiusZ) ** 2;
   return MOUND.height * Math.max(0, 1 - r2) ** 2;
 }
 
-/** Sample the actual triangle surface so stone feet meet the mesh, even between grid vertices. */
+/** Sample the former triangle surface solely to retain collider/target placement. */
 function moundHeight(x: number, z: number) {
   const dx = 2 * MOUND.radiusX / MOUND.columns, dz = 2 * MOUND.radiusZ / MOUND.rows;
   const u = (x - (MOUND.x - MOUND.radiusX)) / dx, v = (z + MOUND.radiusZ) / dz;
@@ -45,26 +46,6 @@ function moundHeight(x: number, z: number) {
     : d + (1 - tx) * (c - d) + (1 - tz) * (b - d);
 }
 
-function mound() {
-  const positions: number[] = [], indices: number[] = [];
-  for (let iz = 0; iz <= MOUND.rows; iz++) {
-    for (let ix = 0; ix <= MOUND.columns; ix++) {
-      const x = MOUND.x - MOUND.radiusX + ix * 2 * MOUND.radiusX / MOUND.columns;
-      const z = -MOUND.radiusZ + iz * 2 * MOUND.radiusZ / MOUND.rows;
-      positions.push(x, moundVertexHeight(x, z), z);
-      if (ix < MOUND.columns && iz < MOUND.rows) {
-        const a = iz * (MOUND.columns + 1) + ix, c = a + MOUND.columns + 1;
-        indices.push(a, c, a + 1, a + 1, c, c + 1);
-      }
-    }
-  }
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
 function randomFor(seed: number) {
   let state = seed >>> 0;
   return () => {
@@ -75,10 +56,27 @@ function randomFor(seed: number) {
 
 /** Stand the kit's layered slab on edge: its broad cut faces the road (-X).
  * Refine only the broad faces so lichen can form small islands. The kit still
- * owns the fractured outline, bevels and strata.
+ * owns the bevels and strata; deform its six corners before refining the faces.
  */
-function stone(width: number, depth: number, height: number, lean: number, seed: number, future = false) {
+function stone(width: number, depth: number, height: number, lean: number, seed: number, future = false, rough = true) {
   const source = createRockGeometry("slab", seed);
+  if (!future && rough) {
+    const vertices = source.getAttribute("position");
+    source.computeBoundingBox();
+    const ringY = source.boundingBox!.max.y * 0.13;
+    const corners = [...new Set(Array.from({ length: vertices.count }, (_, i) => i)
+      .filter(i => Math.abs(vertices.getY(i) - ringY) < 1e-6)
+      .map(i => Math.atan2(vertices.getZ(i), vertices.getX(i))))]
+      .sort((a, b) => a - b);
+    const scales = [0.72, 1.08, 0.91, 1.03, 0.78, 1.12];
+    for (let i = 0; i < vertices.count; i++) {
+      const angle = Math.atan2(vertices.getZ(i), vertices.getX(i));
+      const corner = corners.findIndex(direction => Math.abs(Math.atan2(Math.sin(angle - direction), Math.cos(angle - direction))) < 1e-5);
+      const scale = scales[corner]!;
+      // One chipped shoulder and unequal corner radii break the machined hexagon.
+      vertices.setXYZ(i, vertices.getX(i) * scale, vertices.getY(i), vertices.getZ(i) * scale);
+    }
+  }
   if (!future) source.rotateZ(Math.PI / 2);
   source.computeBoundingBox();
   const bounds = source.boundingBox!, size = bounds.getSize(new Vector3());
@@ -88,7 +86,10 @@ function stone(width: number, depth: number, height: number, lean: number, seed:
   const positions: number[] = [], pigments: number[] = [];
   const append = (a: Vector3, b: Vector3, d: Vector3, color: Color) => {
     for (const point of [a, b, d]) {
-      positions.push(point.x + (point.y - height / 2) * Math.tan(lean) * 0.35,
+      // A shallow, off-centre swell bends the refined cut instead of leaving a flat cap.
+      const swell = !future && rough ? depth * 0.09 * Math.sin(Math.PI * point.y / (height + 0.05))
+        * Math.cos((point.z / width + 0.13) * Math.PI) * Math.sign(point.x) : 0;
+      positions.push(point.x + swell + (point.y - height / 2) * Math.tan(lean) * 0.35,
         point.y - 0.05, point.z + (point.y - height / 2) * Math.tan(lean));
       pigments.push(color.r, color.g, color.b);
     }
@@ -165,9 +166,6 @@ function materials(): Record<Surface, MeshToonMaterial> {
     needles: createRampMaterial(paletteColor({
       base: "grass", mix: "forestDeep", amount: 0.42, saturation: 1, brightness: 1,
     }), ramp),
-    mound: createRampMaterial(paletteColor({
-      base: "grass", mix: "grassDry", amount: 0.18, saturation: 1, brightness: 1,
-    }), ramp),
     flower: createRampMaterial(paletteColor({
       base: "flower", mix: "flower", amount: 0, saturation: 1, brightness: 1,
     }), ramp),
@@ -178,16 +176,20 @@ function materials(): Record<Surface, MeshToonMaterial> {
 
 /** Check whole bounding footprints, including their edges, rather than just prop centres. */
 function fits(parts: readonly Part[], context: ZoneSceneContext, side: number, offsetZ: number) {
-  return parts.every(part => {
+  const footprints = parts.map(part => {
     part.geometry.computeBoundingBox();
-    const bounds = part.geometry.boundingBox!;
+    return { bounds: part.geometry.boundingBox!, x: part.x, z: part.z };
+  });
+  // Reserve a dry approach from the road to the target, without scanning the removed overlay.
+  footprints.push({ bounds: new Box3(new Vector3(3, 0, -1.2), new Vector3(5.3, 0, 1.2)), x: 0, z: 0 });
+  return footprints.every(({ bounds, x: originX, z: originZ }) => {
     const size = bounds.getSize(new Vector3());
     // Lead perf (2026-11-06): 10 cm footprint sampling, edges included (5 cm cost 1.47 s per mount, now ~0.42 s; same placement).
     const stepsX = Math.ceil(size.x / 0.1), stepsZ = Math.ceil(size.z / 0.1);
     for (let ix = 0; ix <= stepsX; ix++) {
       for (let iz = 0; iz <= stepsZ; iz++) {
-        const x = side * (part.x + bounds.min.x + size.x * ix / Math.max(1, stepsX));
-        const z = part.z + offsetZ + bounds.min.z + size.z * iz / Math.max(1, stepsZ);
+        const x = side * (originX + bounds.min.x + size.x * ix / Math.max(1, stepsX));
+        const z = originZ + offsetZ + bounds.min.z + size.z * iz / Math.max(1, stepsZ);
         const y = context.heightAt(x, z);
         if (Math.abs(x) <= PATH_CLEARANCE || context.onPath(x, z) || context.underWater(x, z)
           || !Number.isFinite(y) || Math.hypot(x, y + bounds.max.y + MOUND.height, z) > ZONE_BUDGET.radius) return false;
@@ -233,7 +235,9 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     const geometry = stone(width, depth, height, lean, seed, future);
     weatherStone(geometry, height, width, seed, future);
     parts.push({
-      geometry, surface: future ? "future" : "weathered", capHeight: future ? height : undefined,
+      geometry, surface: future ? "future" : "weathered",
+      collisionGeometry: stone(width, depth, height, lean, seed, future, false),
+      collisionCapHeight: future ? height : undefined,
       x, z, solid: true,
     });
   }
@@ -260,8 +264,6 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
   }, {
     geometry: crown,
     surface: "needles", x: 15, z: 2.7, solid: false,
-  }, {
-    geometry: mound(), surface: "mound", x: 0, z: 0, solid: false,
   });
   for (const [x, z] of [[4.15, -1.1], [5.15, 1.4]] as const) parts.push({
     geometry: new IcosahedronGeometry(0.065, 0).translate(0, 0.065, 0),
@@ -274,34 +276,58 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     .sort((a, b) => a.slope - b.slope)
     .find(({ side, offsetZ }) => fits(parts, context, side, offsetZ));
   if (!placement) {
-    parts.forEach(part => part.geometry.dispose());
+    parts.forEach(part => { part.geometry.dispose(); part.collisionGeometry?.dispose(); });
     throw new RangeError("Milestones needs a dry, clear hillside within the zone radius.");
   }
   const { side, offsetZ } = placement;
   const group = new Group();
   group.name = "milestones-hillside";
   const colliders: ZoneCollider[] = [];
-  const batches: Record<Surface, BufferGeometry[]> = { weathered: [], future: [], ink: [], needles: [], mound: [], flower: [] };
+  const batches: Record<Surface, BufferGeometry[]> = { weathered: [], future: [], ink: [], needles: [], flower: [] };
   const surfaces = materials();
+  // Nonindexed kit faces repeat contact coordinates; sample expensive terrain only once per point.
+  const groundSamples = new Map<number, Map<number, number>>();
+  const groundAt = (x: number, z: number) => {
+    let row = groundSamples.get(x);
+    if (!row) { row = new Map(); groundSamples.set(x, row); }
+    let y = row.get(z);
+    if (y === undefined) { y = context.heightAt(x, z); row.set(z, y); }
+    return y;
+  };
   let middle = new Vector3();
   for (const [index, part] of parts.entries()) {
     const geometry = part.geometry;
     const vertices = geometry.getAttribute("position");
-    // Mirror the entire composition, including the mound, onto the dry bank.
+    const collisionBounds = new Box3();
+    if (part.collisionGeometry) {
+      const reference = part.collisionGeometry.getAttribute("position");
+      for (let i = 0; i < reference.count; i++) {
+        const localX = part.x + reference.getX(i), localZ = part.z + reference.getZ(i);
+        const x = side * localX, z = localZ + offsetZ;
+        const flatCap = part.collisionCapHeight !== undefined && Math.abs(reference.getY(i) - part.collisionCapHeight) < 1e-6;
+        collisionBounds.expandByPoint(new Vector3(x, reference.getY(i) + groundAt(x, z)
+          + (flatCap ? moundHeight(part.x, part.z) : moundHeight(localX, localZ)), z));
+      }
+      part.collisionGeometry.dispose();
+    }
+    // Mirror the entire composition onto the dry bank; feet now meet the terrain itself.
     for (let i = 0; i < vertices.count; i++) {
       const localX = part.x + vertices.getX(i), localZ = part.z + vertices.getZ(i);
       const x = side * localX, z = localZ + offsetZ;
-      const flatCap = part.capHeight !== undefined && Math.abs(vertices.getY(i) - part.capHeight) < 1e-6;
-      const ground = context.heightAt(x, z) + (part.surface === "mound" ? 0
-        : flatCap ? moundHeight(part.x, part.z) : moundHeight(localX, localZ));
+      const ground = groundAt(x, z);
       vertices.setXYZ(i, x, vertices.getY(i) + ground, z);
     }
     if (!geometry.hasAttribute("color")) wash(geometry);
     geometry.computeVertexNormals();
     geometry.computeBoundingBox();
     const bounds = geometry.boundingBox!;
-    if (part.solid) colliders.push({ center: bounds.getCenter(new Vector3()), size: bounds.getSize(new Vector3()) });
-    if (index === 0) middle = bounds.getCenter(new Vector3());
+    if (part.solid) {
+      const center = (collisionBounds.isEmpty() ? bounds : collisionBounds).getCenter(new Vector3());
+      // Extend symmetrically to enclose the grounded silhouette without moving a collider centre.
+      const size = new Vector3().subVectors(bounds.max, center).max(new Vector3().subVectors(center, bounds.min)).multiplyScalar(2);
+      colliders.push({ center, size });
+      if (index === 0) middle = center.clone();
+    }
     // A consistent nonindexed layout allows the existing indexed pine shapes to share the batch path.
     const flat = geometry.index ? geometry.toNonIndexed() : geometry;
     flat.deleteAttribute("uv");
