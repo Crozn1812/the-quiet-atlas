@@ -22,7 +22,7 @@ const gradeAt = (t: number) => applyCoastAtmosphere(directGrade(lightingAt(timeO
 
 // Execute the fragment's cross-stream pigment and strokes per colour channel.
 // setGrade lights pigment/paper but supplies the horizon as independent sky radiance.
-function riverSample(material: WaterMaterial, x: number, flow: number, grazing: number, width = 6, detail = true): Color {
+function riverSample(material: WaterMaterial, x: number, flow: number, grazing: number, width = 6, detail = true, distance = 10): Color {
   const source = material.fragmentShader;
   const pigment = source.slice(source.indexOf("float edge ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float edge =")));
   const stroke = detail ? source.slice(source.indexOf("// Begin river detail scalars."), source.indexOf("#endif", source.indexOf("// Begin river detail scalars."))) : `
@@ -32,7 +32,7 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
       color = mix(color, uPaperColor, stroke * 0.065);`;
   const reflection = source.slice(source.indexOf("float fresnel ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float fresnel =")));
   const evaluate = new Function("vWaterUv", "flow", "grazing", "uDeepColor", "uEdgeColor", "uPaperColor", "uSkyMix",
-    "SKY_REFLECTION", "riverWidth", "bankDistance", "abs", "sin", "cos", "pow", "min", "smoothstep", "mix", `
+    "SKY_REFLECTION", "riverWidth", "bankDistance", "rippleDistanceFade", "max", "abs", "sin", "cos", "pow", "min", "smoothstep", "mix", `
     ${[pigment, stroke, reflection.replace(/#ifndef SEA_WATER|#endif/g, "")].join("\n").replace(/\b(float|vec3)\s+/g, "let ")}
     return { color, reflection };
   `);
@@ -40,6 +40,7 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
   const channels = (["r", "g", "b"] as const).map(channel => {
     const result = evaluate({ x }, flow, grazing, uniforms.uDeepColor!.value[channel], uniforms.uEdgeColor!.value[channel],
       uniforms.uPaperColor!.value[channel], uniforms.uSkyMix!.value, material.defines.SKY_REFLECTION, width, Math.min(x, 1 - x) * width,
+      1 - smoothstep(15, 40, distance), Math.max,
       Math.abs, Math.sin, Math.cos, Math.pow, Math.min, smoothstep, (a: number, b: number, u: number) => a + (b - a) * u);
     return material.defines.WATER_REFLECTION
       ? result.color + (uniforms.uSkyHorizon!.value[channel] - result.color) * result.reflection : result.color;
@@ -52,7 +53,8 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
 function grazingAt(material: WaterMaterial, x: number, flow: number, view: Vector3): number {
   const normal = new Vector3(0, 1, 0);
   if (material.defines.WATER_RIPPLES) {
-    normal.add(new Vector3(Math.sin(flow * 0.9 + x * 9), 0, Math.cos(flow * 0.6 - x * 13)).multiplyScalar(0.025));
+    normal.add(new Vector3(Math.sin(flow * 0.9 + x * 9), 0, Math.cos(flow * 0.6 - x * 13))
+      .multiplyScalar(0.025 * (1 - smoothstep(15, 40, view.length()))));
   }
   return 1 - Math.max(0, Math.min(1, normal.normalize().dot(view.clone().normalize())));
 }
@@ -233,9 +235,9 @@ it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons",
   const source = material.fragmentShader;
   const body = source.slice(source.indexOf("// Begin river detail scalars."), source.indexOf("// End river detail scalars."))
     .replace(/\bfloat\s+/g, "let ");
-  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "uSkyMix", "mix", "smoothstep", "sin", "cos", "pow", body + "return { riverFoam, density };");
+  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "uSkyMix", "rippleDistanceFade", "max", "mix", "smoothstep", "sin", "cos", "pow", body + "return { riverFoam, density };");
   const sample = (width: number, distance: number, flow: number) => evaluate({x: distance / width}, flow, width, distance,
-    1 - 2 * distance / width, 0.5, (a: number, b: number, t: number) => a + (b - a) * t, smoothstep, Math.sin, Math.cos, Math.pow);
+    1 - 2 * distance / width, 0.5, 1, Math.max, (a: number, b: number, t: number) => a + (b - a) * t, smoothstep, Math.sin, Math.cos, Math.pow);
   try {
     for (const width of [0.6, 4, 10, 60]) {
       let covered = 0;
@@ -266,7 +268,7 @@ describe("B2-221 dawn stream", () => {
           const flow = t * riverLength() + (y + 0.5) / 48 * 4;
           const view = new Vector3(0, 1.7, distance);
           // Display RGB measures the visible dawn colour/contrast after Three's output conversion.
-          const color = riverSample(material, u, flow, grazingAt(material, u, flow, view), width).convertLinearToSRGB();
+          const color = riverSample(material, u, flow, grazingAt(material, u, flow, view), width, true, view.length()).convertLinearToSRGB();
           values.push(luma(color));
           colors.push(color);
         }

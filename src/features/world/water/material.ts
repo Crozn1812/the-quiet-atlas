@@ -86,6 +86,7 @@ const fragmentShader = /* glsl */ `
       float shallows = (1.0 - smoothstep(12.0, 160.0, offshore)) * uHasShore;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
+    float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));
     #ifndef SEA_WATER
       // River-only lanes: stretching these UV strokes across the sea creates long white rays.
       // Inverse world-space UV gradient measures ribbon width under perspective.
@@ -94,13 +95,20 @@ const fragmentShader = /* glsl */ `
           - dFdy(vWaterUv.x) * dFdx(vWaterWorld)), 0.000001);
       float bankDistance = (1.0 - edge) * riverWidth * 0.5;
       // Begin river detail scalars.
-      float density = mix(9.0, 15.0, 1.0 - smoothstep(1.0, 8.0, riverWidth));
+      // 60% fewer lanes; the bright stroke coefficient is 60% of B2-219's 3.2.
+      float density = mix(3.6, 6.0, 1.0 - smoothstep(1.0, 8.0, riverWidth));
       density *= mix(1.3, 1.0, smoothstep(0.0, 0.8, bankDistance));
       float lane = vWaterUv.x * riverWidth * density + 0.45 * sin(flow * 0.7);
       float stroke = pow(0.5 + 0.5 * cos(lane), mix(6.0, 12.0, smoothstep(0.0, 0.4, uSkyMix)));
-      stroke *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(flow * 0.65 + vWaterUv.x * 37.0));
-      float modulation = 1.0 + 3.2 * (stroke - mix(0.15, 0.092, smoothstep(0.0, 0.4, uSkyMix)))
-        * (1.0 - smoothstep(0.6, 1.0, edge));
+      // Staggered metre-based dashes have mandatory dark gaps between marks.
+      float dash = smoothstep(0.1, 0.55, cos(flow * 3.2 + sin(lane * 0.37) * 2.0));
+      stroke *= dash;
+      float shallowDetail = mix(0.05, 1.0, 1.0 - smoothstep(8.0, 18.0, riverWidth));
+      shallowDetail = max(shallowDetail, 1.0 - smoothstep(0.8, 2.5, bankDistance));
+      float trough = pow(0.5 - 0.5 * cos(lane), 0.5) * dash;
+      // Short pigment troughs retain near-water readability without brightening the sky reflection.
+      float modulation = 1.0 + (1.92 * stroke - 1.2 * trough + 0.14 + 0.08 * dash)
+        * (1.0 - smoothstep(0.6, 1.0, edge)) * shallowDetail * rippleDistanceFade;
       float riverBrush = 0.5 + 0.5 * sin(flow * 1.73 + 1.2 * sin(flow * 0.43) + vWaterUv.x * 11.0);
       float riverFoam = (1.0 - smoothstep(0.2, 0.6, bankDistance))
         * smoothstep(0.48, 0.58, riverBrush);
@@ -116,19 +124,25 @@ const fragmentShader = /* glsl */ `
       float phase = uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)};
       float swell = sin(vWaterWorld.z * 0.65 + phase);
       float crossSwell = sin(vWaterWorld.x * 0.31 + vWaterWorld.z * 0.21 - phase);
-      color = mix(color, uPaperColor, (0.5 + 0.25 * swell + 0.25 * crossSwell) * 0.035);
+      // Begin sea ripple scalars. The broad sunset wash below remains sky reflection.
+      float seaDetail = mix(0.05, 1.0, (1.0 - smoothstep(2.0, 12.0, offshore)) * uHasShore);
+      float seaDash = smoothstep(0.1, 0.55, cos(vWaterWorld.x * 3.2 + sin(vWaterWorld.z * 0.7)))
+        * smoothstep(0.1, 0.55, cos(vWaterWorld.z * 3.2 + phase));
+      float seaStroke = seaDash * seaDetail * rippleDistanceFade;
+      // End sea ripple scalars.
+      color = mix(color, uPaperColor, (0.5 + (0.25 * swell + 0.25 * crossSwell) * seaStroke) * 0.0175);
     #endif
     #ifdef WATER_REFLECTION
       vec3 surfaceNormal = normalize(vSurfaceNormal);
       #ifdef WATER_RIPPLES
         #ifndef SEA_WATER
         vec3 ripple = vec3(sin(flow * 0.9 + vWaterUv.x * 9.0),
-                           0.0, cos(flow * 0.6 - vWaterUv.x * 13.0)) * 0.025;
+                           0.0, cos(flow * 0.6 - vWaterUv.x * 13.0)) * 0.025 * rippleDistanceFade * shallowDetail;
         surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * ripple);
         #endif
       #endif
       #ifdef SEA_WATER
-        surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * vec3(crossSwell, 0.0, swell) * 0.012);
+        surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * vec3(crossSwell, 0.0, swell) * 0.006 * seaStroke);
       #endif
       float grazing = 1.0 - clamp(dot(surfaceNormal, normalize(vViewDirection)), 0.0, 1.0);
       float fresnel = grazing * grazing * grazing;

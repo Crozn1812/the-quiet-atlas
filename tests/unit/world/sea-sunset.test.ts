@@ -90,9 +90,13 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
   const skyMix = uniform.uSkyMix!.value as number;
   const swell = Math.sin(point.z * 0.65 + phase);
   const crossSwell = Math.sin(point.x * 0.31 + point.z * 0.21 - phase);
-  color.lerp(uniform.uPaperColor!.value, (0.5 + 0.25 * swell + 0.25 * crossSwell) * 0.035);
+  const { seaStroke } = scalars(material, "// Begin sea ripple scalars.", "// End sea ripple scalars.", {
+    vWaterWorld: point, phase, offshore, uHasShore: uniform.uHasShore!.value,
+    rippleDistanceFade: 1 - smoothstep(15, 40, point.distanceTo(camera)),
+  }, ["seaStroke"]);
+  color.lerp(uniform.uPaperColor!.value, (0.5 + (0.25 * swell + 0.25 * crossSwell) * seaStroke!) * 0.0175);
   if (material.defines.WATER_REFLECTION) {
-    const normal = new Vector3(crossSwell * 0.012, 1, swell * 0.012).normalize();
+    const normal = new Vector3(crossSwell * 0.006 * seaStroke!, 1, swell * 0.006 * seaStroke!).normalize();
     const grazing = 1 - Math.max(0, Math.min(1, normal.dot(camera.clone().sub(point).normalize())));
     const { reflection } = scalars(material, "float fresnel =", "color = mix(color, uSkyHorizon", {
       grazing, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: skyMix, offshore,
