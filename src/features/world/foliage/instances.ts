@@ -372,7 +372,8 @@ export function createFoliage(maxPerKind: number) {
         transform.scale.setScalar(heightScale);
         // Keep the leaf centre just on its own bank. Only leaves and connecting
         // twigs move; sleeve/root weights are zero in every shape and pass.
-        reach = Math.max(0, path.distance - 0.6) / heightScale;
+        // Lead: cap the reach at 3 m — longer reaches stretched twigs into wire-like lines (B2-198 adds real limbs).
+        reach = Math.min(3, Math.max(0, path.distance - 0.6)) / heightScale;
         crowns.geometry.boundingBox!.max.x = Math.max(crowns.geometry.boundingBox!.max.x, crownBounds.max.x + reach);
       }
       transform.updateMatrix();
