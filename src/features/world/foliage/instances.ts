@@ -130,6 +130,69 @@ function instanceLeafColor(x: number, z: number, base: Color): Color {
   return color.multiplyScalar(luma(base) * brightness / luma(color));
 }
 
+/** Two continuous value-noise samples at most: cutout + painted light wash.
+ * Object-space coordinates stay attached to the deformed crown, before wind.
+ * Share the cutout verbatim with both existing shadow materials. */
+function installPaintedLeaves(material: Material, lighting = false) {
+  const previous = material.onBeforeCompile.bind(material);
+  const previousKey = material.customProgramCacheKey.bind(material);
+  material.alphaToCoverage = false;
+  material.onBeforeCompile = (shader, renderer) => {
+    previous(shader, renderer);
+    const varyings = `varying vec3 vPaintPosition;
+varying vec3 vPaintNormal;
+varying vec3 vPaintView;
+varying float vPaintSurface;
+`;
+    shader.vertexShader = varyings + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+vPaintPosition = position + mix(shapeA * treeA() + shapeB * treeB(), trailShape, treeStyle.z);
+vPaintSurface = surface;`)
+      .replace("#include <project_vertex>", `#include <project_vertex>
+// Cofactors preserve the existing smooth normals under nonuniform scale/shear.
+mat3 paintAxes = mat3(modelViewMatrix);
+#ifdef USE_INSTANCING
+paintAxes = paintAxes * mat3(instanceMatrix);
+#endif
+mat3 paintNormalMatrix = mat3(cross(paintAxes[1], paintAxes[2]),
+  cross(paintAxes[2], paintAxes[0]), cross(paintAxes[0], paintAxes[1]));
+vPaintNormal = paintNormalMatrix * mix(normal, trailNormal, treeStyle.z);
+// Directional shadow cameras are orthographic; point shadows are perspective.
+vPaintView = projectionMatrix[2][3] == 0.0 ? vec3(0.0, 0.0, 1.0) : -mvPosition.xyz;`);
+    shader.fragmentShader = varyings + `
+float paintHash(vec3 p) {
+  p = fract(p * 0.1031);
+  p += dot(p, p.yzx + 33.33);
+  return fract((p.x + p.y) * p.z);
+}
+float paintNoise(vec3 p) {
+  vec3 cell = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(paintHash(cell), paintHash(cell + vec3(1, 0, 0)), f.x),
+                 mix(paintHash(cell + vec3(0, 1, 0)), paintHash(cell + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(paintHash(cell + vec3(0, 0, 1)), paintHash(cell + vec3(1, 0, 1)), f.x),
+                 mix(paintHash(cell + vec3(0, 1, 1)), paintHash(cell + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+` + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace("#include <alphatest_fragment>", `#include <alphatest_fragment>
+// Only cluster leaves: solid branches and narrow hanging ribbons bypass this.
+if (vPaintSurface < 0.5) {
+  float paintFacing = abs(dot(normalize(vPaintNormal), normalize(vPaintView)));
+  float paintRim = 1.0 - smoothstep(0.0, 0.32, paintFacing);
+  if (paintNoise(vPaintPosition * 8.0) < 0.46 * paintRim) discard;
+}`);
+    if (lighting) shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>", `
+if (vPaintSurface < 0.5) {
+  // Smooth 20/m clumps; bounded contrast avoids speckled hash shading.
+  float paintWash = clamp((paintNoise(vPaintPosition * 20.0) - 0.5) * 3.0, -1.0, 1.0);
+  outgoingLight *= 1.0 + 0.12 * paintWash;
+}
+#include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => previousKey() + `|painted-leaves-v1:${lighting}`;
+}
+
 /** Use the same geometry selection in the colour and existing shadow passes.
  * Two absolute shape deltas avoid extra batches or morph textures. */
 function installTreeShapes(material: Material, wind: FoliageWind) {
@@ -243,6 +306,9 @@ export function createFoliage(maxPerKind: number) {
   for (const material of [crownMaterial, depthMaterial, distanceMaterial]) installTreeShapes(material, wind);
   installBarkLighting(crownMaterial, true);
   installLeafLighting(crownMaterial);
+  installPaintedLeaves(crownMaterial, true);
+  installPaintedLeaves(depthMaterial);
+  installPaintedLeaves(distanceMaterial);
   const deep = new Color(PALETTE.forestDeep);
   function createSpecies(seeds: readonly number[], broadleaf: boolean) {
     const variants = seeds.map(seed => {
