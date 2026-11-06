@@ -15,3 +15,11 @@
 - Tại các mốc 1, 5, 10, 15 s: camera cao 15–140 m trên terrain; khoảng cách camera→suối gần nhất ≤ fog far hiệu dụng (để nhìn thấy cảnh).
 - `paperOpacity` = 0 với `WORLD_DIRECTION` R ở mọi thời điểm.
 - Endpoint, thời lượng, Skip, reduced motion: test cũ pass.
+
+### Trả lại vòng 1 (Lead)
+
+`tests/unit/world/cinematic.test.ts` còn 2 test mô tả đường bay cũ và đang FAIL:
+- "frames four alternating river bends from near vertical" (`expected 119.69 >= 120`)
+- "descends along the river toward spawn, builds mist, and holds a 1–2 m detail shot" (`expected 69.23 < 20.1`)
+
+Viết lại 2 test này theo thiết kế mới (mở 80–140 m, nhìn chếch ngược dòng thấy ≥2 khúc uốn S; hạ dần; mist chỉ ≤ 0.08; vẫn có cảnh lướt sát mặt nước/lá trước khi về pose bàn giao). Không nới ngưỡng cho khớp số; mô tả đúng hành vi mới. Chạy `pnpm vitest run tests/unit/world` và dán kết quả.
