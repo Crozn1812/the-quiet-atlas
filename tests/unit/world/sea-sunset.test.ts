@@ -208,7 +208,7 @@ describe("road-view sunset sea", () => {
     try {
       const material = sea.mesh.material;
       // River UV lanes must be compiled out of the sea, rather than merely dimmed.
-      expect(material.fragmentShader).toMatch(/#ifndef SEA_WATER\s+\/\/ River-only lanes:[\s\S]*?float lane =[\s\S]*?stroke \* 0\.065\);\s+#endif/);
+      expect(material.fragmentShader).toMatch(/#ifndef SEA_WATER\s+\/\/ River-only lanes:[\s\S]*?float lane =[\s\S]*?riverFoam \* 0\.06\);\s+#endif/);
       const step = 0.5;
       let longest = 0;
       let peak = 0;
@@ -347,7 +347,7 @@ describe("road-view sunset sea", () => {
       const material = sea.mesh.material;
       const foam = (slope: number, phase: number) => scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
         "color = mix(color, uPaperColor, foam)", {
-          phase, offshore: 0.45 + 1.1 * (0.5 + 0.5 * Math.cos(phase)),
+          phase, offshore: 0.26 + 0.04 * Math.cos(phase),
           offshorePixelWidth: 0.05, brush: 1, uHasShore: 1, slope,
         }, ["foam", "foamDistance"]);
       expect(SEA_WAVE_PERIOD).toBe(8);
@@ -401,5 +401,30 @@ describe("road-view sunset sea", () => {
       expect(sea.mesh.geometry.index!.count / 3).toBe(2);
       expect(sea.mesh.geometry.boundingBox!.getSize(new Vector3()).x).toBe(SEA_SIZE);
     } finally { sea.dispose(); }
+  });
+});
+
+
+describe("B2-219 foam support and coverage", () => {
+  it("covers 30?70 percent of the 0.6 m sea edge and never escapes it", () => {
+    const material = createWaterMaterial("High", { surface: "sea" });
+    try {
+      for (const phase of [0, 1.5, 3, 5]) for (const offshorePixelWidth of [0.001, 1000]) {
+        let covered = 0, samples = 0;
+        for (let i = 0; i < 80; i++) for (let j = 0; j < 80; j++) {
+          const offshore = (i + 0.5) / 80 * 0.6;
+          const brush = 0.5 + 0.5 * Math.sin(j / 80 * Math.PI * 2);
+          const sample = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush, uHasShore: 1, slope: 0}, ["foam"]);
+          covered += Number(sample.foam! > 0.01); samples++;
+        }
+        expect(covered / samples).toBeGreaterThanOrEqual(0.3);
+        expect(covered / samples).toBeLessThanOrEqual(0.7);
+        for (const offshore of [-1, 0, 0.6, 0.601, 1]) {
+          expect(scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, slope: 0}, ["foam"]).foam).toBe(0);
+        }
+      }
+    } finally { material.dispose(); }
   });
 });

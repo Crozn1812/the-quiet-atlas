@@ -22,20 +22,24 @@ const gradeAt = (t: number) => applyCoastAtmosphere(directGrade(lightingAt(timeO
 
 // Execute the fragment's cross-stream pigment and strokes per colour channel.
 // setGrade lights pigment/paper but supplies the horizon as independent sky radiance.
-function riverSample(material: WaterMaterial, x: number, flow: number, grazing: number): Color {
+function riverSample(material: WaterMaterial, x: number, flow: number, grazing: number, width = 6, detail = true): Color {
   const source = material.fragmentShader;
   const pigment = source.slice(source.indexOf("float edge ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float edge =")));
-  const stroke = source.slice(source.indexOf("float lane ="), source.indexOf("#endif", source.indexOf("float lane =")));
+  const stroke = detail ? source.slice(source.indexOf("// Begin river detail scalars."), source.indexOf("#endif", source.indexOf("// Begin river detail scalars."))) : `
+      float lane = vWaterUv.x * 50.0 + 0.45 * sin(flow * 0.7);
+      float stroke = pow(0.5 + 0.5 * cos(lane), 12.0);
+      stroke *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(flow * 0.65 + vWaterUv.x * 37.0));
+      color = mix(color, uPaperColor, stroke * 0.065);`;
   const reflection = source.slice(source.indexOf("float fresnel ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float fresnel =")));
   const evaluate = new Function("vWaterUv", "flow", "grazing", "uDeepColor", "uEdgeColor", "uPaperColor", "uSkyMix",
-    "SKY_REFLECTION", "abs", "sin", "cos", "pow", "smoothstep", "mix", `
+    "SKY_REFLECTION", "riverWidth", "bankDistance", "abs", "sin", "cos", "pow", "smoothstep", "mix", `
     ${[pigment, stroke, reflection].join("\n").replace(/\b(float|vec3)\s+/g, "let ")}
     return { color, reflection };
   `);
   const uniforms = material.uniforms;
   const channels = (["r", "g", "b"] as const).map(channel => {
     const result = evaluate({ x }, flow, grazing, uniforms.uDeepColor!.value[channel], uniforms.uEdgeColor!.value[channel],
-      uniforms.uPaperColor!.value[channel], uniforms.uSkyMix!.value, material.defines.SKY_REFLECTION,
+      uniforms.uPaperColor!.value[channel], uniforms.uSkyMix!.value, material.defines.SKY_REFLECTION, width, Math.min(x, 1 - x) * width,
       Math.abs, Math.sin, Math.cos, Math.pow, smoothstep, (a: number, b: number, u: number) => a + (b - a) * u);
     return material.defines.WATER_REFLECTION
       ? result.color + (uniforms.uSkyHorizon!.value[channel] - result.color) * result.reflection : result.color;
@@ -189,4 +193,61 @@ describe("water receives the player's grade", () => {
       expect(luma(material.uniforms.uDeepColor!.value)).toBe(0);
     }
   });
+});
+
+
+describe("B2-219 river surface contrast", () => {
+  it("resolves ripples in 4 x 4 m hill windows while retaining mean brightness", () => {
+    const material = createWaterMaterial("High", { grade: gradeAt(0.55) });
+    material.setSkyMix(timeOfDayAt(0.55));
+    try {
+      for (const width of [4, 6, 8]) for (const origin of [100, 400, 800]) {
+        const values: number[] = [], previous: number[] = [], linear: number[] = [], oldLinear: number[] = [];
+        for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+          const u = 0.5 + ((x + 0.5) / 64 * 4 - 2) / width;
+          const flow = origin + (y + 0.5) / 64 * 4;
+          linear.push(luma(riverSample(material, u, flow, 0, width)));
+          oldLinear.push(luma(riverSample(material, u, flow, 0, width, false)));
+          values.push(luma(riverSample(material, u, flow, 0, width).convertLinearToSRGB()));
+          previous.push(luma(riverSample(material, u, flow, 0, width, false).convertLinearToSRGB()));
+        }
+        const mean = values.reduce((a, b) => a + b) / values.length;
+        const before = previous.reduce((a, b) => a + b) / previous.length;
+        const std = Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length);
+        const linearMean = linear.reduce((a, b) => a + b) / linear.length;
+        const oldMean = oldLinear.reduce((a, b) => a + b) / oldLinear.length;
+        const linearStd = Math.sqrt(linear.reduce((a, b) => a + (b - linearMean) ** 2, 0) / linear.length);
+        expect(linearStd).toBeGreaterThanOrEqual(0.02);
+        expect(Math.abs(linearMean / oldMean - 1)).toBeLessThanOrEqual(0.1);
+        expect(std).toBeGreaterThanOrEqual(0.02);
+        expect(Math.abs(mean / before - 1)).toBeLessThanOrEqual(0.1);
+        process.stdout.write(`River width=${width}, origin=${origin}: linear std=${linearStd.toFixed(4)}, linear mean change=${((linearMean / oldMean - 1) * 100).toFixed(2)}%, display luma std=${std.toFixed(4)}, mean change=${((mean / before - 1) * 100).toFixed(2)}%\n`);
+      }
+    } finally { material.dispose(); }
+  });
+});
+
+
+it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons", () => {
+  const material = createWaterMaterial("High");
+  const source = material.fragmentShader;
+  const body = source.slice(source.indexOf("// Begin river detail scalars."), source.indexOf("// End river detail scalars."))
+    .replace(/\bfloat\s+/g, "let ");
+  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "uSkyMix", "mix", "smoothstep", "sin", "cos", "pow", body + "return { riverFoam, density };");
+  const sample = (width: number, distance: number, flow: number) => evaluate({x: distance / width}, flow, width, distance,
+    1 - 2 * distance / width, 0.5, (a: number, b: number, t: number) => a + (b - a) * t, smoothstep, Math.sin, Math.cos, Math.pow);
+  try {
+    for (const width of [0.6, 4, 10, 60]) {
+      let covered = 0;
+      for (let i = 0; i < 80; i++) for (let j = 0; j < 200; j++) {
+        const distance = (i + 0.5) / 80 * Math.min(0.6, width / 2);
+        covered += Number(sample(width, distance, j * 0.1).riverFoam > 0.01);
+      }
+      expect(covered / 16000).toBeGreaterThanOrEqual(0.3);
+      expect(covered / 16000).toBeLessThanOrEqual(0.7);
+      for (const distance of [0.6, 0.601, 1, 10]) expect(sample(width, distance, 4).riverFoam).toBe(0);
+    }
+    expect(sample(1, 0.2, 0).density).toBeGreaterThan(sample(8, 0.2, 0).density);
+    expect(sample(8, 0.2, 0).density).toBeGreaterThan(sample(8, 2, 0).density);
+  } finally { material.dispose(); }
 });

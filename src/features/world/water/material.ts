@@ -24,9 +24,7 @@ export interface WaterMaterialOptions {
 
 const vertexShader = /* glsl */ `
   varying vec2 vWaterUv;
-  #ifdef SEA_WATER
-    varying vec3 vWaterWorld;
-  #endif
+  varying vec3 vWaterWorld;
   #ifdef WATER_REFLECTION
     varying vec3 vViewDirection;
     varying vec3 vSurfaceNormal;
@@ -34,9 +32,7 @@ const vertexShader = /* glsl */ `
   #include <fog_pars_vertex>
   void main() {
     vWaterUv = uv;
-    #ifdef SEA_WATER
-      vWaterWorld = (modelMatrix * vec4(position, 1.0)).xyz;
-    #endif
+    vWaterWorld = (modelMatrix * vec4(position, 1.0)).xyz;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     #ifdef WATER_REFLECTION
       vViewDirection = -mvPosition.xyz;
@@ -62,8 +58,8 @@ const fragmentShader = /* glsl */ `
     uniform float uShoreZ[${SEA_SHORE_SAMPLES}];
     uniform float uHasShore;
     #define SEA_FOAM_MAX_SLOPE ${SEA_FOAM_MAX_SLOPE.toFixed(1)}
-    varying vec3 vWaterWorld;
   #endif
+  varying vec3 vWaterWorld;
   #ifdef WATER_REFLECTION
     varying vec3 vViewDirection;
     varying vec3 vSurfaceNormal;
@@ -92,10 +88,25 @@ const fragmentShader = /* glsl */ `
     #endif
     #ifndef SEA_WATER
       // River-only lanes: stretching these UV strokes across the sea creates long white rays.
-      float lane = vWaterUv.x * 50.0 + 0.45 * sin(flow * 0.7);
+      // Inverse world-space UV gradient measures ribbon width under perspective.
+      float riverWidth = length(cross(dFdx(vWaterWorld), dFdy(vWaterWorld)))
+        / max(length(dFdx(vWaterUv.x) * dFdy(vWaterWorld)
+          - dFdy(vWaterUv.x) * dFdx(vWaterWorld)), 0.000001);
+      float bankDistance = (1.0 - edge) * riverWidth * 0.5;
+      // Begin river detail scalars.
+      float density = mix(9.0, 15.0, 1.0 - smoothstep(1.0, 8.0, riverWidth));
+      density *= mix(1.3, 1.0, smoothstep(0.0, 0.8, bankDistance));
+      float lane = vWaterUv.x * riverWidth * density + 0.45 * sin(flow * 0.7);
       float stroke = pow(0.5 + 0.5 * cos(lane), 12.0);
       stroke *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(flow * 0.65 + vWaterUv.x * 37.0));
-      color = mix(color, uPaperColor, stroke * 0.065);
+      float modulation = 1.0 + mix(0.2, 3.2, smoothstep(0.0, 0.4, uSkyMix)) * (stroke - 0.092)
+        * (1.0 - smoothstep(0.6, 1.0, edge));
+      float riverBrush = 0.5 + 0.5 * sin(flow * 1.73 + 1.2 * sin(flow * 0.43) + vWaterUv.x * 11.0);
+      float riverFoam = (1.0 - smoothstep(0.2, 0.6, bankDistance))
+        * smoothstep(0.48, 0.58, riverBrush);
+      // End river detail scalars.
+      color *= modulation;
+      color = mix(color, uPaperColor, riverFoam * 0.06);
     #endif
     #ifdef SEA_WATER
       // All sea motion shares the freezeable clock, including on Low.
@@ -162,12 +173,12 @@ const fragmentShader = /* glsl */ `
       color = mix(color, uSunWashColor, washStrength);
       float brush = 0.5 + 0.5 * sin(vWaterWorld.x * 0.73 + vWaterWorld.z * 0.27);
       // One thin cream-white edge runs up and retreats over an eight-second breath.
-      float foamDistance = 0.45 + 1.1 * (0.5 + 0.5 * cos(phase));
+      float foamDistance = 0.26 + 0.04 * cos(phase);
       // A large horizon pixel must not inflate the shore edge into a broad white patch.
-      float foamWidth = clamp(fwidth(offshore) * 0.8, 0.14, 0.45);
+      float foamWidth = clamp(fwidth(offshore) * 0.8, 0.2, 0.3);
       float foam = 1.0 - smoothstep(foamWidth * 0.3, foamWidth, abs(offshore - foamDistance));
-      foam *= 1.0 - smoothstep(2.0, 5.0, offshore);
-      foam *= smoothstep(0.0, 0.2, offshore) * (0.42 + 0.18 * brush) * uHasShore;
+      foam *= 1.0 - smoothstep(0.5, 0.6, offshore);
+      foam *= smoothstep(0.0, 0.04, offshore) * smoothstep(0.48, 0.58, brush) * 0.6 * uHasShore;
       // Where the sampled coast turns back on itself (bay corners, spits) z(x) jumps between samples: no foam there.
       foam *= 1.0 - smoothstep(SEA_FOAM_MAX_SLOPE * 0.5, SEA_FOAM_MAX_SLOPE, abs(slope));
       color = mix(color, uPaperColor, foam);
