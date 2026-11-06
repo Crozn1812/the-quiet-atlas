@@ -50,6 +50,7 @@ import { createMascotMesh } from "../mascot/shape";
 import { createMascotFollowState, stepMascotFollow } from "../mascot/follow";
 import { createMascotHints, MASCOT_HINTS } from "../mascot/hints";
 import { ambienceMixAt } from "../audio/mix";
+import { updateFoliageWind } from "./foliage/instances";
 
 declare global {
   interface Window { __tqaSkipIntro?: boolean }
@@ -1149,6 +1150,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     updateMascotHint(canSimulate(state) ? dt : 0);
     for (const zone of zones) zone.update?.(animDt, reducedMotion);
     dressing?.update(animDt, reducedMotion);
+    updateFoliageWind(composed.foliageMeshes, animDt, reducedMotion);
     for (const zoneId of trackZoneEntry(physics.position, canSimulate(state) && !cinematicLocked() && !teleport.inputLocked)) {
       container.dispatchEvent(new CustomEvent("tqa:zone-enter", { bubbles: false, detail: { zoneId } }));
     }
