@@ -24,3 +24,7 @@
 - Ảnh `docs/showcase/26-asset-ky/lead-review/road-verge-terrain-through-asphalt.webp` (đường tô hồng để dò): dọc mép phải đường đoạn Quiet Shore, **terrain cao hơn mặt đường** nên các mảng đất màu be đâm xuyên qua nhựa thành vết lở hình răng cưa.
 - Việc: dưới mặt đường nhựa + lề (bề rộng thật trong `road/layout.ts`) terrain phải thấp hơn mặt đường ≥ 0,05 m; chuyển tiếp ra ngoài lề mượt trong 2–4 m (taluy), không tạo vách.
 - Test: lấy mẫu dày (0,5 m) dọc đường t 0,8–1, ngang toàn bề rộng nhựa + lề: `terrain ≤ roadSurface − 0,05` ở mọi điểm.
+
+### Lead trả lời (2026-11-06)
+
+- **Được sửa thêm `src/features/world/road/layout.ts`** (và test road): mặt đường lấy độ cao terrain **trước** khi khoét nền đường, hoặc khoét terrain dưới đường xuống `roadSurface − 0,05` trong `height.ts` trong khi đường giữ cao độ gốc. Chọn cách nào cũng được, miễn đường không đổi cao độ quá 0,1 m so với hiện tại và test "terrain ≤ roadSurface − 0,05" pass.
