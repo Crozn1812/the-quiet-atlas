@@ -271,6 +271,10 @@ test.describe("Q21 language switch inside the world", () => {
       await expect(entered).toHaveAttribute("data-world-paused", "true");
       return sceneShot(page);
     }
+    // Deferred dressing/ground (B2-179, B2-217) may still land while paused; compare only a finished world.
+    test.setTimeout(180_000);
+    // Idle desktop: done ~6 s after control (2026-11-06); allow parallel e2e load.
+    await expect(entered).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
     await page.locator(MENU_TRIGGER).click();
     const atSpawn = await pausedShot();
     await dialog(page).getByRole("button", { name: "× Close", exact: true }).click();

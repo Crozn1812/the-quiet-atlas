@@ -98,7 +98,7 @@ export function placeDressing({ deferred = false } = {}) {
     /** Append visual work before startDeferred; each iterator step must be a small bounded operation. */
     defer(build: Generator<void>) { pending.push(build); },
     /** Wait for control hand-off and a paint before doing any optional work. One cancellable timer/frame. */
-    startDeferred(ready: () => boolean) {
+    startDeferred(ready: () => boolean, onDone?: () => void) {
       if (started || disposed) return;
       started = true;
       const slice = () => {
@@ -109,10 +109,11 @@ export function placeDressing({ deferred = false } = {}) {
         // Round-robin prevents the distant shore from starving the nearby sun shafts.
         do {
           const work = pending.shift();
-          if (!work) return;
+          if (!work) { onDone?.(); return; }
           if (!work.next().done) pending.push(work);
         } while (pending.length && performance.now() < until);
         if (pending.length) timer = setTimeout(slice, 16);
+        else onDone?.();
       };
       const waitForControl = () => {
         timer = undefined;

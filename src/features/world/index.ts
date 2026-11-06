@@ -142,7 +142,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     farLandscape = measure("far-landscape", () => createFarLandscape({ deferred: true }));
     scene.add(farLandscape.mesh);
     dressing.defer(farLandscape.build);
-    dressing.startDeferred(() => container.dataset.worldIntro === "done");
+    // Tests that compare frames wait for "done": deferred dressing/ground may still land while paused.
+    container.dataset.worldBuild = "pending";
+    dressing.startDeferred(() => container.dataset.worldIntro === "done", () => { container.dataset.worldBuild = "done"; });
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     function addZoneColliders(boxes: typeof zoneBoxes) {
       if (opts.collision === "raycast") return;
@@ -1303,6 +1305,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     delete container.dataset.worldMascot;
     delete container.dataset.worldEnding;
     delete container.dataset.worldIntro;
+    delete container.dataset.worldBuild;
     container.removeEventListener(TELEPORT_TO_EVENT, teleportTo);
     container.removeEventListener(TELEPORT_CANCEL_EVENT, cancelTeleport);
     teleportCover?.remove();
