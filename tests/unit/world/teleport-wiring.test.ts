@@ -134,7 +134,7 @@ function send(target: EventTarget, type: string, properties: object = {}) {
   return event;
 }
 let doc: TrackedTarget & { activeElement: Element | null; hidden: boolean; body: Element; hasFocus: () => boolean; createElement: (tag: string) => Element };
-let win: TrackedTarget & { __tqaSkipIntro?: boolean };
+let win: TrackedTarget & { __tqaSkipIntro?: boolean; __tqaJourney?: boolean };
 let media: TrackedTarget & { matches: boolean };
 let container: Element;
 let canvas: Element;
@@ -179,7 +179,70 @@ beforeEach(() => {
 afterEach(() => {
   unmount?.();
   unmount = undefined;
+  vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+const journey = () => (container as Element & { __tqaJourney?: { goTo(zoneId: string): Promise<void> } }).__tqaJourney;
+
+it.each([undefined, false])("does not expose goTo without the journey flag (%s)", async flag => {
+  win.__tqaJourney = flag;
+  await mount();
+  expect(journey()).toBeUndefined();
+});
+
+it("QA goTo uses the fade, builds a distant zone and snaps player/camera away from a signpost", async () => {
+  win.__tqaJourney = true;
+  await mount();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  expect(typeof journey()!.goTo).toBe("function");
+  const scene = harness.scene as Scene;
+  expect(scene.getObjectByName("horizon-overlook")).toBeUndefined();
+  const origin = position().clone();
+  const done = vi.fn();
+  const pending = journey()!.goTo("horizon").then(done);
+  expect(container.dataset.worldTeleport).toBe("active");
+  expect(cover()).toBeDefined();
+  expect(position().equals(origin)).toBe(true);
+  advance();
+  await vi.advanceTimersByTimeAsync(16);
+  expect(done).not.toHaveBeenCalled();
+  for (let i = 0; i < 20; i++) advance();
+  await vi.advanceTimersByTimeAsync(16);
+  await pending;
+  const arrival = arrivalPoint("horizon");
+  expect(container.dataset.worldTeleport).toBe("idle");
+  expect(position().x).toBeCloseTo(arrival.position.x);
+  expect(position().z).toBeCloseTo(arrival.position.z);
+  const offset = camera().position.clone().sub(position());
+  expect(Math.atan2(offset.x, offset.z)).toBeCloseTo(arrival.yaw);
+  expect(scene.getObjectByName("horizon-overlook")).toBeDefined();
+});
+
+it("rejects invalid QA zones without starting travel and removes the hook on cleanup", async () => {
+  win.__tqaJourney = true;
+  await mount();
+  const hook = journey()!;
+  const origin = position().clone();
+  await expect(hook.goTo("unknown-zone")).rejects.toThrow("Invalid journey zone");
+  expect(container.dataset.worldTeleport).toBe("idle");
+  expect(position().equals(origin)).toBe(true);
+  unmount!();
+  expect(journey()).toBeUndefined();
+  await expect(hook.goTo("roots")).rejects.toThrow("unavailable");
+});
+
+it.each(["cancel", "unmount"])("rejects pending QA travel on %s and releases its listener", async action => {
+  win.__tqaJourney = true;
+  await mount();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const pending = expect(journey()!.goTo("roots")).rejects.toThrow("cancelled");
+  if (action === "cancel") send(container, "tqa:teleport-cancel");
+  else unmount!();
+  await vi.advanceTimersByTimeAsync(16);
+  await pending;
+  expect(container.listeners.get("tqa:teleport-end")?.size).toBe(0);
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 const cover = () => container.children.find(child => child.dataset.worldTeleportCover);

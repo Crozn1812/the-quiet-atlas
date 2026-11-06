@@ -436,11 +436,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z)
         < Math.hypot(physics.position.x - nearest.position.x, physics.position.z - nearest.position.z) ? zone : nearest);
   }
-  // Opt-in observation only: no per-frame work or controller/camera references escape.
+  // Opt-in QA hook: no per-frame work or controller/camera references escape.
   const journeyContainer = container as HTMLElement & { __tqaJourney?: {
     position(): { x: number; y: number; z: number };
     cameraYaw(): number;
     zone(): string | null;
+    goTo(zoneId: string): Promise<void>;
   } };
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
@@ -448,6 +449,32 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     zone: () => {
       const zone = nearestZone();
       return Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius ? zone.id : null;
+    },
+    goTo: async (zoneId: string) => {
+      const to = ZONE_IDS.find(id => id === zoneId);
+      if (!to) throw new Error(`Invalid journey zone: ${zoneId}`);
+      if (disposed || cinematicLocked() || contextLost || teleport.inputLocked) throw new Error("Journey teleport unavailable");
+      // The chooser rejects same-zone travel; use another origin to allow QA to revisit any arrival.
+      const from = nearestZone().id === to ? ZONE_IDS.find(id => id !== to)! : nearestZone().id;
+      teleport = createTeleport({ reducedMotion });
+      teleport.startChoosing(from);
+      teleportFrom = from;
+      container.dataset.worldTeleport = "active";
+      let arrived = false;
+      const ended = (event: Event) => { arrived = (event as CustomEvent).detail?.to === to; };
+      container.addEventListener("tqa:teleport-end", ended);
+      try {
+        teleportTo(new CustomEvent(TELEPORT_TO_EVENT, { detail: { to } }));
+        const deadline = performance.now() + 60_000;
+        while (!disposed && container.dataset.worldTeleport !== "idle") {
+          if (performance.now() >= deadline) throw new Error("Journey teleport timed out");
+          await new Promise<void>(resolve => setTimeout(resolve, 16));
+        }
+        if (disposed || !arrived) throw new Error("Journey teleport cancelled");
+        if (!zoneScenes!.ensure(to)) throw new Error(`Journey zone not built: ${to}`);
+      } finally {
+        container.removeEventListener("tqa:teleport-end", ended);
+      }
     },
   }) : undefined;
   if (journey) journeyContainer.__tqaJourney = journey;
