@@ -80,6 +80,9 @@ transformed *= grassFade;`);
   const mesh = new InstancedMesh(geometry, material, capacity);
   mesh.instanceMatrix.setUsage(DynamicDrawUsage);
   mesh.frustumCulled = false;
+  // Hidden until the first update places grass: spawn is in the forest, so the first frame
+  // neither draws nor compiles this program (time to playable).
+  mesh.visible = false;
   mesh.receiveShadow = true;
   const group = new Group();
   group.add(mesh);
