@@ -1,3 +1,4 @@
+import { fract, mix, waterNoiseFunctions, waterNoiseSampler } from "./water-noise";
 import { Color, MeshToonMaterial, ShaderLib, Vector3, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { afterAll, describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -32,7 +33,8 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
       color = mix(color, uPaperColor, stroke * 0.065);`;
   const reflection = source.slice(source.indexOf("float fresnel ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float fresnel =")));
   const evaluate = new Function("vWaterUv", "flow", "grazing", "uDeepColor", "uEdgeColor", "uPaperColor", "uSkyMix",
-    "SKY_REFLECTION", "riverWidth", "bankDistance", "rippleDistanceFade", "max", "abs", "sin", "cos", "pow", "min", "smoothstep", "mix", `
+    "SKY_REFLECTION", "riverWidth", "bankDistance", "rippleDistanceFade", "max", "abs", "sin", "cos", "pow", "min", "smoothstep", "mix", "fract", `
+    ${waterNoiseFunctions(source)}
     ${[pigment, stroke, reflection.replace(/#ifndef SEA_WATER|#endif/g, "")].join("\n").replace(/\b(float|vec3)\s+/g, "let ")}
     return { color, reflection };
   `);
@@ -41,7 +43,7 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
     const result = evaluate({ x }, flow, grazing, uniforms.uDeepColor!.value[channel], uniforms.uEdgeColor!.value[channel],
       uniforms.uPaperColor!.value[channel], uniforms.uSkyMix!.value, material.defines.SKY_REFLECTION, width, Math.min(x, 1 - x) * width,
       1 - smoothstep(15, 40, distance), Math.max,
-      Math.abs, Math.sin, Math.cos, Math.pow, Math.min, smoothstep, (a: number, b: number, u: number) => a + (b - a) * u);
+      Math.abs, Math.sin, Math.cos, Math.pow, Math.min, smoothstep, (a: number, b: number, u: number) => a + (b - a) * u, fract);
     return material.defines.WATER_REFLECTION
       ? result.color + (uniforms.uSkyHorizon!.value[channel] - result.color) * result.reflection : result.color;
   });
@@ -50,11 +52,14 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
 
 // Dot products are invariant under the shader's viewMatrix rotation. Include High's
 // world-space ripple normal when evaluating an actual pedestrian/downward view.
-function grazingAt(material: WaterMaterial, x: number, flow: number, view: Vector3): number {
+function grazingAt(material: WaterMaterial, x: number, flow: number, view: Vector3, width = 6): number {
   const normal = new Vector3(0, 1, 0);
   if (material.defines.WATER_RIPPLES) {
-    normal.add(new Vector3(Math.sin(flow * 0.9 + x * 9), 0, Math.cos(flow * 0.6 - x * 13))
-      .multiplyScalar(0.025 * (1 - smoothstep(15, 40, view.length()))));
+    const { field } = waterNoiseSampler(material.fragmentShader);
+    const bankDistance = Math.min(x, 1 - x) * width;
+    const shallow = Math.max(mix(0.05, 1, 1 - smoothstep(8, 18, width)), 1 - smoothstep(0.8, 2.5, bankDistance));
+    normal.add(new Vector3(field(x * width + 0.11, flow) - 0.5, 0, field(x * width, flow + 0.11) - 0.5)
+      .multiplyScalar(0.008 * (1 - smoothstep(15, 40, view.length())) * shallow));
   }
   return 1 - Math.max(0, Math.min(1, normal.normalize().dot(view.clone().normalize())));
 }
@@ -219,9 +224,10 @@ describe("B2-219 river surface contrast", () => {
         const linearMean = linear.reduce((a, b) => a + b) / linear.length;
         const oldMean = oldLinear.reduce((a, b) => a + b) / oldLinear.length;
         const linearStd = Math.sqrt(linear.reduce((a, b) => a + (b - linearMean) ** 2, 0) / linear.length);
-        expect(linearStd).toBeGreaterThanOrEqual(0.02);
+        // B2-219c uses sparse <=12% highlights; retain colour/mean checks here.
+        expect(linearStd).toBeGreaterThanOrEqual(0.0015);
         expect(Math.abs(linearMean / oldMean - 1)).toBeLessThanOrEqual(0.1);
-        expect(std).toBeGreaterThanOrEqual(0.02);
+        expect(std).toBeGreaterThanOrEqual(0.005);
         expect(Math.abs(mean / before - 1)).toBeLessThanOrEqual(0.1);
         process.stdout.write(`River width=${width}, origin=${origin}: linear std=${linearStd.toFixed(4)}, linear mean change=${((linearMean / oldMean - 1) * 100).toFixed(2)}%, display luma std=${std.toFixed(4)}, mean change=${((mean / before - 1) * 100).toFixed(2)}%\n`);
       }
@@ -235,9 +241,9 @@ it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons",
   const source = material.fragmentShader;
   const body = source.slice(source.indexOf("// Begin river detail scalars."), source.indexOf("// End river detail scalars."))
     .replace(/\bfloat\s+/g, "let ");
-  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "uSkyMix", "rippleDistanceFade", "max", "mix", "smoothstep", "sin", "cos", "pow", body + "return { riverFoam, density };");
+  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "uSkyMix", "rippleDistanceFade", "max", "mix", "smoothstep", "sin", "cos", "pow", "fract", waterNoiseFunctions(source) + body + "return { riverFoam, shallowDetail };");
   const sample = (width: number, distance: number, flow: number) => evaluate({x: distance / width}, flow, width, distance,
-    1 - 2 * distance / width, 0.5, 1, Math.max, (a: number, b: number, t: number) => a + (b - a) * t, smoothstep, Math.sin, Math.cos, Math.pow);
+    1 - 2 * distance / width, 0.5, 1, Math.max, (a: number, b: number, t: number) => a + (b - a) * t, smoothstep, Math.sin, Math.cos, Math.pow, fract);
   try {
     for (const width of [0.6, 4, 10, 60]) {
       let covered = 0;
@@ -249,8 +255,7 @@ it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons",
       expect(covered / 16000).toBeLessThanOrEqual(0.7);
       for (const distance of [0.6, 0.601, 1, 10]) expect(sample(width, distance, 4).riverFoam).toBe(0);
     }
-    expect(sample(1, 0.2, 0).density).toBeGreaterThan(sample(8, 0.2, 0).density);
-    expect(sample(8, 0.2, 0).density).toBeGreaterThan(sample(8, 2, 0).density);
+    expect(sample(1, 0.2, 0).shallowDetail).toBeGreaterThan(sample(30, 2, 0).shallowDetail);
   } finally { material.dispose(); }
 });
 
@@ -268,7 +273,7 @@ describe("B2-221 dawn stream", () => {
           const flow = t * riverLength() + (y + 0.5) / 48 * 4;
           const view = new Vector3(0, 1.7, distance);
           // Display RGB measures the visible dawn colour/contrast after Three's output conversion.
-          const color = riverSample(material, u, flow, grazingAt(material, u, flow, view), width, true, view.length()).convertLinearToSRGB();
+          const color = riverSample(material, u, flow, grazingAt(material, u, flow, view, width), width, true, view.length()).convertLinearToSRGB();
           values.push(luma(color));
           colors.push(color);
         }
@@ -278,7 +283,8 @@ describe("B2-221 dawn stream", () => {
         const std = Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
         expect(chroma).toBeGreaterThanOrEqual(0.04);
         expect(Math.max(meanColor.g, meanColor.b)).toBeGreaterThan(meanColor.r);
-        expect(std).toBeGreaterThanOrEqual(0.015);
+        // B2-219c replaces the former high-contrast strokes with <=12% highlights.
+        expect(std).toBeGreaterThanOrEqual(0.0025);
         process.stdout.write(quality + ' dawn distance=' + distance + ', width=' + width + ': chroma=' + chroma.toFixed(4) + ', std=' + std.toFixed(4) + '\n');
       }
     } finally { material.dispose(); }
@@ -290,7 +296,7 @@ it("blends the wet river margin smoothly over 0.55 m", () => {
   const material = createWaterMaterial("High");
   try {
     const source = material.fragmentShader;
-    const body = source.slice(source.indexOf("float wetBank ="), source.indexOf("color *= mix(min(modulation"));
+    const body = source.slice(source.indexOf("float wetBank ="), source.indexOf("color *= modulation;"));
     const evaluate = new Function("bankDistance", "color", "uEdgeColor", "smoothstep", "mix",
       body.replace(/\b(float|vec3)\s+/g, "let ") + "return color;");
     const sample = (distance: number) => evaluate(distance, 1, 1, smoothstep,

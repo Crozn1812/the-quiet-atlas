@@ -1,95 +1,100 @@
 import { expect, it } from "vitest";
 import { createWaterMaterial } from "../../../src/features/world/water/material";
+import { fract, mix, smoothstep, waterNoiseFunctions, waterNoiseSampler } from "./water-noise";
 
-const smoothstep = (a: number, b: number, x: number) => {
-  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
-const mix = (a: number, b: number, t: number) => a + (b - a) * t;
-
-it("B2-219b measures short, sparse, distance-faded streaks against the frozen baseline", () => {
-  const material = createWaterMaterial("High");
-  const source = material.fragmentShader;
+function riverSampler(source: string) {
   const body = source.slice(source.indexOf("// Begin river detail scalars."), source.indexOf("// End river detail scalars."))
     .replace(/\bfloat\s+/g, "let ");
-  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "uSkyMix",
-    "rippleDistanceFade", "mix", "smoothstep", "sin", "cos", "pow", "max", body + "return modulation;");
-  const densityAt = new Function("riverWidth", "bankDistance", "mix", "smoothstep",
-    body.slice(0, body.indexOf("let lane =")) + "return density;");
-  const sample = (x: number, flow: number, width: number, sky: number, distance: number, old = false) => {
-    const edge = Math.abs(x * 2 - 1), bank = Math.min(x, 1 - x) * width;
-    let modulation: number;
-    if (old) {
-      // Frozen B2-219/B2-221 formula: compare with the actual new GLSL above.
-      const density = mix(9, 15, 1 - smoothstep(1, 8, width)) * mix(1.3, 1, smoothstep(0, 0.8, bank));
-      const lane = x * width * density + 0.45 * Math.sin(flow * 0.7);
-      const stroke = Math.pow(0.5 + 0.5 * Math.cos(lane), mix(6, 12, smoothstep(0, 0.4, sky)))
-        * smoothstep(0.1, 0.8, 0.5 + 0.5 * Math.sin(flow * 0.65 + x * 37));
-      modulation = 1 + 3.2 * (stroke - mix(0.15, 0.092, smoothstep(0, 0.4, sky))) * (1 - smoothstep(0.6, 1, edge));
-    } else {
-      modulation = evaluate({ x }, flow, width, bank, edge, sky, 1 - smoothstep(15, 40, distance),
-        mix, smoothstep, Math.sin, Math.cos, Math.pow, Math.max);
-    }
-    // A scalar pigment multiplier is also the linear-luma ratio to the same
-    // unmodulated water pixel; foam and sky radiance are separate contributions.
-    return mix(Math.min(modulation, 1.2), modulation, smoothstep(0, 0.4, sky));
-  };
+  const evaluate = new Function("vWaterUv", "flow", "riverWidth", "bankDistance", "edge", "rippleDistanceFade",
+    "mix", "smoothstep", "sin", "max", "fract", waterNoiseFunctions(source) + body + "return modulation - 1;");
+  return (x: number, y: number, width = 6, distance = 10) => evaluate({ x: x / width }, y, width,
+    Math.min(x, width - x), Math.abs(x / width * 2 - 1), 1 - smoothstep(15, 40, distance),
+    mix, smoothstep, Math.sin, Math.max, fract) as number;
+}
+
+it("B2-219c bounds sparse soft highlights, their length, and distance/shallow fade", () => {
+  const material = createWaterMaterial("High");
+  const sample = riverSampler(material.fragmentShader);
   try {
-    expect(source).toContain("smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition))");
-    for (const width of [1, 4, 8, 30]) for (const bank of [0.2, 2]) {
-      const oldDensity = mix(9, 15, 1 - smoothstep(1, 8, width)) * mix(1.3, 1, smoothstep(0, 0.8, bank));
-      expect(densityAt(width, bank, mix, smoothstep) / oldDensity).toBeCloseTo(0.4);
-    }
-    for (const sky of [0, 1]) for (const origin of [100, 400, 800]) {
-      let oldArea = 0, area = 0, peak10 = 0, peak40 = 0, longest = 0;
-      const n = 240, step = 6 / n;
+    for (const origin of [-80, 100, 400, 800]) {
+      let area = 0, peak = 0, farPeak = 0, longest = 0;
+      const n = 200, step = 6 / n;
       for (let i = 0; i < n; i++) {
         let run = 0;
-        const x = (i + 0.5) / n;
         for (let j = 0; j < n; j++) {
-          const flow = origin + (j + 0.5) * step;
-          const old = sample(x, flow, 6, sky, 10, true);
-          const near = sample(x, flow, 6, sky, 10), far = sample(x, flow, 6, sky, 40);
-          oldArea += Number(old > 1.15); area += Number(near > 1.15);
-          peak10 = Math.max(peak10, near - 1); peak40 = Math.max(peak40, far - 1);
-          run = near > 1.15 ? run + step : 0; longest = Math.max(longest, run);
+          const x = (i + 0.5) * step, y = origin + (j + 0.5) * step;
+          const value = sample(x, y);
+          // The old >15% gate cannot coexist with the new <=12% cap.
+          // Visible marks use >3% pigment luma (one quarter of the allowed peak).
+          area += Number(value > 0.03);
+          peak = Math.max(peak, value); farPeak = Math.max(farPeak, sample(x, y, 6, 40));
+          run = value > 0.03 ? run + step : 0; longest = Math.max(longest, run);
         }
       }
-      const ratio = area / (n * n), oldRatio = oldArea / (n * n);
-      process.stdout.write(`streak sky=${sky}, origin=${origin}: before=${(oldRatio * 100).toFixed(2)}%, after=${(ratio * 100).toFixed(2)}%, peak40/10=${(peak40 / peak10).toFixed(3)}, longest=${longest.toFixed(2)}m\n`);
-      expect(ratio).toBeGreaterThanOrEqual(0.04); expect(ratio).toBeLessThanOrEqual(0.15);
-      expect(peak40).toBeLessThanOrEqual(peak10 * 0.2); expect(longest).toBeLessThanOrEqual(3);
-      expect(sample(0.5, origin, 30, sky, 10) - 1).toBeLessThanOrEqual(0.15);
+      const ratio = area / (n * n);
+      process.stdout.write('noise origin=' + origin + ': area=' + (ratio * 100).toFixed(2)
+        + '%, peak=' + peak.toFixed(4) + ', far/near=' + (farPeak / peak).toFixed(3) + ', longest=' + longest.toFixed(2) + 'm\n');
+      expect(ratio).toBeGreaterThanOrEqual(0.04); expect(ratio).toBeLessThanOrEqual(0.12);
+      expect(peak).toBeLessThanOrEqual(0.12 + 1e-12); expect(peak).toBeGreaterThan(0.09);
+      expect(farPeak).toBeLessThanOrEqual(peak * 0.2); expect(longest).toBeLessThanOrEqual(3);
+    }
+    for (let j = 0; j < 200; j++) {
+      expect(sample(15, j * 0.1, 30)).toBeLessThanOrEqual(0.006 + 1e-12);
+      const near = sample(3, j * 0.1);
+      let previous = near;
+      for (let d = 15; d <= 40; d++) {
+        const value = sample(3, j * 0.1, 6, d);
+        expect(value).toBeLessThanOrEqual(previous + 1e-12); previous = value;
+      }
     }
   } finally { material.dispose(); }
 });
 
-it("breaks sea surface detail into short marks while leaving the sunset reflection separate", () => {
+it("has no along-flow correlation peak at any sampled lag from 0.5 to 8m", () => {
+  const material = createWaterMaterial("High");
+  try {
+    const { field, streak } = waterNoiseSampler(material.fragmentShader);
+    // Every 5 cm lag in the requested interval; 64 m windows, several origins,
+    // raw noise and thresholded highlights. Center each pair (Pearson correlation).
+    for (const origin of [-80, 100, 400, 800]) for (const [name, sample] of [["field", field], ["streak", streak]] as const) {
+      const rows = Array.from({ length: 24 }, (_, x) => Float64Array.from({ length: 1440 }, (_, y) => sample((x + 0.5) * 0.25, origin + y * 0.05)));
+      let maximum = 0;
+      for (let lag = 10; lag <= 160; lag++) {
+        let a = 0, b = 0, aa = 0, bb = 0, ab = 0, n = 0;
+        for (const row of rows) for (let j = 0; j < 1280; j++) {
+          const u = row[j]!, v = row[j + lag]!;
+          a += u; b += v; aa += u * u; bb += v * v; ab += u * v; n++;
+        }
+        const correlation = (ab - a * b / n) / Math.sqrt((aa - a * a / n) * (bb - b * b / n));
+        maximum = Math.max(maximum, Math.abs(correlation));
+        expect(Math.abs(correlation), name + ' origin=' + origin + ', lag=' + lag * 0.05).toBeLessThanOrEqual(0.35);
+      }
+      process.stdout.write(name + ' origin=' + origin + ': max |autocorrelation|=' + maximum.toFixed(4) + '\n');
+    }
+  } finally { material.dispose(); }
+});
+
+it("uses the same warped field for sea detail and advects without periodic lane/dash masks", () => {
   const material = createWaterMaterial("High", { surface: "sea" });
   try {
     const source = material.fragmentShader;
-    const body = source.slice(source.indexOf("// Begin sea ripple scalars."), source.indexOf("// End sea ripple scalars."))
-      .replace(/\bfloat\s+/g, "let ");
-    const evaluate = new Function("vWaterWorld", "phase", "offshore", "uHasShore", "rippleDistanceFade",
-      "mix", "smoothstep", "sin", "cos", body + "return seaStroke;");
-    const sample = (x: number, z: number, phase: number, offshore: number, distance: number) =>
-      evaluate({ x, z }, phase, offshore, 1, 1 - smoothstep(15, 40, distance), mix, smoothstep, Math.sin, Math.cos) as number;
-    let longest = 0, peak = 0;
-    for (const phase of [0, Math.PI / 2, Math.PI]) for (const transverse of [0, 0.5, 1, 10]) {
-      for (const alongX of [false, true]) {
-        let run = 0;
-        for (let i = 0; i < 1200; i++) {
-          const x = alongX ? i * 0.025 : transverse, z = alongX ? transverse : i * 0.025;
-          const near = sample(x, z, phase, 1, 10);
-          peak = Math.max(peak, near);
-          run = near > 0.01 ? run + 0.025 : 0; longest = Math.max(longest, run);
-          expect(sample(x, z, phase, 1, 40)).toBe(0);
-          expect(sample(x, z, phase, 30, 10)).toBeLessThanOrEqual(near * 0.05 + 1e-12);
-        }
-      }
+    const body = source.slice(source.indexOf("// Begin sea ripple scalars."), source.indexOf("// End sea ripple scalars."));
+    const evaluate = new Function("vWaterWorld", "uTime", "offshore", "uHasShore", "rippleDistanceFade", "mix", "smoothstep", "fract",
+      waterNoiseFunctions(source) + body.replace(/\bfloat\s+/g, "let ") + "return seaStroke;");
+    const sample = (x: number, y: number, time: number, offshore = 1, fade = 1) =>
+      evaluate({ x, z: y }, time, offshore, 1, fade, mix, smoothstep, fract) as number;
+    for (const block of [body, source.slice(source.indexOf("float across ="), source.indexOf("float riverBrush"))]) {
+      expect(block).not.toMatch(/\b(sin|cos|fract)\(/);
     }
-    expect(peak).toBeGreaterThan(0.9);
-    expect(longest).toBeLessThanOrEqual(2);
-    process.stdout.write(`sea surface: longest mark=${longest.toFixed(2)}m, far amplitude=0; deep/shore=0.05\n`);
+    for (let i = 0; i < 200; i++) {
+      const x = i * 0.07, y = i * 0.17;
+      const value = sample(x, y, 0);
+      expect(sample(x, y + 0.5, 10)).toBeCloseTo(value, 10);
+      expect(sample(x, y, 0, 30)).toBeCloseTo(value * 0.05, 12);
+      expect(sample(x, y, 0, 1, 0)).toBe(0);
+    }
+    expect(source).toContain("float x = across * 9.0;");
+    expect(source).toContain("float y = along * 3.0;");
+    expect(source).toContain("flow -= uTime * 0.05;");
   } finally { material.dispose(); }
 });

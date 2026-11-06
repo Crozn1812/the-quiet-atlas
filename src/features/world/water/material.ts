@@ -65,6 +65,37 @@ const fragmentShader = /* glsl */ `
     varying vec3 vSurfaceNormal;
   #endif
   #include <fog_pars_fragment>
+  // Begin water noise functions.
+  // fract hashes integer lattice corners only; it never bands the flow coordinate.
+  float waterHash(float x, float y) {
+    float a = fract(x * 0.1031);
+    float b = fract(y * 0.1030);
+    float c = fract(x * 0.0973);
+    float d = a * (b + 33.33) + b * (c + 33.33) + c * (a + 33.33);
+    return fract((a + b + 2.0 * d) * (c + d));
+  }
+  float waterNoise(float x, float y) {
+    float ix = floor(x);
+    float iy = floor(y);
+    float ux = x - ix;
+    float uy = y - iy;
+    ux = ux * ux * (3.0 - 2.0 * ux);
+    uy = uy * uy * (3.0 - 2.0 * uy);
+    return mix(mix(waterHash(ix, iy), waterHash(ix + 1.0, iy), ux),
+               mix(waterHash(ix, iy + 1.0), waterHash(ix + 1.0, iy + 1.0), ux), uy);
+  }
+  float waterField(float across, float along) {
+    // Warp the isotropic domain, stretched 3:1 along the metre-based flow.
+    float x = across * 9.0;
+    float y = along * 3.0;
+    float wx = waterNoise(x * 0.47 + 19.1, y * 0.47 - 7.3);
+    float wy = waterNoise(x * 0.47 - 31.7, y * 0.47 + 43.8);
+    return waterNoise(x + 1.6 * wx, y + 1.6 * wy);
+  }
+  float waterStreak(float across, float along) {
+    return smoothstep(0.68, 0.94, waterField(across, along));
+  }
+  // End water noise functions.
   void main() {
     // UV.y is downstream distance in metres, so this translation is 0.05 m/s.
     float flow = vWaterUv.y;
@@ -88,26 +119,19 @@ const fragmentShader = /* glsl */ `
     #endif
     float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));
     #ifndef SEA_WATER
-      // River-only lanes: stretching these UV strokes across the sea creates long white rays.
+      // River-only detail: ribbon UVs measure distance across and along the channel.
       // Inverse world-space UV gradient measures ribbon width under perspective.
       float riverWidth = length(cross(dFdx(vWaterWorld), dFdy(vWaterWorld)))
         / max(length(dFdx(vWaterUv.x) * dFdy(vWaterWorld)
           - dFdy(vWaterUv.x) * dFdx(vWaterWorld)), 0.000001);
       float bankDistance = (1.0 - edge) * riverWidth * 0.5;
       // Begin river detail scalars.
-      // 60% fewer lanes; the bright stroke coefficient is 60% of B2-219's 3.2.
-      float density = mix(3.6, 6.0, 1.0 - smoothstep(1.0, 8.0, riverWidth));
-      density *= mix(1.3, 1.0, smoothstep(0.0, 0.8, bankDistance));
-      float lane = vWaterUv.x * riverWidth * density + 0.45 * sin(flow * 0.7);
-      float stroke = pow(0.5 + 0.5 * cos(lane), mix(6.0, 12.0, smoothstep(0.0, 0.4, uSkyMix)));
-      // Staggered metre-based dashes have mandatory dark gaps between marks.
-      float dash = smoothstep(0.1, 0.55, cos(flow * 3.2 + sin(lane * 0.37) * 2.0));
-      stroke *= dash;
+      float across = vWaterUv.x * riverWidth;
+      float stroke = waterStreak(across, flow);
       float shallowDetail = mix(0.05, 1.0, 1.0 - smoothstep(8.0, 18.0, riverWidth));
       shallowDetail = max(shallowDetail, 1.0 - smoothstep(0.8, 2.5, bankDistance));
-      float trough = pow(0.5 - 0.5 * cos(lane), 0.5) * dash;
-      // Short pigment troughs retain near-water readability without brightening the sky reflection.
-      float modulation = 1.0 + (1.92 * stroke - 1.2 * trough + 0.14 + 0.08 * dash)
+      // Soft isolated highlights add at most twelve percent to the lit pigment.
+      float modulation = 1.0 + 0.12 * stroke
         * (1.0 - smoothstep(0.6, 1.0, edge)) * shallowDetail * rippleDistanceFade;
       float riverBrush = 0.5 + 0.5 * sin(flow * 1.73 + 1.2 * sin(flow * 0.43) + vWaterUv.x * 11.0);
       float riverFoam = (1.0 - smoothstep(0.2, 0.6, bankDistance))
@@ -116,28 +140,28 @@ const fragmentShader = /* glsl */ `
       // A metre-based wet margin blends into the existing edge pigment.
       float wetBank = 1.0 - smoothstep(0.0, 0.55, bankDistance);
       color = mix(color, uEdgeColor * 0.92, wetBank);
-      color *= mix(min(modulation, 1.2), modulation, smoothstep(0.0, 0.4, uSkyMix));
+      color *= modulation;
       color = mix(color, uPaperColor, riverFoam * 0.06);
     #endif
     #ifdef SEA_WATER
       // All sea motion shares the freezeable clock, including on Low.
       float phase = uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)};
-      float swell = sin(vWaterWorld.z * 0.65 + phase);
-      float crossSwell = sin(vWaterWorld.x * 0.31 + vWaterWorld.z * 0.21 - phase);
+      float swell = waterField(vWaterWorld.x, vWaterWorld.z - uTime * 0.05) - 0.5;
+      float crossSwell = waterField(vWaterWorld.x + 0.11, vWaterWorld.z - uTime * 0.05) - 0.5;
       // Begin sea ripple scalars. The broad sunset wash below remains sky reflection.
       float seaDetail = mix(0.05, 1.0, (1.0 - smoothstep(2.0, 12.0, offshore)) * uHasShore);
-      float seaDash = smoothstep(0.1, 0.55, cos(vWaterWorld.x * 3.2 + sin(vWaterWorld.z * 0.7)))
-        * smoothstep(0.1, 0.55, cos(vWaterWorld.z * 3.2 + phase));
-      float seaStroke = seaDash * seaDetail * rippleDistanceFade;
+      float seaStroke = waterStreak(vWaterWorld.x, vWaterWorld.z - uTime * 0.05)
+        * seaDetail * rippleDistanceFade;
       // End sea ripple scalars.
-      color = mix(color, uPaperColor, (0.5 + (0.25 * swell + 0.25 * crossSwell) * seaStroke) * 0.0175);
+      color = mix(color, uPaperColor, 0.00875);
+      color *= 1.0 + 0.12 * seaStroke;
     #endif
     #ifdef WATER_REFLECTION
       vec3 surfaceNormal = normalize(vSurfaceNormal);
       #ifdef WATER_RIPPLES
         #ifndef SEA_WATER
-        vec3 ripple = vec3(sin(flow * 0.9 + vWaterUv.x * 9.0),
-                           0.0, cos(flow * 0.6 - vWaterUv.x * 13.0)) * 0.025 * rippleDistanceFade * shallowDetail;
+        vec3 ripple = vec3(waterField(across + 0.11, flow) - 0.5,
+                           0.0, waterField(across, flow + 0.11) - 0.5) * 0.008 * rippleDistanceFade * shallowDetail;
         surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * ripple);
         #endif
       #endif

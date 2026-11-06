@@ -1,3 +1,4 @@
+import { fract, waterNoiseFunctions, waterNoiseSampler } from "./water-noise";
 import { Color, Vector2, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -46,14 +47,15 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
     .replace(/#ifndef SEA_WATER[\s\S]*?#endif/g, "")
     .replace(/#ifdef SEA_WATER|#endif/g, "")
     .replace(/fwidth\(offshore\)/g, "offshorePixelWidth");
-  const evaluate = new Function("inputs", "smoothstep", "mix", "clamp", `
+  const evaluate = new Function("inputs", "smoothstep", "mix", "clamp", "fract", `
     "use strict";
+    ${waterNoiseFunctions(material.fragmentShader)}
     const { ${Object.keys(inputs).join(", ")} } = inputs;
     ${source}
     return { ${outputs.join(", ")} };
   `);
   const program = (values: Record<string, unknown>) => evaluate(values, smoothstep, mix,
-    (x: number, a: number, b: number) => Math.max(a, Math.min(b, x))) as Record<string, number>;
+    (x: number, a: number, b: number) => Math.max(a, Math.min(b, x)), fract) as Record<string, number>;
   programs.set(key, program);
   return program(inputs);
 }
@@ -88,13 +90,14 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
   const { color, offshore } = seaPigment(material, point);
   expect(offshore).toBeGreaterThan(5);
   const skyMix = uniform.uSkyMix!.value as number;
-  const swell = Math.sin(point.z * 0.65 + phase);
-  const crossSwell = Math.sin(point.x * 0.31 + point.z * 0.21 - phase);
+  const { field } = waterNoiseSampler(material.fragmentShader);
+  const swell = field(point.x, point.z - time * 0.05) - 0.5;
+  const crossSwell = field(point.x + 0.11, point.z - time * 0.05) - 0.5;
   const { seaStroke } = scalars(material, "// Begin sea ripple scalars.", "// End sea ripple scalars.", {
-    vWaterWorld: point, phase, offshore, uHasShore: uniform.uHasShore!.value,
+    vWaterWorld: point, uTime: time, phase, offshore, uHasShore: uniform.uHasShore!.value,
     rippleDistanceFade: 1 - smoothstep(15, 40, point.distanceTo(camera)),
   }, ["seaStroke"]);
-  color.lerp(uniform.uPaperColor!.value, (0.5 + (0.25 * swell + 0.25 * crossSwell) * seaStroke!) * 0.0175);
+  color.lerp(uniform.uPaperColor!.value, 0.00875).multiplyScalar(1 + 0.12 * seaStroke!);
   if (material.defines.WATER_REFLECTION) {
     const normal = new Vector3(crossSwell * 0.006 * seaStroke!, 1, swell * 0.006 * seaStroke!).normalize();
     const grazing = 1 - Math.max(0, Math.min(1, normal.dot(camera.clone().sub(point).normalize())));
@@ -212,8 +215,8 @@ describe("road-view sunset sea", () => {
     const sea = createSea(quality);
     try {
       const material = sea.mesh.material;
-      // River UV lanes must be compiled out of the sea, rather than merely dimmed.
-      expect(material.fragmentShader).toMatch(/#ifndef SEA_WATER\s+\/\/ River-only lanes:[\s\S]*?float lane =[\s\S]*?riverFoam \* 0\.06\);\s+#endif/);
+      // River UV detail must be compiled out of the sea, rather than merely dimmed.
+      expect(material.fragmentShader).toMatch(/#ifndef SEA_WATER\s+\/\/ River-only detail:[\s\S]*?float across =[\s\S]*?riverFoam \* 0\.06\);\s+#endif/);
       const step = 0.5;
       let longest = 0;
       let peak = 0;
