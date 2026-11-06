@@ -113,7 +113,10 @@ const fragmentShader = /* glsl */ `
       float shoreB = uShoreZ[shoreIndex + 1];
       float shoreZ = mix(shoreA, shoreB, shoreSample - float(shoreIndex));
       float slope = (shoreB - shoreA) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)} / uShoreBounds.y;
-      float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + slope * slope);
+      // Headland secants in z(x) are not local shore normals: bound their reach
+      // so shallow-colour columns cannot project hundreds of metres offshore.
+      float distanceSlope = clamp(slope, -1.0, 1.0);
+      float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + distanceSlope * distanceSlope);
       float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * uHasShore;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
@@ -177,6 +180,9 @@ const fragmentShader = /* glsl */ `
       #endif
       #ifdef SEA_WATER
         reflection *= mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore));
+        // A restrained sky veil offshore opens into the actual sky at the horizon.
+        // Elevation only: no azimuth lobes or alternating camera-centred bands.
+        reflection *= mix(0.05, 2.0, smoothstep(0.995, 1.0, grazing));
       #endif
       color = mix(color, uSkyHorizon, reflection);
     #endif
@@ -328,7 +334,11 @@ export class WaterMaterial extends ShaderMaterial {
       // Preserve deep blue under warm sun while brightness still follows incident light.
       const energy = this.irradiance.r * 0.2126 + this.irradiance.g * 0.7152 + this.irradiance.b * 0.0722;
       this.fill.copy(this.deepPigment).lerp(this.indigo, dusk).multiplyScalar(energy * absorption);
-      this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85);
+      this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85).multiplyScalar(1.6);
+      // Neutral absorption keeps jade dark while reducing its displayed chroma.
+      const edge = this.uniforms.uEdgeColor!.value as Color;
+      const grey = edge.r * 0.2126 + edge.g * 0.7152 + edge.b * 0.0722;
+      edge.lerp(this.fill.setRGB(grey, grey, grey), 0.65).multiplyScalar(0.7);
     }
     this.uniforms.uPaperColor!.value.copy(this.paper).multiply(this.irradiance).multiplyScalar(absorption);
     // Fresnel reflects incoming sky radiance, independent of irradiance on the water.
@@ -338,10 +348,8 @@ export class WaterMaterial extends ShaderMaterial {
     const skyVisibility = sea ? 1 : 1 - 0.74 * Math.max(0, -grade.sunDirection.x);
     this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon).multiplyScalar((sea ? 0.5 : 0.45) * skyVisibility);
     if (sea) {
-      // Deep-water indigo filters the reflected horizon without adding emission.
-      // Incident sky radiance remains independent of surface irradiance (B2-181c).
-      this.fill.copy(grade.skyHorizon).multiply(this.indigo).multiplyScalar(0.5);
-      this.uniforms.uSkyHorizon!.value.lerp(this.fill, 0.95);
+      // Reflect the actual horizon radiance; Fresnel controls its weight in GLSL.
+      this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon);
     }
     this.uniforms.uSunWashColor!.value.copy(this.sunWash).multiply(grade.sunColor)
       .multiplyScalar(grade.sunIntensity * 0.65);

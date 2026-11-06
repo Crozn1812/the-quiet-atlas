@@ -5,6 +5,7 @@ import { PALETTE } from "../../../src/features/world/art/palette";
 import { worldHeight } from "../../../src/features/world/terrain/height";
 import { applyCoastAtmosphere, lightingAt } from "../../../src/features/world/sky/grade";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
+import { pathPointAt } from "../../../src/features/world/layout/path";
 import { directGrade } from "../../../src/features/world/scene/compose";
 import {
   createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, type WaterMaterial,
@@ -18,6 +19,21 @@ const smoothstep = (a: number, b: number, x: number) => {
 };
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+
+// Three's ACESFilmicToneMapping, exposure=1, followed by the output transfer.
+function displayColor(linear: Color, aces = true): Color {
+  if (!aces) return linear.clone().convertLinearToSRGB();
+  const { r, g, b } = linear.clone().multiplyScalar(1 / 0.6);
+  const fit = (v: number) => (v * (v + 0.0245786) - 0.000090537)
+    / (v * (0.983729 * v + 0.432951) + 0.238081);
+  const x = fit(0.59719 * r + 0.35458 * g + 0.04823 * b);
+  const y = fit(0.076 * r + 0.90834 * g + 0.01566 * b);
+  const z = fit(0.0284 * r + 0.13383 * g + 0.83777 * b);
+  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+  return new Color().setRGB(clamp(1.60475 * x - 0.53108 * y - 0.07367 * z),
+    clamp(-0.10208 * x + 1.10813 * y - 0.00605 * z),
+    clamp(-0.00327 * x - 0.07276 * y + 1.07602 * z)).convertLinearToSRGB();
+}
 
 // Execute the actual scalar GLSL in JS, so width/strength/foam regressions cannot
 // leave a separately copied CPU formula passing. Only trusted local shader text runs.
@@ -487,6 +503,118 @@ describe("B2-229 dusk sea colour and sun corridor", () => {
         }
       }
       expect(lit).toBeGreaterThan(0);
+    } finally { material.dispose(); }
+  });
+});
+
+// Regression for the shipped coast, including the steep secants between headlands.
+describe("B2-229b dusk sea without fan bands", () => {
+  it.each(["Low", "Balanced", "High"] as const)("bounds %s displayed offshore luma across Last Postcard azimuths", quality => {
+    const sea = createSea(quality);
+    const material = sea.mesh.material;
+    const camera = pathPointAt(1);
+    camera.y = WATER_LEVEL + 8;
+    let minimum = Infinity, maximum = -Infinity, maxSwing = 0, samples = 0;
+    try {
+      for (const t of [0.93, 0.95, 1]) {
+        material.setGrade(applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t));
+        const sun = material.uniforms.uSunDirection!.value as Vector3;
+        const sunAngle = Math.atan2(sun.x, -sun.z);
+        for (const skyMix of [0, 0.35, 1]) for (const time of [0, 2, 4, 6, 8]) {
+          material.setSkyMix(skyMix);
+          material.uniforms.uTime!.value = time;
+          for (const distance of [80, 120, 160, 240, 320, 480, 640]) {
+            for (const aces of [false, true]) {
+              const values: number[] = [];
+              for (let degrees = -80; degrees <= 80; degrees += 1) {
+                const angle = degrees * Math.PI / 180;
+                const point = camera.clone().add(new Vector3(Math.sin(angle) * distance, -8, -Math.cos(angle) * distance));
+                if (!sea.mesh.geometry.boundingBox!.containsPoint(point) || worldHeight(point.x, point.z) >= WATER_LEVEL) continue;
+                // Select far water independently of the shader's slope correction:
+                // otherwise the old erroneous shallows would be excluded from the test.
+                const bounds = material.uniforms.uShoreBounds!.value as Vector2;
+                const coast = material.uniforms.uShoreZ!.value as number[];
+                const sample = Math.max(0, Math.min(1, (point.x - bounds.x) / bounds.y)) * (SEA_SHORE_SAMPLES - 1);
+                const index = Math.min(Math.floor(sample), SEA_SHORE_SAMPLES - 2);
+                const shoreZ = mix(coast[index]!, coast[index + 1]!, sample - index);
+                if (shoreZ - point.z < 60) continue;
+                const pigment = seaPigment(material, point);
+                // The entire reflection (wash/core/glimmer) must vanish outside +/-12 degrees.
+                const delta = Math.atan2(Math.sin(angle - sunAngle), Math.cos(angle - sunAngle));
+                if (Math.abs(delta) <= 12 * Math.PI / 180) continue;
+                expect(pigment.shallows).toBe(0);
+                const color = displayColor(seaColor(material, point, camera), aces);
+                expect(color.b).toBeGreaterThan(color.g);
+                expect(color.b).toBeGreaterThan(color.r);
+                const value = luma(color);
+                values.push(value);
+                minimum = Math.min(minimum, value); maximum = Math.max(maximum, value); samples++;
+                expect(value, `t=${t}, range=${distance}, azimuth=${degrees}, ACES=${aces}`).toBeGreaterThanOrEqual(0.12);
+                expect(value).toBeLessThanOrEqual(0.22);
+              }
+              if (values.length) {
+                const swing = Math.max(...values) - Math.min(...values);
+                maxSwing = Math.max(maxSwing, swing);
+                expect(swing).toBeLessThanOrEqual(0.03);
+              }
+            }
+          }
+        }
+      }
+      expect(samples).toBeGreaterThan(10000);
+      process.stdout.write(`${quality} Last Postcard: ${samples} samples, display luma ${minimum.toFixed(4)}-${maximum.toFixed(4)}, azimuth swing ${maxSwing.toFixed(4)}\n`);
+    } finally { sea.dispose(); }
+  });
+
+  it("reduces displayed nearshore chroma by at least 30% against B2-229 pigment", () => {
+    const material = createWaterMaterial("High", { surface: "sea",
+      shoreline: { minX: -400, width: 800, z: Array<number>(SEA_SHORE_SAMPLES).fill(-800) },
+    });
+    const chroma = (c: Color) => Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b);
+    let worstRatio = 0;
+    try {
+      for (const t of [0.93, 0.95, 1]) {
+        const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t);
+        material.setGrade(grade);
+        const edge = material.uniforms.uEdgeColor!.value as Color;
+        const revised = edge.clone();
+        const previous = new Color(PALETTE.seaShallow).multiply(grade.sunColor.clone()
+          .multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
+          .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity))).multiplyScalar(0.85 / Math.PI);
+        for (const distance of [6, 8, 10, 12]) for (const aces of [false, true]) {
+          const point = new Vector3(0, WATER_LEVEL, -800 - distance);
+          const camera = new Vector3(0, WATER_LEVEL + 8, -800);
+          edge.copy(previous);
+          const before = displayColor(seaColor(material, point, camera), aces);
+          edge.copy(revised);
+          const after = displayColor(seaColor(material, point, camera), aces);
+          const ratio = chroma(after) / chroma(before);
+          worstRatio = Math.max(worstRatio, ratio);
+          expect(ratio).toBeLessThanOrEqual(0.7);
+          expect(after.g).toBeGreaterThanOrEqual(after.b);
+          expect(luma(after)).toBeLessThanOrEqual(luma(before));
+        }
+      }
+      process.stdout.write(`Nearshore displayed chroma reduction >= ${((1 - worstRatio) * 100).toFixed(1)}%\n`);
+    } finally { material.dispose(); }
+  });
+
+  it("brightens monotonically toward the actual dusk sky at the horizon", () => {
+    const material = createWaterMaterial("Balanced", { surface: "sea" });
+    try {
+      const grade = applyCoastAtmosphere(lightingAt(1), 1);
+      material.setGrade(grade);
+      const camera = new Vector3(0, WATER_LEVEL + 8, 0);
+      const sky = displayColor(grade.skyHorizon);
+      let previous = 0;
+      for (const distance of [80, 160, 320, 640, 1600, 4000, 1000000]) {
+        const color = displayColor(seaColor(material, new Vector3(0, WATER_LEVEL, -distance), camera));
+        expect(luma(color)).toBeGreaterThanOrEqual(previous);
+        previous = luma(color);
+        if (distance === 1000000) {
+          for (const channel of ["r", "g", "b"] as const) expect(color[channel]).toBeCloseTo(sky[channel], 3);
+        }
+      }
     } finally { material.dispose(); }
   });
 });

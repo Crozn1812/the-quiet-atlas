@@ -374,8 +374,13 @@ describe("sea and water lifecycle", () => {
     expect(deep.b).toBeGreaterThan(deep.r);
     expect(Math.max(deep.r, deep.g, deep.b)).toBeLessThan(0.35);
     expect(material.defines.SKY_REFLECTION).toBe(0.5);
-    expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(new Color(PALETTE.seaShallow)
-      .multiply(light).toArray().map(v => expect.closeTo(v, 12)));
+    const previousEdge = new Color(PALETTE.seaShallow).multiply(light);
+    const edge = material.uniforms.uEdgeColor!.value as Color;
+    const chroma = (color: Color) => Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
+    const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+    expect(chroma(edge)).toBeLessThanOrEqual(chroma(previousEdge) * 0.7);
+    expect(luma(edge)).toBeLessThan(luma(previousEdge));
+    expect(edge.g).toBeGreaterThanOrEqual(edge.b);
     expect(material.uniforms.uSkyMix!.value).toBe(1);
     sea.dispose();
   });
