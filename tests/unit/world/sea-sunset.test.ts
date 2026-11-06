@@ -106,7 +106,7 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
 }
 
 describe("road-view sunset sea", () => {
-  it.each(["Balanced", "High"] as const)("reflects more of the grade horizon at grazing angles and farther offshore on %s", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("reflects more of the grade horizon at grazing angles and farther offshore on %s", quality => {
     const material = createWaterMaterial(quality, { surface: "sea" });
     try {
       const reflectionAt = (grazing: number, offshore: number) => scalars(material,

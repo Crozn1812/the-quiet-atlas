@@ -208,12 +208,9 @@ export class WaterMaterial extends ShaderMaterial {
       deep.lerp(new Color(PALETTE.forestLight), 0.5);
     }
     // The broad sea mirrors more of the painted sky than the shaded river.
-    const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22 };
+    const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22, WATER_REFLECTION: 1 };
     if (sea) defines.SEA_WATER = 1;
-    if (quality !== "Low") {
-      defines.WATER_FLOW = 1;
-      defines.WATER_REFLECTION = 1;
-    }
+    if (quality !== "Low") defines.WATER_FLOW = 1;
     if (quality === "High") defines.WATER_RIPPLES = 1;
     super({
       name: `painted-${sea ? "sea" : "river"}-${quality.toLowerCase()}`,
@@ -251,8 +248,8 @@ export class WaterMaterial extends ShaderMaterial {
   }
 
   /** Flat-surface half-Lambert + hemisphere, with the same Lambert BRDF as terrain.
-   * Pigment absorption keeps the shaded ribbon below the road; every stroke/foam
-   * highlight receives this light too. Uniform count and geometry stay unchanged.
+   * Pigment, strokes and foam receive irradiance; Fresnel receives sky radiance.
+   * Uniform count and geometry stay unchanged.
    */
   setGrade(grade: LightingGrade): void {
     if (this.disposed) return;
@@ -269,8 +266,12 @@ export class WaterMaterial extends ShaderMaterial {
     this.uniforms.uDeepColor!.value.copy(this.deepPigment).lerp(this.indigo, sea ? dusk * 0.8 : 0)
       .multiply(this.irradiance).multiplyScalar(absorption);
     this.uniforms.uPaperColor!.value.copy(this.paper).multiply(this.irradiance).multiplyScalar(absorption);
-    // A small sky contribution, attenuated by the available light, rather than emissive paper.
-    this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon).multiply(this.irradiance).multiplyScalar(sea ? 0.12 : 0.08);
+    // Fresnel reflects incoming sky radiance, independent of irradiance on the water.
+    // Keep this on Low too: a static reflection needs no animated flow or extra pass.
+    // The grade's eastern dawn direction proxies forest canopy; it releases toward
+    // noon and leaves the open western coast untouched, without needing path state.
+    const skyVisibility = sea ? 1 : 1 - 0.7 * Math.max(0, -grade.sunDirection.x);
+    this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon).multiplyScalar((sea ? 0.5 : 0.45) * skyVisibility);
     this.uniforms.uSunWashColor!.value.copy(this.sunWash).multiply(grade.sunColor)
       .multiplyScalar(grade.sunIntensity * 0.65);
     this.setSunDirection(grade.sunDirection);

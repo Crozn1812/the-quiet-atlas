@@ -142,7 +142,6 @@ describe("painted water material", () => {
       const deep = uniform.uDeepColor!.value as Color;
       const edge = uniform.uEdgeColor!.value as Color;
       const paper = uniform.uPaperColor!.value as Color;
-      const horizon = uniform.uSkyHorizon!.value as Color;
       // Evaluate the actual cross-stream GLSL before the sea-only branch.
       const start = material.fragmentShader.indexOf("float edge =");
       const end = material.fragmentShader.indexOf("#ifdef SEA_WATER", start);
@@ -163,19 +162,13 @@ describe("painted water material", () => {
       expect(sample(0.5)).toEqual(deep);
       expect(luma(sample(0))).toBeGreaterThan(luma(sample(0.5)));
       for (let i = 0; i <= 20; i++) {
-        for (const skyMix of [0, 0.35, 1]) {
-          for (const stroke of [0, 0.0325, 0.065]) {
-            for (const fresnel of [0, 0.5, 1]) {
-              const color = sample(i / 20).lerp(paper, stroke);
-              if (material.defines.WATER_REFLECTION) {
-                color.lerp(horizon, fresnel * Number(material.defines.SKY_REFLECTION) * (0.85 + skyMix * 0.15));
-              }
-              // Linear shader space and displayed sRGB both keep green at least as strong as blue.
-              for (const rgb of [color, color.clone().convertLinearToSRGB()]) {
-                expect(rgb.b).toBeLessThanOrEqual(rgb.g + 0.05);
-                expect(rgb.g).toBeGreaterThan(rgb.r);
-              }
-            }
+        // Looking down isolates green pigment; grazing reflection may carry
+        // the peach dawn sky, so it must not be constrained to green pigment.
+        for (const stroke of [0, 0.0325, 0.065]) {
+          const color = sample(i / 20).lerp(paper, stroke);
+          for (const rgb of [color, color.clone().convertLinearToSRGB()]) {
+            expect(rgb.b).toBeLessThanOrEqual(rgb.g + 0.05);
+            expect(rgb.g).toBeGreaterThan(rgb.r);
           }
         }
       }
@@ -183,7 +176,7 @@ describe("painted water material", () => {
   });
 
   it.each([
-    ["Low", { SKY_REFLECTION: 0.22 }],
+    ["Low", { SKY_REFLECTION: 0.22, WATER_REFLECTION: 1 }],
     ["Balanced", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1 }],
     ["High", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1 }],
   ] as const)("uses the %s shader features and Three fog/colour pipeline", (quality, defines) => {

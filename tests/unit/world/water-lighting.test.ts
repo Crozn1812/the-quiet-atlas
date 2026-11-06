@@ -3,12 +3,12 @@ import { afterAll, describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { pathPointAt } from "../../../src/features/world/layout/path";
-import { riverLength, riverPointAt } from "../../../src/features/world/layout/river";
+import { riverLength, riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
 import { createRampMaterial, disposeRampGradients, RAMP_STEPS } from "../../../src/features/world/materials/ramp";
 import { asphaltColorAt } from "../../../src/features/world/road/surface";
 import { directGrade } from "../../../src/features/world/scene/compose";
 import { applyCoastAtmosphere, lightingAt, type LightingGrade } from "../../../src/features/world/sky/grade";
-import { worldHeight } from "../../../src/features/world/terrain/height";
+import { riverWidthAt, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createWaterMaterial, type WaterMaterial } from "../../../src/features/world/water/material";
@@ -21,7 +21,7 @@ const smoothstep = (a: number, b: number, x: number) => {
 const gradeAt = (t: number) => applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t);
 
 // Execute the fragment's cross-stream pigment and strokes per colour channel.
-// The material's own setGrade supplies all lit colours, including paper and horizon.
+// setGrade lights pigment/paper but supplies the horizon as independent sky radiance.
 function riverSample(material: WaterMaterial, x: number, flow: number, grazing: number): Color {
   const source = material.fragmentShader;
   const pigment = source.slice(source.indexOf("float edge ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float edge =")));
@@ -41,6 +41,16 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
       ? result.color + (uniforms.uSkyHorizon!.value[channel] - result.color) * result.reflection : result.color;
   });
   return new Color().setRGB(...channels as [number, number, number]);
+}
+
+// Dot products are invariant under the shader's viewMatrix rotation. Include High's
+// world-space ripple normal when evaluating an actual pedestrian/downward view.
+function grazingAt(material: WaterMaterial, x: number, flow: number, view: Vector3): number {
+  const normal = new Vector3(0, 1, 0);
+  if (material.defines.WATER_RIPPLES) {
+    normal.add(new Vector3(Math.sin(flow * 0.9 + x * 9), 0, Math.cos(flow * 0.6 - x * 13)).multiplyScalar(0.025));
+  }
+  return 1 - Math.max(0, Math.min(1, normal.normalize().dot(view.clone().normalize())));
 }
 
 // Actual terrain ramp hook, after flat-surface direct + hemi Lambert lighting.
@@ -79,7 +89,7 @@ function bankPigment(point: Vector3): Color {
 afterAll(disposeRampGradients);
 
 describe("water receives the player's grade", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps the %s dawn stream below 1.3 times the adjacent ground", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("bounds the %s dawn reflection against wet banks for pedestrian and downward views", quality => {
     const material = createWaterMaterial(quality);
     try {
       for (const t of [0, 0.15]) {
@@ -88,33 +98,60 @@ describe("water receives the player's grade", () => {
         const river = riverPointAt(t);
         const bank = river.clone().add(new Vector3(7, 0, 0));
         const ground = groundSample(bankPigment(bank), grade);
-        let maximum = 0;
-        for (const x of [0, 0.1, 0.5, 0.9, 1]) for (const flow of [0, 4, 12, 25, 40]) for (const grazing of [0, 0.5, 1]) {
-          const water = riverSample(material, x, flow, grazing);
-          maximum = Math.max(maximum, luma(water));
-          expect(luma(water)).toBeLessThanOrEqual(luma(ground) * 1.3);
-          expect(luma(water.clone().convertLinearToSRGB())).toBeGreaterThanOrEqual(0.06);
+        let maximum = 0, downwardMaximum = 0;
+        // Sky radiance can exceed shaded wet-soil light at grazing angles. The
+        // pedestrian limit is 2x; looking down suppresses Fresnel and keeps 1.3x.
+        for (const x of [0, 0.1, 0.5, 0.9, 1]) for (const flow of [0, 4, 12, 25, 40]) {
+          for (const distance of [0, 10, 20, 30]) for (const azimuth of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+            const view = new Vector3(Math.sin(azimuth) * distance, 1.7, Math.cos(azimuth) * distance);
+            const grazing = grazingAt(material, x, flow, view);
+            const water = riverSample(material, x, flow, grazing);
+            maximum = Math.max(maximum, luma(water));
+            if (distance === 0) downwardMaximum = Math.max(downwardMaximum, luma(water));
+            expect(luma(water), `${quality}, t=${t}, distance=${distance}`).toBeLessThanOrEqual(luma(ground) * (distance === 0 ? 1.3 : 2));
+            expect(luma(water.clone().convertLinearToSRGB())).toBeGreaterThanOrEqual(0.06);
+          }
         }
-        process.stdout.write(`${quality} forest t=${t}: water luma <= ${maximum.toFixed(4)}, ground=${luma(ground).toFixed(4)}\n`);
+        // Banks still reveal lighter shallow pigment when Fresnel is negligible.
+        for (const flow of [0, 4, 12, 25, 40]) for (const x of [0, 1]) {
+          const view = new Vector3(0, 1, 0);
+          const bankWater = riverSample(material, x, flow, grazingAt(material, x, flow, view));
+          const centre = riverSample(material, 0.5, flow, grazingAt(material, 0.5, flow, view));
+          expect(luma(bankWater)).toBeGreaterThan(luma(centre));
+        }
+        process.stdout.write(`${quality} forest t=${t}: water luma <= ${maximum.toFixed(4)}, downward <= ${downwardMaximum.toFixed(4)}, ground=${luma(ground).toFixed(4)}\n`);
       }
     } finally { material.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("keeps the %s coast-road stream darker than asphalt at t=0.86", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps the %s coast-road stream within 0.5–1.1 times asphalt at t=0.86", quality => {
     const t = 0.86, grade = gradeAt(t), road = pathPointAt(t);
     const material = createWaterMaterial(quality, { grade });
+    material.setSkyMix(timeOfDayAt(t));
     try {
       const riverT = nearestRiver(road.x, road.z).t;
       // Ribbon UV.y is t * arc length, rather than straight-line distance from the source.
-      const flow = riverT * riverLength();
+      const length = riverLength();
+      const camera = road.clone().setY(worldHeight(road.x, road.z) + 1.7);
       const ground = groundSample(asphaltColorAt(road.x, road.z, 1.1), grade);
-      let maximum = 0;
+      let minimum = Infinity, maximum = 0;
       for (const x of [0, 0.1, 0.5, 0.9, 1]) for (const distance of [15, 40, 80, 120]) {
-        const grazing = 1 - 1.7 / Math.hypot(distance, 1.7);
-        maximum = Math.max(maximum, luma(riverSample(material, x, flow + distance, grazing)));
+        const sampleT = riverT + distance / length;
+        const sampleFlow = sampleT * length;
+        const point = riverPointAt(sampleT);
+        const tangent = riverTangentAt(sampleT);
+        point.addScaledVector(new Vector3(-tangent.z, 0, tangent.x), (x - 0.5) * riverWidthAt(sampleT));
+        point.y = waterLevelAt(point.z);
+        const grazing = grazingAt(material, x, sampleFlow, camera.clone().sub(point));
+        const brightness = luma(riverSample(material, x, sampleFlow, grazing));
+        minimum = Math.min(minimum, brightness);
+        maximum = Math.max(maximum, brightness);
+        // Compare every sample before fog at the same distance: bright evening
+        // sky must remain visible even when little light reaches the pigment.
+        expect(brightness).toBeGreaterThanOrEqual(luma(ground) * 0.5);
+        expect(brightness).toBeLessThanOrEqual(luma(ground) * 1.1);
       }
-      expect(maximum).toBeLessThan(luma(ground));
-      process.stdout.write(`${quality} road t=0.86: stream=${maximum.toFixed(4)} < asphalt=${luma(ground).toFixed(4)}\n`);
+      process.stdout.write(`${quality} road t=0.86: stream=${minimum.toFixed(4)}–${maximum.toFixed(4)}, asphalt=${luma(ground).toFixed(4)}\n`);
     } finally { material.dispose(); }
   });
 
@@ -127,9 +164,22 @@ describe("water receives the player's grade", () => {
       const before = keys.map(key => material.uniforms[key]!.value.clone());
       for (let i = 0; i < 20; i++) material.setGrade(grade);
       expect(keys.map(key => material.uniforms[key]!.value)).toEqual(before);
-      grade.skyHorizon.set(PALETTE.ink);
+      grade.skyHorizon.set(PALETTE.skyLow);
       expect(material.uniforms.uSkyHorizon!.value).toEqual(before[3]);
+      material.setGrade(grade);
+      const reflectedSky = material.uniforms.uSkyHorizon!.value.clone();
       grade.sunIntensity = grade.hemiIntensity = 0;
+      material.setGrade(grade);
+      // A bright sky is an external source even with direct/hemi lighting off.
+      expect(material.uniforms.uSkyHorizon!.value).toEqual(reflectedSky);
+      expect(luma(material.uniforms.uSkyHorizon!.value)).toBeGreaterThan(0);
+      if (surface === "river") expect(luma(riverSample(material, 0.5, 12, 0.9))).toBeGreaterThan(0);
+      expect(keys.filter(key => key !== "uSkyHorizon").map(key => luma(material.uniforms[key]!.value))).toEqual([0, 0, 0, 0]);
+      // No emission means darkness only when incident light AND the sky are dark.
+      grade.skyHorizon.multiplyScalar(1e-8);
+      material.setGrade(grade);
+      for (const key of keys) expect(luma(material.uniforms[key]!.value)).toBeLessThan(1e-8);
+      grade.skyHorizon.multiplyScalar(0);
       material.setGrade(grade);
       expect(keys.map(key => luma(material.uniforms[key]!.value))).toEqual(keys.map(() => 0));
       material.dispose();
