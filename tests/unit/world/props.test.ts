@@ -160,7 +160,7 @@ describe("painted procedural props", () => {
       const { steps, soft } = WORLD_DIRECTION.foliage.ramp;
       expect(soft).toBe(true);
       expect(material.gradientMap).toBe(createRampGradient(steps, soft));
-      expect(material.customProgramCacheKey()).toBe("painted-toon-ramp-v1");
+      expect(material.customProgramCacheKey()).toBe("painted-prop-readable-v1");
       expect(material).not.toHaveProperty("metalness");
       expect(material).not.toHaveProperty("specular");
     } finally { material.dispose(); }

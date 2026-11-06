@@ -565,7 +565,7 @@ describe("last-postcard shore scene", () => {
       expect(mesh.material.emissive.getHex()).toBe(0);
       expect(mesh.material.map).toBeNull();
       expect(mesh.material.transparent).toBe(false);
-      expect(mesh.material.customProgramCacheKey()).toBe("painted-toon-ramp-v1");
+      expect(mesh.material.customProgramCacheKey()).toBe("painted-prop-readable-v1");
       const colors = mesh.geometry.getAttribute("color");
       const positions = mesh.geometry.getAttribute("position");
       const shades = new Set<number>();
