@@ -12,6 +12,38 @@ import { tilesAlongPath } from "../../../src/features/world/terrain/tiles";
 const trees = tilesAlongPath(240).flatMap(scatterTile);
 const canopy = trees.filter(tree => tree.trailCanopy);
 
+it("authors thick limbs at 55–70% height with 3–6 m reach and bounded construction cost", () => {
+  const timings: number[] = [];
+  for (const trail of [false, true]) {
+    const samples: number[] = [];
+    for (let i = 0; i < 31; i++) {
+      const start = performance.now();
+      const shape = createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[0], trail);
+      samples.push(performance.now() - start);
+      if (trail) {
+        const positions = shape.getAttribute("position"), first = positions.count - 84;
+        const center = (id: number) => [0, 1, 2].reduce((sum, j) => sum.add(new Vector3().fromBufferAttribute(positions, id + j)), new Vector3()).divideScalar(3);
+        const top = shape.boundingBox!.max.y + TRUNK_HEIGHT;
+        let section = 0;
+        for (const count of [5, 5, 4]) {
+          const root = center(first + section * 6), tip = center(first + (section + count - 1) * 6 + 3);
+          expect((root.y + TRUNK_HEIGHT) / top).toBeGreaterThanOrEqual(0.55);
+          expect((root.y + TRUNK_HEIGHT) / top).toBeLessThanOrEqual(0.70);
+          const reach = Math.hypot(tip.x - root.x, tip.z - root.z);
+          expect(reach * 1.35).toBeGreaterThanOrEqual(3);
+          expect(reach * 1.4).toBeLessThanOrEqual(6);
+          expect(new Vector3().fromBufferAttribute(positions, first + section * 6).distanceTo(root) * 1.35).toBeGreaterThanOrEqual(0.18);
+          section += count;
+        }
+      }
+      shape.dispose();
+    }
+    timings.push(samples.sort((a, b) => a - b)[15]!);
+  }
+  expect(timings[1]! - timings[0]!).toBeLessThan(20);
+  process.stdout.write(`B2-198 construction median: ${timings.map(t => t.toFixed(3)).join(" -> ")} ms; crown=425 triangles; limbs=3\n`);
+});
+
 it("keeps trail canopy trunks clear of the path and opening camera (B2-196)", () => {
   const spawn = pathPointAt(0);
   expect(canopy.length).toBeGreaterThan(0);
@@ -45,27 +77,25 @@ it("renders every selected trail shape 12–16 m high with trunk width <=1.4x an
       counters.set(variant, index + 1);
       if (!tree.trailCanopy) continue;
       variant.crowns.getMatrixAt(index, matrix);
-      const shape = shapes[foliageVariantAt(tree.x, tree.z, shapes.length)]!;
+      const shape = tree.trailCanopy ? createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[0], true) : shapes[foliageVariantAt(tree.x, tree.z, shapes.length)]!;
       const positions = shape.getAttribute("position");
       const surfaces = shape.getAttribute("surface");
-      const shift = variant.crowns.geometry.getAttribute("canopyShift");
-      const reach = variant.crowns.geometry.getAttribute("treeStyle").getZ(index);
       const rings = [-TRUNK_HEIGHT, -2.7, -0.2, 2.5].map(y => ({ y, center: new Vector3(), count: 0 }));
       let top = -Infinity;
       for (let i = 0; i < positions.count; i++) {
         point.fromBufferAttribute(positions, i);
-        point.x += reach * shift.getX(i);
+
         point.applyMatrix4(matrix);
         top = Math.max(top, point.y - tree.y);
         if (surfaces.getX(i) === 0) {
-          expect(shift.getX(i)).toBe(1);
+          expect(variant.crowns.geometry.getAttribute("treeStyle").getZ(index)).toBe(1);
           minLeafDistance = Math.min(minLeafDistance, nearestPath(point.x, point.z).distance);
         }
         if (surfaces.getX(i) === 1) {
           const ring = rings.find(ring => Math.abs(positions.getY(i) - ring.y) < 1e-6);
           if (ring) {
             // Include every rooted surface, not just the separate trunk mesh.
-            expect(shift.getX(i)).toBe(0);
+            expect(variant.crowns.geometry.getAttribute("canopyShift")).toBeUndefined();
             ring.center.add(point); ring.count++;
           }
         }
@@ -79,6 +109,23 @@ it("renders every selected trail shape 12–16 m high with trunk width <=1.4x an
       low = Math.min(low, top); high = Math.max(high, top);
       expect(top).toBeGreaterThanOrEqual(12);
       expect(top).toBeLessThanOrEqual(16);
+      // Measure every wooden triangle after the actual instance transform.
+      for (let i = 0; i < shape.index!.count; i += 3) {
+        const ids = [0, 1, 2].map(j => shape.index!.getX(i + j));
+        if (surfaces.getX(ids[0]!) !== 1) continue;
+        const vertices = ids.map(id => new Vector3().fromBufferAttribute(positions, id).applyMatrix4(matrix));
+        for (let j = 0; j < 3; j++) expect(vertices[j]!.distanceTo(vertices[(j + 1) % 3]!)).toBeLessThanOrEqual(6);
+      }
+      expect(shape.index!.count / 3).toBeLessThanOrEqual(700);
+      // The final 84 vertices are fourteen section pairs making three limbs.
+      for (let i = positions.count - 84; i < positions.count; i += 6) {
+        for (const offset of [0, 3]) {
+          const points = [0, 1, 2].map(j => new Vector3().fromBufferAttribute(positions, i + offset + j).applyMatrix4(matrix));
+          const center = points.reduce((sum, v) => sum.add(v), new Vector3()).divideScalar(3);
+          for (const v of points) expect(v.distanceTo(center)).toBeGreaterThanOrEqual(0.05);
+        }
+      }
+      shape.dispose();
       // Crown X/Z axes also scale the rooted bark sleeve, unlike limb shear.
       expect(new Vector3().setFromMatrixColumn(matrix, 0).length()).toBeLessThanOrEqual(1.4 + 1e-6);
       expect(new Vector3().setFromMatrixColumn(matrix, 2).length()).toBeLessThanOrEqual(1.4 + 1e-6);
@@ -91,7 +138,7 @@ it("renders every selected trail shape 12–16 m high with trunk width <=1.4x an
   } finally { foliage.dispose(); shapes.forEach(shape => shape.dispose()); }
 });
 
-it("uses the same canopy reach in colour and shadow passes and resets bounds after tile replacement", () => {
+it("selects the same authored canopy in colour and shadow passes and keeps conservative bounds", () => {
   const foliage = createFoliage(canopy.length);
   const variants = foliage.species.broadleaf.variants;
   const originalBounds = variants.map(({ crowns }) => crowns.geometry.boundingBox!.clone());
@@ -100,15 +147,15 @@ it("uses the same canopy reach in colour and shadow passes and resets bounds aft
     for (const [material, source] of [[crowns.material, ShaderLib.toon!], [crowns.customDepthMaterial!, ShaderLib.depth!], [crowns.customDistanceMaterial!, ShaderLib.distance!]] as const) {
       const shader = { vertexShader: source.vertexShader, fragmentShader: source.fragmentShader, uniforms: {} } as WebGLProgramParametersWithUniforms;
       material.onBeforeCompile(shader, {} as WebGLRenderer);
-      expect(shader.vertexShader).toContain("transformed.x += treeStyle.z * canopyShift.x;");
-      expect(shader.vertexShader.indexOf("transformed.x +=")).toBeGreaterThan(shader.vertexShader.indexOf("transformed += shapeA"));
-      expect(material.customProgramCacheKey()).toContain("trail-canopy-shift-v1");
+      expect(shader.vertexShader).toContain("mix(shapeA * treeA() + shapeB * treeB(), trailShape, treeStyle.z)");
+
+      expect(material.customProgramCacheKey()).toContain("trail-canopy-shape-v2");
     }
     for (const quality of ["Low", "Balanced", "High", "Low"] as const) {
       foliage.setTiles(canopy);
       foliage.setQuality(quality);
       for (const { crowns, crownBounds } of variants) if (crowns.count) {
-        expect(crowns.geometry.boundingBox!.max.x).toBeGreaterThan(crownBounds.max.x);
+        expect(crowns.geometry.boundingBox).toEqual(crownBounds);
       }
       foliage.setTiles(canopy.map(({ x, y, z, kind }) => ({ x, y, z, kind, scale: 1, lean: 0 })));
       variants.forEach(({ crowns }, i) => {

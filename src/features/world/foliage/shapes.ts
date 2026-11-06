@@ -120,7 +120,7 @@ export function mossColor(height: number, upward: number, damp: number, material
 /** Eighteen overlapping, smooth spherical bunches on three rising limbs.
  * A low sphere keeps the submitted triangle increase below 25%. All seeds
  * retain identical indices/surfaces for the existing GPU shape deltas. */
-export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]): BufferGeometry {
+export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0], trail = false): BufferGeometry {
   const variant = Math.max(0, BROADLEAF_VARIANT_SEEDS.indexOf(seed as typeof BROADLEAF_VARIANT_SEEDS[number]));
   const random = randomFor(seed);
   const positions: number[] = [], indices: number[] = [], colors: number[] = [], surfaces: number[] = [];
@@ -184,6 +184,11 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
       if (now > reach) a.lerp(b, (now - reach) / now);
     }
   }
+  if (trail) for (let i = 0; i < BUNCHES; i++) {
+    const t = 0.48 + Math.floor(i / 3) * 0.13;
+    bunchCenters[i]!.set(4.1 * t, 1.4 + 1.9 * t + (i % 2) * 0.25, (i % 3 - 1) * 1.65 * t);
+    bunchRadii[i] = 3.5;
+  }
   for (let bunch = 0; bunch < BUNCHES; bunch++) {
     {
       const center = bunchCenters[bunch]!, radius = bunchRadii[bunch]!, angle = bunchAngles[bunch]!;
@@ -191,7 +196,7 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
       for (let i = 0; i < spherePoints.length; i += 3) {
         const x = spherePoints[i]!, y = spherePoints[i + 1]!, z = spherePoints[i + 2]!;
         const wobble = 1 + Math.sin(x * 7 + y * 5 + z * 9 + angle) * 0.035;
-        const point = center.clone().add(new Vector3(x * wobble, y * 0.84, z * wobble).multiplyScalar(radius));
+        const point = center.clone().add(new Vector3(x * wobble, y * (trail ? 0.34 : 0.84), z * wobble).multiplyScalar(radius));
         const normal = point.clone().sub(center).normalize();
         leafNormals.push(normal.x, normal.y, normal.z);
         positions.push(point.x, point.y, point.z); surfaces.push(0);
@@ -278,7 +283,18 @@ export function createBroadleafCrown(seed: number = BROADLEAF_VARIANT_SEEDS[0]):
       start + 5, start + 6, start + 4, start + 7, start + 6, start + 5);
   }
   // One thin twig from the leader to each dome bunch, so every leaf mass hangs on wood.
-  for (const center of bunchCenters) {
+  if (trail) {
+    // Three real tapered limbs, split into short sections rather than stretched twigs.
+    for (let branch = 0; branch < 3; branch++) {
+      const sections = branch === 2 ? 4 : 5;
+      const start = new Vector3(0.12, 0.9 + branch * 0.35, -0.04);
+      const end = new Vector3(4.1, 3.3, (branch - 1) * 1.5);
+      for (let j = 0; j < sections; j++) {
+        const a = j / sections, b = (j + 1) / sections;
+        limb(start.clone().lerp(end, a), start.clone().lerp(end, b), 0.22 - a * 0.14, 0.22 - b * 0.14);
+      }
+    }
+  } else for (const center of bunchCenters) {
     const from = twigFrom(center);
     limb(from, from.clone().lerp(center, 0.92), 0.07, 0.03);
   }

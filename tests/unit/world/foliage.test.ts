@@ -260,7 +260,7 @@ describe("procedural foliage variants", () => {
         const source = [ShaderLib.toon!, ShaderLib.depth!, ShaderLib.distance!][i]!;
         const shader = { vertexShader: source.vertexShader, fragmentShader: source.fragmentShader, uniforms: {} } as WebGLProgramParametersWithUniforms;
         material.onBeforeCompile(shader, {} as WebGLRenderer);
-        expect(shader.vertexShader).toContain("transformed += shapeA");
+        expect(shader.vertexShader).toContain("transformed += mix(shapeA");
         expect(shader.vertexShader).toContain("step(1.5, surface) * (1.0 - treeStyle.y)");
         expect(material.customProgramCacheKey()).toContain("forest-shapes-v2");
         if (i === 0) {

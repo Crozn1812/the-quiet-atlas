@@ -306,20 +306,19 @@ describe("painted procedural tree shapes", () => {
             // Measure in the path-facing crown frame, not a rotated AABB.
             matrix.premultiply(new Matrix4().makeRotationY(-Math.atan2(7 - path.z, path.x - x)));
           }
-          const geometry = shapes[variant]!, positions = geometry.getAttribute("position");
-          const shift = batch.crowns.geometry.getAttribute("canopyShift");
-          const reach = batch.crowns.geometry.getAttribute("treeStyle").getZ(0);
+          const geometry = trailCanopy ? createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[0], true) : shapes[variant]!, positions = geometry.getAttribute("position");
           const masses = leafMasses(geometry), canopy = new Box3();
           for (const mass of masses) {
             const bounds = new Box3().setFromPoints(mass.map(i => {
               const point = new Vector3().fromBufferAttribute(positions, i);
-              point.x += reach * shift.getX(i);
+
               return point.applyMatrix4(matrix);
             }));
             canopy.union(bounds);
             const size = bounds.getSize(new Vector3());
-            expect(size.y / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.7);
+            expect(size.y / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(trailCanopy ? 0.3 : 0.7);
           }
+          if (trailCanopy) { geometry.dispose(); continue; }
           const height = canopy.max.y, size = canopy.getSize(new Vector3());
           expect(size.y / height).toBeGreaterThanOrEqual(0.45);
           expect(size.y / height).toBeLessThanOrEqual(0.65);

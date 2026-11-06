@@ -105,13 +105,11 @@ describe("broadleaf forest corridor (B2-170)", () => {
         }
         // CPU raycasting on the batch misses GPU-selected shapes. Reconstruct
         // the actual selected leaf triangles instead of testing bounding disks.
-        const shape = shapes[foliageVariantAt(tree.x, tree.z, shapes.length)]!;
+        const shape = tree.trailCanopy ? createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[0], true) : shapes[foliageVariantAt(tree.x, tree.z, shapes.length)]!;
         const positions = shape.getAttribute("position"), surface = shape.getAttribute("surface");
-        const shift = variant.crowns.geometry.getAttribute("canopyShift");
-        const reach = variant.crowns.geometry.getAttribute("treeStyle").getZ(instance);
         const vertexAt = (id: number) => {
           const vertex = new Vector3().fromBufferAttribute(positions, id);
-          vertex.x += reach * shift.getX(id);
+
           return vertex.applyMatrix4(matrix);
         };
         if (tree.trailCanopy) for (let i = 0; i < positions.count; i++) {
@@ -125,6 +123,7 @@ describe("broadleaf forest corridor (B2-170)", () => {
           if (surface.getX(ids[0]!) !== 0) continue;
           triangles.push(ids.map(vertexAt));
         }
+        if (tree.trailCanopy) shape.dispose();
       }
       const hit = new Vector3();
       const overhead = (point: Vector3) => {
@@ -142,11 +141,10 @@ describe("broadleaf forest corridor (B2-170)", () => {
       }
       process.stdout.write(`B2-170 overhead: ${covered}/${samples} path samples; ${coveredSegments.size} distinct 10 m segments; shoulder trees=${forest.filter(tree => tree.trailCanopy).length}\n`);
       expect(samples).toBeGreaterThan(30);
-      // Lead 2026-11-06: reach capped at 3 m (longer reaches stretched twigs into wire-like lines in render).
-      // Centre-line closure needs real limbs, not stretched twigs: B2-198. Measured 2/72 at the cap.
-      expect(covered).toBeGreaterThanOrEqual(2);
-      expect(covered / samples).toBeGreaterThanOrEqual(0.02); // was 0.4; restored by B2-198
-      expect(coveredSegments.size).toBeGreaterThanOrEqual(1); // was 8; restored by B2-198
+      // B2-198 restores centre-line closure with authored limbs and leaf masses.
+      expect(covered).toBeGreaterThanOrEqual(25);
+      expect(covered / samples).toBeGreaterThanOrEqual(25 / 72);
+      expect(coveredSegments.size).toBeGreaterThanOrEqual(8);
       for (const zone of ZONES.filter(zone => zone.biome === "forest-dawn")) {
         for (let x = -zone.radius; x <= zone.radius; x += 3) for (let z = -zone.radius; z <= zone.radius; z += 3) {
           if (Math.hypot(x, z) > zone.radius) continue;
