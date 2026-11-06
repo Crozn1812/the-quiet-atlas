@@ -236,11 +236,13 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     for (let row = 0; row < 2; row++) {
       const split = (row + course) % 2 ? 0.12 : -0.12;
       for (const side of [-1, 1]) {
-        const width = 1 + side * -split;
+        // Keep the outer footprint, but expose a 4 cm joint between individual stones.
+        const width = 1 + side * -split - 0.02;
         const x = side < 0 ? -1 + width / 2 : 1 - width / 2;
-        const height = course === 0 ? 0.16 : 0.06;
+        const depth = 1.475;
+        const height = course === 0 ? 0.145 : 0.11;
         const rock = fit(createRockGeometry("stone", seed(10 + course * 6 + row * 2 + (side + 1) / 2)),
-          [width, height, 1.5], [x, course === 0 ? -0.14 : -0.03, (row - 0.5) * 1.5]);
+          [width, height, depth], [x, course === 0 ? -0.1475 : -0.055, (row ? 1 : -1) * (1.5 - depth / 2)]);
         add(rock, "paper", platform, 0, course === 0);
       }
     }
@@ -318,7 +320,10 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     if (!site) continue;
     solidSites.push(site);
     occupied.push(site);
-    const rock = fit(createRockGeometry("boulder", seed(100 + Math.round(z * 10))),
+    // Tip the fracture planes before fitting: sloping shoulders and a broken crown
+    // replace the horizontal cap / upright ring silhouette of a flattened boulder.
+    const rock = fit(createRockGeometry("boulder", seed(100 + Math.round(z * 10)))
+      .rotateX(0.28 + x * 0.08).rotateZ(x < 0 ? -0.42 : 0.48),
       [halfX * 2, height, halfZ * 2], [0, height / 2, 0]);
     add(rock, "paper", site, 0, false, true);
     for (let tuft = 0; tuft < 3; tuft++) {

@@ -72,6 +72,37 @@ function vertices(scene: ZoneScene): Vector3[] {
   return meshes(scene.group).flatMap(meshVertices);
 }
 
+/** Recover each stone from the rendered pigment batch, including its transformed faces. */
+function stoneParts(points: Vector3[]) {
+  const parents = points.map((_, i) => i);
+  function root(i: number): number {
+    if (parents[i] !== i) parents[i] = root(parents[i]!);
+    return parents[i]!;
+  }
+  const shared = new Map<string, number>();
+  points.forEach((point, i) => {
+    const face = i - i % 3;
+    const key = point.toArray().map(value => value.toFixed(5)).join(",");
+    const previous = shared.get(key);
+    if (previous !== undefined) parents[root(face)] = root(previous);
+    shared.set(key, face);
+  });
+  const parts = new Map<number, Vector3[]>();
+  for (let i = 0; i < points.length; i += 3) {
+    const id = root(i), part = parts.get(id) ?? [];
+    part.push(...points.slice(i, i + 3));
+    parts.set(id, part);
+  }
+  return [...parts.values()].map(part => ({
+    bounds: new Box3().setFromPoints(part),
+    faces: Array.from({ length: part.length / 3 }, (_, i) => {
+      const a = part[i * 3]!, b = part[i * 3 + 1]!, c = part[i * 3 + 2]!;
+      const cross = b.clone().sub(a).cross(c.clone().sub(a));
+      return { a, normal: cross.normalize() };
+    }),
+  }));
+}
+
 /** A palette blend with the zone's 0.92–1 paper wash, in linear colour space. */
 function paletteBlend(color: Color, a: Color, b = a): boolean {
   const start = new Vector3(a.r, a.g, a.b), delta = new Vector3(b.r - a.r, b.g - a.g, b.b - a.b);
@@ -316,6 +347,42 @@ describe("last-postcard shore scene", () => {
     }
     expect(Math.max(...counts)).toBeLessThanOrEqual(2000);
     console.info(`last-postcard prop clusters: ${counts.join(", ")} triangles`);
+  });
+
+  it("retains broad coplanar fractures on every rendered stone and tipped boulders without level cylinder caps", () => {
+    for (const seed of [0, 1, 2, 108, 9301, 0xffffffff]) {
+      const { scene } = create({ seed });
+      scene.group.updateMatrixWorld(true);
+      const paper = meshes(scene.group).find(mesh => mesh.name.endsWith("paper"))!;
+      const points = meshVertices(paper);
+      for (const collider of [scene.colliders[0]!, ...scene.colliders.slice(5)]) {
+        const box = new Box3().setFromCenterAndSize(collider.center, collider.size).expandByScalar(1e-5);
+        box.min.y -= 0.06;
+        const selected: Vector3[] = [];
+        for (let i = 0; i < points.length; i += 3) {
+          const triangle = points.slice(i, i + 3);
+          if (triangle.every(point => box.containsPoint(point))) selected.push(...triangle);
+        }
+        const parts = stoneParts(selected), footing = collider === scene.colliders[0];
+        expect(parts).toHaveLength(footing ? 8 : 1);
+        for (const { faces } of parts) {
+          // Same coplanarity threshold as the shared rock kit, after fitting and batching.
+          const planar = faces.filter((face, i) => faces.some((other, j) => i !== j
+            && face.normal.dot(other.normal) > 0.99999
+            && Math.abs(face.normal.dot(other.a.clone().sub(face.a))) < 1e-6));
+          expect(planar.length / faces.length).toBeGreaterThanOrEqual(0.3);
+          if (!footing) expect(faces.some(face => Math.abs(face.normal.y) > 0.99999)).toBe(false);
+        }
+        if (footing) {
+          const top = parts.filter(part => part.bounds.max.y > 0.1);
+          expect(top).toHaveLength(4);
+          for (const [i, part] of top.entries()) {
+            expect(part.bounds.getSize(new Vector3()).y).toBeCloseTo(0.11, 6);
+            for (const other of top.slice(i + 1)) expect(part.bounds.intersectsBox(other.bounds)).toBe(false);
+          }
+        }
+      }
+    }
   });
 
   it("preserves all eight original collider boxes and stays within 1.5x triangles across kit variants", () => {
