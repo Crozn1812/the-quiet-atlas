@@ -22,3 +22,11 @@
 - Diện tích chiếu đứng (silhouette) của phần kim ≥ 35 % diện tích hình bao tầng tán (đo trên lưới 2D).
 - Mỗi chùm: rộng 0,9–1,6 m, dày 0,25–0,45 m.
 - Tam giác ≤ 600; test hành lang foliage ≤ +25 %.
+
+### Lead (2026-11-06) sau khi xem render: hình đạt — làm tiếp phần test
+
+- Worktree đã được rebase lên main mới (có B2-196, B2-197). Chạy lại test.
+- **Được sửa thêm:** `src/features/world/zones/first-light.ts` (**chỉ** số/độ chi tiết cây thông trong khu) và test `tests/unit/world/zones/{first-light,milestones,old-trail}.test.ts`.
+- First Light vượt ngân sách khu: giảm số thông trong khu hoặc dùng biến thể ít tầng hơn cho thông trong khu, sao cho ≤ ngân sách cũ. **Không nâng ngân sách khu.**
+- Milestones/Old Trail: cập nhật số tam giác/fingerprint do thông mới, ghi comment lý do; tổng tam giác mỗi khu không tăng quá 25 %.
+- Hành lang High +21,49 % (dưới trần 25 %): giữ.
