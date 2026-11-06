@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-06 (đợt 24–26: hướng A, ánh sáng bình minh/hoàng hôn, asset làm kỹ, art bible khoá).
+> Cập nhật lần cuối: 2026-11-06 chiều (đợt 27: hành trình đo thật PASS, hoàn thiện lượt 1–2, vào chơi 4,89 s).
 
 ## Milestone hiện tại
 
@@ -474,6 +474,34 @@ Duy chọn hướng A (Q-44, ADR 0013 bổ sung) và yêu cầu rừng bình min
 - Gate chạy song song 12 worker thì unit timeout. Gate của Lead giờ dùng `--maxWorkers=4 --testTimeout=60000` và chạy lại một lần nếu chỉ có timeout; không đổi assertion nào.
 
 Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
+
+### Đợt 27 (2026-11-06): công đoạn 5 + hoàn thiện lượt 1–2
+
+- Duy: chỉ chấm khi UX/UI ≈ 90–100 % → T10 **DEFERRED**.
+- **Công đoạn 5 (hành trình):**
+  - bot đi bộ thật (B2-210) **PASS**: 6:08, Workshop 47,7 s, Roots 66 s, Milestones 83 s, 0 lần kẹt (`docs/evidence/B2/journey-2026-11-06.md`);
+  - audit định hướng (B2-211) + mốc (B2-212): đoạn mù dài nhất 115 m → 60 m;
+  - playtest người thật DEFERRED (`docs/playtest/b2-journey.md`).
+- **Hoàn thiện (đợt 27):**
+  - mép lá (B2-213), kim thông (B2-218);
+  - đồng cỏ quanh người chơi (B2-214, Lead chỉnh sau render);
+  - mặt đất chi tiết (B2-215);
+  - prop đọc rõ (B2-216, Lead sửa xanh lam/trắng);
+  - gợn và bọt nước (B2-219);
+  - First Light/Roots r6 (B2-220).
+- **Perf:** B2-217 dựng lớp phủ nền ngoài vòng spawn sau khung hình đầu → thời gian vào chơi **4,89 s** (trước 6,05–6,13 s). Dựng nền xong ~6 s sau khi điều khiển; tín hiệu `data-world-build="done"`.
+- **Codex:** chạy `gpt-6.1-sol` mức `low` (Duy chọn). Lead tự hoàn tất ticket dở khi tài khoản hết lượt.
+- **e2e:** timeout mặc định 90 s cho khớp với `enterWorld`; spec journal bấm J tới khi mở; test so khung hình chờ `data-world-build`.
+
+| Kiểm tra (trên `5994771`) | Kết quả |
+|---|---|
+| lint, typecheck, unit 1576 | **PASS** |
+| e2e | **151/151 PASS** |
+| perf: thời gian tới playable | **4,89 s** (spec 10 s, mục tiêu nội bộ 6 s): **PASS** |
+| perf: 3D bytes | **PASS**, 2,00 MB / 8 MB |
+| hành trình 5–7 phút | **PASS**, 6:08 (desktop tham khảo) |
+| T10, playtest người thật | **DEFERRED** (chờ UX/UI ≈ 90–100 %) |
+| T08/T09 | **NOT RUN** (laptop Iris Xe) |
 
 ### Ticket tiếp theo
 
