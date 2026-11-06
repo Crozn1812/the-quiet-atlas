@@ -55,7 +55,7 @@
 
 ## Còn lại
 
-- **B2-198:** tán cây vòm chưa khép trên tâm lối (cần cành lớn thật vươn ra lối). Codex hết lượt tới 13:28; giao lại khi hồi.
+- **B2-198 (xong):** cây vòm có 3 cành lớn thật vươn ra lối, tán khép trên lối (26/72 điểm tâm lối), không kéo dãn cành. Tán hơi dẹt kiểu ô; chỉnh tiếp nếu Duy muốn tròn hơn.
 
 ## T10: phiếu chấm
 
