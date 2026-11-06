@@ -208,6 +208,18 @@ function rootParts(points: Vector3[], radius: number, oldRadius: number, arch = 
     triangle => triangle < ROOT_STEPS * 16 && Math.floor(triangle / 2) % 8 === 3);
   parts.forEach((part, i) => { part.collision = legacy[i]!.geometry; });
   parts[0]!.ends = [{ point: points[0]!, radius }, { point: points.at(-1)!, radius: radius * 0.13 }];
+  // Moss follows the upper two flanks, sharing the existing green batch.
+  const moss = root(points, radius, true, true, arch);
+  const mp = moss.getAttribute("position"), crest: number[] = [];
+  for (let i = 0; i < ROOT_STEPS * 48; i += 3) {
+    const flank = Math.floor(i / 6) % 8;
+    if (flank !== 1 && flank !== 2) continue;
+    for (let j = 0; j < 3; j++) crest.push(mp.getX(i + j), mp.getY(i + j) + 0.012, mp.getZ(i + j));
+  }
+  moss.dispose();
+  const cover = new BufferGeometry();
+  cover.setAttribute("position", new Float32BufferAttribute(crest, 3));
+  parts.push({ geometry: cover, surface: "moss" });
   return parts;
 }
 

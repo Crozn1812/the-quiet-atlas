@@ -1,6 +1,6 @@
 import {
   Box3, BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute,
-  Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, PlaneGeometry, Vector3,
+  Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, PlaneGeometry, TorusGeometry, Vector3,
   type DirectionalLight, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -21,7 +21,7 @@ import { nearestRiver } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
 type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower" | "petal";
-type Part = { geometry: BufferGeometry; surface: Surface; pigment?: Color };
+type Part = { geometry: BufferGeometry; surface: Surface; pigment?: Color; name?: string };
 const part = (geometry: BufferGeometry, surface: Surface, pigment?: Color): Part => ({ geometry, surface, pigment });
 const tint = (base: PaletteKey, mix: PaletteKey, amount: number) =>
   paletteColor({ base, mix, amount, saturation: 1, brightness: 1 });
@@ -242,6 +242,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     wood: [], paper: [], green: [], stone: [], sun: [], ink: [], flower: [], petal: [],
   };
   const colliders: ZoneCollider[] = [];
+  const namedParts: { name: string; surface: Surface; start: number; count: number }[] = [];
 
   /** Check the whole conservative footprint, including overhanging foliage and box corners. */
   function place(parts: Part[], x: number, z: number, solid = false, collisionBox?: Box3): boolean {
@@ -282,7 +283,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       parts.forEach(({ geometry }) => geometry.dispose());
       return false;
     }
-    for (const { geometry, surface, pigment } of parts) {
+    for (const { geometry, surface, pigment, name } of parts) {
       const flat = geometry.index ? geometry.toNonIndexed() : geometry;
       if (flat !== geometry) geometry.dispose();
       // Rebase kit pigments into each shared material without losing grain or moss colours.
@@ -304,6 +305,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       }
       flat.setAttribute("color", new Float32BufferAttribute(colors, alpha ? 4 : 3));
       flat.computeVertexNormals();
+      if (name) namedParts.push({ name, surface, start: buckets[surface].reduce((n, g) => n + g.getAttribute("position").count, 0), count: positions.count });
       buckets[surface].push(flat);
     }
     if (solid) {
@@ -340,6 +342,47 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     for (const [index, [x, z]] of [[-8.65, 3.12], [-6.1, 4.45]].entries()) {
       place([kit(createRockGeometry("pebble", 261 + index, true).translate(0, -0.04, 0), "stone")], x!, z!);
     }
+  }
+
+  let welcomeCollider: ZoneCollider | undefined;
+  // A compact welcome still life, in the opening camera direction.
+  {
+    const named = (geometry: BufferGeometry, surface: Surface, name: string): Part =>
+      ({ ...part(geometry, surface), name });
+    const details: Part[] = [];
+    for (const side of [-1, 1]) {
+      details.push(named(new BoxGeometry(0.38, 0.035, 0.52).rotateZ(side * -0.1)
+        .translate(side * 0.19, 0.84, 0), "paper", "seat-open-notebook"));
+      for (let line = 0; line < 3; line++) details.push(named(
+        new BoxGeometry(0.19 - line * 0.025, 0.004, 0.014).rotateZ(side * -0.1)
+          .translate(side * 0.2, 0.866, -0.15 + line * 0.1), "ink", "notebook-ink-strokes"));
+    }
+    details.push(named(new CylinderGeometry(0.105, 0.085, 0.19, 8, 1, true)
+      .translate(0.85, 0.93, 0), "paper", "seat-cup"));
+    details.push(named(new TorusGeometry(0.065, 0.018, 4, 8)
+      .translate(0.98, 0.94, 0), "paper", "cup-handle"));
+    const post = kit(createPostGeometry(1.2, 270).translate(-1.25, -0.05, 0.25), "wood");
+    post.name = "seat-mailbox-post";
+    details.push(post);
+    for (const [y, depth] of [[0.92, 0.3], [1.2, 0.36]]) {
+      const board = kit(createPlankGeometry(0.48, 271).scale(1, 0.6, depth! / 0.28)
+        .translate(-1.25, y!, 0.25), "wood");
+      if (y! > 1) board.geometry.translate(1.25, -y!, -0.25)
+        .rotateX(Math.PI / 2).translate(-1.25, 1.08, 0.4);
+      board.name = "seat-mailbox-pocket";
+      details.push(board);
+    }
+    const welcomeLog = createLogGeometry(201);
+    welcomeLog.computeBoundingBox();
+    const size = welcomeLog.boundingBox!.getSize(new Vector3());
+    const seatPlaced = place([{ ...kit(welcomeLog.scale(3.65 / size.x, 0.86 / size.y, 0.8 / size.z)
+      .rotateY(-0.18), "wood"), name: "welcome-log-seat" }], 5.4, -6.8, true, logBox);
+    if (seatPlaced) {
+      welcomeCollider = colliders.pop();
+      place(details, 5.4, -6.8);
+    } else details.forEach(p => p.geometry.dispose());
+    for (const dx of [-1.25, 1.35]) place([named(new IcosahedronGeometry(1, 0)
+      .scale(0.42, 0.075, 0.3).translate(0, -0.025, 0), "green", "seat-foot-moss")], 5.4 + dx, -6.6);
   }
 
   // Three pin-sized orange blooms along the open edge of the fallen pine.
@@ -390,8 +433,8 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       x!, z!, true, box);
   }
 
-  for (const [x, z] of [[-5.8, 6], [-8.8, 2.7], [6.7, 5.8]]) {
-    place([kit(createFern().scale(0.75, 0.6, 0.75).rotateY(context.seed * 0.01 + x!), "green")], x!, z!);
+  for (const [x, z] of [[-5.8, 6], [-8.8, 2.7], [5.4, -8.4]]) {
+    place([{ ...kit(createFern().scale(0.75, 0.6, 0.75).rotateY(context.seed * 0.01 + x!), "green"), name: "welcome-fern" }], x!, z!);
     const flowers: Part[] = [];
     for (let i = 0; i < 3; i++) {
       const fx = 0.8 + i * 0.18, fz = i % 2 * 0.27;
@@ -403,12 +446,14 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
           .translate(fx + Math.cos(angle) * 0.04, 0.26 + i * 0.04, fz + Math.sin(angle) * 0.04), "petal"));
       }
     }
+    flowers.forEach(p => { p.name = "welcome-white-flowers"; });
     place(flowers, x!, z!);
   }
 
-  for (const [x, z, width] of [[6.8, 8, 0.65], [-8.5, 10, 0.95]]) {
+  for (const [x, z, width] of [[6.8, 8, 0.65], [5.4, -6.8, 1.4]]) {
     const veil = sunVeil(width!);
-    place([part(veil.rotateZ(-0.28).rotateY(0.35).translate(0, 4.2, 0), "sun")], x!, z!);
+    place([{ ...part(veil.translate(0, 3, 0).rotateZ(-0.28).rotateY(0.35).translate(0, 0.84, 0), "sun"),
+      name: "seat-sun-shaft" }], x!, z!);
   }
 
   // Two damp clusters beside the greeting post: 2 × (40 fern + 20 moss) = 120 triangles.
@@ -421,6 +466,8 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   }
 
   place([kit(createRockGeometry("pebble", 253, true).translate(0, -0.04, 0), "stone")], greetingX + 0.15, greetingZ - 0.42);
+
+  if (welcomeCollider) colliders.push(welcomeCollider);
 
   const materials = {
     wood: createRampMaterial(hues.wood, WORLD_DIRECTION.foliage.ramp),
@@ -443,6 +490,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     geometry.computeBoundingSphere();
     const mesh = new Mesh(geometry, material);
     mesh.name = `first-light-${surface}`;
+    geometry.userData.parts = namedParts.filter(p => p.surface === surface);
     mesh.castShadow = false;
     if (surface === "sun") {
       backlitVeil(mesh);

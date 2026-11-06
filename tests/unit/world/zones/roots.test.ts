@@ -157,7 +157,7 @@ describe("The Roots procedural zone", () => {
       console.info("roots real terrain:", roots.interactable.position.toArray(), roots.target.position.toArray());
       const total = zones.flatMap(meshes).reduce((sum, mesh) => sum
         + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
-      console.info(`eight zones: ${total - 78} → ${total} triangles (roots delta +78)`);
+      console.info(`B2-220 eight zones: ${total - 1484} -> ${total} triangles (+1484; First Light +1052, Roots +432 on rendered terrain)`);
     } finally { zones.forEach(zone => zone.dispose()); }
   });
 
@@ -209,6 +209,7 @@ describe("The Roots procedural zone", () => {
         expect(new Vector3().fromBufferAttribute(positions, i).length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
       }
     }
+    expect(buildTimes[3]).toBeLessThanOrEqual(200);
     console.info(`roots: ${triangles} triangles, ${drawCalls} draw calls`);
     console.info(`roots median build: ${buildTimes[3]!.toFixed(2)} ms`,
       Object.fromEntries(parts.map(mesh => [mesh.name, mesh.geometry.getAttribute("position").count / 3])));
@@ -570,11 +571,11 @@ describe("The Roots procedural zone", () => {
     const scene = create();
     const moss = scene.group.getObjectByName("roots-moss") as PaintedMesh;
     const positions = moss.geometry.getAttribute("position");
-    // The original two cut-top moss patches are 40 triangles; the new clusters stay at the foot.
-    const extra = positions.count / 3 - 40;
+    // Nine root crests precede the original cut-top patches and the two foot clusters.
+    const extra = positions.count / 3 - 40 - 9 * 48;
     expect(extra).toBeGreaterThan(40);
     expect(extra).toBeLessThanOrEqual(300);
-    for (let i = 40 * 3; i < positions.count; i++) {
+    for (let i = (40 + 9 * 48) * 3; i < positions.count; i++) {
       const p = new Vector3().fromBufferAttribute(positions, i);
       expect(Math.hypot(p.x - 6.4, p.z)).toBeLessThan(3.4);
       expect(p.y).toBeGreaterThanOrEqual(-0.051);
@@ -630,6 +631,29 @@ describe("The Roots procedural zone", () => {
     dispose.mockClear();
     expect(() => createRootsScene(context({ onPath: () => true }))).toThrow(RangeError);
     expect(dispose).toHaveBeenCalled();
+  });
+
+  it("buries each thick root at multiple terrain stations and coats its upper surface", () => {
+    for (const heightAt of [() => 0, (x: number, z: number) => x * 0.03 - z * 0.01]) {
+      const scene = create(context({ heightAt }));
+      const roots = rootSections(scene);
+      expect(roots).toHaveLength(9);
+      for (const rings of roots) {
+        const ring = rings[0]!;
+        const diameter = Math.max(...ring.flatMap(a => ring.map(b => Math.hypot(a.x - b.x, a.z - b.z))));
+        expect(diameter / 2).toBeGreaterThanOrEqual(0.24999);
+        expect(rings.filter(points => points.some(p => p.y < heightAt(p.x, p.z) - 0.02)).length)
+          .toBeGreaterThanOrEqual(2);
+      }
+      const moss = scene.group.getObjectByName("roots-moss") as PaintedMesh;
+      const positions = moss.geometry.getAttribute("position");
+      expect(positions.count / 3).toBeGreaterThan(9 * 48);
+      // The first 48 triangles per root are the upper two flanks of its actual bark.
+      for (let i = 0; i < 9 * 48 * 3; i++) {
+        const x = positions.getX(i), z = positions.getZ(i);
+        expect(positions.getY(i) - heightAt(x, z)).toBeGreaterThan(-0.051);
+      }
+    }
   });
 
   it("locks the r4 stump, roots and pebble geometry fingerprint", () => {

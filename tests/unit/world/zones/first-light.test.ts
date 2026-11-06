@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3, type BufferGeometry } from "three";
+import { Box3, Color, Mesh, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CAMERA_PITCH, INITIAL_ZOOM } from "../../../../src/features/world/camera";
 import { paletteColor } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
-import { surfaceHeight } from "../../../../src/features/world/scene/compose";
+import { surfaceHeight, worldSpawn } from "../../../../src/features/world/scene/compose";
 import { PATH_WIDTH, waterLevelAt } from "../../../../src/features/world/terrain/height";
 import { nearestPath } from "../../../../src/features/world/terrain/samples";
 import { placeZoneScenes } from "../../../../src/features/world/zones";
@@ -83,12 +84,11 @@ describe("First Light pine clearing", () => {
     const count = objects.reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
     expect(count).toBeGreaterThan(1000);
     expect(count).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    // B2-191b: three fuller pines replace four thin crowns (5,200 triangles).
-    // Keep both the actual pre-ticket total and the older per-seed cap below.
-    expect(count).toBe(5176);
-    expect(count).toBeLessThanOrEqual(5200);
-    expect(objects).toHaveLength(7);
-    expect(count).toBeLessThanOrEqual(({ 0: 3569, 1: 3613, 2: 3657, 101: 3657, 4294967295: 3569 }[seed]!) * 1.5);
+    // B2-220 adds a welcome still life; retain the current baseline growth cap.
+    expect(count).toBeLessThanOrEqual(6000);
+    expect(count).toBeLessThanOrEqual(5176 * 1.25);
+    expect(objects).toHaveLength(8);
+    expect(count).toBeLessThanOrEqual(5176 * 1.5);
     expect(objects.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     expect(new Set(objects.map(mesh => mesh.material)).size).toBe(objects.length);
     for (const mesh of objects) {
@@ -130,7 +130,7 @@ describe("First Light pine clearing", () => {
       expect(scene.colliders[index + 2]!.center.z).toBeCloseTo(z! + rock[1] * scale!, 4);
     }
     // The fourth pine was removed for B2-191b's zone budget; retained boxes stay put.
-    expect(scene.colliders).toHaveLength(8);
+    expect(scene.colliders).toHaveLength(9);
     for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9]].entries()) {
       expect(scene.colliders[index + 5]!.center.x).toBeCloseTo(x! + pines[index]![0], 4);
       expect(scene.colliders[index + 5]!.center.z).toBeCloseTo(z! + pines[index]![1], 4);
@@ -319,10 +319,14 @@ describe("First Light pine clearing", () => {
     expect(petals.material.color.getHex()).toBe(new Color(PALETTE.cloud).lerp(new Color(PALETTE.sand), 0.12).getHex());
     expect(petals.geometry.boundingBox!.max.y).toBeLessThan(0.4);
     const paper = meshes(scene).find(mesh => mesh.name === "first-light-paper")!;
-    expect(paper.geometry.boundingBox!.min.y).toBeGreaterThan(1.5);
-    expect(paper.geometry.boundingBox!.getSize(new Vector3()).length()).toBeLessThan(1);
+    expect(paper.geometry.boundingBox!.min.y).toBeGreaterThan(0.75);
+    const positions = paper.geometry.getAttribute("position");
+    const originalBook = new Box3();
+    for (let i = 0; i < positions.count; i++) if (positions.getY(i) > 1.5)
+      originalBook.expandByPoint(new Vector3().fromBufferAttribute(positions, i));
+    expect(originalBook.getSize(new Vector3()).length()).toBeLessThan(1);
     const total = meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
-    console.info(`B2-191b First Light budget: 5200 -> ${total} triangles, 7 -> ${meshes(scene).length} draw calls`);
+    console.info(`B2-220 First Light budget: 5176 -> ${total} triangles, 7 -> ${meshes(scene).length} draw calls`);
   });
 
   it("keeps the small orange blooms and one larger cluster beside the log, omitting them when flooded", () => {
@@ -360,6 +364,7 @@ describe("First Light pine clearing", () => {
       [-10.557801, 8.5, 1.140655, 2.7, 17, 2.532003],
       [-11.776724, 7.5, 10.972408, 2.674772, 15, 2.7],
       [9.813375, 8, 9.071885, 2.689813, 16, 2.7],
+      [5.398912, 0.454785, -6.753996, 3.797172, 0.909570, 1.475537],
     ];
     expect(scene.colliders).toHaveLength(expected.length);
     for (const [index, collider] of scene.colliders.entries()) {
@@ -454,6 +459,67 @@ describe("First Light pine clearing", () => {
     expect(meshes(sibling)[0]!.material.gradientMap).toBe(ramp);
   });
 
+  it("shows named welcome parts 6?12 metres ahead of the opening camera on real terrain", () => {
+    const zones = placeZoneScenes(surfaceHeight, ["first-light"]);
+    try {
+      const scene = zones[0]!, spawn = worldSpawn();
+      const forward = new Vector3(-7, 0, -9).normalize();
+      const camera = new PerspectiveCamera(55, 16 / 9, 0.1, 100);
+      camera.position.copy(spawn).add(new Vector3(-forward.x * Math.cos(CAMERA_PITCH),
+        Math.sin(CAMERA_PITCH), -forward.z * Math.cos(CAMERA_PITCH)).multiplyScalar(INITIAL_ZOOM));
+      camera.lookAt(spawn); camera.updateMatrixWorld(true);
+      const wanted = ["welcome-log-seat", "seat-open-notebook", "notebook-ink-strokes",
+        "seat-cup", "cup-handle", "seat-mailbox-post", "seat-mailbox-pocket",
+        "seat-foot-moss", "welcome-fern", "welcome-white-flowers", "seat-sun-shaft"];
+      for (const name of wanted) {
+        const candidates: Vector3[] = [];
+        for (const mesh of meshes(scene)) {
+          const ranges = mesh.geometry.userData.parts as { name: string; start: number; count: number }[];
+          for (const range of ranges.filter(p => p.name === name)) {
+            const box = new Box3(), positions = mesh.geometry.getAttribute("position");
+            for (let i = range.start; i < range.start + range.count; i++) box.expandByPoint(
+              new Vector3().fromBufferAttribute(positions, i).applyMatrix4(scene.group.matrixWorld));
+            const center = box.getCenter(new Vector3()), clip = center.clone().project(camera);
+            if (Math.abs(clip.x) < 1 && Math.abs(clip.y) < 1 && clip.z > -1 && clip.z < 1)
+              candidates.push(center.sub(spawn).setY(0));
+          }
+        }
+        expect(candidates.some(p => p.length() >= 6 && p.length() <= 12
+          && p.clone().normalize().dot(forward) > 0), name).toBe(true);
+      }
+      for (const mesh of meshes(scene)) {
+        const positions = mesh.geometry.getAttribute("position");
+        for (let i = 0; i < positions.count; i++) {
+          const delta = new Vector3().fromBufferAttribute(positions, i)
+            .applyMatrix4(scene.group.matrixWorld).sub(spawn).setY(0);
+          expect(delta.length()).toBeGreaterThan(3);
+        }
+      }
+    } finally { zones.forEach(zone => zone.dispose()); }
+  });
+
+  it("lands the sun shaft at the notebook seat", () => {
+    const scene = create();
+    const sun = meshes(scene).find(m => m.name === "first-light-sun")!;
+    const positions = sun.geometry.getAttribute("position");
+    const target = new Vector3(5.4, 0.84, -6.8);
+    let nearest = Infinity;
+    for (let i = 0; i < positions.count; i++) nearest = Math.min(nearest,
+      new Vector3().fromBufferAttribute(positions, i).distanceTo(target));
+    expect(nearest).toBeLessThan(0.1);
+  });
+
+  it("builds the clearing under 200 ms on Node", () => {
+    create();
+    const times = Array.from({ length: 5 }, () => {
+      const start = performance.now(); create(); return performance.now() - start;
+    }).sort((a, b) => a - b);
+    expect(times[2]).toBeLessThanOrEqual(200);
+    const scene = scenes.at(-1)!;
+    console.info("B2-220 First Light:", meshes(scene).reduce((n, m) => n + triangles(m.geometry), 0),
+      "triangles;", meshes(scene).length, "calls; median", times[2], "ms");
+  });
+
   it("fingerprints the rebuilt props, collision envelopes and interaction", () => {
     const scene = create();
     scene.group.updateMatrixWorld(true);
@@ -470,8 +536,8 @@ describe("First Light pine clearing", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // B2-191b removes the fourth pine and its collider to preserve the old zone budget.
-    expect(fingerprint).toBe("c3476adb4a15cdd46d13121614f9229eae2394ff2ec11786a204f19927a96f0c");
+    // B2-220 adds the seat notebook/cup/mailbox and aims a shaft at the new seat.
+    expect(fingerprint).toBe("6864a675a72e5337b50a4e4618690459abfce83fbc3ce0201b8a56e9afa20e35");
   });
 
 });
