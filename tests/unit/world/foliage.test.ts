@@ -1,9 +1,10 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Box3, InstancedMesh, Matrix4, Mesh, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
+import { Box3, type BufferGeometry, InstancedMesh, Matrix4, Mesh, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliageColliders, TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
 import { createFoliage, foliageVariantAt, hasHangingFoliage, selectFoliageOccludingCrowns } from "../../../src/features/world/foliage/instances";
+import { createPineCrownV2 } from "../../../src/features/world/foliage/pine";
 import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, pineHeight } from "../../../src/features/world/foliage/shapes";
 import { foliageBiomeAt, MIN_TREE_DISTANCE, scatterTile, SHORE_MIN_HEIGHT, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
@@ -19,6 +20,16 @@ import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physic
 const route = tilesAlongPath();
 const tenTiles = Array.from({ length: 10 }, (_, i) => route[Math.floor(i * (route.length - 1) / 9)]!);
 const tenForests = tenTiles.map(tile => scatterTile(tile));
+
+// B2-194: V2 contains a rooted wooden leader; only needles define the canopy.
+function leafBounds(geometry: BufferGeometry): Box3 {
+  const position = geometry.getAttribute("position"), surface = geometry.getAttribute("surface");
+  const bounds = new Box3();
+  for (let i = 0; i < position.count; i++) if (surface.getX(i) === 0) {
+    bounds.expandByPoint(new Vector3().fromBufferAttribute(position, i));
+  }
+  return bounds;
+}
 
 function assertSpacing(trees: readonly FoliageTree[]) {
   for (let i = 0; i < trees.length; i++) for (let j = i + 1; j < trees.length; j++) {
@@ -278,8 +289,9 @@ describe("procedural foliage variants", () => {
           const variants = foliage.species[tree.kind].variants;
           const batch = foliageVariantAt(tree.x, tree.z, variants.length);
           const { seed } = variants[batch]!;
-          // B2-182b baseline: merged B2-182/B2-183 geometry (391/tree).
-          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 391;
+          // B2-194 baseline is the geometry immediately before this ticket:
+          // legacy pine and the already-shipped 425-triangle broadleaf crown.
+          before += tree.kind === "pine" ? 42 + (3 + seed % 3) * 44 : 42 + 425;
           batches.add(`${tree.kind}:${batch}`);
         }
         beforeDraws += 2 * batches.size;
@@ -294,7 +306,7 @@ describe("procedural foliage variants", () => {
       expect(afterDraws).toBe(beforeDraws);
       expect(after).toBeLessThanOrEqual(before * 1.25);
       expect(forests.flat().length).toBeGreaterThan(1000);
-      process.stdout.write(`B2-182b 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=499/tree, pine<=262/tree (broadleaf limit=1500; includes collapsed ribbons)\n`);
+      process.stdout.write(`B2-194 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=467/tree, pine<=486/tree (includes rooted wood and unchanged 42-triangle trunk)\n`);
     } finally { foliage.dispose(); }
   });
 
@@ -314,7 +326,7 @@ describe("procedural foliage variants", () => {
         for (const mesh of composition.foliageMeshes) {
           if (!(mesh instanceof InstancedMesh) || !mesh.geometry.getAttribute("treeStyle")) continue;
           const surface = mesh.geometry.getAttribute("surface");
-          if (!Array.from(surface.array).includes(1)) continue; // Broadleaf wood; pine surfaces are all leaves.
+          if (!Array.from(surface.array).includes(2)) continue; // Hanging ribbons identify broadleaf; V2 pine also contains wood.
           extra += mesh.count * (mesh.geometry.index!.count / 3 - 349);
         }
         const before = after - extra;
@@ -398,9 +410,10 @@ describe("procedural foliage variants", () => {
           expect(new Vector3(0, -0.5, 0).applyMatrix4(matrix).distanceTo(root)).toBeLessThan(1e-5);
           const trunkTop = new Vector3(0, 0.5, 0).applyMatrix4(matrix).sub(root).dot(axis);
           variant.crowns.getMatrixAt(0, matrix);
-          const bounds = variant.crowns.geometry.boundingBox!;
+          const bounds = leafBounds(variant.crowns.geometry);
           const base = new Vector3(0, bounds.min.y, 0).applyMatrix4(matrix).sub(root).dot(axis);
           const top = new Vector3(0, bounds.max.y, 0).applyMatrix4(matrix).sub(root).dot(axis);
+          expect(new Vector3(0, variant.crowns.geometry.boundingBox!.min.y, 0).applyMatrix4(matrix).distanceTo(root)).toBeLessThan(1e-5);
           expect(top).toBeGreaterThanOrEqual(14 - 1e-5);
           expect(top).toBeLessThanOrEqual(18 + 1e-5);
           expect(base / top).toBeCloseTo(2 / 3, 6);
@@ -430,16 +443,23 @@ describe("procedural foliage variants", () => {
           crowns.updateWorldMatrix(true, false);
           crowns.getMatrixAt(0, matrix);
           matrix.premultiply(crowns.matrixWorld);
-          const bounds = crowns.geometry.boundingBox!;
+          const bounds = crowns.geometry.boundingBox!, leaves = leafBounds(crowns.geometry);
           const positions = crowns.geometry.getAttribute("position");
-          let tip = 0;
-          for (let i = 1; i < positions.count; i++) if (positions.getY(i) > positions.getY(tip)) tip = i;
-          // Raycast actual triangles at the bottom, middle and top of the raised
-          // canopy. The old sphere at 5 m misses these occlusions entirely.
+          const surface = crowns.geometry.getAttribute("surface"), index = crowns.geometry.index!;
+          const faces = [];
+          for (let i = 0; i < index.count; i += 3) {
+            const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+            if (ids.some(id => surface.getX(id) !== 0)) continue;
+            const [a, b, c] = ids.map(id => new Vector3().fromBufferAttribute(positions, id));
+            faces.push({ center: a!.clone().add(b!).add(c!).divideScalar(3), normal: b!.clone().sub(a!).cross(c!.clone().sub(a!)).normalize() });
+          }
+          // V2 has intentional sky gaps: raycast real needle faces near the
+          // lower/middle/upper canopy, rather than assuming a filled solid.
           for (const t of [0.15, 0.5, 0.85]) {
-            const center = new Vector3(positions.getX(tip), bounds.min.y + (bounds.max.y - bounds.min.y) * t, positions.getZ(tip));
-            const camera = center.clone().add(new Vector3(0, 0, 8)).applyMatrix4(matrix);
-            const player = center.clone().add(new Vector3(0, 0, -8)).applyMatrix4(matrix);
+            const y = leaves.min.y + (leaves.max.y - leaves.min.y) * t;
+            const face = faces.reduce((best, face) => Math.abs(face.center.y - y) < Math.abs(best.center.y - y) ? face : best);
+            const camera = face.center.clone().addScaledVector(face.normal, 8).applyMatrix4(matrix);
+            const player = face.center.clone().addScaledVector(face.normal, -8).applyMatrix4(matrix);
             const direction = player.clone().sub(camera);
             const ray = new Raycaster(camera, direction.clone().normalize(), 0, direction.length());
             expect(ray.intersectObject(crowns).some(hit => hit.instanceId === 0), `variant=${variantIndex}, scale=${scale}, crown fraction=${t}`).toBe(true);
@@ -465,6 +485,23 @@ describe("procedural foliage variants", () => {
           foliage.setTiles([]);
           expect(selectFoliageOccludingCrowns(crowns, camera, center)).toEqual([]);
         }
+      }
+    } finally { foliage.dispose(); }
+  });
+
+  it("installs each V2 pine seed without changing triangles, coordinates or wood/needle tags", () => {
+    const foliage = createFoliage(1);
+    try {
+      for (const { seed, crowns } of foliage.species.pine.variants) {
+        const expected = createPineCrownV2(seed);
+        try {
+          expect(crowns.geometry.index!.array).toEqual(expected.index!.array);
+          expect(crowns.geometry.index!.count / 3).toBe(expected.index!.count / 3);
+          for (const attribute of ["position", "normal", "color", "surface"]) {
+            expect(crowns.geometry.getAttribute(attribute).array).toEqual(expected.getAttribute(attribute).array);
+          }
+          expect(new Set(crowns.geometry.getAttribute("surface").array)).toEqual(new Set([0, 1]));
+        } finally { expected.dispose(); }
       }
     } finally { foliage.dispose(); }
   });

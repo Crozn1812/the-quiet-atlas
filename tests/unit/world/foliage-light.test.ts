@@ -2,6 +2,7 @@ import { Color, Matrix3, Matrix4, ShaderLib, SRGBColorSpace, Vector2, Vector3, t
 import { describe, expect, it } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliage, updateFoliageWind } from "../../../src/features/world/foliage/instances";
+import { createPineCrownV2 } from "../../../src/features/world/foliage/pine";
 import type { FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { directGrade } from "../../../src/features/world/scene/compose";
@@ -118,7 +119,7 @@ describe("foliage graded lighting (B2-183)", () => {
       const trunkShader = compile(foliage.species.pine.trunks.material);
       expect(trunkShader.fragmentShader).not.toContain("leafLuma");
       expect(trunkShader.fragmentShader).not.toContain("leafEdge");
-      for (const species of Object.values(foliage.species)) for (const { trunks, crowns } of species.variants) {
+      for (const [kind, species] of Object.entries(foliage.species)) for (const { trunks, crowns } of species.variants) {
         const meshes = [trunks, crowns];
         for (const mesh of meshes) {
           const colors = mesh.geometry.getAttribute("color"), surfaces = mesh.geometry.getAttribute("surface");
@@ -134,7 +135,9 @@ describe("foliage graded lighting (B2-183)", () => {
               // The crown shader cancels leaf instance colour only for wood.
               if (mesh === trunks) pigment.multiply(tint);
               minimum = Math.min(minimum, luma(pigment)); maximum = Math.max(maximum, luma(pigment));
-              expect(luma(pigment)).toBeGreaterThanOrEqual(0.12);
+              // B2-194: V2's cracked pine bark uses the asset's darker PALETTE
+              // recipe (>=0.06); the existing trunk/broadleaf contract stays 0.12.
+              expect(luma(pigment)).toBeGreaterThanOrEqual(kind === "pine" && mesh === crowns ? 0.06 : 0.12);
               expect(luma(pigment)).toBeLessThanOrEqual(0.22);
               expect(pigment.r).toBeGreaterThan(pigment.b); // Brown/grey bark, never cream or blue.
               for (const t of [0.15, 0.86, 0.93]) {
@@ -160,7 +163,7 @@ describe("foliage graded lighting (B2-183)", () => {
   });
 
   it("shares bounded world-metre wind across colour/depth/distance, stops for reduced motion and leaves wood fixed", () => {
-    const foliage = createFoliage(1), crowns = foliage.species.broadleaf.crowns;
+    const foliage = createFoliage(1), crowns = foliage.species.pine.crowns;
     createCrownFade(crowns, 1);
     const shaders = [compile(crowns.material), compile(crowns.customDepthMaterial!, ShaderLib.depth!), compile(crowns.customDistanceMaterial!, ShaderLib.distance!)];
     const wind = shaders[0]!.uniforms.forestWind!;
@@ -223,10 +226,13 @@ describe("foliage graded lighting (B2-183)", () => {
       for (const [kind, species] of Object.entries(foliage.species)) for (const { seed, crowns, trunks } of species.variants) {
         const crownTriangles = crowns.geometry.index!.count / 3, trunkTriangles = trunks.geometry.index!.count / 3;
         expect(trunkTriangles).toBe(42);
-        expect(crownTriangles).toBe(kind === "pine" ? (3 + seed % 3) * 44 : 425); // Lead: 14 dome bunches + one twig each + trunk/roots/vines.
+        // B2-194 swaps pine to V2 while retaining the existing broadleaf factory.
+        const pine = createPineCrownV2(seed);
+        try { expect(crownTriangles).toBe(kind === "pine" ? pine.index!.count / 3 : 425); }
+        finally { pine.dispose(); }
         expect(Object.keys(crowns.geometry.attributes).sort()).toEqual(["color", "normal", "position", "shapeA", "shapeB", "surface", "treeStyle"]);
         expect(crowns.material).toBe(foliage.species.broadleaf.crowns.material);
-        reports.push(`${kind}/${seed}=${kind === "pine" ? crownTriangles + trunkTriangles : 391}->${crownTriangles + trunkTriangles}`);
+        reports.push(`${kind}/${seed}=${kind === "pine" ? 42 + (3 + seed % 3) * 44 : 467}->${crownTriangles + trunkTriangles}`);
       }
       process.stdout.write(`B2-183 triangles/tree: ${reports.join(", ")}; mesh slots=10->10; extra passes=0\n`);
     } finally { foliage.dispose(); }

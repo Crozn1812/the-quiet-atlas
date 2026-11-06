@@ -9,6 +9,7 @@ import { foliageBiomeAt, PATH_CLEARANCE, ZONE_CLEARANCE } from "../../../src/fea
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { createRockGeometry } from "../../../src/features/world/props/rocks";
 import type { Quality } from "../../../src/features/world/terrain";
 import { PATH_WIDTH, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
@@ -96,10 +97,10 @@ describe("ground shapes", () => {
       } finally { geometry.dispose(); repeated.dispose(); }
     }
     expect(signatures.size).toBe(3);
-    console.info("GROUND fern triangles: 40 ->", triangles, "; grass unchanged: 18/24/15; rock/log: 24; bush: 24");
+    console.info("GROUND fern triangles: 40 ->", triangles, "; grass unchanged: 18/24/15; B2-194 rock/log: 24 -> 20; bush: 24");
   });
   it("retains distinct seeded curved grass and weathered, partly buried solids within their radius", () => {
-    for (const [seeds, factory, budget] of [[GRASS_VARIANT_SEEDS, createGrassTuft, 27], [ROCK_VARIANT_SEEDS, createRock, 24]] as const) {
+    for (const [seeds, factory, budget] of [[GRASS_VARIANT_SEEDS, createGrassTuft, 27], [ROCK_VARIANT_SEEDS, createRock, 200]] as const) {
       const signatures = new Set<string>();
       for (const seed of seeds) {
         const geometry = factory(seed), repeated = factory(seed);
@@ -122,6 +123,34 @@ describe("ground shapes", () => {
       }
       expect(signatures.size).toBe(seeds.length);
     }
+  });
+
+  it("uses two mossy kit stones with identical vertex counts and intact batched variants", () => {
+    const ground = createGroundDetails(2), counts: number[] = [], signatures = new Set<string>();
+    try {
+      const batch = meshesOf(ground)[2]!.geometry;
+      for (const [variant, seed] of ROCK_VARIANT_SEEDS.entries()) {
+        const geometry = createRock(seed), kit = createRockGeometry("stone", seed, true);
+        try {
+          kit.scale(1.5, 1, 1.5).translate(0, -0.08, 0);
+          const position = geometry.getAttribute("position");
+          counts.push(position.count);
+          signatures.add(JSON.stringify([...position.array]));
+          expect(triangleCount(geometry)).toBe(20); // B2-194: fixed stone topology replaces 24-triangle cylinder.
+          for (const name of ["position", "normal", "color"]) expect(geometry.getAttribute(name).array).toEqual(kit.getAttribute(name).array);
+          expect(batch.getAttribute(variant === 0 ? "position" : "groundPosition1").array).toEqual(position.array);
+          expect(batch.getAttribute(variant === 0 ? "color" : "groundColor1").array).toEqual(geometry.getAttribute("color").array);
+          const size = geometry.boundingBox!.getSize(new Vector3());
+          expect(size.x).toBeGreaterThan(0.65);
+          expect(size.x).toBeLessThan(1.15);
+          expect(size.y).toBeGreaterThan(0.29);
+          expect(size.y).toBeLessThan(0.47);
+        } finally { geometry.dispose(); kit.dispose(); }
+      }
+      expect(counts).toEqual([60, 60]);
+      expect(signatures.size).toBe(2);
+      expect(batch.getAttribute("groundPosition2").array).toEqual(batch.getAttribute("groundPosition1").array);
+    } finally { ground.dispose(); }
   });
 
   it("builds splayed pinnate ferns and broad folded bush leaves with the requested metre envelope", () => {
@@ -147,13 +176,17 @@ describe("ground shapes", () => {
     for (const factory of [createFern, createBroadleafBush, createGrassTuft, createRock]) {
       const geometry = factory();
       try {
-        const colors = geometry.getAttribute("color"), positions = geometry.getAttribute("position");
-        const base = new Color(PALETTE.rockDark), moss = grass.clone().lerp(deep, 0.35);
+        const colors = geometry.getAttribute("color");
+        const rock = new Color(PALETTE.rock);
+        // B2-194: fracture/bevel/moss pigments come from the shared kit rather
+        // than the old cylinder's single rockDark -> green gradient.
+        const stoneColors = [new Color(PALETTE.rockDark), rock.clone().lerp(new Color(PALETTE.sand), 0.16),
+          rock.clone().lerp(grass, 0.42), new Color(PALETTE.rockDark).lerp(rock, 0.72)];
         for (let i = 0; i < colors.count; i++) {
           const color = new Color().fromBufferAttribute(colors, i);
           if (factory === createRock) {
-            expectRecipe(color, base, moss);
-            if (positions.getY(i) < 0) expect(color.toArray()).toEqual(expect.arrayContaining(base.toArray().map(value => expect.closeTo(value, 5))));
+            expect(Math.min(...stoneColors.map(pigment => color.toArray().reduce((sum, value, channel) => sum + Math.abs(value - pigment.toArray()[channel]!), 0)))).toBeLessThan(1e-6);
+            if (geometry.getAttribute("normal").getY(i) < -0.3) expect(color.toArray()).toEqual(new Color(PALETTE.rockDark).toArray().map(value => expect.closeTo(value, 5)));
           } else if (factory === createGrassTuft) expectRecipe(color, grass, new Color(PALETTE.grassDry));
           else if (factory === createBroadleafBush && Math.floor(i / 5) % 2) expectRecipe(color, deep, grass);
           else expectRecipe(color, deep, light);

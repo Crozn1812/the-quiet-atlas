@@ -190,10 +190,10 @@ describe("Da Lat pine V2", () => {
     };
     const before = medianTime(createPineCrown), after = medianTime(createPineCrownV2);
     expect(after - before).toBeLessThanOrEqual(20);
-    console.info(`B2-191 construction median: ${before.toFixed(3)} -> ${after.toFixed(3)} ms`);
+    process.stdout.write(`B2-191 construction median: ${before.toFixed(3)} -> ${after.toFixed(3)} ms\n`);
   });
 
-  it("reports the High streamed world's triangle budget before and after a factory swap", () => {
+  it("reports the High streamed world's triangle budget before and after the installed factory swap", () => {
     const scene = new Scene(), composed = createWorldScene({ ...createMeshPhysics(), scene, quality: "High" });
     const replacements = PINE_VARIANT_SEEDS.map(createPineCrownV2);
     const legacy = PINE_VARIANT_SEEDS.map(createPineCrown);
@@ -202,24 +202,30 @@ describe("Da Lat pine V2", () => {
     try {
       for (const t of [0, 0.1, 0.2, 0.4, 0.6, 0.85, 1]) {
         composed.update(pathPointAt(t), 0);
-        let before = 0, delta = 0;
-        scene.traverse(object => {
+        let after = 0, delta = 0, groundSaving = 0;
+        scene.traverseVisible(object => {
           if (!(object instanceof Mesh) || !object.visible) return;
           const count = object instanceof InstancedMesh ? object.count : 1;
-          before += triangles(object.geometry) * count;
+          after += triangles(object.geometry) * count;
+          // B2-194's ground kit also saves four triangles per submitted solid.
+          if (object.name === "ground-wood-stone") groundSaving += 4 * count;
         });
         for (const mesh of composed.foliageMeshes) {
-          const variant = legacy.findIndex(shape => triangles(shape) === triangles(mesh.geometry));
+          // The live scene now contains V2; infer the legacy cost for the same
+          // submitted instances instead of looking for the removed old crowns.
+          const variant = replacements.findIndex(shape => triangles(shape) === triangles(mesh.geometry)
+            && mesh.geometry.getAttribute("surface") !== undefined);
           if (variant >= 0) {
-            delta += (triangles(replacements[variant]!) - triangles(mesh.geometry)) * mesh.count;
+            delta += (triangles(mesh.geometry) - triangles(legacy[variant]!)) * mesh.count;
             affectedInstances += mesh.count;
           }
         }
-        reports.push(`t=${t}: ${before} -> ${before + delta}`);
-        expect(before + delta, reports.join("; ")).toBeLessThanOrEqual(before * 1.25);
+        const before = after - delta + groundSaving;
+        reports.push(`t=${t}: ${before} -> ${after}`);
+        expect(after, reports.join("; ")).toBeLessThanOrEqual(before * 1.25);
       }
       expect(affectedInstances).toBeGreaterThan(0);
-      console.info(`B2-191 High streamed scene (colour pass, unchanged legacy trunks): ${reports.join("; ")}`);
+      process.stdout.write(`B2-194 High streamed scene (same submitted instances, colour pass, unchanged trunks/broadleaves): ${reports.join("; ")}\n`);
     } finally {
       composed.dispose(); replacements.forEach(shape => shape.dispose()); legacy.forEach(shape => shape.dispose());
     }

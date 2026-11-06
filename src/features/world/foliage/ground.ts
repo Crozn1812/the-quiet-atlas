@@ -1,9 +1,10 @@
-import { BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D } from "three";
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D } from "three";
 import { WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { PATH_BRIDGES } from "../layout/path";
 import { ZONES } from "../layout/zones";
 import { createRampMaterial } from "../materials/ramp";
+import { createRockGeometry } from "../props/rocks";
 import { PRESETS, type Quality } from "../terrain";
 import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
 import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
@@ -93,33 +94,13 @@ export function createGrassTuft(seed: number = GRASS_VARIANT_SEEDS[0]): BufferGe
   return geometry;
 }
 
-/** A closed six-sided weathered solid: 24 triangles, also stretched into logs. */
+/** Kit stone: 20 triangles / 60 vertices for every seed, also stretched into logs. */
 export function createRock(seed: number = ROCK_VARIANT_SEEDS[0]): BufferGeometry {
-  const random = randomFor(seed);
-  const cylinder = new CylinderGeometry(0.85, 1, 2, 6, 1);
-  // Separate face normals keep the weathered stone/wood silhouette softly faceted.
-  const geometry = cylinder.toNonIndexed();
-  cylinder.dispose();
-  geometry.rotateZ(Math.PI / 2);
-  geometry.clearGroups();
-  const phase = random() * Math.PI * 2;
-  const width = 0.42 + random() * 0.14;
-  const height = 0.18 + random() * 0.08;
-  const positions = geometry.getAttribute("position");
-  const colors: number[] = [];
-  const base = new Color(PALETTE.rockDark);
-  const moss = new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.35);
-  for (let i = 0; i < positions.count; i++) {
-    const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
-    const wobble = 1 + Math.sin(x * 7 + y * 5 + z * 9 + phase) * 0.09;
-    positions.setXYZ(i, x * width * wobble, y * height * wobble + height * 0.45, z * width * 0.85 * wobble);
-    const wash = base.clone().lerp(moss, Math.max(0, y));
-    colors.push(wash.r, wash.g, wash.b);
-  }
-  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
+  const geometry = createRockGeometry("stone", seed, true);
+  // Match the old footprint and partial burial without touching scatter/matrices.
+  // Unlike boulders, stone topology is fixed across seeds for groundPosition1/2.
+  geometry.scale(1.5, 1, 1.5);
+  geometry.translate(0, -0.08, 0);
   return geometry;
 }
 

@@ -6,7 +6,8 @@ import { PRESETS, type Quality } from "../terrain";
 import { nearestPath } from "../terrain/samples";
 import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
-import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
+import { createPineCrownV2 } from "./pine";
+import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createTreeTrunk, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
 
@@ -242,7 +243,9 @@ export function createFoliage(maxPerKind: number) {
   const deep = new Color(PALETTE.forestDeep);
   function createSpecies(seeds: readonly number[], broadleaf: boolean) {
     const variants = seeds.map(seed => {
-      const geometry = broadleaf ? createBroadleafCrown() : createPineCrown(seed);
+      // V2 already uses crown-local Y=-TRUNK_HEIGHT at the root. Preserve its
+      // surface tags so wood stays rigid and bypasses leaf translucency/tint.
+      const geometry = broadleaf ? createBroadleafCrown() : createPineCrownV2(seed);
       const position = geometry.getAttribute("position");
       for (const [targetIndex, suffix] of [[1, "A"], [2, "B"]] as const) {
         const target = broadleaf ? createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[targetIndex]) : undefined;
@@ -255,9 +258,6 @@ export function createFoliage(maxPerKind: number) {
           geometry.setAttribute(attribute + suffix, new Float32BufferAttribute(values, 3));
         }
         if (target) { geometry.boundingBox!.union(target.boundingBox!); target.dispose(); }
-      }
-      if (!broadleaf) {
-        geometry.setAttribute("surface", new Float32BufferAttribute(new Float32Array(position.count), 1));
       }
       // Bounds include all three real silhouettes; camera selection stays conservative.
       geometry.boundingBox!.getBoundingSphere(geometry.boundingSphere!);

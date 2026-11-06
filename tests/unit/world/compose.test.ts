@@ -222,10 +222,10 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
   backend.world.createCollider = () => { throw new Error("initial allocation failed"); };
   expect(() => createWorldScene({ ...backend, scene, quality: "Balanced" })).toThrow("initial allocation failed");
   expect(scene.children).toHaveLength(0);
-  // Six non-ground geometries + 28 ground geometries: 11 source variants,
-  // 11 expanded copies, 4 merged batches and 2 temporary rock cylinders.
-  // B2-185 adds 23 allocations over the former 5 ground geometries, all released once.
-  expect(geometryDispose).toHaveBeenCalledTimes(34);
+  // B2-194 removes the two temporary rock cylinders by using the stone kit.
+  // Six non-ground + 26 ground geometries: 11 source variants, 11 expanded
+  // copies and 4 merged batches, all still released exactly once.
+  expect(geometryDispose).toHaveBeenCalledTimes(32);
   expect(new Set(geometryDispose.mock.contexts)).toEqual(geometries);
   expect(geometryDispose.mock.contexts).toHaveLength(geometries.size);
   expect(materialDispose).toHaveBeenCalledTimes(7); // +1 shared ground material (B2-047), +1 coast mist (B2-155)
