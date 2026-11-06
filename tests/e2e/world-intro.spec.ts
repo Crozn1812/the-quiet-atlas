@@ -34,6 +34,7 @@ test.describe("reduced motion", () => {
   test("finishes with a short paper fade instead of the flight", async ({ page }) => {
     const world = await enterWorld(page, "en");
     test.skip(!world, "NOT RUN: no WebGL2");
-    await expect(world!).toHaveAttribute("data-world-intro", "done", { timeout: 5_000 });
+    // The fade is frame-paced; under parallel load (Codex workers) 5 s was flaky (2026-11-06: 2/9 runs).
+    await expect(world!).toHaveAttribute("data-world-intro", "done", { timeout: 15_000 });
   });
 });
