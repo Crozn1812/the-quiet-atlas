@@ -19,3 +19,9 @@
 
 - Unit: sau mount chỉ có 3 khu gần; chạy hết mẩu → đủ 8 khu, collider/interactable như cũ; teleport tới khu xa trước khi dựng xong vẫn hoạt động; unmount giữa chừng không còn timer.
 - Perf: NOT RUN trong sandbox; Lead đo.
+
+### Lead trả lời (2026-11-06): mở rộng phạm vi
+
+- **Được sửa thêm:** `src/features/world/index.ts` (đăng ký khu, teleport `ensure`, dọn dẹp), `src/features/world/scene/compose.ts` (**chỉ** cập nhật foliage bounds/cache khi khu dựng xong).
+- **Không sửa factory các khu** (`zones/<id>.ts`): B2-204b đang sửa `milestones.ts`. Mỗi khu xa dựng trọn trong **một lát idle riêng** sau khung hình đầu; lát được phép > 8 ms (đã chấp nhận, mục tiêu là không chặn khung hình đầu và không dựng 2 khu trong cùng một lát).
+- Hình ảnh cuối giống bản dựng một lần (test parity của bạn).
