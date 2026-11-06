@@ -26,24 +26,54 @@ function noise(p: Point): number {
     mix(mix(h(0, 0, 1), h(1, 0, 1), f[0]!), mix(h(0, 1, 1), h(1, 1, 1), f[0]!), f[1]!), f[2]!);
 }
 
-function parameters(fragment: string) {
+function parameters(fragment: string, pine = false) {
+  const speciesIndex = pine ? 2 : 1;
   return {
-    edgeFrequency: Number(fragment.match(/paintNoise\(vPaintPosition \* ([\d.]+)\) </)![1]),
+    edgeFrequency: Number(fragment.match(/paintEdgeFrequency = mix\(([\d.]+), ([\d.]+)/)![speciesIndex]),
     threshold: Number(fragment.match(/< ([\d.]+) \* paintRim/)![1]),
     rimWidth: Number(fragment.match(/smoothstep\(0.0, ([\d.]+), paintFacing\)/)![1]),
-    washFrequency: Number(fragment.match(/paintWash = clamp\(\(paintNoise\(vPaintPosition \* ([\d.]+)/)![1]),
+    washFrequency: Number(fragment.match(/paintWashFrequency = mix\(([\d.]+), ([\d.]+)/)![speciesIndex]),
     gain: Number(fragment.match(/- 0.5\) \* ([\d.]+), -1.0/)![1]),
     amplitude: Number(fragment.match(/1.0 \+ ([\d.]+) \* paintWash/)![1]),
   };
 }
 
-describe("painted leaf clusters (B2-213)", () => {
+describe.each([false, true])("painted clusters (pine=%s, B2-213/B2-218)", (pine) => {
+  it("selects needle shading with the existing style and darkens only pine undersides", () => {
+    const foliage = createFoliage(1);
+    try {
+      foliage.setTiles([
+        { kind: "pine", x: 0, y: 0, z: 0, scale: 1, lean: 0 },
+        { kind: "broadleaf", x: 1, y: 0, z: 0, scale: 1, lean: 0 },
+      ]);
+      for (const [kind, species] of Object.entries(foliage.species)) {
+        const crown = species.variants.find(v => v.crowns.count > 0)!.crowns;
+        expect(crown.geometry.getAttribute("treeStyle").getY(0) < -0.5).toBe(kind === "pine");
+      }
+      const shader = compile(foliage.species.pine.crowns.material);
+      expect(shader.vertexShader).toContain("vPaintNeedle = vec2(1.0 - step(-0.5, treeStyle.y), normal.y)");
+      const match = shader.fragmentShader.match(/paintNeedleShade = mix\(([\d.]+), ([\d.]+), smoothstep\(-0.1, 0.1, vPaintNeedle.y\)\)/)!;
+      const bottom = Number(match[1]), top = Number(match[2]);
+      expect(bottom / top).toBeLessThanOrEqual(0.85);
+      expect(bottom).toBeGreaterThanOrEqual(0.8);
+      expect(shader.fragmentShader).toContain("outgoingLight *= mix(1.0, paintNeedleShade, vPaintNeedle.x)");
+      expect(shader.fragmentShader.indexOf("float paintNeedleShade")).toBeGreaterThan(shader.fragmentShader.indexOf("float leafLuma"));
+      // Matched unit-ramp samples isolate the directional treatment from sun/ramp.
+      const p = parameters(shader.fragmentShader, true);
+      for (let i = 0; i < 1024; i++) {
+        const wash = 1 + p.amplitude * Math.max(-1, Math.min(1, (noise([i * 0.017 * p.washFrequency, 1.21, -0.73]) - 0.5) * p.gain));
+        expect(wash * bottom).toBeLessThanOrEqual(wash * top * 0.85);
+      }
+      process.stdout.write(`B2-218 underside/top unit-ramp luma=${(bottom / top).toFixed(2)}\n`);
+    } finally { foliage.dispose(); }
+  });
+
   it("cuts a serrated silhouette while keeping the cluster interior solid", () => {
     const foliage = createFoliage(1);
     try {
-      const p = parameters(compile(foliage.species.broadleaf.crowns.material).fragmentShader);
-      expect(p.edgeFrequency).toBeGreaterThanOrEqual(6);
-      expect(p.edgeFrequency).toBeLessThanOrEqual(10);
+      const p = parameters(compile(foliage.species[pine ? "pine" : "broadleaf"].crowns.material).fragmentShader, pine);
+      expect(p.edgeFrequency).toBeGreaterThanOrEqual(pine ? 10 : 6);
+      expect(p.edgeFrequency).toBeLessThanOrEqual(pine ? 16 : 10);
       const discard = (point: Point, facing: number) => noise(point.map(x => x * p.edgeFrequency) as Point)
         < p.threshold * (1 - smooth(Math.abs(facing) / p.rimWidth));
       const reports: string[] = [];
@@ -58,23 +88,23 @@ describe("painted leaf clusters (B2-213)", () => {
           });
           const ratio = ring.filter(Boolean).length / ring.length;
           const transitions = ring.reduce((n, state, i) => n + Number(state !== ring[(i + 1) % ring.length]), 0);
-          expect(ratio).toBeGreaterThanOrEqual(0.25);
-          expect(ratio).toBeLessThanOrEqual(0.55);
+          expect(ratio).toBeGreaterThanOrEqual(pine ? 0.30 : 0.25);
+          expect(ratio).toBeLessThanOrEqual(pine ? 0.60 : 0.55);
           // A smooth circle crosses a scan line twice. At least 3x that baseline.
           expect(transitions).toBeGreaterThanOrEqual(3 * 2);
           reports.push(`${ratio.toFixed(3)}/${transitions}`);
         }
       }
-      process.stdout.write(`B2-213 silhouette discard/transitions (9 rings): ${reports.join(", ")}\n`);
+      process.stdout.write(`B2-${pine ? 218 : 213} silhouette discard/transitions (9 rings): ${reports.join(", ")}\n`);
     } finally { foliage.dispose(); }
   });
 
   it("gives a continuous bounded light wash inside a cluster without grain", () => {
     const foliage = createFoliage(1);
     try {
-      const p = parameters(compile(foliage.species.broadleaf.crowns.material).fragmentShader);
-      expect(p.washFrequency).toBeGreaterThanOrEqual(15);
-      expect(p.washFrequency).toBeLessThanOrEqual(25);
+      const p = parameters(compile(foliage.species[pine ? "pine" : "broadleaf"].crowns.material).fragmentShader, pine);
+      expect(p.washFrequency).toBeGreaterThanOrEqual(pine ? 25 : 15);
+      expect(p.washFrequency).toBeLessThanOrEqual(pine ? 35 : 25);
       expect(p.amplitude).toBe(0.12);
       const wash = (point: Point) => 1 + p.amplitude * Math.max(-1, Math.min(1, (noise(point.map(x => x * p.washFrequency) as Point) - 0.5) * p.gain));
       const values: number[] = [];
@@ -93,12 +123,12 @@ describe("painted leaf clusters (B2-213)", () => {
       expect(sigma).toBeGreaterThanOrEqual(0.04);
       expect(sigma).toBeLessThanOrEqual(0.12);
       expect(adjacentDelta).toBeLessThan(0.003);
-      process.stdout.write(`B2-213 unit-ramp luma sigma=${sigma.toFixed(5)}; max delta/0.1mm=${adjacentDelta.toFixed(5)}\n`);
+      process.stdout.write(`B2-${pine ? 218 : 213} unit-ramp luma sigma=${sigma.toFixed(5)}; max delta/0.1mm=${adjacentDelta.toFixed(5)}\n`);
     } finally { foliage.dispose(); }
   });
 
   it("shares the exact cutout with both shadows, uses <=2 noise calls and no new mesh/attribute", () => {
-    const foliage = createFoliage(1), crowns = foliage.species.broadleaf.crowns;
+    const foliage = createFoliage(1), crowns = foliage.species[pine ? "pine" : "broadleaf"].crowns;
     try {
       const materials = [crowns.material, crowns.customDepthMaterial!, crowns.customDistanceMaterial!];
       const shaders = [compile(materials[0]!), compile(materials[1]!, ShaderLib.depth!), compile(materials[2]!, ShaderLib.distance!)];

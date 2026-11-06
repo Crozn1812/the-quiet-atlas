@@ -143,12 +143,15 @@ function installPaintedLeaves(material: Material, lighting = false) {
 varying vec3 vPaintNormal;
 varying vec3 vPaintView;
 varying float vPaintSurface;
+varying vec2 vPaintNeedle;
 `;
     shader.vertexShader = varyings + shader.vertexShader;
     shader.vertexShader = shader.vertexShader
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 vPaintPosition = position + mix(shapeA * treeA() + shapeB * treeB(), trailShape, treeStyle.z);
-vPaintSurface = surface;`)
+vPaintSurface = surface;
+// Negative hanging flag identifies pine using the existing instance attribute.
+vPaintNeedle = vec2(1.0 - step(-0.5, treeStyle.y), normal.y);`)
       .replace("#include <project_vertex>", `#include <project_vertex>
 // Cofactors preserve the existing smooth normals under nonuniform scale/shear.
 mat3 paintAxes = mat3(modelViewMatrix);
@@ -180,17 +183,22 @@ float paintNoise(vec3 p) {
 if (vPaintSurface < 0.5) {
   float paintFacing = abs(dot(normalize(vPaintNormal), normalize(vPaintView)));
   float paintRim = 1.0 - smoothstep(0.0, 0.32, paintFacing);
-  if (paintNoise(vPaintPosition * 8.0) < 0.46 * paintRim) discard;
+  float paintEdgeFrequency = mix(8.0, 13.0, vPaintNeedle.x);
+  if (paintNoise(vPaintPosition * paintEdgeFrequency) < 0.46 * paintRim) discard;
 }`);
     if (lighting) shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>", `
 if (vPaintSurface < 0.5) {
-  // Smooth 20/m clumps; bounded contrast avoids speckled hash shading.
-  float paintWash = clamp((paintNoise(vPaintPosition * 20.0) - 0.5) * 3.0, -1.0, 1.0);
+  // Smooth leaf clumps / finer needles; still only two noise samples.
+  float paintWashFrequency = mix(20.0, 30.0, vPaintNeedle.x);
+  float paintWash = clamp((paintNoise(vPaintPosition * paintWashFrequency) - 0.5) * 3.0, -1.0, 1.0);
   outgoingLight *= 1.0 + 0.12 * paintWash;
+  // Crown-local up survives camera changes/lean; apply after the ambient rescue.
+  float paintNeedleShade = mix(0.8, 1.0, smoothstep(-0.1, 0.1, vPaintNeedle.y));
+  outgoingLight *= mix(1.0, paintNeedleShade, vPaintNeedle.x);
 }
 #include <opaque_fragment>`);
   };
-  material.customProgramCacheKey = () => previousKey() + `|painted-leaves-v1:${lighting}`;
+  material.customProgramCacheKey = () => previousKey() + `|painted-leaves-v2:${lighting}`;
 }
 
 /** Use the same geometry selection in the colour and existing shadow passes.
@@ -414,7 +422,7 @@ export function createFoliage(maxPerKind: number) {
       crowns.setColorAt(index, pigment);
       const style = crowns.geometry.getAttribute("treeStyle");
       style.setXYZ(index, tree.kind === "broadleaf" ? foliageVariantAt(tree.x, tree.z, BROADLEAF_VARIANT_SEEDS.length) : 0,
-        tree.kind === "broadleaf" && hasHangingFoliage(tree.x, tree.z) ? 1 : 0, trailShape);
+        tree.kind === "pine" ? -1 : hasHangingFoliage(tree.x, tree.z) ? 1 : 0, trailShape);
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
