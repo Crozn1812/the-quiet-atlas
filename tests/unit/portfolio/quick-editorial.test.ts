@@ -27,11 +27,10 @@ it.each(["en", "vi"] as const)("preserves the Quick heading outline and public p
   expect(html).not.toMatch(/<canvas|<button/);
 });
 
-it.each(["en", "vi"] as const)("keeps welcome, CV, email and both language links in the static %s header", locale => {
-  const profile = content.profiles.find(p => p.locale === locale)!;
+it.each(["en", "vi"] as const)("keeps welcome, CV and both language links in the static %s header (email lives once, in Contact)", locale => {
   const html = renderToStaticMarkup(createElement(QuickPortfolio, { locale }));
   const header = html.match(/<header\b[^>]*>([\s\S]*?)<\/header>/)![1]!;
-  for (const href of [`/${locale}/`, "/cv/", `mailto:${profile.email}`, "/en/quick/", "/vi/quick/"]) {
+  for (const href of [`/${locale}/`, "/cv/", "/en/quick/", "/vi/quick/"]) {
     expect(header).toContain(`href="${href}"`);
   }
   expect(header).toContain("The Quiet Atlas · Quick Portfolio");

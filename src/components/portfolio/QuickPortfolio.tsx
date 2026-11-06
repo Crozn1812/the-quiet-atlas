@@ -29,7 +29,6 @@ export function QuickPortfolio({ locale }: { locale: Locale }) {
           <nav aria-label="Portfolio">
             <a href={`/${locale}/`}>{t.home}</a>
             <a href="/cv/">CV</a>
-            <a href={`mailto:${p.email}`}>{p.email}</a>
           </nav>
           <nav aria-label="Language">
             <a
