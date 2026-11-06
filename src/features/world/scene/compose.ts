@@ -270,7 +270,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     ground.setQuality(next);
     if (!grass || grass.radius !== createGrassFieldRadius(next)) {
       grass?.group.removeFromParent(); grass?.dispose();
-      grass = createGrassField(next);
+      grass = createGrassField(next, zoneBounds);
       scene.add(grass.group);
     }
     for (const surface of water) {
@@ -331,7 +331,11 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       for (const [key, cell] of cells) if (cell.trees.some(tree => !treeClearOfZones(tree))) {
         cell.dispose(); cells.delete(key);
       }
+      // Ground scatter has ratio caps (e.g. flowers per item), so it is scattered without zone boxes and
+      // filtered here: a late zone then matches bounds supplied up front exactly (B2-197 parity).
       for (const [key, items] of groundCache) groundCache.set(key, items.filter(clearOfZones));
+      // Grass cells sampled before the late zone keep stale blades: resample from scratch (~0.5 ms).
+      if (grass) { grass.group.removeFromParent(); grass.dispose(); grass = createGrassField(quality, zoneBounds); scene.add(grass.group); }
       zoneBoundsCount = zoneBounds.length;
       lastT = -Infinity;
     }
