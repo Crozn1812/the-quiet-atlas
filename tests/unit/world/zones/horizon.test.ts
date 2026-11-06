@@ -343,7 +343,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
       expect(mesh.material.emissive.getHex()).toBe(0);
       expect(mesh.material.transparent).toBe(false);
       expect(mesh.material.map).toBeNull();
-      expect(mesh.material.customProgramCacheKey()).toMatch(/|painted-prop-readable-v2$/);
+      expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
       const colors = mesh.geometry.getAttribute("color");
       expect(colors.count).toBe(mesh.geometry.getAttribute("position").count);
       for (let i = 0; i < colors.count; i++) {

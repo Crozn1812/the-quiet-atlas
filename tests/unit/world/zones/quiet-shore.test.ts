@@ -476,7 +476,7 @@ describe("quiet-shore procedural place", () => {
       expect(mesh.material.emissive.getHex()).toBe(0);
       expect(mesh.material.map).toBeNull();
       expect(mesh.material.transparent).toBe(false);
-      expect(mesh.material.customProgramCacheKey()).toMatch(/|painted-prop-readable-v2$/);
+      expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
       const wash = mesh.geometry.getAttribute("color");
       expect(wash.count).toBe(mesh.geometry.getAttribute("position").count);
       for (let i = 0; i < wash.count; i++) {

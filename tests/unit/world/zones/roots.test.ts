@@ -539,7 +539,7 @@ describe("The Roots procedural zone", () => {
       expect(material.transparent).toBe(false);
       expect(material.map).toBeNull();
       expect(material.gradientMap).not.toBeNull();
-      expect(material.customProgramCacheKey()).toMatch(/|painted-prop-readable-v2$/);
+      expect(material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
       const colors = mesh.geometry.getAttribute("color");
       for (let i = 0; i < colors.count; i++) {
         const vertex = new Color().fromBufferAttribute(colors, i);
