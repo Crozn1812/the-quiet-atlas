@@ -225,11 +225,12 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
   // B2-194 removes the two temporary rock cylinders by using the stone kit.
   // Six non-ground + 26 ground geometries: 11 source variants, 11 expanded
   // copies and 4 merged batches, all still released exactly once.
-  expect(geometryDispose).toHaveBeenCalledTimes(32);
+  // +1: the B2-214 grass tuft geometry.
+  expect(geometryDispose).toHaveBeenCalledTimes(33);
   expect(new Set(geometryDispose.mock.contexts)).toEqual(geometries);
   expect(geometryDispose.mock.contexts).toHaveLength(geometries.size);
-  expect(materialDispose).toHaveBeenCalledTimes(7); // +1 shared ground material (B2-047), +1 coast mist (B2-155)
-  expect(new Set(materialDispose.mock.contexts).size).toBe(7);
+  expect(materialDispose).toHaveBeenCalledTimes(8); // +1 shared ground material (B2-047), +1 coast mist (B2-155), +1 grass field (B2-214)
+  expect(new Set(materialDispose.mock.contexts).size).toBe(8);
 });
 
 it("grades paper fog without changing the paper pigment, across Low and High reallocations", async () => {

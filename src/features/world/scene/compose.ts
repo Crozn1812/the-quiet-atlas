@@ -6,6 +6,8 @@ import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
 import { createGroundDetails, scatterGround, type GroundDetail } from "../foliage/ground";
+import { createGrassField, GRASS_FIELD_RADII } from "../foliage/grass-field";
+const createGrassFieldRadius = (quality: keyof typeof GRASS_FIELD_RADII) => GRASS_FIELD_RADII[quality];
 import { createCrownFade } from "../crown-fade";
 import { selectOccludingCrowns } from "../camera";
 import { timeOfDayAt } from "../layout/lighting";
@@ -99,6 +101,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let disposed = false;
   let elapsed = 0;
   let reducedMotion = false;
+  // B2-214: near-camera grass field (hill/coast); rebuilt when its quality radius changes.
+  let grass: ReturnType<typeof createGrassField> | undefined;
   let lastT = -Infinity;
   // Extra streaming reach (m ahead) while the opening cinematic overlooks the river (Lead, B2-043b review).
   let preloadAhead = 0;
@@ -246,6 +250,11 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     quality = next;
     for (const cell of cells.values()) cell.setQuality(next);
     ground.setQuality(next);
+    if (!grass || grass.radius !== createGrassFieldRadius(next)) {
+      grass?.group.removeFromParent(); grass?.dispose();
+      grass = createGrassField(next);
+      scene.add(grass.group);
+    }
     for (const surface of water) {
       if (surface.mesh.material.quality === next) continue;
       const previous = surface.mesh.material;
@@ -279,6 +288,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     pool.dispose();
     ground.group.removeFromParent();
     ground.dispose();
+    grass?.group.removeFromParent();
+    grass?.dispose();
     groundCache.clear();
     terrainMaterial.dispose();
     trunkGeometry.dispose();
@@ -351,6 +362,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     paper?.setGrade(grade);
     paper?.setMist({ height: waterLevelAt(player.z) + 1.2 });
     elapsed += dt;
+    grass?.update(player.x, player.z, elapsed, reducedMotion);
     for (const surface of water) {
       surface.mesh.material.setGrade(grade);
       surface.mesh.material.setTime(elapsed);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Color, Matrix4, type WebGLRenderer } from "three";
 import { PALETTE } from "../../../src/features/world/art/palette";
-import { createGrassField, grassFieldAllowed, grassFieldBlade } from "../../../src/features/world/foliage/grass-field";
+import { createGrassField, grassFieldAllowed, grassFieldBlade, GRASS_FIELD_SPACING } from "../../../src/features/world/foliage/grass-field";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { isFoliageExcluded } from "../../../src/features/world/foliage/scatter";
@@ -31,13 +31,14 @@ describe("camera grass field", () => {
     }
     field.dispose();
   });
-  it("uses one draw and three triangles per curved blade within every quality budget", () => {
+  it("uses one draw and a 4-blade, 12-triangle tuft within every quality budget", () => {
     for (const quality of ["High", "Balanced", "Low"] as const) {
       const field = createGrassField(quality);
       expect(field.group.children).toHaveLength(1);
-      expect(field.mesh.count * 3).toBeLessThanOrEqual(60000);
-      expect(field.mesh.geometry.index!.count).toBe(9);
-      expect(field.radius).toBe({ High: 25, Balanced: 15, Low: 0 }[quality]);
+      // Lead 2026-11-06 render check: tufts at 0.7 m within 18/12 m (single blades read as bare ground).
+      expect(field.mesh.count * 12).toBeLessThanOrEqual(60000);
+      expect(field.mesh.geometry.index!.count).toBe(36);
+      expect(field.radius).toBe({ High: 18, Balanced: 12, Low: 0 }[quality]);
       expect(field.mesh.count === 0).toBe(quality === "Low");
       field.dispose(); field.dispose();
     }
@@ -77,7 +78,8 @@ describe("camera grass field", () => {
     expect(drain(point.x)).toBe(field.mesh.count);
     const before = Array.from(field.mesh.instanceMatrix.array);
     expect(field.update(point.x, point.z, 6, true).sampled).toBe(0);
-    expect(drain(point.x + 10)).toBe(20 * Math.sqrt(field.mesh.count));
+    const enteringColumns = Math.floor((point.x + 10) / GRASS_FIELD_SPACING) - Math.floor(point.x / GRASS_FIELD_SPACING);
+    expect(drain(point.x + 10)).toBe(enteringColumns * Math.sqrt(field.mesh.count));
     let retained = 0;
     for (let i = 0; i < field.mesh.count; i++) {
       const offset = i * 16;

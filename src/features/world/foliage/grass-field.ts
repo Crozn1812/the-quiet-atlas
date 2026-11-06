@@ -5,8 +5,11 @@ import type { Quality } from "../terrain";
 import { TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
 import { foliageBiomeAt, forestHillDistanceAt, isFoliageExcluded } from "./scatter";
 
-export const GRASS_FIELD_RADII = { High: 25, Balanced: 15, Low: 0 } as const;
-export const GRASS_FIELD_SPACING = 0.5;
+// Lead render check (2026-11-06): single 5 cm blades at 0.5 m read as bare ground; one 4-blade tuft per
+// 0.7 m cell within 18/12 m reads as a meadow and stays under the 60k-triangle cap.
+export const GRASS_FIELD_RADII = { High: 18, Balanced: 12, Low: 0 } as const;
+export const GRASS_FIELD_SPACING = 0.7;
+const S = GRASS_FIELD_SPACING;
 
 /** Conservative clearance also covers the bent blade's horizontal footprint. */
 export function grassFieldAllowed(x: number, z: number): boolean {
@@ -26,23 +29,34 @@ export function grassFieldBlade(cx: number, cz: number) {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
   };
-  return { x: (cx + 0.5) * 0.5 + (random() - 0.5) * 0.3,
-    z: (cz + 0.5) * 0.5 + (random() - 0.5) * 0.3,
+  return { x: (cx + 0.5) * S + (random() - 0.5) * 0.45,
+    z: (cz + 0.5) * S + (random() - 0.5) * 0.45,
     height: 0.25 + random() * 0.35, yaw: random() * Math.PI * 2 };
 }
 
 export function createGrassField(quality: Quality) {
   const radius = GRASS_FIELD_RADII[quality];
   // Square torus includes a guard cell; shader clips it to the exact moving circle.
-  const half = Math.ceil(radius / 0.5) + 1, side = half * 2 + 1;
+  const half = Math.ceil(radius / S) + 1, side = half * 2 + 1;
   const capacity = radius ? side * side : 0;
   const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new Float32BufferAttribute([
-    -0.025, 0, 0, 0.025, 0, 0, 0.005, 0.55, 0.035, 0.04, 0.55, 0.035, 0.1, 1, 0.08,
-  ], 3));
-  geometry.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4]);
-  const root = new Color(PALETTE.grass), tip = new Color(PALETTE.grassDry);
-  geometry.setAttribute("color", new Float32BufferAttribute([root, root, root.clone().lerp(tip, 0.55), root.clone().lerp(tip, 0.55), tip].flatMap(c => c.toArray()), 3));
+  // Four bent blades fanned around the tuft centre (12 triangles).
+  const blade = [-0.04, 0, 0, 0.04, 0, 0, 0.01, 0.55, 0.05, 0.06, 0.55, 0.05, 0.14, 1, 0.12];
+  const positions: number[] = [], indices: number[] = [], colors: number[] = [];
+  const root = new Color(PALETTE.grass), tip = new Color(PALETTE.grassDry), mid = root.clone().lerp(tip, 0.55);
+  for (let b = 0; b < 4; b++) {
+    const angle = b * Math.PI / 4 + (b % 2) * 0.3, c = Math.cos(angle), sn = Math.sin(angle);
+    const offset = positions.length / 3, lean = 0.8 + 0.15 * b;
+    for (let i = 0; i < 15; i += 3) {
+      const x = blade[i]! * lean, y = blade[i + 1]! * (0.85 + 0.1 * b), z = blade[i + 2]! * lean;
+      positions.push(x * c - z * sn, y, x * sn + z * c);
+    }
+    indices.push(offset, offset + 1, offset + 2, offset + 1, offset + 3, offset + 2, offset + 2, offset + 3, offset + 4);
+    colors.push(...root.toArray(), ...root.toArray(), ...mid.toArray(), ...mid.toArray(), ...tip.toArray());
+  }
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
   const material = createRampMaterial(0xffffff);
   material.vertexColors = true;
@@ -73,7 +87,7 @@ transformed *= grassFade;`);
   const transform = new Object3D();
   let cursor = 0, remaining = 0, centerX = Infinity, centerZ = Infinity;
   let disposed = false;
-  /** Sampling is incremental (0.65 ms soft budget, at most 128 new cells/frame).
+  /** Sampling is incremental (0.9 ms soft budget, at most 384 new cells/frame; ~2 s to fill on desktop).
    * Initial fill/teleports converge over several frames; retained cells never resample.
    * Call with the player/camera XZ, elapsed seconds and current motion preference.
    */
@@ -83,13 +97,16 @@ transformed *= grassFade;`);
     uniforms.grassCenter.value.set(x, z);
     uniforms.grassTime.value = time;
     uniforms.grassWind.value = reducedMotion ? 0 : 1;
-    const nx = Math.floor(x / 0.5), nz = Math.floor(z / 0.5);
+    // Deep in the dawn forest no cell within reach can hold grass: skip the draw entirely.
+    mesh.visible = foliageBiomeAt(x, z) !== "forest-dawn" || forestHillDistanceAt(x, z) <= radius + 12;
+    if (!mesh.visible) return { sampled: 0, pending: remaining };
+    const nx = Math.floor(x / S), nz = Math.floor(z / S);
     if (nx !== centerX || nz !== centerZ) {
       centerX = nx; centerZ = nz; remaining = capacity;
     }
     let sampled = 0;
     mesh.instanceMatrix.clearUpdateRanges();
-    while (remaining > 0 && sampled < 128 && performance.now() - start < 0.65) {
+    while (remaining > 0 && sampled < 384 && performance.now() - start < 0.9) {
       const slot = cursor;
       cursor = (cursor + 1) % capacity;
       remaining--;
