@@ -1,5 +1,5 @@
 // B2-043b — opening cinematic (spec §2 "có Skip", §6.2 every Enter World, §9 reduced motion).
-import { enterWorld } from "./helpers";
+import { enterWorld, MENU_TRIGGER } from "./helpers";
 import { expect, test } from "./test";
 
 test.use({ playIntro: true });
@@ -14,10 +14,13 @@ test("plays on Enter World, offers a focused Skip, and hands control back on Ski
   const skip = page.locator("[data-world-intro-skip]");
   await expect(skip).toHaveText("Bỏ qua");
   await expect(page.locator("[data-world-letterbox]")).toHaveCount(2);
+  // B2-235: the HUD stays out of the cinematic frame and returns at handoff.
+  await expect(page.locator(MENU_TRIGGER)).toBeHidden();
   await skip.click();
   await expect(world!).toHaveAttribute("data-world-intro", "done");
   await expect(skip).toHaveCount(0);
   await expect(page.locator("[data-world-letterbox]")).toHaveCount(0);
+  await expect(page.locator(MENU_TRIGGER)).toBeVisible();
 });
 
 test("Escape skips the cinematic", async ({ page }) => {

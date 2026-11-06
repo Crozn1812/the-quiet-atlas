@@ -145,7 +145,9 @@ export async function enterWorld(page: Page, locale = "en") {
   // main thread is busy, so give the lazy import generous time. Since ADR 0009 the trigger button is
   // server-rendered in the HUD (hidden until world mode), so the mounted menu <dialog> is the readiness signal.
   await expect(page.locator(".world-menu dialog")).toBeAttached({ timeout: 30_000 });
-  await expect(page.locator(MENU_TRIGGER)).toBeVisible();
+  // B2-235: the HUD fades out while the intro/ending cinematic plays; it must be visible once gameplay has control.
+  if ((await world.getAttribute("data-world-intro")) === "playing") await expect(page.locator(MENU_TRIGGER)).toBeAttached();
+  else await expect(page.locator(MENU_TRIGGER)).toBeVisible();
   return world;
 }
 
