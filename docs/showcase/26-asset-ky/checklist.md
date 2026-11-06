@@ -71,5 +71,5 @@
 | 3D bytes tới lúc chơi được | **PASS**, 1,99 MB / 8 MB |
 | Thời gian vào chơi (lần xấu nhất / 3) | **5,90 s**: trần spec 10 s **PASS**; mục tiêu nội bộ ≤ 6 s **PASS** |
 | Nhân vật | 7 784 tam giác, 147 KB (trần 12 000 / 600 KB) **PASS** |
-| T10 (Duy + 1 người ngoài chấm ≥ 10/12) | Duy: đạt ("nhìn chung là ổn", đánh giá chung). Người ngoài: **NOT RUN** |
+| T10 (Duy + 1 người ngoài chấm ≥ 10/12) | **DEFERRED**: Duy chấm khi UX/UI xong khoảng 90–100 %; hiện vẫn là khung |
 | T08/T09 FPS trên laptop Iris Xe | **NOT RUN**: Duy đo trên laptop (ADR 0007) |
