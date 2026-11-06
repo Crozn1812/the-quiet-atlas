@@ -34,6 +34,7 @@ const routeLength = pathLength();
 const firstHill = ZONES.findIndex(zone => zone.biome === "hill");
 const forestEdge = (ZONES[firstHill - 1]!.t + ZONES[firstHill]!.t) / 2;
 const sunGaps = FOREST_SUN_SHAFT_PROGRESS.map(pathPointAt);
+const trailCanopySpawn = pathPointAt(0);
 
 /** Metres back from the hill boundary in the path-defined biome map. */
 export function forestHillDistanceAt(x: number, z: number): number {
@@ -191,12 +192,18 @@ function candidates(ix: number, iz: number): Candidate[] {
     const shrub = biome === "coast-dusk" && !canopy;
     const pineChance = biome === "forest-dawn" ? ((forestEdge - path.t) * routeLength <= 40 ? 0.72 : 0.12) : 0.6;
     const kind = shrub || canopy ? "broadleaf" : kindRoll < pineChance ? "pine" : "broadleaf";
-    const trailScale = 1.6 + scaleRoll * 0.4;
-    const trailCanopy = shoulder && kind === "broadleaf" && hasCanopyRoom(x, z, trailScale, path);
+    // Keep the old eligibility envelope: smaller trees must not promote extra
+    // candidates or change the Poisson field. Only their visual size changes.
+    const trailCanopy = shoulder && kind === "broadleaf"
+      && Math.hypot(x - trailCanopySpawn.x, z - trailCanopySpawn.z) >= 12
+      && hasCanopyRoom(x, z, 1.6 + scaleRoll * 0.4, path);
+    // The renderer multiplies trail scale by three. 1.35–1.40 effective scale
+    // gives 12–13 m trees with <=1.4x bark width; only their limbs reach inward.
+    const trailScale = (1.35 + scaleRoll * 0.05) / 3;
     result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 0.9 + scaleRoll * 0.6 : trailCanopy ? trailScale : 0.8 + scaleRoll * 0.5,
       // Broad crowns overlap in projection up the slope and reuse the coastal
       // shrub species, so the denser coast does not activate extra draw calls.
-      kind, lean,
+      kind, lean: trailCanopy ? 0 : lean,
       ...(shrub ? { growth: "shrub" as const } : {}),
       ...(canopy ? { canopy: true as const } : {}),
       ...(trailCanopy ? { trailCanopy: true as const } : {}),

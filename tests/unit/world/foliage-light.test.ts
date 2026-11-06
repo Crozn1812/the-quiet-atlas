@@ -218,7 +218,7 @@ describe("foliage graded lighting (B2-183)", () => {
     } finally { foliage.dispose(); }
   });
 
-  it("keeps ten mesh slots without new attributes or materials", () => {
+  it("keeps ten mesh slots and the WebGL attribute budget without new materials", () => {
     const foliage = createFoliage(1);
     try {
       expect(foliage.group.children).toHaveLength(10);
@@ -230,7 +230,9 @@ describe("foliage graded lighting (B2-183)", () => {
         const pine = createPineCrownV2(seed);
         try { expect(crownTriangles).toBe(kind === "pine" ? pine.index!.count / 3 : 425); }
         finally { pine.dispose(); }
-        expect(Object.keys(crowns.geometry.attributes).sort()).toEqual(["color", "normal", "position", "shapeA", "shapeB", "surface", "treeStyle"]);
+        expect(Object.keys(crowns.geometry.attributes).sort()).toEqual(["canopyShift", "color", "normal", "position", "shapeA", "shapeB", "surface", "treeStyle"]);
+        // Matrix (4), instance colour (1), and optional crown fade (1) use six more.
+        expect(Object.keys(crowns.geometry.attributes).length + 6).toBeLessThanOrEqual(16);
         expect(crowns.material).toBe(foliage.species.broadleaf.crowns.material);
         reports.push(`${kind}/${seed}=${kind === "pine" ? 42 + (3 + seed % 3) * 44 : 467}->${crownTriangles + trunkTriangles}`);
       }

@@ -94,8 +94,8 @@ describe("broadleaf forest corridor (B2-170)", () => {
           const scale = new Vector3().setFromMatrixScale(matrix);
           expect(scale.x / tree.scale).toBeCloseTo(3, 5);
           expect(scale.z / scale.x).toBeCloseTo(1, 5);
-          // Only the small reaching shear differs from a uniform scale.
-          expect(scale.y / scale.x).toBeCloseTo(Math.hypot(1, 0.3), 5);
+          // B2-196 keeps the rooted matrix upright; only canopy vertices reach.
+          expect(scale.y / scale.x).toBeCloseTo(1, 5);
           const x = new Vector3().setFromMatrixColumn(matrix, 0), y = new Vector3().setFromMatrixColumn(matrix, 1), z = new Vector3().setFromMatrixColumn(matrix, 2);
           const cofactors = new Matrix3().setFromMatrix4(new Matrix4().makeBasis(
             new Vector3().crossVectors(y, z), new Vector3().crossVectors(z, x), new Vector3().crossVectors(x, y)));
@@ -107,8 +107,15 @@ describe("broadleaf forest corridor (B2-170)", () => {
         // the actual selected leaf triangles instead of testing bounding disks.
         const shape = shapes[foliageVariantAt(tree.x, tree.z, shapes.length)]!;
         const positions = shape.getAttribute("position"), surface = shape.getAttribute("surface");
+        const shift = variant.crowns.geometry.getAttribute("canopyShift");
+        const reach = variant.crowns.geometry.getAttribute("treeStyle").getZ(instance);
+        const vertexAt = (id: number) => {
+          const vertex = new Vector3().fromBufferAttribute(positions, id);
+          vertex.x += reach * shift.getX(id);
+          return vertex.applyMatrix4(matrix);
+        };
         if (tree.trailCanopy) for (let i = 0; i < positions.count; i++) {
-          const vertex = new Vector3().fromBufferAttribute(positions, i).applyMatrix4(matrix);
+          const vertex = vertexAt(i);
           expect(variant.crowns.boundingBox!.containsPoint(vertex)).toBe(true);
           expect(variant.crowns.boundingSphere!.containsPoint(vertex)).toBe(true);
         }
@@ -116,7 +123,7 @@ describe("broadleaf forest corridor (B2-170)", () => {
         for (let i = 0; i < indices.count; i += 3) {
           const ids = [indices.getX(i), indices.getX(i + 1), indices.getX(i + 2)];
           if (surface.getX(ids[0]!) !== 0) continue;
-          triangles.push(ids.map(id => new Vector3().fromBufferAttribute(positions, id).applyMatrix4(matrix)));
+          triangles.push(ids.map(vertexAt));
         }
       }
       const hit = new Vector3();
@@ -135,6 +142,7 @@ describe("broadleaf forest corridor (B2-170)", () => {
       }
       process.stdout.write(`B2-170 overhead: ${covered}/${samples} path samples; ${coveredSegments.size} distinct 10 m segments; shoulder trees=${forest.filter(tree => tree.trailCanopy).length}\n`);
       expect(samples).toBeGreaterThan(30);
+      expect(covered).toBeGreaterThanOrEqual(25); // Lead's B2-196 centre-line target.
       expect(covered / samples).toBeGreaterThanOrEqual(0.4);
       expect(coveredSegments.size).toBeGreaterThanOrEqual(8);
       for (const zone of ZONES.filter(zone => zone.biome === "forest-dawn")) {

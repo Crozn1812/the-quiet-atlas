@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
 import { RAMP_PRESETS } from "../../../src/features/world/materials/ramp";
 import { createBroadleafCrown as legacyBroadleaf, createPineCrown as legacyPine, createFoliage, foliageVariantAt } from "../../../src/features/world/foliage/instances";
+import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createPineCrown, createTreeTrunk, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "../../../src/features/world/foliage/shapes";
 
 const variants = [
@@ -300,10 +301,21 @@ describe("painted procedural tree shapes", () => {
           // Remove the rooted lean to measure height along the tree's own axis.
           matrix.premultiply(new Matrix4().makeTranslation(-x, -3, -7));
           matrix.premultiply(new Matrix4().makeRotationZ(-lean));
+          if (trailCanopy) {
+            const path = nearestPath(x, 7);
+            // Measure in the path-facing crown frame, not a rotated AABB.
+            matrix.premultiply(new Matrix4().makeRotationY(-Math.atan2(7 - path.z, path.x - x)));
+          }
           const geometry = shapes[variant]!, positions = geometry.getAttribute("position");
+          const shift = batch.crowns.geometry.getAttribute("canopyShift");
+          const reach = batch.crowns.geometry.getAttribute("treeStyle").getZ(0);
           const masses = leafMasses(geometry), canopy = new Box3();
           for (const mass of masses) {
-            const bounds = new Box3().setFromPoints(mass.map(i => new Vector3().fromBufferAttribute(positions, i).applyMatrix4(matrix)));
+            const bounds = new Box3().setFromPoints(mass.map(i => {
+              const point = new Vector3().fromBufferAttribute(positions, i);
+              point.x += reach * shift.getX(i);
+              return point.applyMatrix4(matrix);
+            }));
             canopy.union(bounds);
             const size = bounds.getSize(new Vector3());
             expect(size.y / Math.max(size.x, size.z)).toBeGreaterThanOrEqual(0.7);

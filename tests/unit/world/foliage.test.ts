@@ -157,12 +157,6 @@ describe("foliage instances and colliders", () => {
           variant.crowns.getMatrixAt(instanceIndex, matrix);
           center.setFromMatrixPosition(matrix);
           const expected = new Vector3(tree.x - Math.sin(tree.lean) * 5 * heightScale, tree.y + Math.cos(tree.lean) * 5 * heightScale, tree.z);
-          if (tree.trailCanopy) {
-            const path = nearestPath(tree.x, tree.z);
-            const reach = 0.24 * heightScale;
-            const dx = (path.x - tree.x) / path.distance * reach;
-            expected.add(new Vector3(Math.cos(tree.lean) * dx, Math.sin(tree.lean) * dx, (path.z - tree.z) / path.distance * reach));
-          }
           expect(center.x).toBeCloseTo(expected.x, 4);
           expect(center.y).toBeCloseTo(expected.y, 4);
           expect(center.z).toBeCloseTo(expected.z, 4);

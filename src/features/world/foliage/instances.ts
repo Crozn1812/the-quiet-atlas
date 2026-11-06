@@ -1,4 +1,4 @@
-import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, type Mesh, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
+import { type BufferGeometry, Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, type Mesh, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
@@ -130,6 +130,45 @@ function instanceLeafColor(x: number, z: number, base: Color): Color {
   return color.multiplyScalar(luma(base) * brightness / luma(color));
 }
 
+/** Separate the broadleaf's connected wooden pieces without generator offsets.
+ * Leaves translate as round masses; triangular twigs stretch from fixed leaders.
+ * The sleeve and buttress roots have zero weight, including above the anchor. */
+function canopyShiftAttribute(geometry: BufferGeometry, broadleaf: boolean) {
+  const position = geometry.getAttribute("position"), surface = geometry.getAttribute("surface");
+  const shifts = new Float32BufferAttribute(new Float32Array(position.count * 4), 4);
+  if (!broadleaf) return shifts;
+  const parents = Array.from({ length: position.count }, (_, i) => i);
+  const root = (i: number): number => {
+    while (parents[i] !== i) { parents[i] = parents[parents[i]!]!; i = parents[i]!; }
+    return i;
+  };
+  const indices = geometry.index!;
+  for (let i = 0; i < indices.count; i += 3) {
+    const a = indices.getX(i), b = indices.getX(i + 1), c = indices.getX(i + 2);
+    parents[root(b)] = parents[root(c)] = root(a);
+  }
+  const wood = new Map<number, number[]>();
+  for (let i = 0; i < position.count; i++) {
+    const tag = surface.getX(i);
+    // Ribbons attach 60% along a twig ending 92% of the way to its leaf mass.
+    shifts.setX(i, tag === 0 ? 1 : tag === 2 ? 0.6 * 0.92 : 0);
+    if (tag !== 1) continue;
+    const key = root(i), component = wood.get(key) ?? [];
+    component.push(i); wood.set(key, component);
+  }
+  for (const component of wood.values()) {
+    // The six-vertex pieces are open triangular twigs (two three-point rings).
+    // The connected sleeve and each four-vertex buttress remain rooted.
+    if (component.length !== 6) continue;
+    const start = new Vector3(), end = new Vector3(), point = new Vector3();
+    component.forEach((id, i) => (i < 3 ? start : end).add(point.fromBufferAttribute(position, id)));
+    const gradient = end.sub(start).divideScalar(3);
+    gradient.multiplyScalar(0.92 / gradient.lengthSq());
+    component.forEach((id, i) => shifts.setXYZW(id, i < 3 ? 0 : 0.92, gradient.x, gradient.y, gradient.z));
+  }
+  return shifts;
+}
+
 /** Use the same geometry selection in the colour and existing shadow passes.
  * Two absolute shape deltas avoid extra batches or morph textures. */
 function installTreeShapes(material: Material, wind: FoliageWind) {
@@ -142,13 +181,18 @@ function installTreeShapes(material: Material, wind: FoliageWind) {
     // Variant normals are dropped (base normals light all three silhouettes) and "hanging" is surface == 2.
     if (!shader.vertexShader.includes("attribute float surface;")) shader.vertexShader = "attribute float surface;\n" + shader.vertexShader;
     shader.vertexShader = `uniform vec2 forestWind;
-attribute vec2 treeStyle;
+attribute vec3 treeStyle;
+attribute vec4 canopyShift;
 attribute vec3 shapeA; attribute vec3 shapeB;
 float treeA() { return step(0.5, treeStyle.x) - step(1.5, treeStyle.x); }
 float treeB() { return step(1.5, treeStyle.x); }
 ` + shader.vertexShader;
     shader.vertexShader = shader.vertexShader
-      .replace("#include <defaultnormal_vertex>", `#include <defaultnormal_vertex>
+      .replace("#include <defaultnormal_vertex>", `
+// Cofactor of the twig's rank-one stretch. Leaf normals and rooted bark stay fixed.
+objectNormal = (1.0 + treeStyle.z * canopyShift.y) * objectNormal
+  - canopyShift.yzw * (treeStyle.z * objectNormal.x);
+#include <defaultnormal_vertex>
 #ifdef USE_INSTANCING
 // Three's default normal transform assumes orthogonal instance axes. Cofactors
 // also handle reaching limbs; positive determinants let normalization cancel it.
@@ -162,6 +206,7 @@ transformedNormal = -transformedNormal;
 #endif`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 transformed += shapeA * treeA() + shapeB * treeB();
+transformed.x += treeStyle.z * canopyShift.x;
 // Collapse every ribbon vertex to the same point on trees without vines.
 transformed *= 1.0 - step(1.5, surface) * (1.0 - treeStyle.y);
 #ifdef USE_INSTANCING
@@ -175,7 +220,7 @@ float forestSway = 0.08 * forestWind.y * forestTip * forestLeaf
 transformed += inverse(mat3(modelMatrix) * mat3(instanceMatrix)) * vec3(forestSway, 0.0, 0.0);
 #endif`);
   };
-  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v2|affine-normals-v1|forest-wind-v1";
+  material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v2|affine-normals-v1|forest-wind-v1|trail-canopy-shift-v1";
 }
 
 /**
@@ -261,11 +306,12 @@ export function createFoliage(maxPerKind: number) {
       }
       // Bounds include all three real silhouettes; camera selection stays conservative.
       geometry.boundingBox!.getBoundingSphere(geometry.boundingSphere!);
-      geometry.setAttribute("treeStyle", new InstancedBufferAttribute(new Float32Array(maxPerKind * 2), 2));
+      geometry.setAttribute("canopyShift", canopyShiftAttribute(geometry, broadleaf));
+      geometry.setAttribute("treeStyle", new InstancedBufferAttribute(new Float32Array(maxPerKind * 3), 3));
       const crowns = new InstancedMesh(geometry, crownMaterial, maxPerKind);
       crowns.customDepthMaterial = depthMaterial;
       crowns.customDistanceMaterial = distanceMaterial;
-      return { seed, trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind), crowns };
+      return { seed, trunks: new InstancedMesh(trunkGeometry, trunkMaterial, maxPerKind), crowns, crownBounds: geometry.boundingBox!.clone() };
     });
     // Legacy material access targets variant zero; all variants share those materials.
     return { trunks: variants[0]!.trunks, crowns: variants[0]!.crowns, variants };
@@ -284,26 +330,25 @@ export function createFoliage(maxPerKind: number) {
   let quality: Quality = "High";
   let disposed = false;
   const transform = new Object3D();
-  // A crown-local shear grows from the leader's foot (-0.8 m), so its limbs
-  // reach inward while the lower leader remains joined to the upright trunk.
-  const reachingLimbs = new Matrix4().set(1, 0.3, 0, 0.24, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
   function update() {
     if (disposed) throw new Error("Foliage has been disposed");
     for (const mesh of meshes) mesh.count = 0;
+    for (const { variants } of Object.values(species)) for (const { crowns, crownBounds } of variants) {
+      crowns.geometry.boundingBox!.copy(crownBounds);
+    }
     const count = Math.round(trees.length * PRESETS[quality].density);
     // Stratified selection spans all tiles and species; total count is exact.
     for (let i = 0; i < count; i++) {
       const tree = trees[Math.floor((i + 0.5) * trees.length / count)]!;
       const { variants } = species[tree.kind];
-      const { seed, trunks, crowns } = variants[foliageVariantAt(tree.x, tree.z, variants.length)]!;
+      const { seed, trunks, crowns, crownBounds } = variants[foliageVariantAt(tree.x, tree.z, variants.length)]!;
       const index = trunks.count++;
       crowns.count++;
-      // Ordinary trees vary from 0.8 to 1.3; mature trail broadleaves reach 2.
+      // Ordinary trees vary from 0.8 to 1.3; trail crowns use 1.35–1.40.
       // Limit pine height to 14–18 m while
       // retaining its width variation and leaving every physics cylinder alone.
       const nominalHeight = pineHeight(seed);
-      // Uniformly grow mature trail trees, preserving round leaf masses instead
-      // of stretching only X/Z into the old flat umbrellas.
+      // Grow trail trees uniformly; the per-vertex reach leaves bark upright.
       const heightScale = tree.kind === "pine" ? Math.max(14, Math.min(18, nominalHeight * tree.scale)) / nominalHeight
         : tree.scale * (tree.trailCanopy ? 3 : 1);
       const anchorHeight = TRUNK_HEIGHT * heightScale;
@@ -319,32 +364,38 @@ export function createFoliage(maxPerKind: number) {
       trunks.setColorAt(index, new Color(barkValue, barkValue, barkValue));
       transform.position.set(tree.x - Math.sin(tree.lean) * anchorHeight, tree.y + Math.cos(tree.lean) * anchorHeight, tree.z);
       transform.scale.set(tree.scale, heightScale, tree.scale);
+      let reach = 0;
       if (tree.trailCanopy && tree.kind === "broadleaf") {
         const path = nearestPath(tree.x, tree.z);
         // Face the existing reaching limbs toward the trail.
         transform.rotateY(Math.atan2(tree.z - path.z, path.x - tree.x));
         transform.scale.setScalar(heightScale);
+        // Keep the leaf centre just on its own bank. Only leaves and connecting
+        // twigs move; sleeve/root weights are zero in every shape and pass.
+        reach = Math.max(0, path.distance - 0.6) / heightScale;
+        crowns.geometry.boundingBox!.max.x = Math.max(crowns.geometry.boundingBox!.max.x, crownBounds.max.x + reach);
       }
       transform.updateMatrix();
-      if (tree.trailCanopy && tree.kind === "broadleaf") transform.matrix.multiply(reachingLimbs);
       crowns.setMatrixAt(index, transform.matrix);
       const pigment = instanceLeafColor(tree.x, tree.z, isDeepCrown(tree.x, tree.z) ? deep : crownMaterial.color);
       // Instance colours multiply the shared ramp colour; compensate in linear RGB.
       pigment.setRGB(pigment.r / crownMaterial.color.r, pigment.g / crownMaterial.color.g, pigment.b / crownMaterial.color.b);
       crowns.setColorAt(index, pigment);
       const style = crowns.geometry.getAttribute("treeStyle");
-      style.setXY(index, tree.kind === "broadleaf" ? foliageVariantAt(tree.x, tree.z, BROADLEAF_VARIANT_SEEDS.length) : 0,
-        tree.kind === "broadleaf" && hasHangingFoliage(tree.x, tree.z) ? 1 : 0);
+      style.setXYZ(index, tree.kind === "broadleaf" ? foliageVariantAt(tree.x, tree.z, BROADLEAF_VARIANT_SEEDS.length) : 0,
+        tree.kind === "broadleaf" && hasHangingFoliage(tree.x, tree.z) ? 1 : 0, reach);
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       const style = mesh.geometry.getAttribute("treeStyle");
-      if (style) style.needsUpdate = true;
+      if (style) {
+        style.needsUpdate = true;
+        mesh.geometry.boundingBox!.getBoundingSphere(mesh.geometry.boundingSphere!);
+      }
       mesh.computeBoundingBox();
       mesh.computeBoundingSphere();
-      // Box-derived bounds remain conservative for inward-sheared crowns;
-      // max-column sphere scaling alone underestimates a shear's stretch.
+      // Include GPU canopy reach in culling and camera occlusion bounds.
       if (species.broadleaf.variants.some(variant => variant.crowns === mesh)) mesh.boundingBox!.getBoundingSphere(mesh.boundingSphere!);
       if (style) {
         // Conservative at rest too, so toggling motion cannot cause edge culling.
