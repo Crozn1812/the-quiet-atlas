@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-06 tối (đợt 27: duyệt bằng ảnh trong game, nước/biển/rừng sửa vòng 2, vào chơi 5,22 s).
+> Cập nhật lần cuối: 2026-11-07 (đợt 28: UX/UI hoàn thiện lượt 1; e2e 151/151, Lighthouse PASS).
 
 ## Milestone hiện tại
 
@@ -521,6 +521,12 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 | e2e | **151/151 PASS** |
 | perf: thời gian tới playable | **5,22 s** (mục tiêu 6 s) **PASS** |
 | perf: 3D bytes | **PASS**, 2,00 MB / 8 MB |
+
+### Đợt 28 (2026-11-07): UX/UI hoàn thiện lượt 1
+
+- B2-230 hệ UI trong world (menu, Sổ Atlas, "Đi tới…", focus yên tĩnh); B2-232 overlay tạp chí; B2-231 Welcome trên nền render hoàng hôn ven biển (thẻ giữ góc dưới trái theo ADR 0009); B2-233 Quick Portfolio kiểu tạp chí.
+- Lead: sửa tiêu đề overlay lặp, nút đóng; cắt ảnh mobile; bỏ email trùng ở đầu Quick; cập nhật e2e cho radio chất lượng.
+- Gate: unit 1612 **PASS**, e2e 151/151 **PASS**, Lighthouse **PASS**, Welcome JS 135 KB. Showcase: `docs/showcase/28-ux/checklist.md`.
 
 ### Ticket tiếp theo
 
