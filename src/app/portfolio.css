@@ -70,33 +70,118 @@ nav[aria-label="Language"] ul {
   position: fixed;
   inset: 0;
 }
-.world-menu {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  display: flex;
-  justify-content: flex-end;
+.world-menu,
+.world-ui,
+.world-hud {
+  --world-paper: #EEE8D8;
+  --world-ink: #2B2A26;
+  --world-dusk: color-mix(in srgb, #E2B65C 40%, #2B2A26);
+  --world-rule: #2b2a2633;
 }
-.world-menu dialog {
-  width: min(28rem, calc(100vw - 4rem));
-  max-height: calc(100vh - 4rem);
-  overflow: auto;
-  padding: 1.5rem;
-  color: inherit;
-  background: #f7f3e8;
-  border: 1px solid #88968b;
+.world-menu dialog,
+.world-ui {
+  box-sizing: border-box;
+  inline-size: min(34rem, calc(100% - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  margin: auto;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  overflow-y: auto;
+  color: var(--world-ink);
+  background: radial-gradient(#2b2a2609 .5px, transparent .8px) 0 0 / 4px 5px, var(--world-paper);
+  border: 1px solid var(--world-rule);
+  border-radius: 2px 5px 3px 1px;
+  box-shadow: 0 1rem 4rem #2b2a262e;
+  font-family: "Noto Serif", Georgia, serif;
+  line-height: 1.6;
 }
-.world-menu dialog::backdrop {
-  background: rgb(0 0 0 / 55%);
-}
-.world-menu dialog > * {
-  display: block;
-  margin-block: 1rem;
-}
-.world-menu select {
-  display: block;
+.world-menu dialog::backdrop,
+.world-ui::backdrop { background: #2b2a2666; }
+.world-menu h2 { margin: 0 0 1.5rem; font-size: clamp(1.5rem, 5vw, 2rem); }
+.world-menu h2:focus,
+.world-ui h2:focus { outline: none; }
+.world-menu-group,
+.world-menu-footer { border-block-start: 1px solid var(--world-rule); padding-block: 1rem; }
+.world-menu h3,
+.world-menu legend { font-size: .75rem; font-weight: 400; letter-spacing: .12em; }
+.world-menu h3 { margin: 0 0 .5rem; text-transform: uppercase; }
+.world-menu button,
+.world-menu a,
+.world-menu summary,
+.world-ui button,
+.world-hud button,
+.world-hud a {
+  min-block-size: 44px;
+  box-sizing: border-box;
+  padding: .5rem .25rem;
+  border: 0;
+  background: transparent;
+  color: var(--world-ink);
   font: inherit;
-  margin-top: .5rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-underline-offset: .35em;
+  text-decoration-thickness: 1px;
+}
+.world-menu button,
+.world-menu a,
+.world-menu summary,
+.world-ui-close,
+.world-hud button,
+.world-hud a { font-size: .75rem; letter-spacing: .09em; text-transform: uppercase; }
+.world-menu-group > button,
+.world-menu-footer > button,
+.world-menu-footer > a { display: flex; align-items: center; width: fit-content; text-align: start; }
+.world-menu :is(button, a, summary):hover,
+.world-ui button:enabled:hover,
+.world-hud :is(button, a):hover { text-decoration: underline; }
+.world-menu :is(button, a, summary):focus-visible,
+.world-ui button:focus-visible,
+.world-hud :is(button, a):focus-visible {
+  outline: 1px solid var(--world-dusk);
+  outline-offset: 3px;
+  text-decoration: underline;
+}
+.world-menu button[aria-pressed]::before {
+  content: "";
+  inline-size: .4rem;
+  block-size: .4rem;
+  flex: 0 0 .4rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  margin-inline-end: .65rem;
+}
+.world-menu button[aria-pressed="true"]::before { background: currentColor; }
+.world-menu button:disabled,
+.world-hud button:disabled { color: var(--world-dusk); cursor: default; }
+.world-menu-choices { border: 0; padding: 0; margin: .75rem 0; min-inline-size: 0; }
+.world-menu-choices legend { padding: 0; margin-block-end: .25rem; }
+.world-menu-choices label,
+.world-menu-choices button { display: inline-flex; align-items: center; min-block-size: 44px; margin-inline-end: .75rem; }
+.world-menu-choices label { position: relative; cursor: pointer; font-size: .75rem; letter-spacing: .08em; }
+.world-menu-choices input { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; }
+.world-menu-choices label span { padding: .5rem .25rem; text-underline-offset: .35em; }
+.world-menu-choices input:checked + span,
+.world-menu-choices label:hover span { text-decoration: underline; }
+.world-menu-choices input:focus-visible + span { outline: 1px solid var(--world-dusk); outline-offset: 3px; }
+.world-menu details { margin-block-end: 1rem; }
+.world-menu details p { margin: .5rem 0; font-size: .8rem; }
+/* Discrete transitions keep a closing modal in the top layer for its fade. */
+.world-menu dialog,
+.world-menu dialog::backdrop {
+  opacity: 0;
+  transition: opacity 180ms ease, display 180ms allow-discrete, overlay 180ms allow-discrete;
+}
+.world-menu dialog[open],
+.world-menu dialog[open]::backdrop { opacity: 1; }
+.world-menu[data-reduced-motion="true"] dialog,
+.world-menu[data-reduced-motion="true"] dialog::backdrop { transition: none; }
+@starting-style {
+  .world-menu dialog[open],
+  .world-menu dialog[open]::backdrop { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-menu dialog,
+  .world-menu dialog::backdrop { transition: none; }
 }
 
 .skip-link {

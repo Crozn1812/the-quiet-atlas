@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { JournalEntry } from "@/features/journal/model";
+import { zoneNumerals, zoneTopic } from "./zonePresentation";
 import styles from "./atlas-journal.module.css";
 
 export interface AtlasJournalProps {
@@ -72,22 +73,25 @@ export function AtlasJournal({ entries, blankPages, title, locale, onOpenZone, o
   }, [close]);
 
   return (
-    <dialog ref={dialogRef} className={styles.journal} role="dialog" aria-modal="true"
+    <dialog ref={dialogRef} className={`world-ui ${styles.journal}`} role="dialog" aria-modal="true"
       aria-labelledby={titleId} lang={locale} data-closing={closing}
       onCancel={event => { event.preventDefault(); close(); }}>
       <header className={styles.header}>
         <h2 ref={titleRef} id={titleId} tabIndex={-1} className={styles.title}>{title}</h2>
-        <button type="button" className={styles.close} onClick={close}>
+        <button type="button" className={`world-ui-close ${styles.close}`} onClick={close}>
           {locale === "vi" ? "Đóng" : "Close"}
         </button>
       </header>
       <ol className={styles.entries}>
-        {entries.map(entry => (
+        {entries.map((entry, index) => (
           <li key={entry.zoneId}>
             <button type="button" className={styles.entry}
               aria-label={entry.stamped ? `${entry.title}, ${visited}` : entry.title}
               onClick={() => { if (!closingRef.current) onOpenZone(entry.zoneId); }}>
-              <span>{entry.title}</span>
+              <span className={styles.numeral} aria-hidden="true">{zoneNumerals[index]}</span>
+              <span className={styles.entryCopy}><span>{entry.title}</span>
+                <span className={styles.topic} aria-hidden="true">{zoneTopic(entry.zoneId, locale)}</span>
+              </span>
               {entry.stamped && (
                 <svg className={styles.stamp} viewBox="0 0 40 40" width="32" height="32"
                   aria-hidden="true" focusable="false" fill="none" stroke="#B5432F" strokeLinecap="round">

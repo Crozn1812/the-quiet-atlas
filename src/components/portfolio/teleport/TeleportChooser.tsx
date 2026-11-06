@@ -4,6 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import { initialJournal, journalEntries } from "@/features/journal/model";
 import type { ZoneId } from "@/features/interaction/targets";
 import { trapFocus } from "../worldMenuControls";
+import { zoneNumerals, zoneTopic } from "../journal/zonePresentation";
 import styles from "./teleport.module.css";
 
 const zones = journalEntries(initialJournal(), "en");
@@ -53,19 +54,23 @@ export function TeleportChooser({ from, locale, container, onChoose, onClose }: 
   }, [onClose]);
 
   return (
-    <dialog ref={dialogRef} className={styles.chooser} role="dialog" aria-modal="true"
+    <dialog ref={dialogRef} className={`world-ui ${styles.chooser}`} role="dialog" aria-modal="true"
       aria-labelledby={titleId} lang={locale}
       onCancel={event => { event.preventDefault(); onClose(); }}>
       <header className={styles.header}>
         <h2 id={titleId} className={styles.title}>{locale === "vi" ? "Đi tới…" : "Travel to…"}</h2>
-        <button type="button" className={styles.close} onClick={onClose}>{locale === "vi" ? "Đóng" : "Close"}</button>
+        <button type="button" className={`world-ui-close ${styles.close}`} onClick={onClose}>{locale === "vi" ? "Đóng" : "Close"}</button>
       </header>
       <ol className={styles.zones}>
-        {zones.map(zone => (
+        {zones.map((zone, index) => (
           <li key={zone.zoneId}>
             <button type="button" className={styles.zone} data-zone={zone.zoneId}
+              aria-label={zone.title + (zone.zoneId === from ? (locale === "vi" ? " (đang ở đây)" : " (you are here)") : "")}
               disabled={zone.zoneId === from} onClick={() => onChoose(zone.zoneId)}>
-              {zone.title}{zone.zoneId === from && (locale === "vi" ? " (đang ở đây)" : " (you are here)")}
+              <span className={styles.numeral} aria-hidden="true">{zoneNumerals[index]}</span>
+              <span className={styles.entryCopy}><span>{zone.title}{zone.zoneId === from && (
+                <span className={styles.current}>{locale === "vi" ? " (đang ở đây)" : " (you are here)"}</span>
+              )}</span><span className={styles.topic} aria-hidden="true">{zoneTopic(zone.zoneId, locale)}</span></span>
             </button>
           </li>
         ))}

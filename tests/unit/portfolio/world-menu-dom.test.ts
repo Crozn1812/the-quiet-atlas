@@ -77,9 +77,12 @@ function installSound(enabled = false) {
 it.each(["en", "vi"])("renders all eleven menu items in the specified order in %s", async locale => {
   installSound();
   await mount(locale);
-  const items = menu().children.slice(1);
+  const groups = menu().children.slice(1);
+  expect(groups.map(node => node.tagName)).toEqual(["DIV", "DIV", "DIV"]);
+  expect(groups.slice(0, 2).map(node => node.querySelector("h3")!.textContent)).toEqual(locale === "vi" ? ["Hành trình", "Cài đặt"] : ["Journey", "Settings"]);
+  const items = groups.flatMap(node => node.children.filter(child => child.tagName !== "H3"));
   expect(items.map(node => node.tagName)).toEqual([
-    "BUTTON", "BUTTON", "LABEL", "BUTTON", "BUTTON", "BUTTON", "FIELDSET", "DETAILS", "A", "BUTTON", "BUTTON",
+    "BUTTON", "BUTTON", "FIELDSET", "BUTTON", "BUTTON", "BUTTON", "FIELDSET", "DETAILS", "A", "BUTTON", "BUTTON",
   ]);
   const labels = items.map(node => {
     if (node.tagName === "LABEL") return node.querySelector("span")!.textContent;
@@ -219,7 +222,7 @@ it("traps Tab and Shift+Tab with the new controls and restores focus on Escape",
   expect(dom.document.activeElement).toBe(last);
   expect(tab().defaultPrevented).toBe(true);
   expect(dom.document.activeElement).toBe(first);
-  dialog.querySelector("select")!.focus();
+  dialog.querySelectorAll("input")[1]!.focus();
   expect(tab().defaultPrevented).toBe(false);
   expect(tab(true).defaultPrevented).toBe(false);
   button("Reduced motion: Off").focus();
@@ -231,4 +234,26 @@ it("traps Tab and Shift+Tab with the new controls and restores focus on Escape",
   expect(dialog.open).toBe(false);
   expect(dom.document.activeElement).toBe(dom.trigger);
   expect(pauses.mock.calls.map(([event]) => event.detail.paused)).toEqual([true, false]);
+});
+
+it("synchronizes quality radios and dispatches the chosen quality without remounting", async () => {
+  dom.container.setAttribute("data-world-quality", "high");
+  const received: string[] = [];
+  dom.container.addEventListener("tqa:set-quality", event => received.push((event as CustomEvent).detail.quality));
+  await mount();
+  await click(dom.trigger);
+  const radios = menu().querySelectorAll("input") as (TestElement & { checked: boolean; value: string; type: string; name: string })[];
+  expect(radios.map(radio => [radio.type, radio.name, radio.value, radio.checked])).toEqual([
+    ["radio", "world-menu-quality", "low", false],
+    ["radio", "world-menu-quality", "balanced", false],
+    ["radio", "world-menu-quality", "high", true],
+  ]);
+  radios[0]!.checked = true;
+  radios[0]!.dispatchEvent(new Event("change"));
+  expect(received).toEqual(["low"]);
+  dom.container.setAttribute("data-world-quality", "balanced");
+  dom.container.dispatchEvent(new Event("tqa:world-state"));
+  expect(radios.map(radio => radio.checked)).toEqual([false, true, false]);
+  await click(button("Tiếng Việt"));
+  expect(radios.map(radio => radio.parentElement!.textContent)).toEqual(["Thấp", "Cân bằng", "Cao"]);
 });

@@ -4,7 +4,6 @@ import { replaceWorldLocale, type WorldLocale } from "./worldLocale";
 import { mountWorldContent } from "./WorldContent";
 import { worldMenuMessages } from "@/i18n/world-menu";
 import { escapeAction, pauseWorld, returnToPath, setWorldMotion, setWorldQuality, trapFocus } from "./worldMenuControls";
-import type { Quality } from "./worldMenuControls";
 import { journalTitle } from "@/features/journal/model";
 import { mountWorldJournal } from "./journal/WorldJournal";
 import { mountWorldTeleport } from "./teleport/WorldTeleport";
@@ -38,6 +37,17 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     opener.focus();
   }
 
+  function group(label: () => string) {
+    const section = document.createElement("div");
+    section.className = "world-menu-group";
+    const heading = document.createElement("h3");
+    translations.push(() => { heading.textContent = label(); });
+    section.append(heading);
+    dialog.append(section);
+    return section;
+  }
+  let destination = group(() => language === "vi" ? "Hành trình" : "Journey");
+
   function button(label: () => string, action: () => void) {
     const element = document.createElement("button");
     element.type = "button";
@@ -45,7 +55,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
       element.textContent = label();
     });
     element.addEventListener("click", action);
-    dialog.append(element);
+    destination.append(element);
     return element;
   }
 
@@ -57,32 +67,35 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     returnToPath(container);
     close();
   });
-  const label = document.createElement("label");
-  // Keep the existing paper/ink styling; whitespace separates the menu groups.
-  label.style.marginBlockStart = "2rem";
-  const qualityText = document.createElement("span");
-  translations.push(() => {
-    qualityText.textContent = copy.quality;
-  });
-  label.append(qualityText);
-  const select = document.createElement("select");
+  destination = group(() => language === "vi" ? "Cài đặt" : "Settings");
+  const qualities = document.createElement("fieldset");
+  qualities.className = "world-menu-choices";
+  const qualityText = document.createElement("legend");
+  translations.push(() => { qualityText.textContent = copy.quality; });
+  qualities.append(qualityText);
+  const radios: HTMLInputElement[] = [];
   for (const quality of ["low", "balanced", "high"] as const) {
-    const option = document.createElement("option");
-    option.value = quality;
-    translations.push(() => {
-      option.textContent = copy[quality];
+    const label = document.createElement("label");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "world-menu-quality";
+    radio.value = quality;
+    const text = document.createElement("span");
+    translations.push(() => { text.textContent = copy[quality]; });
+    radio.addEventListener("change", () => {
+      if (radio.checked) setWorldQuality(container, quality);
     });
-    select.append(option);
+    radios.push(radio);
+    label.append(radio, text);
+    qualities.append(label);
   }
-  label.append(select);
-  dialog.append(label);
+  destination.append(qualities);
   function syncQuality() {
-    const quality = container.getAttribute("data-world-quality");
-    select.value = quality === "low" || quality === "high" ? quality : "balanced";
+    const value = container.getAttribute("data-world-quality");
+    const quality = value === "low" || value === "high" ? value : "balanced";
+    for (const radio of radios) radio.checked = radio.value === quality;
   }
-  select.addEventListener("change", () => {
-    setWorldQuality(container, select.value as Quality);
-  });
+  syncQuality();
   container.addEventListener("tqa:world-state", syncQuality);
 
   const soundButton = container.parentElement?.querySelector<HTMLButtonElement>('button[aria-describedby="sound-reason"]');
@@ -111,6 +124,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     setWorldMotion(container, reducedMotion);
   });
   function syncMotion() {
+    host.setAttribute("data-reduced-motion", String(reducedMotion));
     motionToggle.textContent = motionLabel();
     motionToggle.setAttribute("aria-pressed", String(reducedMotion));
   }
@@ -161,10 +175,13 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     });
     languages.append(choice);
   }
-  dialog.append(languages);
+  languages.className = "world-menu-choices";
+  destination.append(languages);
 
   const keys = document.createElement("details");
-  keys.style.marginBlockStart = "2rem";
+  destination = document.createElement("div");
+  destination.className = "world-menu-footer";
+  dialog.append(destination);
   const summary = document.createElement("summary");
   translations.push(() => {
     summary.textContent = copy.keys;
@@ -177,15 +194,14 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
     });
     keys.append(line);
   }
-  dialog.append(keys);
+  destination.append(keys);
   const quick = document.createElement("a");
   translations.push(() => {
     quick.href = `/${language}/quick/`;
     quick.textContent = copy.quick;
   });
-  dialog.append(quick);
-  const leave = button(() => copy.leave, leaveWorld);
-  leave.style.marginBlockStart = "2rem";
+  destination.append(quick);
+  button(() => copy.leave, leaveWorld);
   button(() => `× ${copy.close}`, close);
   for (const translate of translations) translate();
 
@@ -206,8 +222,9 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   });
   dialog.addEventListener("keydown", (event) => {
     if (event.key !== "Tab") return;
-    const items = Array.from(dialog.querySelectorAll<HTMLElement>("button:not(:disabled), select:not(:disabled), a[href], summary"));
-    const next = trapFocus(items, document.activeElement as HTMLElement | null, event.shiftKey);
+    const items = Array.from(dialog.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), a[href], summary"));
+    const tabbable = items.filter(item => item.tagName !== "INPUT" || (item as HTMLInputElement).checked);
+    const next = trapFocus(tabbable, document.activeElement as HTMLElement | null, event.shiftKey);
     if (!next) return;
     event.preventDefault();
     next.focus();

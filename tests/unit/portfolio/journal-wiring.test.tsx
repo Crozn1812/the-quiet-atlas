@@ -40,7 +40,7 @@ describe("world journal session", () => {
   async function click(button: TestElement) { await act(async () => { button.click(); }); }
   function journal() { return dom.document.querySelector("dialog[open]"); }
   function button(label: string) {
-    const found = dom.shell.querySelectorAll("button").find(node => node.textContent === label);
+    const found = dom.shell.querySelectorAll("button").find(node => (node.getAttribute("aria-label")?.split(",")[0] ?? node.textContent) === label);
     expect(found, label).toBeDefined();
     return found!;
   }
