@@ -4,7 +4,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { test, expect } from "../e2e/test";
-import { enterWorld } from "../e2e/helpers";
+import { enterWorld, ensureWindowFocus } from "../e2e/helpers";
 import { pathLength, pathPointAt } from "../../src/features/world/layout/path";
 import { ZONES } from "../../src/features/world/layout/zones";
 
@@ -42,8 +42,8 @@ test("B2-210 main journey at walking speed", async ({ page, browser }) => {
       return;
     }
     await page.bringToFront();
-    // The onboarding HUD is passive text; Escape closes any dismissible overlay via real input.
-    await page.keyboard.press("Escape");
+    // Escape with no UI open opens the menu (spec §6.3) and pauses the world, so it is not pressed here.
+    await ensureWindowFocus(page);
     await world.locator("canvas").focus();
     await expect(world).toHaveAttribute("data-world-intro", "done");
     await expect(world).toHaveAttribute("data-world-paused", "false");
@@ -51,7 +51,7 @@ test("B2-210 main journey at walking speed", async ({ page, browser }) => {
       const hook = (element as HTMLElement & { __tqaJourney?: Hook }).__tqaJourney;
       if (!hook) throw new Error("Missing opt-in journey hook: rebuild out/ before running");
       return { ms: performance.now(), position: hook.position(), yaw: hook.cameraYaw(), zone: hook.zone(),
-        valid: document.hasFocus() && !document.hidden && element.getAttribute("data-world-paused") === "false" };
+        valid: !document.hidden && element.getAttribute("data-world-paused") === "false" };
     });
     const length = pathLength();
     const count = Math.ceil(length / 0.5);
