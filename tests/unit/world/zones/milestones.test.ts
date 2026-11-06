@@ -157,12 +157,16 @@ describe("The Milestones hillside", () => {
       }
     }
     expect(triangles).toBeLessThanOrEqual(1466 * 1.5);
+    // B2-191b replaces the thin pine with needle masses; compare each seed
+    // against its pre-ticket 108 + 48/tier crown, keeping the zone increase <=25%.
+    const before = 1074 + 108 + 48 * (5 + (seed >>> 0) % 4);
+    expect(triangles).toBeLessThanOrEqual(before * 1.25);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     expect(drawCalls).toBe(5);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
-    // Removing the 432-triangle mound keeps the kit slabs and V2 pine under the previous budget.
-    if (seed === 104) expect(triangles).toBe(1422);
-    if (seed === 104) console.info(`milestones: ${triangles} triangles, ${drawCalls} draw calls`);
+    // B2-191b: seed 104's pine grows from 348 to 552 triangles (+204).
+    if (seed === 104) expect(triangles).toBe(1626);
+    if (seed === 104) console.info(`B2-191b Milestones: ${before} -> ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
   it("repeats all geometry, materials, colliders and target for the same seed", () => {

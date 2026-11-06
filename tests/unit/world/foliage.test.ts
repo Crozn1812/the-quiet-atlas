@@ -300,7 +300,9 @@ describe("procedural foliage variants", () => {
       expect(afterDraws).toBe(beforeDraws);
       expect(after).toBeLessThanOrEqual(before * 1.25);
       expect(forests.flat().length).toBeGreaterThan(1000);
-      process.stdout.write(`B2-194 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=467/tree, pine<=486/tree (includes rooted wood and unchanged 42-triangle trunk)\n`);
+      // B2-191b replaces tiny blades with closed, notched needle masses and
+      // visible tubes: 552 crown + the unchanged 42-triangle trunk. Keep B2-194's baseline/cap.
+      process.stdout.write(`B2-194 240 m / High: trees=${forests.flat().length}; triangles=${before} -> ${after}; active mesh draws=${beforeDraws} -> ${afterDraws}; broadleaf=467/tree, pine=594/tree (includes rooted wood and unchanged 42-triangle trunk)\n`);
     } finally { foliage.dispose(); }
   });
 

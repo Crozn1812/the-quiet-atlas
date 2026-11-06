@@ -83,6 +83,10 @@ describe("First Light pine clearing", () => {
     const count = objects.reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
     expect(count).toBeGreaterThan(1000);
     expect(count).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+    // B2-191b: three fuller pines replace four thin crowns (5,200 triangles).
+    // Keep both the actual pre-ticket total and the older per-seed cap below.
+    expect(count).toBe(5176);
+    expect(count).toBeLessThanOrEqual(5200);
     expect(objects).toHaveLength(7);
     expect(count).toBeLessThanOrEqual(({ 0: 3569, 1: 3613, 2: 3657, 101: 3657, 4294967295: 3569 }[seed]!) * 1.5);
     expect(objects.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
@@ -125,7 +129,9 @@ describe("First Light pine clearing", () => {
       expect(scene.colliders[index + 2]!.center.x).toBeCloseTo(x! + rock[0] * scale!, 4);
       expect(scene.colliders[index + 2]!.center.z).toBeCloseTo(z! + rock[1] * scale!, 4);
     }
-    for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9], [12.5, -5.5]].entries()) {
+    // The fourth pine was removed for B2-191b's zone budget; retained boxes stay put.
+    expect(scene.colliders).toHaveLength(8);
+    for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9]].entries()) {
       expect(scene.colliders[index + 5]!.center.x).toBeCloseTo(x! + pines[index]![0], 4);
       expect(scene.colliders[index + 5]!.center.z).toBeCloseTo(z! + pines[index]![1], 4);
     }
@@ -316,7 +322,7 @@ describe("First Light pine clearing", () => {
     expect(paper.geometry.boundingBox!.min.y).toBeGreaterThan(1.5);
     expect(paper.geometry.boundingBox!.getSize(new Vector3()).length()).toBeLessThan(1);
     const total = meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
-    console.info(`First Light budget: 3657 -> ${total} triangles, 8 -> ${meshes(scene).length} draw calls`);
+    console.info(`B2-191b First Light budget: 5200 -> ${total} triangles, 7 -> ${meshes(scene).length} draw calls`);
   });
 
   it("keeps the small orange blooms and one larger cluster beside the log, omitting them when flooded", () => {
@@ -354,7 +360,6 @@ describe("First Light pine clearing", () => {
       [-10.557801, 8.5, 1.140655, 2.7, 17, 2.532003],
       [-11.776724, 7.5, 10.972408, 2.674772, 15, 2.7],
       [9.813375, 8, 9.071885, 2.689813, 16, 2.7],
-      [12.452393, 8.5, -5.504173, 2.684843, 17, 2.7],
     ];
     expect(scene.colliders).toHaveLength(expected.length);
     for (const [index, collider] of scene.colliders.entries()) {
@@ -465,8 +470,8 @@ describe("First Light pine clearing", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // B2-201: kit log, hewn mailbox, moss rocks and white flowers replace the placeholder props.
-    expect(fingerprint).toBe("a88663cf3a8fa89956dffa9e4e63e5edff63a9ef282adeefc24eafc165a50f90");
+    // B2-191b removes the fourth pine and its collider to preserve the old zone budget.
+    expect(fingerprint).toBe("c3476adb4a15cdd46d13121614f9229eae2394ff2ec11786a204f19927a96f0c");
   });
 
 });

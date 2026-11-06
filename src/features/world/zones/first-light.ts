@@ -381,7 +381,9 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     }
   }
 
-  for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9], [12.5, -5.5]].entries()) {
+  // B2-191b: three full needle-mass pines keep the clearing at 5,176 triangles,
+  // below its pre-change 5,200; the retained trees keep their anchors and seeds.
+  for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9]].entries()) {
     const seed = (context.seed + index) >>> 0;
     const box = pineCollisionBox(seed);
     place([kit(createPineCrownV2(seed).translate(0, 5, 0), "green", new Color(RAMP_PRESETS.crown))],

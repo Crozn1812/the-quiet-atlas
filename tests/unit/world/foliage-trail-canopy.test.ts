@@ -120,7 +120,7 @@ it("uses the same canopy reach in colour and shadow passes and resets bounds aft
   } finally { foliage.dispose(); }
 });
 
-it("reports the unchanged foliage geometry budget", () => {
+it("reports the foliage geometry budget after fuller pine needles", () => {
   const foliage = createFoliage(trees.length);
   try {
     const triangles = (variant: typeof foliage.species.broadleaf.variants[number]) =>
@@ -131,7 +131,10 @@ it("reports the unchanged foliage geometry budget", () => {
     }, 0);
     const sizes = Object.entries(foliage.species).map(([kind, species]) => `${kind}=${species.variants.map(triangles).join("/")}`);
     expect(trees.length).toBeLessThanOrEqual(1801);
-    expect(total).toBe(828599); // Rebased B2-194 pine V2 baseline, before this fix.
+    // B2-191b: 552-triangle needle-mass crowns replace B2-194's thin pines.
+    // Keep the pre-B2-194 corridor baseline and +25% ceiling used by foliage.test.ts.
+    expect(total).toBe(894407);
+    expect(total).toBeLessThanOrEqual(736223 * 1.25);
     expect(foliage.group.children).toHaveLength(10);
     process.stdout.write(`B2-196 240 m / High: trees=${trees.length}; triangles=${total}; ${sizes.join("; ")}; mesh slots=${foliage.group.children.length}\n`);
   } finally { foliage.dispose(); }

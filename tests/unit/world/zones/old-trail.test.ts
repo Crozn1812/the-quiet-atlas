@@ -82,6 +82,9 @@ describe("old-trail scene", () => {
     const triangles = all.reduce((total, mesh) => total + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = all.reduce((total, mesh) => total + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
     expect(triangles).toBeLessThanOrEqual(3108 * 1.5);
+    // B2-191b: fuller needles add 156 triangles to seed 105's 2,874-triangle zone.
+    expect(triangles).toBe(3030);
+    expect(triangles).toBeLessThanOrEqual(2874 * 1.25);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     expect(drawCalls).toBe(7);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
@@ -93,7 +96,7 @@ describe("old-trail scene", () => {
     // Every material batch is already below the per-cluster cap, including all
     // ten markers together; no smaller prop cluster can exceed that upper bound.
     all.forEach(mesh => expect(mesh.geometry.getAttribute("position").count / 3).toBeLessThanOrEqual(2000));
-    console.info(`Old Trail budget: 3108 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
+    console.info(`B2-191b Old Trail budget: 2874 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
   });
 
   it("keeps all ten markers plain and capped, and enlarges the broken gate uniformly by 1.5", () => {
@@ -439,9 +442,9 @@ describe("old-trail scene", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // B2-205 replaces local timber and the old pine with shared kits, sinks feet,
-    // and adds repair chocks/path stones. The original geometry hash must change.
-    expect(fingerprint).toBe("90c2a2da9442d3aefed35da3bf0e8859e8ad60d472762791fd7bc136e08b2d2a");
+    // B2-191b changes the shared pine's needle masses and bark geometry;
+    // retain the fingerprint over all hard props, colliders and the interaction.
+    expect(fingerprint).toBe("1e271c5f7e46cf87887432518e6985a2a3383e590c51a944358bd2ce2bb27c42");
   });
 
 });
