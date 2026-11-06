@@ -18,6 +18,8 @@ try {
   const { createBridgeProfiles, BRIDGE_RAIL_HEIGHT } = await load("world/bridges/profile");
   const { placeZoneScenes } = await load("world/zones/index");
   const { SEA_SIZE, SEA_INLAND_OVERLAP } = await load("world/water/sea");
+  const { createWaymarkLayout } = await load("world/waymarks");
+  const waymarks = createWaymarkLayout();
   const length = pathLength(), bridges = createBridgeProfiles(), tiles = new Map();
   const surface = (p, t) => {
     const bridge = bridges.find(b => t >= b.tStart && t <= b.tEnd);
@@ -26,6 +28,7 @@ try {
   const groundTarget = (p, height) => new Vector3(p.x, worldHeight(p.x, p.z) + height, p.z);
   const landmarks = SIGNPOSTS.map(p => ({ p: groundTarget(p.position, 1.33),
     t: ZONES.find(z => z.id === p.zoneId).t, kind: "sign" }));
+  for (const mark of waymarks) landmarks.push({ p: groundTarget(mark, mark.height), t: mark.t, kind: "waymark" });
   for (const b of bridges) landmarks.push({ p: b.sample(b.source.t).centre.clone().add(new Vector3(0, BRIDGE_RAIL_HEIGHT, 0)), t: b.source.t, kind: "bridge" });
   const horizon = placeZoneScenes(worldHeight, ["horizon"])[0];
   for (let i = 0; i < 2; i++) {
@@ -70,6 +73,12 @@ try {
     }
     return true;
   }
+  const links = waymarks.slice(1).filter((mark) => mark.segment === waymarks[waymarks.indexOf(mark) - 1].segment).map(mark => {
+    const previous = waymarks[waymarks.indexOf(mark) - 1];
+    return { from: previous.t, to: mark.t, visible: visible(groundTarget(previous, 1.7), groundTarget(mark, mark.height)) };
+  });
+  console.log("Waymark links (observer eye 1.7 m at previous mark):"); console.table(links);
+  if (links.some(link => !link.visible)) process.exitCode = 1;
   const mouth = riverPointAt(1);
   const samples = Array.from({ length: Math.ceil(length / 5) + 1 }, (_, i) => {
     const s = Math.min(i * 5, length), t = s / length, p = pathPointAt(t);
@@ -101,7 +110,9 @@ try {
     });
     return result;
   }
-  const blind = runs(samples, r => r.blind).filter(([a, b]) => b.s - a.s > 60);
+  const allBlind = runs(samples, r => r.blind);
+  console.log(`Longest blind span: ${Math.max(0, ...allBlind.map(([a, b]) => b.s - a.s)).toFixed(2)} m`);
+  const blind = allBlind.filter(([a, b]) => b.s - a.s > 60);
   console.log(`Route ${length.toFixed(2)} m; ${samples.length} probes; eye 1.7 m; range 80 m; step 5 m.`);
   console.log("Blind spans >60 m (length between first/last blind probes; boundary uncertainty <=5 m per end):");
   console.table(blind.map(([a, b]) => ({ severity: b.s - a.s > 120 ? "FAIL" : "WARN", metres: +(b.s - a.s).toFixed(2),
@@ -119,7 +130,7 @@ try {
       minMetres: +Math.min(...rows.filter(r => r.s >= a.s && r.s <= b.s).map(r => r.distance)).toFixed(2) })));
   }
   console.log("Limits: terrain march 0.25 m; point landmarks; no crowns, props, fog, screen size or player recognition. Final endpoint is sampled but has no forward destination. Human playtest required.");
-  if (blind.some(([a, b]) => b.s - a.s > 120)) process.exitCode = 1;
+  if (blind.some(([a, b]) => b.s - a.s > 60)) process.exitCode = 1;
 } finally {
   await server.close();
 }

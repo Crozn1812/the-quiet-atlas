@@ -3,6 +3,7 @@
 // raycast fallback treat them the same way.
 import { BoxGeometry, BufferAttribute, BufferGeometry, Color, Group, InstancedMesh, Mesh, MeshBasicMaterial, Object3D, Vector3, type MeshToonMaterial } from "three";
 import { createBridges, type BridgeCollider } from "./bridges";
+import { createWaymarks } from "./waymarks";
 import { createShore } from "./shore";
 import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS } from "./road/road";
 import { hex, PALETTE } from "./art/palette";
@@ -59,7 +60,10 @@ export function placeDressing({ deferred = false } = {}) {
   try {
     const bridges = createBridges();
     // Register ownership before building the next piece, including the exception path.
-    const bridgeModule = { group: bridges.group, colliders: [], trimeshes: bridges.colliders, dispose: () => bridges.dispose() };
+    const waymarks = createWaymarks();
+    bridges.group.add(waymarks.group);
+    const bridgeModule = { group: bridges.group, colliders: waymarks.colliders, trimeshes: bridges.colliders,
+      dispose: () => { waymarks.dispose(); bridges.dispose(); } };
     modules.push(bridgeModule);
     const shore = deferred ? deferredShore() : createShore();
     modules.unshift(shore);
