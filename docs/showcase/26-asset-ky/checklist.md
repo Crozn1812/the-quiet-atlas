@@ -40,27 +40,36 @@
   - Milestones dựng mất 1,47 s → 0,42 s.
 - **Cảnh chuẩn T10 (công đoạn 4):** có bộ chụp 12 ảnh và phiếu chấm (B2-209).
 
-## Lead biết còn thiếu (đã có ticket, giao Codex khi hồi lượt)
+## Vòng sửa thứ hai (2026-11-06 sáng): đã xong
 
-| Ticket | Việc |
-|---|---|
-| B2-181c | Suối ven biển còn là dải đen: phản chiếu trời đang bị nhân với ánh sáng chiếu xuống |
-| B2-188c | Mây giờ quá nhiều đám nhỏ đều nhau (như bỏng ngô); cần ít đám, to hơn, nhiều trời trống |
-| B2-195 | Suối ở đồi nằm trong rãnh sâu vách đứng; mặt đất trồi xuyên mặt đường nhựa ven biển (các mảng loang cạnh đường) |
-| B2-196 | Vài cây vòm lối rừng quá to, nghiêng, nhạt như cột sương |
-| B2-194 | Nối thông v2 (còn lệch toạ độ, tăng tam giác quá 25 %) |
-| B2-197 | Thời gian vào chơi 6,18 s (mục tiêu ≤ 6 s): dựng các khu xa sau khung hình đầu |
-| B2-204b | Milestones: tảng chính giống con ốc lục giác, gò đất là tấm xanh mép răng cưa |
-| B2-208b | Last Postcard: hai tảng đá giống lốp xe |
+| Ticket | Việc | Kết quả |
+|---|---|---|
+| B2-181c | Suối ven biển là dải đen | Phản chiếu trời chiều, không còn đen |
+| B2-188c | Mây như bỏng ngô | Ít đám, đám to, nhiều trời trống |
+| B2-195 | Rãnh suối ở đồi; đất trồi qua đường nhựa | Bờ thoải; hết mảng loang cạnh đường |
+| B2-196 | Cây vòm lối quá to, nghiêng | Thân đứng, cách lối |
+| B2-194, B2-191b | Thông v2 | Đã nối; tầng chùm kim đọc rõ (trước là que tăm) |
+| B2-197 | Thời gian vào chơi 6,18 s | 5,90 s (dựng 5 khu xa sau khung hình đầu) |
+| B2-204b, B2-208b | Đá Milestones như con ốc; đá Last Postcard như lốp xe | Phiến/tảng đá tự nhiên có mặt vỡ |
+| Lead | Vạch ngang như dây điện trên tán rừng (do kéo dãn cành của cây vòm) | Giới hạn độ vươn 3 m; hết vạch |
+
+## Còn lại
+
+- **B2-198:** tán cây vòm chưa khép trên tâm lối (cần cành lớn thật vươn ra lối). Codex hết lượt tới 13:28; giao lại khi hồi.
+
+## T10: phiếu chấm
+
+- 12 ảnh riêng: thư mục `t10/`. Phiếu chấm: `t10/phieu-cham-t10.md`.
+- Duy và **một người ngoài** chấm độc lập. Đạt khi ≥ 10/12 ảnh được cả hai chấm đạt.
 
 ## Số đo
 
 | Kiểm tra | Kết quả |
 |---|---|
-| Gate (lint 0 warning, typecheck, unit) | **PASS**, 1501/1501 |
-| e2e đầy đủ | **PASS**, 151/151 |
+| Gate (lint 0 warning, typecheck, unit) | **PASS**, 1543/1543 |
+| e2e đầy đủ | **PASS**, 151/151 (lần đầu 2 test intro timeout khi chạy song song; đã nâng timeout riêng spec đó, lần chạy lại 151/151) |
 | 3D bytes tới lúc chơi được | **PASS**, 1,99 MB / 8 MB |
-| Thời gian vào chơi (lần xấu nhất / 3) | **6,18 s**: trần spec 10 s **PASS**; mục tiêu nội bộ ≤ 6 s **chưa đạt** (B2-197) |
+| Thời gian vào chơi (lần xấu nhất / 3) | **5,90 s**: trần spec 10 s **PASS**; mục tiêu nội bộ ≤ 6 s **PASS** |
 | Nhân vật | 7 784 tam giác, 147 KB (trần 12 000 / 600 KB) **PASS** |
 | T10 (Duy + 1 người ngoài chấm ≥ 10/12) | **NOT RUN**: cần Duy và 1 người ngoài |
 | T08/T09 FPS trên laptop Iris Xe | **NOT RUN**: Duy đo trên laptop (ADR 0007) |

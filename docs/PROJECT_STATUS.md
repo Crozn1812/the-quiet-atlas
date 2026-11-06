@@ -461,10 +461,10 @@ Duy chọn hướng A (Q-44, ADR 0013 bổ sung) và yêu cầu rừng bình min
 
 | Kiểm tra | Kết quả |
 |---|---|
-| lint (0 warning), typecheck, unit 1501 | **PASS** |
+| lint (0 warning), typecheck, unit 1543 | **PASS** |
 | e2e | **151/151 PASS** |
 | perf: 3D tới playable | **PASS**, 1,99 MB / 8 MB |
-| perf: thời gian tới playable | **6,18 s / 10 s PASS**; mục tiêu nội bộ ≤ 6 s **chưa đạt** → B2-197 |
+| perf: thời gian tới playable | **5,90 s / 10 s PASS**; mục tiêu nội bộ ≤ 6 s **PASS** (B2-197) |
 | T10 | **NOT RUN**: bộ 12 ảnh sẵn trong showcase 26; cần Duy + 1 người ngoài chấm |
 | T08/T09 | **NOT RUN**: laptop Iris Xe của Duy (ADR 0007) |
 
@@ -477,7 +477,7 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 
 ### Ticket tiếp theo
 
-1. Giao Codex: B2-181c (suối ven biển đen), B2-188c (mây bớt dày), B2-195 (rãnh suối ở đồi và đất trồi qua đường nhựa), B2-196 (cây vòm lối), B2-194 (thông v2), B2-197 (dựng khu xa sau khung hình đầu), B2-204b, B2-208b.
+1. Vòng sửa thứ hai đã xong (B2-181c, 188c, 191b, 194, 195, 196, 197, 204b, 208b). Còn B2-198: cây vòm có cành lớn thật để tán khép trên lối.
 2. Duy + 1 người ngoài chấm T10 (12 ảnh, ≥ 10/12).
 3. B2-034: T08/T09 trên Iris Xe (Duy).
 
