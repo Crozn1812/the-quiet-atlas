@@ -528,6 +528,24 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 - Lead: sửa tiêu đề overlay lặp, nút đóng; cắt ảnh mobile; bỏ email trùng ở đầu Quick; cập nhật e2e cho radio chất lượng.
 - Gate: unit 1612 **PASS**, e2e 151/151 **PASS**, Lighthouse **PASS**, Welcome JS 135 KB. Showcase: `docs/showcase/28-ux/checklist.md`.
 
+### Đợt 29 (2026-11-07): cảnh mở đầu + cảnh kết theo hướng A
+
+- B2-234: cảnh mở đầu bỏ "giấy kem + dải suối" (di sản hướng C); bay bình minh từ ~115 m dọc suối chữ S, có trời/mây, thanh letterbox màu mực. Lead trả 2 vòng (test cũ; trời kem, lộ mép tile, khung 10 s).
+- B2-235: trời đúng từ khung đầu, lướt 36 m (không còn LOD thô); cảnh kết giữ hoàng hôn theo camera, khung bưu thiếp nhìn mặt trời thấp trên biển; thẻ thơ, gợi ý phím, dock HUD ẩn trong cinematic.
+- Lead: hook QA `__tqaJourney.visitSecret(id)` + `tools/review/ending-shots.mjs` (lần đầu chụp được trọn ending 36 s); e2e helper chấp nhận HUD ẩn khi intro chạy.
+- Còn lại nhỏ: mảng đất xanh đậm hình tam giác ở góc dưới khung ending 26–34 s; dải sương xanh nhạt ở chân trời intro.
+- Ảnh: `docs/showcase/28-ux/hien-trang/` (intro cũ, ending-sheet), `docs/showcase/28-ux/lead-review/b2-234-*`, `b2-235-*-sheet.webp`.
+
+| Kiểm tra (trên `c0c2ba0`) | Kết quả |
+|---|---|
+| lint, typecheck, unit 1623 | **PASS** |
+| e2e | **151/151 PASS** |
+| perf: thời gian tới playable | **5,18 s** (xấu nhất 3 lần; mục tiêu 6 s, spec 10 s) **PASS** |
+| perf: 3D bytes / Welcome JS | **PASS**, 1,86 MB / 8 MB; 137,5 KB / 150 KB |
+| Lighthouse (3 URL × 5) | **PASS** |
+| T10, playtest người thật | **DEFERRED** (chờ UX/UI ~90–100 %) |
+| T08/T09 Iris Xe | **NOT RUN** |
+
 ### Ticket tiếp theo
 
 1. Vòng sửa thứ hai đã xong (B2-181c, 188c, 191b, 194, 195, 196, 197, 204b, 208b). Còn B2-198: cây vòm có cành lớn thật để tán khép trên lối.
