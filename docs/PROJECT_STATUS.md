@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-06 chiều (đợt 27: hành trình đo thật PASS, hoàn thiện lượt 1–2, vào chơi 4,89 s).
+> Cập nhật lần cuối: 2026-11-06 tối (đợt 27: duyệt bằng ảnh trong game, nước/biển/rừng sửa vòng 2, vào chơi 5,22 s).
 
 ## Milestone hiện tại
 
@@ -502,6 +502,25 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 | hành trình 5–7 phút | **PASS**, 6:08 (desktop tham khảo) |
 | T10, playtest người thật | **DEFERRED** (chờ UX/UI ≈ 90–100 %) |
 | T08/T09 | **NOT RUN** (laptop Iris Xe) |
+
+### Đợt 27 tiếp (2026-11-06 tối): duyệt bằng ảnh trong game
+
+- Công cụ: hook QA `goTo(zone)` + `tools/review/ingame-shots.mjs` (B2-226). Lead duyệt bằng ảnh **trong game thật** ở 8 khu (`docs/showcase/27-hoan-thien-1/ingame/`), không chỉ ảnh tour.
+- Đã merge:
+  - lớp phủ dày quanh spawn (B2-223) + lớp phủ mềm được mọc trên nền khu (B2-225);
+  - nền rừng sáng hơn, đốm nắng (B2-224);
+  - First Light trong khung nhìn đầu (B2-222), Milestones thấy từ điểm đến (B2-228);
+  - suối rừng có màu nước (B2-221);
+  - gợn nước không hoa văn lặp (B2-219b → 219c sau 2 vòng);
+  - biển hoàng hôn xanh tím, hết nan quạt (B2-229 → 229b).
+- Tín hiệu `data-world-build`; timeout e2e 90 s; vài spec ổn định hơn dưới tải.
+
+| Kiểm tra (trên `d7a6f66`) | Kết quả |
+|---|---|
+| lint, typecheck, unit 1605 | **PASS** |
+| e2e | **151/151 PASS** |
+| perf: thời gian tới playable | **5,22 s** (mục tiêu 6 s) **PASS** |
+| perf: 3D bytes | **PASS**, 2,00 MB / 8 MB |
 
 ### Ticket tiếp theo
 
