@@ -234,11 +234,21 @@ nav[aria-label="Language"] ul {
   inset: 0;
 }
 .forest-backdrop {
-  background: radial-gradient(ellipse at 60% 35%, #ffe1a1, transparent 45%), linear-gradient(#90b4aa, #e8d7ab 60%, #476555);
+  background: #EEE8D8;
+  pointer-events: none;
 }
-.forest-backdrop svg {
+.forest-backdrop picture,
+.forest-backdrop img {
+  display: block;
   width: 100%;
   height: 100%;
+}
+.forest-backdrop img { object-fit: cover; }
+.forest-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #eee8d866, #eee8d81a 45%, #2b2a261a);
 }
 .world-viewport {
   z-index: 1;
@@ -264,19 +274,123 @@ nav[aria-label="Language"] ul {
   border-radius: .75rem;
 }
 .welcome-card {
-  padding: clamp(1rem, 2vw, 1.5rem);
-  border-bottom: 0;
-  border-radius: .75rem .75rem 0 0;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  color: var(--welcome-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+/* Keep Welcome layout separate from the compact in-world HUD (B2-230). */
+.corner-panel:has(.welcome-card:not([hidden])) {
+  --welcome-paper: #EEE8D8;
+  --welcome-ink: #2B2A26;
+  --welcome-rule: #2b2a2633;
+  --welcome-dusk: color-mix(in srgb, #E2B65C 40%, #2B2A26);
+  top: 0;
+  bottom: 0;
+  left: max(clamp(1.5rem, 4vw, 4rem), env(safe-area-inset-left));
+  width: min(34rem, calc(100% - 3rem));
+  height: fit-content;
+  max-height: calc(100dvh - 3rem);
+  margin-block: auto;
+  background: var(--welcome-paper);
+  color: var(--welcome-ink);
+  border: 1px solid var(--welcome-rule);
+  box-shadow: 0 1rem 4rem #2b2a262e;
+  scrollbar-gutter: stable;
+}
+.welcome-card nav { gap: .5rem 1.25rem; }
+.welcome-card nav[aria-label="Language"] {
+  margin-block: 1.25rem .75rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--welcome-rule);
+}
+.welcome-card nav a,
+.welcome-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-block-size: 44px;
+  padding: .5rem .25rem;
+  color: var(--welcome-ink);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: .75rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-underline-offset: .35em;
+  text-decoration-thickness: 1px;
+}
+.welcome-card button { cursor: pointer; }
+.welcome-card nav[aria-label="World"] > :is(button, a) {
+  padding: .85rem 1.5rem;
+  background: var(--welcome-paper);
+  border: 1px solid var(--welcome-ink);
+  letter-spacing: .14em;
+}
+.welcome-card button:disabled {
+  color: var(--welcome-dusk);
+  cursor: default;
+}
+.welcome-card :is(button:enabled, a):hover { text-decoration: underline; }
+.welcome-card :is(button, a):focus-visible {
+  outline: 1px solid var(--welcome-dusk);
+  outline-offset: 3px;
+  text-decoration: underline;
+}
+.welcome-card #world-reason { font-size: .8rem; margin-block-start: 1rem; }
+.corner-panel:has(.welcome-card:not([hidden])) > .world-hud[data-compact="false"] {
+  margin-inline: clamp(1.5rem, 3vw, 2.5rem);
+  padding: .75rem 0 1.25rem;
+  gap: .25rem 1rem;
+  color: var(--welcome-ink);
+  background: transparent;
+  border: 0;
+  border-block-start: 1px solid var(--welcome-rule);
+  border-radius: 0;
+}
+.world-hud[data-compact="false"] :is(a, button) {
+  min-block-size: 44px;
+}
+@media (max-width: 900px) {
+  .forest-backdrop img { object-position: 65% center; }
+  .forest-backdrop::after {
+    background: linear-gradient(0deg, #eee8d866, #eee8d81a 65%, #2b2a261a);
+  }
+  .corner-panel:has(.welcome-card:not([hidden])) {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 100dvh;
+    margin: 0;
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+    padding-block-end: env(safe-area-inset-bottom);
+    box-sizing: border-box;
+    border-inline: 0;
+    border-bottom: 0;
+  }
+  .welcome-card { padding: 1.25rem 1.5rem; }
+  .corner-panel:has(.welcome-card:not([hidden])) > .world-hud[data-compact="false"] {
+    margin-inline: 1.5rem;
+    padding-block-end: .75rem;
+  }
 }
 /* Q-22: use the existing 700 subsets with swap; do not preload them. */
 .welcome-card h1 {
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(2.25rem, 4.5vw, 4rem);
   font-weight: 700;
+  letter-spacing: -.035em;
+  line-height: 1.1;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .welcome-card p {
-  margin-block: .5rem;
-  line-height: 1.4;
+  margin-block: .85rem;
+  line-height: 1.6;
 }
 .welcome-card p:empty {
   display: none;
@@ -317,6 +431,7 @@ nav[aria-label="Language"] ul {
   white-space: nowrap;
 }
 .world-hud [hidden],
+.welcome-card [hidden],
 .welcome-card[hidden] {
   display: none;
 }

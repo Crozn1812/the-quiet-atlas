@@ -24,6 +24,18 @@ it("uses bold for the Welcome heading without preloading its font subsets", () =
   expect(source("src/app/[locale]/layout.tsx")).not.toContain("700-normal.woff2");
 });
 
+it("serves a decorative responsive Welcome image in the HTML without client image code", () => {
+  const html = renderToStaticMarkup(createElement(Portfolio, { locale: "en" }));
+  const picture = html.match(/<picture>([\s\S]*?)<\/picture>/)?.[1];
+  expect(picture).toBeDefined();
+  expect(picture).toMatch(/<source[^>]*media="\(max-width: 900px\)"[^>]*srcSet="\/welcome\/hero-coast-960.webp"[^>]*width="960"[^>]*height="540"/);
+  expect(picture).toMatch(/<img[^>]*src="\/welcome\/hero-coast-1920.webp"[^>]*width="1920"[^>]*height="1080"[^>]*fetchPriority="high"[^>]*alt=""/i);
+  expect(picture).not.toContain('loading="lazy"');
+  expect(html).not.toContain('<canvas');
+  expect(html).not.toContain('id="pine"');
+  expect(source("src/components/portfolio/ForestBackdrop.tsx")).not.toContain('"use client"');
+});
+
 it("renders the same Quick markup through Portfolio and QuickPortfolio", () => {
   for (const locale of ["en", "vi"] as const) {
     expect(renderToStaticMarkup(createElement(Portfolio, { locale, quick: true })))
