@@ -465,7 +465,7 @@ Duy chọn hướng A (Q-44, ADR 0013 bổ sung) và yêu cầu rừng bình min
 | e2e | **151/151 PASS** |
 | perf: 3D tới playable | **PASS**, 1,99 MB / 8 MB |
 | perf: thời gian tới playable | **5,90 s / 10 s PASS**; mục tiêu nội bộ ≤ 6 s **PASS** (B2-197) |
-| T10 | **NOT RUN**: bộ 12 ảnh sẵn trong showcase 26; cần Duy + 1 người ngoài chấm |
+| T10 | Duy: **đạt** ("nhìn chung là ổn", 2026-11-06, đánh giá chung, chưa chấm từng ảnh). Người ngoài: **NOT RUN**. Tổng T10: chưa đủ điều kiện PASS theo spec |
 | T08/T09 | **NOT RUN**: laptop Iris Xe của Duy (ADR 0007) |
 
 **Sự cố quy trình:**
