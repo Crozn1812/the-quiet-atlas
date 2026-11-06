@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D } from "three";
+import { type Box3, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D } from "three";
 import { WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { PATH_BRIDGES } from "../layout/path";
@@ -6,10 +6,10 @@ import { ZONES } from "../layout/zones";
 import { createRampMaterial } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
 import { PRESETS, type Quality } from "../terrain";
-import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
+import { TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
 import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
 import { TILE_CELLS, TILE_SIZE, tileKey, type TerrainTile, type TileAddress } from "../terrain/tiles";
-import { foliageBiomeAt, PATH_CLEARANCE, ZONE_CLEARANCE } from "./scatter";
+import { foliageBiomeAt, isGroundCoverExcluded, PATH_CLEARANCE, ZONE_CLEARANCE } from "./scatter";
 
 export const GRASS_VARIANT_SEEDS = [901, 903, 905] as const;
 export const FERN_VARIANT_SEEDS = [1400, 1401, 1403] as const;
@@ -210,15 +210,15 @@ function dryFootprint(x: number, z: number, radius: number, litter: boolean, hei
 }
 
 /** Seeded clumps, with a persistent sparse carpet beyond the wet/trail margins. */
-export function scatterGround(tile: TileAddress | TerrainTile): GroundDetail[] {
-  const build = scatterGroundChunks(tile);
+export function scatterGround(tile: TileAddress | TerrainTile, zoneBounds: readonly Box3[] = []): GroundDetail[] {
+  const build = scatterGroundChunks(tile, zoneBounds);
   let step = build.next();
   while (!step.done) step = build.next();
   return step.value;
 }
 
 /** Preserve RNG order while yielding even on rejected proposals. */
-export function* scatterGroundChunks(tile: TileAddress | TerrainTile): Generator<void, GroundDetail[]> {
+export function* scatterGroundChunks(tile: TileAddress | TerrainTile, zoneBounds: readonly Box3[] = []): Generator<void, GroundDetail[]> {
   const ix = "ix" in tile ? tile.ix : tile.origin.x / TILE_SIZE;
   const iz = "iz" in tile ? tile.iz : tile.origin.z / TILE_SIZE;
   const key = tileKey(ix, iz);
@@ -276,10 +276,11 @@ export function* scatterGroundChunks(tile: TileAddress | TerrainTile): Generator
       const scale = kind === "fern" ? 0.4 + size * 0.6 : kind === "bush" ? 0.6 + size * 0.8
         : kind === "grass" ? (lowGrass ? 0.46 : forest ? 0.4 + size * 0.1 : 0.85 + size * 0.15) : kind === "flower" ? 0.2 : kind === "log" && forest ? 0.25 + size * 0.1 : 0.75 + size * 0.35;
       const radius = groundRadius(kind);
-      if (litter ? path.distance < PATH_CLEARANCE + radius + 0.02
-        : path.distance < (lowGrass ? PATH_WIDTH / 2 : PATH_CLEARANCE) + radius + 0.02) continue;
-      if (ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE + radius)
-        || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < 6 + radius)) continue;
+      const soft = kind === "grass" || kind === "fern" || kind === "flower" || litter;
+      if (soft ? isGroundCoverExcluded(x, z, zoneBounds, radius)
+        : path.distance < PATH_CLEARANCE + radius + 0.02
+          || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE + radius)
+          || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < 6 + radius)) continue;
       const patch = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(x * 0.17 + Math.sin(z * 0.11) * 2));
       const corridor = path.distance <= 8 ? 0.95 : 0.018 + 0.6 * Math.exp(-(path.distance - 8) / 7);
       const density = kind === "fern" ? 1 : kind === "bush" ? corridor * patch
@@ -312,9 +313,11 @@ export function* scatterGroundChunks(tile: TileAddress | TerrainTile): Generator
       const x = source.x + (random() - 0.5) * 1.4, z = source.z + (random() - 0.5) * 1.4;
       const radius = groundRadius(source.kind), near = nearestPath(x, z);
       if (x < ix * TILE_SIZE || x >= (ix + 1) * TILE_SIZE || z < iz * TILE_SIZE || z >= (iz + 1) * TILE_SIZE
-        || near.distance < PATH_CLEARANCE + radius + 0.02
-        || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE + radius)
-        || PATH_BRIDGES.some(bridge => near.t >= bridge.tStart && near.t <= bridge.tEnd && near.distance < 6 + radius)
+        || (source.kind === "log"
+          ? near.distance < PATH_CLEARANCE + radius + 0.02
+            || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE + radius)
+            || PATH_BRIDGES.some(bridge => near.t >= bridge.tStart && near.t <= bridge.tEnd && near.distance < 6 + radius)
+          : isGroundCoverExcluded(x, z, zoneBounds, radius))
         || !dryFootprint(x, z, radius, source.kind === "leaf", heights)) continue;
       if (populations.get(source.kind)! >= GROUND_LIMITS.High[source.kind]) continue;
       populations.set(source.kind, populations.get(source.kind)! + 1);
@@ -400,6 +403,8 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
     geometry.setAttribute("groundTip", new InstancedBufferAttribute(new Float32Array(capacity * 3), 3));
     const mesh = new InstancedMesh(geometry, material, capacity);
     mesh.name = `ground-${["fern", "bush", "wood-stone", "grass-litter"][i]}`;
+    // Allocate colours even for empty batches so deferred bounds rebuilds match fresh scenes.
+    mesh.setColorAt(0, new Color(0xffffff));
     mesh.count = 0;
     mesh.visible = false;
     mesh.castShadow = mesh.receiveShadow = false;

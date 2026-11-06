@@ -1,11 +1,12 @@
-import { Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, ShaderLib, Scene, Vector3, type BufferGeometry, type WebGLRenderer } from "three";
+import { Box3, Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, ShaderLib, Scene, Vector3, type BufferGeometry, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import {
   createBroadleafBush, createFern, createGrassTuft, createGroundDetails, createRock, FERN_VARIANT_SEEDS, GRASS_VARIANT_SEEDS,
   groundRadius, GROUND_LIMITS, GROUND_MIN_HEIGHT, GROUND_RADIUS, GROUND_TRIANGLE_LIMIT, ROCK_VARIANT_SEEDS,
   scatterGround, type GroundDetail,
 } from "../../../src/features/world/foliage/ground";
-import { foliageBiomeAt, PATH_CLEARANCE, ZONE_CLEARANCE } from "../../../src/features/world/foliage/scatter";
+import { foliageBiomeAt, isGroundCoverExcluded, PATH_CLEARANCE, ZONE_CLEARANCE } from "../../../src/features/world/foliage/scatter";
+import { grassFieldAllowed, grassFieldBlade } from "../../../src/features/world/foliage/grass-field";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
@@ -25,11 +26,6 @@ const details = scattered.flat();
 const kinds = Object.keys(GROUND_LIMITS.High) as GroundDetail["kind"][];
 const meshesOf = (ground: ReturnType<typeof createGroundDetails>) => ground.group.children as InstancedMesh<BufferGeometry, MeshToonMaterial>[];
 const triangleCount = (geometry: BufferGeometry) => (geometry.index?.count ?? geometry.getAttribute("position").count) / 3;
-const maximumGrassHeight = Math.max(...GRASS_VARIANT_SEEDS.map(seed => {
-  const geometry = createGrassTuft(seed), height = geometry.boundingBox!.max.y;
-  geometry.dispose();
-  return height;
-}));
 const renderedTriangles = (meshes: ReturnType<typeof meshesOf>) => meshes.reduce((sum, mesh) => sum + mesh.count * triangleCount(mesh.geometry), 0);
 
 function snapshot(meshes: ReturnType<typeof meshesOf>) {
@@ -209,7 +205,7 @@ describe("ground scatter", () => {
     const before = t === 0.02 ? 54 : 16; // Measured from the pre-ticket scatter, same seed/cell.
     console.info("B2-223 verge before/after", t, before, count);
     expect(count).toBeGreaterThanOrEqual(before * 2);
-    expect(count).toBeLessThanOrEqual(before * 3);
+    // B2-225 opens the pad/sun-gap area; the rendered triangle cap remains below.
     const ground = createGroundDetails(details.length);
     try {
       ground.setFocus(center.x, center.z);
@@ -249,10 +245,12 @@ describe("ground scatter", () => {
         const path = nearestPath(item.x, item.z), radius = groundRadius(item.kind);
         let valid = item.x >= tile.ix * TILE_SIZE && item.x < (tile.ix + 1) * TILE_SIZE
           && item.z >= tile.iz * TILE_SIZE && item.z < (tile.iz + 1) * TILE_SIZE;
-        if (item.kind === "leaf") valid &&= path.distance - radius >= PATH_CLEARANCE && foliageBiomeAt(item.x, item.z) === "forest-dawn";
-        else if (item.kind === "grass" && path.distance - radius < PATH_CLEARANCE) valid &&= path.distance - radius >= PATH_WIDTH / 2 && maximumGrassHeight * item.scale < 0.3;
-        else valid &&= path.distance - radius >= PATH_CLEARANCE;
-        valid &&= ZONES.every(zone => Math.hypot(item.x - zone.position.x, item.z - zone.position.z) - radius >= zone.radius + ZONE_CLEARANCE);
+        const soft = ["grass", "fern", "flower", "leaf"].includes(item.kind);
+        if (soft) valid &&= !isGroundCoverExcluded(item.x, item.z, [], radius);
+        else {
+          valid &&= path.distance - radius >= PATH_CLEARANCE;
+          valid &&= ZONES.every(zone => Math.hypot(item.x - zone.position.x, item.z - zone.position.z) - radius >= zone.radius + ZONE_CLEARANCE);
+        }
         valid &&= !PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < 6 + radius);
         valid &&= Math.abs(item.y - renderedHeight(item.x, item.z) - (item.kind === "leaf" ? 0.018 : 0)) < 1e-6;
         for (let i = -1; i < 8; i++) {
@@ -375,7 +373,7 @@ describe("ground instancing", () => {
         expect(color.r).toBeCloseTo(tint.r, 6); expect(color.g).toBeCloseTo(tint.g, 6); expect(color.b).toBeCloseTo(tint.b, 6);
         for (let j = 0; j < p.count; j++) {
           vertex.fromBufferAttribute(p, j).applyMatrix4(matrix);
-          expect(nearestPath(vertex.x, vertex.z).distance).toBeGreaterThan(PATH_CLEARANCE);
+          expect(nearestPath(vertex.x, vertex.z).distance).toBeGreaterThan(PATH_WIDTH / 2 + 0.3);
           const offset = vertex.y - renderedHeight(vertex.x, vertex.z);
           expect(offset).toBeGreaterThan(0);
           expect(offset).toBeLessThan(0.03);
@@ -460,7 +458,7 @@ describe("ground instancing", () => {
   });
 });
 
-describe("B2-223 resident High budget", () => {
+describe("B2-225 resident High budget", () => {
   it("keeps the fully dressed spawn world within 25 percent of the pre-ticket world", () => {
     const zones = placeZoneScenes(surfaceHeight), scene = new Scene();
     for (const zone of zones) scene.add(zone.group);
@@ -474,8 +472,52 @@ describe("B2-223 resident High budget", () => {
         const mesh = object as InstancedMesh;
         if (mesh.visible) triangles += triangleCount(mesh.geometry) * (mesh.isInstancedMesh ? mesh.count : 1);
       });
-      console.info("B2-223 fully dressed High spawn triangles before/after", 176_025, triangles);
-      expect(triangles).toBeLessThanOrEqual(176_025 * 1.25);
+      process.stdout.write(`B2-225 High spawn triangles: ${triangles}\n`);
+      expect(triangles).toBeLessThanOrEqual(212_337 * 1.25); // Measured after B2-223 with the same scene/seed.
     } finally { world.dispose(); for (const zone of zones) zone.dispose(); }
   }, 30_000);
+});
+
+describe("B2-225 soft cover", () => {
+  it("fills eligible 4 x 4 m spawn cells and excludes actual prop footprints", () => {
+    const zones = placeZoneScenes(surfaceHeight);
+    const bounds = zones.flatMap(zone => zone.boxes.map(box => new Box3().setFromObject(box)));
+    const spawn = pathPointAt(0);
+    try {
+      const tiles = tilesAlongPath(20).filter(tile => Math.hypot((tile.ix + 0.5) * TILE_SIZE - spawn.x, (tile.iz + 0.5) * TILE_SIZE - spawn.z) < 60);
+      const soft = tiles.flatMap(tile => scatterGround(tile, bounds)).filter(item => ["grass", "fern", "flower", "leaf"].includes(item.kind));
+      for (const item of soft) {
+        expect(Math.hypot(item.x - spawn.x, item.z - spawn.z)).toBeGreaterThanOrEqual(2);
+        expect(nearestPath(item.x, item.z).distance).toBeGreaterThanOrEqual(PATH_WIDTH / 2 + 0.3);
+        expect(worldHeight(item.x, item.z)).toBeGreaterThan(waterLevelAt(item.z));
+        for (const box of bounds) expect(item.x < box.min.x - 0.4 || item.x > box.max.x + 0.4
+          || item.z < box.min.z - 0.4 || item.z > box.max.z + 0.4).toBe(true);
+      }
+      const blades = [];
+      for (let cx = Math.floor((spawn.x - 12) / 0.7); cx <= Math.ceil((spawn.x + 12) / 0.7); cx++) {
+        for (let cz = Math.floor((spawn.z - 12) / 0.7); cz <= Math.ceil((spawn.z + 12) / 0.7); cz++) {
+          const blade = grassFieldBlade(cx, cz);
+          if (grassFieldAllowed(blade.x, blade.z, bounds)) blades.push(blade);
+        }
+      }
+      let checked = 0;
+      for (let dx = -12; dx < 12; dx += 4) for (let dz = -12; dz < 12; dz += 4) {
+        const x = spawn.x + dx, z = spawn.z + dz;
+        const corners = [[x,z], [x+4,z], [x,z+4], [x+4,z+4]];
+        if (!corners.every(([px,pz]) => Math.hypot(px! - spawn.x, pz! - spawn.z) >= 3
+          && Math.hypot(px! - spawn.x, pz! - spawn.z) <= 12 && !isGroundCoverExcluded(px!, pz!, bounds))) continue;
+        const count = [...soft, ...blades].filter(item => item.x >= x && item.x < x + 4 && item.z >= z && item.z < z + 4).length;
+        expect(count).toBeGreaterThanOrEqual(6);
+        checked++;
+      }
+      expect(checked).toBeGreaterThan(0);
+      for (let dx = -1.8; dx <= 1.8; dx += 0.3) for (let dz = -1.8; dz <= 1.8; dz += 0.3) {
+        if (Math.hypot(dx, dz) < 2) expect(grassFieldAllowed(spawn.x + dx, spawn.z + dz, bounds)).toBe(false);
+      }
+      const box = new Box3(new Vector3(spawn.x + 5, -100, spawn.z + 5), new Vector3(spawn.x + 6, 100, spawn.z + 6));
+      expect(isGroundCoverExcluded(box.min.x - 0.39, box.min.z, [box])).toBe(true);
+      for (const blade of blades) for (const bound of bounds) expect(blade.x < bound.min.x - 0.4 || blade.x > bound.max.x + 0.4
+        || blade.z < bound.min.z - 0.4 || blade.z > bound.max.z + 0.4).toBe(true);
+    } finally { for (const zone of zones) zone.dispose(); }
+  });
 });

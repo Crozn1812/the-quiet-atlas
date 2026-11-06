@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { Color, Matrix4, type WebGLRenderer } from "three";
+import { Box3, Color, Matrix4, Vector3, type WebGLRenderer } from "three";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { createGrassField, grassFieldAllowed, grassFieldBlade, GRASS_FIELD_SPACING } from "../../../src/features/world/foliage/grass-field";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
-import { isFoliageExcluded } from "../../../src/features/world/foliage/scatter";
+import { isGroundCoverExcluded } from "../../../src/features/world/foliage/scatter";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 
 describe("camera grass field", () => {
@@ -73,7 +73,7 @@ describe("camera grass field", () => {
     }
   });
 
-  it("keeps road, path, water and zone pads empty across the route", () => {
+  it("keeps road, path and water empty across the route", () => {
     let allowed = 0;
     for (let t = 0; t <= 1; t += 0.025) {
       const p = pathPointAt(t);
@@ -82,7 +82,7 @@ describe("camera grass field", () => {
         const x = p.x + dx, z = p.z + dz;
         if (!grassFieldAllowed(x, z)) continue;
         allowed++;
-        expect(isFoliageExcluded(x, z)).toBe(false);
+        expect(isGroundCoverExcluded(x, z)).toBe(false);
         expect(worldHeight(x, z)).toBeGreaterThan(waterLevelAt(z) + 0.15);
       }
     }
@@ -144,4 +144,21 @@ describe("camera grass field", () => {
       expect(result.pending).toBeGreaterThan(0);
     } finally { now.mockRestore(); field.dispose(); }
   });
+});
+
+
+it("resamples retained grass cells when deferred prop bounds arrive", () => {
+  const bounds: Box3[] = [], field = createGrassField("High", bounds), spawn = pathPointAt(0);
+  const drain = () => { while (field.update(spawn.x, spawn.z, 0).pending) { /* incremental fill */ } };
+  try {
+    drain();
+    expect(Array.from(field.mesh.instanceMatrix.array).some((value, index) => index % 16 === 0 && value !== 0)).toBe(true);
+    bounds.push(new Box3(new Vector3(spawn.x - 40, -100, spawn.z - 40), new Vector3(spawn.x + 40, 100, spawn.z + 40)));
+    drain();
+    for (let slot = 0; slot < field.mesh.count; slot++) {
+      const matrix = new Matrix4();
+      field.mesh.getMatrixAt(slot, matrix);
+      expect(new Vector3().setFromMatrixScale(matrix).length()).toBe(0);
+    }
+  } finally { field.dispose(); }
 });

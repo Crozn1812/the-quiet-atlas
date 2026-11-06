@@ -1,9 +1,9 @@
-import { BufferGeometry, Color, DoubleSide, DynamicDrawUsage, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D, Vector2 } from "three";
+import { type Box3, BufferGeometry, Color, DoubleSide, DynamicDrawUsage, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D, Vector2 } from "three";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
 import type { Quality } from "../terrain";
 import { TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
-import { foliageBiomeAt, isFoliageExcluded } from "./scatter";
+import { foliageBiomeAt, isGroundCoverExcluded } from "./scatter";
 
 // Lead render check (2026-11-06): single 5 cm blades at 0.5 m read as bare ground; one 4-blade tuft per
 // 0.7 m cell within 18/12 m reads as a meadow and stays under the 60k-triangle cap.
@@ -12,13 +12,13 @@ export const GRASS_FIELD_SPACING = 0.7;
 const S = GRASS_FIELD_SPACING;
 
 /** Conservative clearance also covers the bent blade's horizontal footprint. */
-export function grassFieldAllowed(x: number, z: number): boolean {
+export function grassFieldAllowed(x: number, z: number, zoneBounds: readonly Box3[] = []): boolean {
   const biome = foliageBiomeAt(x, z);
   if (biome !== "hill" && biome !== "coast-dusk"
     && biome !== "forest-dawn") return false;
   return [[0, 0], [-0.18, 0], [0.18, 0], [0, -0.18], [0, 0.18]].every(([dx, dz]) => {
     const px = x + dx!, pz = z + dz!;
-    return !isFoliageExcluded(px, pz) && worldHeight(px, pz) > waterLevelAt(pz) + 0.15;
+    return !isGroundCoverExcluded(px, pz, zoneBounds) && worldHeight(px, pz) > waterLevelAt(pz) + 0.15;
   });
 }
 
@@ -36,7 +36,7 @@ export function grassFieldBlade(cx: number, cz: number) {
     height: forest ? 0.15 + random() * 0.2 : 0.25 + random() * 0.35, yaw: random() * Math.PI * 2 };
 }
 
-export function createGrassField(quality: Quality) {
+export function createGrassField(quality: Quality, zoneBounds: readonly Box3[] = []) {
   const radius = GRASS_FIELD_RADII[quality];
   // Square torus includes a guard cell; shader clips it to the exact moving circle.
   const half = Math.ceil(radius / S) + 1, side = half * 2 + 1;
@@ -94,6 +94,7 @@ if (grassForest > 0.5) vColor.rgb = mix(vec3(${new Color(PALETTE.forestDeep).toA
   const cellsX = new Float64Array(capacity).fill(Infinity), cellsZ = new Float64Array(capacity).fill(Infinity);
   const transform = new Object3D();
   let cursor = 0, remaining = 0, centerX = Infinity, centerZ = Infinity;
+  let boundsCount = zoneBounds.length;
   let disposed = false;
   let started = false;
   /** Sampling is incremental (0.9 ms soft budget, at most 384 new cells/frame; ~2 s to fill on desktop).
@@ -109,6 +110,11 @@ if (grassForest > 0.5) vColor.rgb = mix(vec3(${new Color(PALETTE.forestDeep).toA
     if (!started) { started = true; return { sampled: 0, pending: capacity }; }
     const start = performance.now();
     // Forest uses the same torus and incremental sampling budget as the meadow.
+    if (zoneBounds.length !== boundsCount) {
+      boundsCount = zoneBounds.length;
+      cellsX.fill(Infinity); cellsZ.fill(Infinity);
+      remaining = capacity;
+    }
     const nx = Math.floor(x / S), nz = Math.floor(z / S);
     if (nx !== centerX || nz !== centerZ) {
       centerX = nx; centerZ = nz; remaining = capacity;
@@ -126,7 +132,7 @@ if (grassForest > 0.5) vColor.rgb = mix(vec3(${new Color(PALETTE.forestDeep).toA
       if (cellsX[slot] === cx && cellsZ[slot] === cz) continue;
       cellsX[slot] = cx; cellsZ[slot] = cz;
       const blade = grassFieldBlade(cx, cz);
-      const allowed = grassFieldAllowed(blade.x, blade.z);
+      const allowed = grassFieldAllowed(blade.x, blade.z, zoneBounds);
       geometry.getAttribute("grassForest").setX(slot, blade.forest ? 1 : 0);
       transform.position.set(blade.x, allowed ? worldHeight(blade.x, blade.z) : 0, blade.z);
       transform.rotation.set(0, blade.yaw, 0);

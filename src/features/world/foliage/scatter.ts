@@ -1,6 +1,7 @@
+import type { Box3 } from "three";
 import { PATH_BRIDGES, pathLength, pathPointAt } from "../layout/path";
 import { ZONES, type Biome } from "../layout/zones";
-import { PATH_WIDTH, TERRAIN_SEED, worldHeight } from "../terrain/height";
+import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
 import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
 import { TILE_SIZE, tileKey, type TerrainTile, type TileAddress } from "../terrain/tiles";
 import { isDeepCrown } from "./instances";
@@ -103,6 +104,18 @@ export function isFoliageExcluded(x: number, z: number): boolean {
     || isZoneApproach(x, z)
     || (biomeAtProgress(path.t) === "forest-dawn" && sunGaps.some(point => Math.hypot(x - point.x, z - point.z) < 13))
     || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < BRIDGE_CLEARANCE);
+}
+
+/** World-space prop footprints supplied by compose; no mutable global bounds. */
+export function isGroundCoverExcluded(x: number, z: number, zoneBounds: readonly Box3[] = [], radius = 0): boolean {
+  const path = nearestPath(x, z), height = worldHeight(x, z);
+  return height < SHORE_MIN_HEIGHT || height <= waterLevelAt(z) + 0.15
+    || path.distance < PATH_WIDTH / 2 + 0.3 + radius
+    || nearestRiver(x, z).distance < RIVER_CLEARANCE + radius
+    || Math.hypot(x - trailCanopySpawn.x, z - trailCanopySpawn.z) < 2 + radius
+    || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < BRIDGE_CLEARANCE + radius)
+    || zoneBounds.some(box => x >= box.min.x - 0.4 - radius && x <= box.max.x + 0.4 + radius
+      && z >= box.min.z - 0.4 - radius && z <= box.max.z + 0.4 + radius);
 }
 
 interface Candidate { x: number; z: number; priority: number; scale: number; kind: FoliageTree["kind"]; lean: number; growth?: "shrub"; canopy?: true; trailCanopy?: true }
