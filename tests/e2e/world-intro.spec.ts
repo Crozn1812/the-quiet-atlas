@@ -3,6 +3,9 @@ import { enterWorld } from "./helpers";
 import { expect, test } from "./test";
 
 test.use({ playIntro: true });
+// enterWorld() itself may wait 45 s + 30 s under parallel software-WebGL load; the default 30 s test
+// timeout made these flaky (2026-11-06: 2 timeouts in one full run, 151/151 on rerun).
+test.describe.configure({ timeout: 90_000 });
 
 test("plays on Enter World, offers a focused Skip, and hands control back on Skip", async ({ page }) => {
   const world = await enterWorld(page, "vi");
