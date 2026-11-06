@@ -318,3 +318,55 @@ it("feeds the graded sun to the sea and keeps the sea coastline when quality cha
     composed.dispose();
   }
 });
+
+
+it("defers distant ground, preserves one-shot instance parity, and cancels mid-build", () => {
+  const scene = new Scene(), reference = new Scene();
+  const backend = createMeshPhysics(), baseline = createMeshPhysics();
+  const composed = createWorldScene({ ...backend, scene, quality: "High", deferredGround: true });
+  const full = createWorldScene({ ...baseline, scene: reference, quality: "High" });
+  const meshes = (root: Scene) => root.getObjectByName("ground-details")!.children as InstancedMesh[];
+  const snapshot = (root: Scene) => meshes(root).map(mesh => ({
+    name: mesh.name, count: mesh.count,
+    matrices: Array.from(mesh.instanceMatrix.array.slice(0, mesh.count * 16)),
+    colors: Array.from(mesh.instanceColor!.array.slice(0, mesh.count * 3)),
+    variants: Array.from(mesh.geometry.getAttribute("groundVariant").array.slice(0, mesh.count)),
+    tips: Array.from(mesh.geometry.getAttribute("groundTip").array.slice(0, mesh.count * 3)),
+  }));
+  try {
+    expect(composed.groundReady).toBe(false);
+    expect(composed.collisionMeshes.length).toBe(full.collisionMeshes.length);
+    const spawn = worldSpawn(), matrix = new Matrix4();
+    let initial = 0;
+    for (const mesh of meshes(scene)) for (let i = 0; i < mesh.count; i++) {
+      initial++;
+      mesh.getMatrixAt(i, matrix);
+      const point = new Vector3().setFromMatrixPosition(matrix);
+      const x = Math.floor(point.x / TILE_SIZE) * TILE_SIZE;
+      const z = Math.floor(point.z / TILE_SIZE) * TILE_SIZE;
+      expect(Math.hypot(Math.max(x - spawn.x, 0, spawn.x - x - TILE_SIZE),
+        Math.max(z - spawn.z, 0, spawn.z - z - TILE_SIZE))).toBeLessThanOrEqual(25);
+    }
+    expect(initial).toBeGreaterThan(0);
+    let steps = 0;
+    while (!composed.buildGround.next().done) {
+      expect(++steps).toBeLessThan(100000);
+      if (steps === 100) composed.setQuality("Balanced");
+      if (steps === 101) composed.setQuality("High");
+    }
+    expect(steps).toBeGreaterThan(1);
+    expect(composed.groundReady).toBe(true);
+    expect(snapshot(scene)).toEqual(snapshot(reference));
+    composed.setQuality("Low"); full.setQuality("Low");
+    expect(snapshot(scene)).toEqual(snapshot(reference));
+  } finally { composed.dispose(); full.dispose(); }
+  const cancelledScene = new Scene();
+  const cancelled = createWorldScene({ ...createMeshPhysics(), scene: cancelledScene, quality: "Low", deferredGround: true });
+  cancelled.buildGround.next();
+  const dispose = vi.spyOn(meshes(cancelledScene)[0]!.geometry, "dispose");
+  cancelled.dispose();
+  expect(cancelled.buildGround.next().done).toBe(true);
+  cancelled.dispose();
+  expect(dispose).toHaveBeenCalledTimes(1);
+  expect(cancelledScene.children).toHaveLength(0);
+}, 30000);

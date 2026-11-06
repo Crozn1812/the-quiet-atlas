@@ -66,6 +66,7 @@ vi.mock("../../../src/features/world/scene/compose", async importOriginal => {
     scene.add(sun, new HemisphereLight(), createSkyDome().mesh);
     scene.fog = new Fog("white", 10, 100);
     return {
+      groundReady: true, buildGround: (function* () {})(),
       sun, collisionMeshes: [], visibleMeshes: [], foliageMeshes: [],
       update() {}, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
       setReducedMotion: harness.reduced, dispose: harness.dispose,

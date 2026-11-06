@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
   zones: [] as ReturnType<typeof import("../../../src/features/world/zones").placeZoneScenes>,
   next: undefined as ((now: number) => void) | undefined,
   collisionMeshes: [] as Mesh[],
+  compile: vi.fn(() => Promise.resolve()),
   position: undefined as unknown, reduced: vi.fn(), idleMotion: vi.fn(),
 }));
 vi.mock("three", async original => {
@@ -21,6 +22,7 @@ vi.mock("three", async original => {
   return { ...actual, WebGLRenderer: class {
     domElement = h.canvas;
     shadowMap = { enabled: false };
+    compileAsync = h.compile;
     setPixelRatio() {} setSize() {} dispose() {} forceContextLoss() {}
   } };
 });
@@ -37,6 +39,7 @@ vi.mock("../../../src/features/world/scene/compose", async original => ({
   createWorldScene: ({ zoneBoxes }: { zoneBoxes: Mesh[] }) => {
     h.collisionMeshes = [...zoneBoxes];
     return ({
+    groundReady: true, buildGround: (function* () {})(),
     sun: { castShadow: false }, collisionMeshes: h.collisionMeshes, visibleMeshes: [], foliageMeshes: [],
     update() {}, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload() {}, dispose() {}, setReducedMotion: h.reduced,
   }); },
@@ -301,6 +304,7 @@ it("mounts fixed dressing colliders before any optional build, then finishes eve
   expect(scene.getObjectByName("forest-sun-shafts")).toBeUndefined();
   vi.advanceTimersByTime(100);
   expect(scene.getObjectByName("forest-sun-shafts")).toBeUndefined();
+  expect(h.compile).not.toHaveBeenCalled();
   // The intro's public skip control hands input back to the player.
   const skip = container.children.find(child => child.dataset.worldIntroSkip === "true")!;
   skip.dispatchEvent(new Event("click"));
@@ -309,6 +313,7 @@ it("mounts fixed dressing colliders before any optional build, then finishes eve
   expect(far.visible).toBe(false);
   clock.paint(); vi.runAllTimers();
   expect(far.visible).toBe(true);
+  expect(h.compile).toHaveBeenCalledWith(scene, h.camera);
   expect(scene.getObjectByName("rocky-shore")!.children.map(child => child.name))
     .toEqual(["shore-pebbles", "shore-boulders-and-cairns"]);
   expect(scene.getObjectByName("coast-road")!.children.map(child => child.name))

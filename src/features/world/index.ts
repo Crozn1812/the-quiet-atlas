@@ -159,7 +159,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paperPass = createGradedPaperPass(renderer, quality);
-    composition = measure("composition", () => createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: fixedMeshes, zoneBounds }));
+    composition = measure("composition", () => createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: fixedMeshes, zoneBounds, deferredGround: true }));
     if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
     controller.teleport(worldSpawn());
   } catch (error) {
@@ -1264,6 +1264,26 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   player.position.copy(physics.position);
   paper.render(scene, camera);
   startIntro();
+  dressing.defer(composed.buildGround);
+  dressing.defer((function* () {
+    const warmed = new Set<string>();
+    while (!disposed) {
+      let changed = false;
+      scene.traverse(object => {
+        const mesh = object as Mesh;
+        if (!mesh.isMesh) return;
+        for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+          if (!warmed.has(material.uuid)) { warmed.add(material.uuid); changed = true; }
+        }
+      });
+      // Includes off-camera meshes; never await compilation in the frame loop.
+      if (changed && typeof renderer.compileAsync === "function") void renderer.compileAsync(scene, camera).catch(() => {
+        // Context recovery is handled by the existing renderer lifecycle.
+      });
+      if (composed.groundReady && zones.length === ZONES.length) return;
+      yield;
+    }
+  })());
   zoneScenes.startDeferred(() => container.dataset.worldIntro === "done" && !document.hidden && !contextLost);
   if (!document.hidden) frame = requestAnimationFrame(tick);
   return () => {

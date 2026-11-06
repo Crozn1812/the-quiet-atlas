@@ -76,6 +76,7 @@ vi.mock("../../../src/features/world/scene/compose", async importOriginal => {
     nearestSafePath: (position: Vector3) => position.clone(),
     surfaceHeight: (x: number, z: number) => harness.realSurface ? actual.surfaceHeight(x, z) : 100,
     createWorldScene: () => ({
+      groundReady: true, buildGround: (function* () {})(),
       sun: { castShadow: false, color: { copy() {} }, position: new Vector3() }, collisionMeshes: [], visibleMeshes: [], foliageMeshes: [],
       update: harness.update, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
       setReducedMotion: harness.reduced, dispose: harness.dispose,

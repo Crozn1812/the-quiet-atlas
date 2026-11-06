@@ -211,6 +211,14 @@ function dryFootprint(x: number, z: number, radius: number, litter: boolean, hei
 
 /** Seeded clumps, with a persistent sparse carpet beyond the wet/trail margins. */
 export function scatterGround(tile: TileAddress | TerrainTile): GroundDetail[] {
+  const build = scatterGroundChunks(tile);
+  let step = build.next();
+  while (!step.done) step = build.next();
+  return step.value;
+}
+
+/** Preserve RNG order while yielding even on rejected proposals. */
+export function* scatterGroundChunks(tile: TileAddress | TerrainTile): Generator<void, GroundDetail[]> {
   const ix = "ix" in tile ? tile.ix : tile.origin.x / TILE_SIZE;
   const iz = "iz" in tile ? tile.iz : tile.origin.z / TILE_SIZE;
   const key = tileKey(ix, iz);
@@ -222,6 +230,7 @@ export function scatterGround(tile: TileAddress | TerrainTile): GroundDetail[] {
     const trials = kind === "grass" ? 2048 : kind === "fern" ? 448 : kind === "bush" || kind === "leaf" ? 1400 : 144;
     let count = 0;
     for (let i = 0; i < trials && count < GROUND_LIMITS.High[kind]; i++) {
+      if (i % 16 === 0) yield;
       let x = (ix + random()) * TILE_SIZE, z = (iz + random()) * TILE_SIZE;
       if (kind === "grass" || kind === "fern") {
         const members = kind === "grass" ? 8 : 7, cells = kind === "grass" ? 16 : 8;
@@ -383,12 +392,17 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
     if (disposed) throw new Error("Ground details have been disposed");
   }
   function update() {
+    const build = updateChunks();
+    while (!build.next().done) { /* synchronous compatibility API */ }
+  }
+  function* updateChunks(): Generator<void> {
     for (const mesh of meshes) mesh.count = 0;
-    let rendered = 0, flowers = 0;
+    let rendered = 0, flowers = 0, proposals = 0;
     for (const items of [...buckets.filter(items => items[0]!.kind !== "flower"), ...buckets.filter(items => items[0]!.kind === "flower")]) {
       const kind = items[0]!.kind;
       const count = Math.round(items.length * GROUND_LIMITS[quality][kind] / GROUND_LIMITS.High[kind]);
       for (const item of items.slice(0, count)) {
+        if (++proposals % 32 === 0) yield;
         if (kind === "flower" && ++flowers > Math.floor(rendered / 49)) continue;
         if (kind !== "flower") rendered++;
         const mesh = meshes[meshIndex(kind)]!;
@@ -432,10 +446,16 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
   return {
     group,
     setTiles(items: readonly GroundDetail[]) {
+      const build = this.setTilesChunks(items);
+      while (!build.next().done) { /* synchronous compatibility API */ }
+    },
+    *setTilesChunks(items: readonly GroundDetail[]): Generator<void> {
       assertLive();
       if (items.length > capacity) throw new RangeError("Ground capacity exceeded");
       const next = new Map<string, GroundDetail[]>();
+      let proposals = 0;
       for (const item of items) {
+        if (++proposals % 64 === 0) yield;
         if (!Object.hasOwn(GROUND_LIMITS.High, item.kind) || !Number.isInteger(item.variant)
           || item.variant < 0 || item.variant >= (item.kind === "grass" || item.kind === "fern" || item.kind === "bush" ? 3 : item.kind === "rock" || item.kind === "flower" ? 2 : 1)
           || ![item.x, item.y, item.z, item.scale, item.rotation].every(Number.isFinite) || item.scale <= 0) {
@@ -464,6 +484,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
       let triangles = 0;
       const selected = new Map<string, GroundDetail[]>();
       for (const item of candidates) {
+        if (++proposals % 64 === 0) yield;
         const cost = triangleCost(item.kind);
         if (triangles + cost > GROUND_TRIANGLE_LIMIT) continue;
         triangles += cost;
@@ -474,7 +495,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
       }
       buckets = [...selected.values()];
       submitted = items.map(item => ({ ...item }));
-      update();
+      yield* updateChunks();
     },
     /** Update after crossing a terrain cell; no geometry allocation or extra draw calls. */
     setFocus(x: number, z: number) {
@@ -487,6 +508,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
     setQuality(next: Quality) {
       assertLive();
       if (!Object.hasOwn(GROUND_LIMITS, next)) throw new RangeError("Invalid ground quality");
+      if (quality === next) return;
       quality = next;
       update();
     },

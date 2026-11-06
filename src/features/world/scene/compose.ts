@@ -5,7 +5,7 @@ import { PALETTE } from "../art/palette";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
-import { createGroundDetails, scatterGround, type GroundDetail } from "../foliage/ground";
+import { createGroundDetails, scatterGround, scatterGroundChunks, type GroundDetail } from "../foliage/ground";
 import { createGrassField, GRASS_FIELD_RADII } from "../foliage/grass-field";
 const createGrassFieldRadius = (quality: keyof typeof GRASS_FIELD_RADII) => GRASS_FIELD_RADII[quality];
 import { createCrownFade } from "../crown-fade";
@@ -88,7 +88,8 @@ export function nearestSafePath(position: { x: number; z: number }): Vector3 {
 
 export const worldSpawn = () => nearestSafePath(ZONES.find(zone => zone.id === "first-light")!.position);
 
-export function createWorldScene({ RAPIER, world, scene, quality: initialQuality, paper, zoneBounds = [], zoneBoxes = [] }: {
+export function createWorldScene({ RAPIER, world, scene, quality: initialQuality, paper, zoneBounds = [], zoneBoxes = [], deferredGround = false }: {
+  deferredGround?: boolean;
   zoneBounds?: readonly Box3[];
   zoneBoxes?: readonly Mesh[];
   RAPIER: TileRapier;
@@ -143,10 +144,20 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   // A leaning trunk collider is centred off its root (colliders.ts): keep both the root and that centre clear.
   const treeClearOfZones = (tree: FoliageTree) => clearOfZones(tree)
     && clearOfZones({ x: tree.x - Math.sin(tree.lean) * TRUNK_HEIGHT * tree.scale / 2, z: tree.z });
+  const spawn = worldSpawn();
+  const nearSpawn = (ix: number, iz: number) => Math.hypot(
+    Math.max(ix * TILE_SIZE - spawn.x, 0, spawn.x - (ix + 1) * TILE_SIZE),
+    Math.max(iz * TILE_SIZE - spawn.z, 0, spawn.z - (iz + 1) * TILE_SIZE)) <= 25;
+  let groundRevision = 0;
   function syncGround() {
+    const build = syncGroundChunks();
+    while (!build.next().done) { /* synchronous compatibility API */ }
+  }
+  function* syncGroundChunks(): Generator<void> {
+    const revision = ++groundRevision;
     for (const key of groundCache.keys()) if (!pool.tiles.has(key)) groundCache.delete(key);
-    for (const [key, resident] of pool.tiles) if (!groundCache.has(key)) groundCache.set(key, scatterGround(resident.tile).filter(clearOfZones));
-    const items = [...groundCache.values()].flat();
+    for (const [key, resident] of pool.tiles) if (!groundCache.has(key) && (!deferredGround || nearSpawn(resident.tile.origin.x / TILE_SIZE, resident.tile.origin.z / TILE_SIZE))) groundCache.set(key, scatterGround(resident.tile).filter(clearOfZones));
+    const items = [...pool.tiles.keys()].flatMap(key => groundCache.get(key) ?? []);
     if (items.length > groundCapacity) {
       ground.group.removeFromParent();
       ground.dispose();
@@ -155,7 +166,13 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       scene.add(ground.group);
     }
     ground.setQuality(quality);
-    ground.setTiles(items);
+    const build = ground.setTilesChunks(items);
+    let step = build.next();
+    while (!step.done) {
+      yield;
+      if (disposed || revision !== groundRevision) { build.return(undefined); return; }
+      step = build.next();
+    }
   }
 
   function createCell(trees: FoliageTree[]) {
@@ -248,6 +265,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   function setQuality(next: Quality) {
     if (disposed) return;
     quality = next;
+    groundRevision++;
     for (const cell of cells.values()) cell.setQuality(next);
     ground.setQuality(next);
     if (!grass || grass.radius !== createGrassFieldRadius(next)) {
@@ -374,6 +392,37 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
   return {
     update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,
+    /** Owned and cancelled by the post-control dressing queue. */
+    get groundReady() { return !deferredGround; },
+    buildGround: (function* (): Generator<void> {
+      while (!disposed) {
+        const missing = [...pool.tiles].find(([key]) => !groundCache.has(key));
+        if (!missing) {
+          yield* syncGroundChunks();
+          if (disposed) return;
+          if ([...pool.tiles.keys()].some(key => !groundCache.has(key))) continue;
+          deferredGround = false;
+          return;
+        }
+        const [key, resident] = missing;
+        const build = scatterGroundChunks(resident.tile);
+        let step = build.next();
+        while (!step.done) {
+          yield;
+          if (disposed) { build.return([]); return; }
+          step = build.next();
+        }
+        if (pool.tiles.get(key) === resident) groundCache.set(key, step.value.filter(clearOfZones));
+        const publish = syncGroundChunks();
+        let publication = publish.next();
+        while (!publication.done) {
+          yield;
+          if (disposed) { publish.return(undefined); return; }
+          publication = publish.next();
+        }
+        yield;
+      }
+    })(),
     /** Stream `aheadM` metres of path ahead (0 = normal). Raising it forces a stream on the next update;
      * lowering it lets distant tiles unload on the player's next 8 m of movement (no hitch at handoff). */
     setPreload(aheadM: number) {
