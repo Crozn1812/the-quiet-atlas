@@ -286,13 +286,13 @@ nav[aria-label="Language"] ul {
   --welcome-ink: #2B2A26;
   --welcome-rule: #2b2a2633;
   --welcome-dusk: color-mix(in srgb, #E2B65C 40%, #2B2A26);
-  top: 0;
-  bottom: 0;
-  left: max(clamp(1.5rem, 4vw, 4rem), env(safe-area-inset-left));
-  width: min(34rem, calc(100% - 3rem));
+  /* ADR 0009 (Duy): the card stays anchored bottom-left, within 48 px of both edges. */
+  top: auto;
+  bottom: max(2rem, env(safe-area-inset-bottom));
+  left: max(2rem, env(safe-area-inset-left));
+  width: min(34rem, calc(50% - 3rem));
   height: fit-content;
-  max-height: calc(100dvh - 3rem);
-  margin-block: auto;
+  max-height: calc(100dvh - 4rem);
   background: var(--welcome-paper);
   color: var(--welcome-ink);
   border: 1px solid var(--welcome-rule);
