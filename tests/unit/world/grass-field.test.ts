@@ -8,6 +8,35 @@ import { isFoliageExcluded } from "../../../src/features/world/foliage/scatter";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 
 describe("camera grass field", () => {
+  it("fills the deep forest incrementally with low forest-colored tufts in the existing batch", () => {
+    const field = createGrassField("High"), p = pathPointAt(0.02);
+    expect(field.mesh.visible).toBe(false);
+    expect(field.mesh.instanceMatrix.array.every((v, i) => v === (i % 16 === 15 ? 1 : 0))).toBe(true);
+    let result = field.update(p.x, p.z, 0, true);
+    expect(result.pending).toBeGreaterThan(0);
+    while (result.pending) result = field.update(p.x, p.z, 0, true);
+    const flags = field.mesh.geometry.getAttribute("grassForest");
+    const matrix = new Matrix4();
+    let forestTufts = 0;
+    for (let i = 0; i < field.mesh.count; i++) {
+      field.mesh.getMatrixAt(i, matrix);
+      const e = matrix.elements;
+      if (!e[5] || flags.getX(i) !== 1) continue;
+      forestTufts++;
+      expect(e[5]! * 1.15).toBeGreaterThanOrEqual(0.15 - 1e-6);
+      expect(e[5]! * 1.15).toBeLessThanOrEqual(0.35 + 1e-6);
+      expect(grassFieldAllowed(e[12]!, e[14]!)).toBe(true);
+    }
+    expect(forestTufts).toBeGreaterThan(100);
+    const material = field.mesh.material;
+    if (Array.isArray(material)) throw new Error("Expected single batch");
+    const shader = { uniforms: {}, vertexShader: "#include <common>\n#include <begin_vertex>\n#include <color_vertex>", fragmentShader: "#include <common>\n#include <opaque_fragment>" };
+    material.onBeforeCompile(shader as Parameters<typeof material.onBeforeCompile>[0], {} as WebGLRenderer);
+    expect(shader.vertexShader).toContain(new Color(PALETTE.forestDeep).toArray().join(","));
+    expect(shader.vertexShader).toContain(new Color(PALETTE.grass).toArray().join(","));
+    expect(field.mesh.count * 12).toBe(36_300); // Same High submission budget as B2-214.
+    field.dispose();
+  });
   it("preserves ramp shading, root/tip pigment, distance fade and reduced-motion wind", () => {
     const field = createGrassField("Balanced");
     const material = field.mesh.material;
@@ -89,7 +118,7 @@ describe("camera grass field", () => {
     drain(point.x);
     expect(Array.from(field.mesh.instanceMatrix.array)).toEqual(before);
     expect(grassFieldBlade(-17, 50)).toEqual(grassFieldBlade(-17, 50));
-    expect(grassFieldBlade(-17, 50).height).toBeGreaterThanOrEqual(0.25);
+    expect(grassFieldBlade(-17, 50).height).toBeGreaterThanOrEqual(0.15);
     const matrix = new Matrix4();
     field.mesh.getMatrixAt(0, matrix);
     expect(matrix.elements.every(Number.isFinite)).toBe(true);
@@ -107,6 +136,7 @@ describe("camera grass field", () => {
     let clock = 0;
     const now = vi.spyOn(performance, "now").mockImplementation(() => (clock += 0.05));
     try {
+      field.update(point.x, point.z, 0); // First call defers dressing until after the initial scene frame.
       const result = field.update(point.x, point.z, 1);
       // Every loop check advances 0.05 ms: the loop must stop before 1 ms of (simulated) work.
       expect(result.sampled).toBeGreaterThan(0);

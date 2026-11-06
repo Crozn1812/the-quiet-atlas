@@ -21,9 +21,9 @@ export const GROUND_LOG_RADIUS = 2.4;
 export const GROUND_LEAF_RADIUS = 0.45;
 export const GROUND_TRIANGLE_LIMIT = 40_000;
 export const GROUND_LIMITS = {
-  High: { grass: 1400, rock: 40, fern: 100, bush: 160, log: 4, leaf: 160, flower: 16 },
-  Balanced: { grass: 840, rock: 24, fern: 60, bush: 96, log: 2, leaf: 96, flower: 8 },
-  Low: { grass: 280, rock: Math.round(40 * PRESETS.Low.density), fern: 20, bush: 32, log: 1, leaf: 24, flower: 2 },
+  High: { grass: 4200, rock: 40, fern: 100, bush: 160, log: 4, leaf: 160, flower: 16 },
+  Balanced: { grass: 2520, rock: 24, fern: 60, bush: 96, log: 2, leaf: 96, flower: 8 },
+  Low: { grass: 840, rock: Math.round(40 * PRESETS.Low.density), fern: 20, bush: 32, log: 1, leaf: 24, flower: 2 },
 } as const;
 
 export interface GroundDetail {
@@ -264,18 +264,19 @@ export function* scatterGroundChunks(tile: TileAddress | TerrainTile): Generator
         if (x < ix * TILE_SIZE || x >= (ix + 1) * TILE_SIZE || z < iz * TILE_SIZE || z >= (iz + 1) * TILE_SIZE) continue;
       }
       const roll = random(), size = random(), rotation = random() * Math.PI * 2;
-      const variant = Math.floor(random() * (kind === "grass" || kind === "fern" || kind === "bush" ? 3 : kind === "rock" || kind === "flower" ? 2 : 1));
+      let variant = Math.floor(random() * (kind === "grass" || kind === "fern" || kind === "bush" ? 3 : kind === "rock" || kind === "flower" ? 2 : 1));
       const path = nearestPath(x, z), biome = foliageBiomeAt(x, z), forest = biome === "forest-dawn";
+      if (forest && kind === "flower") variant = 1;
       const litter = kind === "leaf";
       const bank = Math.max(0, 1 - Math.abs(nearestRiver(x, z).distance - 8) / 12);
       if (!forest && kind !== "grass" && kind !== "rock" && kind !== "flower" && !(kind === "fern" && bank > 0.4)) continue;
-      if (kind === "flower" && !(biome === "hill" || biome === "coast-dusk" && path.distance < 14)) continue;
+      if (kind === "flower" && !forest && !(biome === "hill" || biome === "coast-dusk" && path.distance < 14)) continue;
       if (x < ix * TILE_SIZE || x >= (ix + 1) * TILE_SIZE || z < iz * TILE_SIZE || z >= (iz + 1) * TILE_SIZE) continue;
       const lowGrass = kind === "grass" && path.distance < PATH_CLEARANCE + GROUND_RADIUS + 0.02;
       const scale = kind === "fern" ? 0.4 + size * 0.6 : kind === "bush" ? 0.6 + size * 0.8
-        : kind === "grass" ? (lowGrass ? 0.46 : 0.85 + size * 0.15) : kind === "flower" ? 0.2 : 0.75 + size * 0.35;
+        : kind === "grass" ? (lowGrass ? 0.46 : forest ? 0.4 + size * 0.1 : 0.85 + size * 0.15) : kind === "flower" ? 0.2 : kind === "log" && forest ? 0.25 + size * 0.1 : 0.75 + size * 0.35;
       const radius = groundRadius(kind);
-      if (litter ? path.distance + radius > PATH_WIDTH / 2 - 0.02
+      if (litter ? path.distance < PATH_CLEARANCE + radius + 0.02
         : path.distance < (lowGrass ? PATH_WIDTH / 2 : PATH_CLEARANCE) + radius + 0.02) continue;
       if (ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE + radius)
         || PATH_BRIDGES.some(bridge => path.t >= bridge.tStart && path.t <= bridge.tEnd && path.distance < 6 + radius)) continue;
@@ -288,6 +289,36 @@ export function* scatterGroundChunks(tile: TileAddress | TerrainTile): Generator
       if (roll >= density || !dryFootprint(x, z, radius, litter, heights)) continue;
       result.push({ kind, variant, x, z, y: surfaceFrame(x, z, heights).y + (litter ? 0.018 : 0), scale, rotation });
       count++;
+    }
+  }
+  // Reuse accepted clumps: extra proposals remain in the deferred, yielding builder.
+  // The nearest point on the first-light trail is the same XZ as worldSpawn().
+  const firstLight = ZONES.find(zone => zone.id === "first-light")!;
+  const spawn = nearestPath(firstLight.position.x, firstLight.position.z);
+  const originals = result.slice();
+  const populations = new Map<GroundDetail["kind"], number>();
+  for (const item of originals) populations.set(item.kind, (populations.get(item.kind) ?? 0) + 1);
+  for (let i = 0; i < originals.length; i++) {
+    if (i % 16 === 0) yield;
+    const source = originals[i]!;
+    if (source.kind === "rock" || source.kind === "bush" || foliageBiomeAt(source.x, source.z) !== "forest-dawn") continue;
+    const path = nearestPath(source.x, source.z);
+    const spawnDistance = Math.hypot(source.x - spawn.x, source.z - spawn.z);
+    const influence = Math.max(Math.min(1, Math.max(0, (45 - spawnDistance) / 15)),
+      path.t < 0.24 ? Math.min(1, Math.max(0, (24 - path.distance) / 10)) : 0);
+    const random = randomFor(hash(`undergrowth:${source.kind}:${source.x}:${source.z}`));
+    for (let member = 0; member < 2; member++) {
+      if (random() > influence) continue;
+      const x = source.x + (random() - 0.5) * 1.4, z = source.z + (random() - 0.5) * 1.4;
+      const radius = groundRadius(source.kind), near = nearestPath(x, z);
+      if (x < ix * TILE_SIZE || x >= (ix + 1) * TILE_SIZE || z < iz * TILE_SIZE || z >= (iz + 1) * TILE_SIZE
+        || near.distance < PATH_CLEARANCE + radius + 0.02
+        || ZONES.some(zone => Math.hypot(x - zone.position.x, z - zone.position.z) < zone.radius + ZONE_CLEARANCE + radius)
+        || PATH_BRIDGES.some(bridge => near.t >= bridge.tStart && near.t <= bridge.tEnd && near.distance < 6 + radius)
+        || !dryFootprint(x, z, radius, source.kind === "leaf", heights)) continue;
+      if (populations.get(source.kind)! >= GROUND_LIMITS.High[source.kind]) continue;
+      populations.set(source.kind, populations.get(source.kind)! + 1);
+      result.push({ ...source, x, z, y: surfaceFrame(x, z, heights).y + (source.kind === "leaf" ? 0.018 : 0), rotation: random() * Math.PI * 2 });
     }
   }
   // A hard cap, independent of acceptance/rejection near pads and shorelines.
@@ -426,10 +457,10 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
         }
         mesh.setMatrixAt(mesh.count, transform.matrix);
         const root = kind === "leaf" ? dryTint : kind === "flower" ? new Color(PALETTE[item.variant ? "paper" : "flower"])
-          : kind === "grass" ? grassTint.clone().lerp(dryGrass, foliageBiomeAt(item.x, item.z) === "coast-dusk" ? 0.6 : 0) : white;
+          : kind === "grass" && foliageBiomeAt(item.x, item.z) === "forest-dawn" ? new Color(PALETTE.forestDeep) : kind === "grass" ? grassTint.clone().lerp(dryGrass, foliageBiomeAt(item.x, item.z) === "coast-dusk" ? 0.6 : 0) : white;
         mesh.setColorAt(mesh.count, root);
         mesh.geometry.getAttribute("groundVariant").setX(mesh.count, kind === "flower" ? 0 : item.variant);
-        const tip = kind === "grass" ? dryGrass : root;
+        const tip = kind === "grass" ? (foliageBiomeAt(item.x, item.z) === "forest-dawn" ? grassTint : dryGrass) : root;
         mesh.geometry.getAttribute("groundTip").setXYZ(mesh.count++, tip.r, tip.g, tip.b);
       }
     }

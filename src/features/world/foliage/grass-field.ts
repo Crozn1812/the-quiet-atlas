@@ -1,9 +1,9 @@
-import { BufferGeometry, Color, DoubleSide, DynamicDrawUsage, Float32BufferAttribute, Group, InstancedMesh, Object3D, Vector2 } from "three";
+import { BufferGeometry, Color, DoubleSide, DynamicDrawUsage, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D, Vector2 } from "three";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
 import type { Quality } from "../terrain";
 import { TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
-import { foliageBiomeAt, forestHillDistanceAt, isFoliageExcluded } from "./scatter";
+import { foliageBiomeAt, isFoliageExcluded } from "./scatter";
 
 // Lead render check (2026-11-06): single 5 cm blades at 0.5 m read as bare ground; one 4-blade tuft per
 // 0.7 m cell within 18/12 m reads as a meadow and stays under the 60k-triangle cap.
@@ -15,7 +15,7 @@ const S = GRASS_FIELD_SPACING;
 export function grassFieldAllowed(x: number, z: number): boolean {
   const biome = foliageBiomeAt(x, z);
   if (biome !== "hill" && biome !== "coast-dusk"
-    && !(biome === "forest-dawn" && forestHillDistanceAt(x, z) <= 12)) return false;
+    && biome !== "forest-dawn") return false;
   return [[0, 0], [-0.18, 0], [0.18, 0], [0, -0.18], [0, 0.18]].every(([dx, dz]) => {
     const px = x + dx!, pz = z + dz!;
     return !isFoliageExcluded(px, pz) && worldHeight(px, pz) > waterLevelAt(pz) + 0.15;
@@ -29,9 +29,11 @@ export function grassFieldBlade(cx: number, cz: number) {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
   };
-  return { x: (cx + 0.5) * S + (random() - 0.5) * 0.45,
-    z: (cz + 0.5) * S + (random() - 0.5) * 0.45,
-    height: 0.25 + random() * 0.35, yaw: random() * Math.PI * 2 };
+  const x = (cx + 0.5) * S + (random() - 0.5) * 0.45;
+  const z = (cz + 0.5) * S + (random() - 0.5) * 0.45;
+  const forest = foliageBiomeAt(x, z) === "forest-dawn";
+  return { forest, x, z,
+    height: forest ? 0.15 + random() * 0.2 : 0.25 + random() * 0.35, yaw: random() * Math.PI * 2 };
 }
 
 export function createGrassField(quality: Quality) {
@@ -57,6 +59,7 @@ export function createGrassField(quality: Quality) {
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  geometry.setAttribute("grassForest", new InstancedBufferAttribute(new Float32Array(capacity), 1));
   geometry.computeVertexNormals();
   const material = createRampMaterial(0xffffff);
   material.vertexColors = true;
@@ -68,20 +71,22 @@ export function createGrassField(quality: Quality) {
     rampCompile(shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
+attribute float grassForest;
 uniform vec2 grassCenter;
 uniform float grassRadius, grassTime, grassWind;`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 vec2 grassRoot = instanceMatrix[3].xz;
 float grassFade = 1.0 - smoothstep(grassRadius - 4.0, grassRadius, distance(grassRoot, grassCenter));
 transformed.xz += vec2(sin(grassTime * 1.7 + dot(grassRoot, vec2(0.37, 0.21))), 0.3) * position.y * position.y * 0.08 * grassWind;
-transformed *= grassFade;`);
+transformed *= grassFade;`)
+      .replace("#include <color_vertex>", `#include <color_vertex>
+if (grassForest > 0.5) vColor.rgb = mix(vec3(${new Color(PALETTE.forestDeep).toArray().join(",")}), vec3(${new Color(PALETTE.grass).toArray().join(",")}), position.y / 1.15);`);
   };
-  material.customProgramCacheKey = () => "grass-field-ramp-v1";
+  material.customProgramCacheKey = () => "grass-field-ramp-v2";
   const mesh = new InstancedMesh(geometry, material, capacity);
   mesh.instanceMatrix.setUsage(DynamicDrawUsage);
   mesh.frustumCulled = false;
-  // Hidden until the first update places grass: spawn is in the forest, so the first frame
-  // neither draws nor compiles this program (time to playable).
+  // Hidden until the deferred dressing update starts sampling; construction never fills cells.
   mesh.visible = false;
   mesh.receiveShadow = true;
   const group = new Group();
@@ -90,19 +95,20 @@ transformed *= grassFade;`);
   const transform = new Object3D();
   let cursor = 0, remaining = 0, centerX = Infinity, centerZ = Infinity;
   let disposed = false;
+  let started = false;
   /** Sampling is incremental (0.9 ms soft budget, at most 384 new cells/frame; ~2 s to fill on desktop).
    * Initial fill/teleports converge over several frames; retained cells never resample.
    * Call with the player/camera XZ, elapsed seconds and current motion preference.
    */
   function update(x: number, z: number, time: number, reducedMotion = false) {
     if (disposed || !radius) return { sampled: 0, pending: 0 };
-    const start = performance.now();
     uniforms.grassCenter.value.set(x, z);
     uniforms.grassTime.value = time;
     uniforms.grassWind.value = reducedMotion ? 0 : 1;
-    // Deep in the dawn forest no cell within reach can hold grass: skip the draw entirely.
-    mesh.visible = foliageBiomeAt(x, z) !== "forest-dawn" || forestHillDistanceAt(x, z) <= radius + 12;
-    if (!mesh.visible) return { sampled: 0, pending: remaining };
+    // Scene composition calls update once before the first render. Keep that frame free of dressing.
+    if (!started) { started = true; return { sampled: 0, pending: capacity }; }
+    const start = performance.now();
+    // Forest uses the same torus and incremental sampling budget as the meadow.
     const nx = Math.floor(x / S), nz = Math.floor(z / S);
     if (nx !== centerX || nz !== centerZ) {
       centerX = nx; centerZ = nz; remaining = capacity;
@@ -121,16 +127,22 @@ transformed *= grassFade;`);
       cellsX[slot] = cx; cellsZ[slot] = cz;
       const blade = grassFieldBlade(cx, cz);
       const allowed = grassFieldAllowed(blade.x, blade.z);
+      geometry.getAttribute("grassForest").setX(slot, blade.forest ? 1 : 0);
       transform.position.set(blade.x, allowed ? worldHeight(blade.x, blade.z) : 0, blade.z);
       transform.rotation.set(0, blade.yaw, 0);
       transform.scale.setScalar(allowed ? 1 : 0);
-      transform.scale.y *= blade.height;
+      transform.scale.y *= blade.height / (blade.forest ? 1.15 : 1);
       transform.updateMatrix();
       mesh.setMatrixAt(slot, transform.matrix);
       mesh.instanceMatrix.addUpdateRange(slot * 16, 16);
       sampled++;
     }
-    if (sampled) mesh.instanceMatrix.needsUpdate = true;
+    if (sampled) {
+      mesh.instanceMatrix.needsUpdate = true;
+      geometry.getAttribute("grassForest").needsUpdate = true;
+    }
+    // Compile/draw only after the deferred initial fill; retain visibility while scrolling.
+    if (!remaining) mesh.visible = true;
     return { sampled, pending: remaining };
   }
   // Unfilled slots must not render identity blades at the origin.

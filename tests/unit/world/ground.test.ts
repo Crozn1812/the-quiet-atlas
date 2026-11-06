@@ -1,4 +1,4 @@
-import { Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, ShaderLib, Vector3, type BufferGeometry, type WebGLRenderer } from "three";
+import { Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, ShaderLib, Scene, Vector3, type BufferGeometry, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import {
   createBroadleafBush, createFern, createGrassTuft, createGroundDetails, createRock, FERN_VARIANT_SEEDS, GRASS_VARIANT_SEEDS,
@@ -14,6 +14,10 @@ import type { Quality } from "../../../src/features/world/terrain";
 import { PATH_WIDTH, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { buildTile, TILE_SIZE, tilesAlongPath } from "../../../src/features/world/terrain/tiles";
+
+import { createWorldScene, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
+import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
+import { placeZoneScenes, zoneFoliageBounds } from "../../../src/features/world/zones";
 
 const route = tilesAlongPath(64);
 const scattered = route.map(tile => scatterGround(tile));
@@ -197,6 +201,31 @@ describe("ground shapes", () => {
 });
 
 describe("ground scatter", () => {
+  it.each([0.02, 0.15])("measures B2-223 verge at t=%s", t => {
+    const p = pathPointAt(t), a = pathPointAt(t - 0.0001), b = pathPointAt(t + 0.0001);
+    const length = Math.hypot(b.x - a.x, b.z - a.z);
+    const center = { x: p.x + (b.z - a.z) / length * -12, z: p.z - (b.x - a.x) / length * -12 };
+    const count = details.filter(item => Math.abs(item.x - center.x) <= 5 && Math.abs(item.z - center.z) <= 5).length;
+    const before = t === 0.02 ? 54 : 16; // Measured from the pre-ticket scatter, same seed/cell.
+    console.info("B2-223 verge before/after", t, before, count);
+    expect(count).toBeGreaterThanOrEqual(before * 2);
+    expect(count).toBeLessThanOrEqual(before * 3);
+    const ground = createGroundDetails(details.length);
+    try {
+      ground.setFocus(center.x, center.z);
+      ground.setTiles(details);
+      const matrix = new Matrix4();
+      let visible = 0;
+      for (const mesh of meshesOf(ground)) for (let i = 0; i < mesh.count; i++) {
+        mesh.getMatrixAt(i, matrix);
+        const position = new Vector3().setFromMatrixPosition(matrix);
+        if (Math.abs(position.x - center.x) <= 5 && Math.abs(position.z - center.z) <= 5) visible++;
+      }
+      expect(visible).toBeGreaterThanOrEqual(before * 2);
+      expect(renderedTriangles(meshesOf(ground))).toBeLessThanOrEqual(40_000);
+      console.info("B2-223 rendered", t, visible, "triangles", renderedTriangles(meshesOf(ground)));
+    } finally { ground.dispose(); }
+  });
   it("is deterministic across tile forms and invocation order, with no runtime random source", () => {
     const random = vi.spyOn(Math, "random").mockImplementation(() => { throw new Error("unseeded random"); });
     try {
@@ -220,7 +249,7 @@ describe("ground scatter", () => {
         const path = nearestPath(item.x, item.z), radius = groundRadius(item.kind);
         let valid = item.x >= tile.ix * TILE_SIZE && item.x < (tile.ix + 1) * TILE_SIZE
           && item.z >= tile.iz * TILE_SIZE && item.z < (tile.iz + 1) * TILE_SIZE;
-        if (item.kind === "leaf") valid &&= path.distance + radius <= PATH_WIDTH / 2 - 0.02 && foliageBiomeAt(item.x, item.z) === "forest-dawn";
+        if (item.kind === "leaf") valid &&= path.distance - radius >= PATH_CLEARANCE && foliageBiomeAt(item.x, item.z) === "forest-dawn";
         else if (item.kind === "grass" && path.distance - radius < PATH_CLEARANCE) valid &&= path.distance - radius >= PATH_WIDTH / 2 && maximumGrassHeight * item.scale < 0.3;
         else valid &&= path.distance - radius >= PATH_CLEARANCE;
         valid &&= ZONES.every(zone => Math.hypot(item.x - zone.position.x, item.z - zone.position.z) - radius >= zone.radius + ZONE_CLEARANCE);
@@ -234,7 +263,7 @@ describe("ground scatter", () => {
         if (item.kind === "fern") valid &&= item.scale >= 0.4 && item.scale <= 1
           && (foliageBiomeAt(item.x, item.z) === "forest-dawn" || Math.abs(nearestRiver(item.x, item.z).distance - 8) < 7.2);
         if (item.kind === "bush") valid &&= item.scale >= 0.6 && item.scale <= 1.4 && foliageBiomeAt(item.x, item.z) === "forest-dawn";
-        if (item.kind === "flower") valid &&= foliageBiomeAt(item.x, item.z) === "hill" || foliageBiomeAt(item.x, item.z) === "coast-dusk" && path.distance < 14;
+        if (item.kind === "flower") valid &&= foliageBiomeAt(item.x, item.z) === "forest-dawn" && item.variant === 1 || foliageBiomeAt(item.x, item.z) === "hill" || foliageBiomeAt(item.x, item.z) === "coast-dusk" && path.distance < 14;
         if (!valid) violations.push(item);
       }
     }
@@ -331,7 +360,7 @@ describe("ground instancing", () => {
     } finally { ground.dispose(); }
   });
 
-  it("renders thin palette-colored leaf decals within the path, seated on the real triangle surface", () => {
+  it("renders thin palette-colored leaf decals outside the path, seated on the real triangle surface", () => {
     const leaves = details.filter(item => item.kind === "leaf");
     expect(leaves.length).toBeGreaterThan(20);
     const ground = createGroundDetails(leaves.length);
@@ -346,7 +375,7 @@ describe("ground instancing", () => {
         expect(color.r).toBeCloseTo(tint.r, 6); expect(color.g).toBeCloseTo(tint.g, 6); expect(color.b).toBeCloseTo(tint.b, 6);
         for (let j = 0; j < p.count; j++) {
           vertex.fromBufferAttribute(p, j).applyMatrix4(matrix);
-          expect(nearestPath(vertex.x, vertex.z).distance).toBeLessThanOrEqual(1.6);
+          expect(nearestPath(vertex.x, vertex.z).distance).toBeGreaterThan(PATH_CLEARANCE);
           const offset = vertex.y - renderedHeight(vertex.x, vertex.z);
           expect(offset).toBeGreaterThan(0);
           expect(offset).toBeLessThan(0.03);
@@ -429,4 +458,24 @@ describe("ground instancing", () => {
     const empty = createGroundDetails(0);
     empty.setTiles([]); empty.setQuality("Low"); empty.dispose();
   });
+});
+
+describe("B2-223 resident High budget", () => {
+  it("keeps the fully dressed spawn world within 25 percent of the pre-ticket world", () => {
+    const zones = placeZoneScenes(surfaceHeight), scene = new Scene();
+    for (const zone of zones) scene.add(zone.group);
+    const world = createWorldScene({ ...createMeshPhysics(), scene, quality: "High",
+      zoneBounds: zoneFoliageBounds(zones), zoneBoxes: zones.flatMap(zone => zone.boxes) });
+    try {
+      for (let frame = 0; frame < 100; frame++) world.update(worldSpawn(), 0);
+      let triangles = 0;
+      scene.traverse(object => {
+        if (!(object instanceof InstancedMesh) && !("isMesh" in object)) return;
+        const mesh = object as InstancedMesh;
+        if (mesh.visible) triangles += triangleCount(mesh.geometry) * (mesh.isInstancedMesh ? mesh.count : 1);
+      });
+      console.info("B2-223 fully dressed High spawn triangles before/after", 176_025, triangles);
+      expect(triangles).toBeLessThanOrEqual(176_025 * 1.25);
+    } finally { world.dispose(); for (const zone of zones) zone.dispose(); }
+  }, 30_000);
 });
