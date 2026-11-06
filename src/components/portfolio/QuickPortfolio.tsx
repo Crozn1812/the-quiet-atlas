@@ -17,29 +17,38 @@ export function QuickPortfolio({ locale }: { locale: Locale }) {
     <main
       id="content"
       tabIndex={-1}
+      className="quick-portfolio"
     >
       <ProfileJsonLd locale={locale} />
-      <nav aria-label="Language">
-        <a
-          href="/en/quick/"
-          hrefLang="en"
-        >
-          English
-        </a>
-        <span>·</span>
-        <a
-          href="/vi/quick/"
-          hrefLang="vi"
-        >
-          Tiếng Việt
-        </a>
-      </nav>
-      <p>The Quiet Atlas / Quick Portfolio</p>
-      <ProfileContent locale={locale} />
-      <nav aria-label="Portfolio">
-        <a href={`/${locale}/`}>{t.home}</a>
-        <a href="/cv/">CV</a>
-      </nav>
+      <header className="quick-header">
+        <p className="quick-kicker">The Quiet Atlas · Quick Portfolio</p>
+        <div className="quick-introduction">
+          <ProfileContent locale={locale} />
+        </div>
+        <div className="quick-navigation">
+          <nav aria-label="Portfolio">
+            <a href={`/${locale}/`}>{t.home}</a>
+            <a href="/cv/">CV</a>
+            <a href={`mailto:${p.email}`}>{p.email}</a>
+          </nav>
+          <nav aria-label="Language">
+            <a
+              href="/en/quick/"
+              hrefLang="en"
+              aria-current={locale === "en" ? "page" : undefined}
+            >
+              English
+            </a>
+            <a
+              href="/vi/quick/"
+              hrefLang="vi"
+              aria-current={locale === "vi" ? "page" : undefined}
+            >
+              Tiếng Việt
+            </a>
+          </nav>
+        </div>
+      </header>
       <ProfileHistory profile={p} locale={locale} />
       <ProjectsContent locale={locale} />
       <a href={`/${locale}/privacy/`}>{portfolioCopy[locale].privacy}</a>

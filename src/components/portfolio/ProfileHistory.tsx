@@ -14,12 +14,14 @@ export function ProfileHistory({ profile, locale }: { profile: Profile; locale: 
       {profile.experience.length > 0 && (
         <section aria-labelledby="experience-title">
           <h2 id="experience-title">{vi ? "Kinh nghiệm" : "Experience"}</h2>
-          <ul>
+          <ul className="profile-timeline" role="list">
             {profile.experience.map((item, index) => (
               <li key={index}>
-                <h3>{item.employer} · {item.title}</h3>
-                <p>{monthLabel(item.start)} – {item.end === "present" ? (vi ? "nay" : "present") : monthLabel(item.end)}</p>
-                {item.summary !== "TBD" && <p>{item.summary}</p>}
+                <p className="profile-timeline-date">{monthLabel(item.start)} – {item.end === "present" ? (vi ? "nay" : "present") : monthLabel(item.end)}</p>
+                <div>
+                  <h3>{item.employer} · {item.title}</h3>
+                  {item.summary !== "TBD" && <p>{item.summary}</p>}
+                </div>
               </li>
             ))}
           </ul>
@@ -28,14 +30,16 @@ export function ProfileHistory({ profile, locale }: { profile: Profile; locale: 
       {profile.education.length > 0 && (
         <section aria-labelledby="education-title">
           <h2 id="education-title">{vi ? "Học vấn" : "Education"}</h2>
-          <ul>
+          <ul className="profile-timeline" role="list">
             {profile.education.map((item, index) => (
               <li key={index}>
-                <h3>{item.institution}</h3>
-                <p>{item.program}</p>
-                <p>{item.status === "in-progress"
+                <p className="profile-timeline-date">{item.status === "in-progress"
                   ? (vi ? "Dự kiến tốt nghiệp" : "Expected graduation")
                   : (vi ? "Đã tốt nghiệp" : "Graduated")}: {item.expectedGraduation}</p>
+                <div>
+                  <h3>{item.institution}</h3>
+                  <p>{item.program}</p>
+                </div>
               </li>
             ))}
           </ul>
