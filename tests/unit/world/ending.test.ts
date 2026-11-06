@@ -39,7 +39,10 @@ describe("ending camera route", () => {
     expect(wide.target.z).toBeLessThan(bench.z);
     expect(ending.sample(23).position.z).toBeLessThan(wide.position.z);
     expect(ending.sample(29).position).toEqual(ending.sample(31).position);
-    expect(ending.sample(29).target).toEqual(postcard);
+    // The postcard stays in the foreground while the lens looks out to the sunset.
+    const held = ending.sample(29);
+    expect(held.target.x).toBeGreaterThan(postcard.x);
+    expect(held.target.z).toBeLessThan(postcard.z);
     expect(ending.sample(29).sunsetBoost).toBe(1);
 
     const final = ending.finalFrame();

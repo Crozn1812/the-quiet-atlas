@@ -7,7 +7,7 @@ import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
 import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
-import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
+import { createWorldScene, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
 import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import { createDeferredZoneScenes, createZoneEntryTracker, zoneFoliageBounds } from "./zones";
@@ -34,13 +34,13 @@ import { nearestPath, nearestRiver } from "./terrain/samples";
 import { TERRAIN_RADIUS } from "./terrain/tiles";
 import { createIntroController } from "./cinematic/controller";
 import { createEndingController } from "./cinematic/ending-controller";
-import type { EndingFrame } from "./cinematic/ending";
+import { endingAtmosphere, type EndingFrame } from "./cinematic/ending";
 import { introAtmosphere, type IntroFrame } from "./cinematic/intro";
 import { SECRETS, nearestSecret } from "../story/secrets";
 import { initialStory, storyReducer } from "../story/story";
 import { POEM_TOGGLE, storyFeedbackText } from "../story/copy";
 import { createSecretLandmark, disposeLandmark } from "./props/secrets";
-import { applyCoastAtmosphere, lightingAt } from "./sky/grade";
+import type { WaterMaterial } from "./water/material";
 import { timeOfDayAt } from "./layout/lighting";
 import { createVehicleView } from "./vehicle/view";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
@@ -981,7 +981,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     camera.position.copy(pose.position);
     camera.lookAt(pose.target);
     camera.fov = pose.fov;
-    // The river overview is hundreds of metres above the gameplay camera.
+    if (playing) {
+      if (ending?.inputLocked && !reducedMotion && farLandscape && !farLandscape.mesh.visible) {
+        while (!farLandscape.build.next().done) { /* Existing single-mesh backdrop. */ }
+      }
+      // Set the transform before renderer traversal, as well as the dome's render hook.
+      const sky = scene.getObjectByName("position-graded-sky");
+      if (sky) { sky.position.copy(camera.position); sky.updateMatrixWorld(true); }
+    }
+    // Keep distant landscape inside the cinematic frustum.
     camera.far = playing ? Math.max(gameplayFar, 2000) : gameplayFar;
     camera.updateProjectionMatrix();
     // Lead: boost on top of direction C's mist (B2-038), not the pass default.
@@ -1029,6 +1037,19 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     else if (intro?.inputLocked) applyIntro(intro.skip());
   }
   function createCinematicUI(kind: "intro" | "ending") {
+    // HUD lives outside the viewport. Scope its visibility to this entry's cinematic state.
+    // The stylesheet is owned by the fade node and removed with the cinematic UI.
+    const hudStyle = document.createElement("style");
+    hudStyle.textContent = `
+      .world-entry .world-hud { transition: opacity 400ms ease, visibility 400ms; }
+      .world-entry:has([data-world-intro="playing"], [data-world-ending="playing"]) .world-hud {
+        opacity: 0; visibility: hidden; pointer-events: none;
+      }
+      .world-entry:has([data-world-intro="playing"], [data-world-ending="playing"]) [data-hud-keys],
+      [data-world-ending="playing"] [data-world-story-feedback],
+      [data-world-ending="playing"] [data-world-story-translate] { visibility: hidden; }
+      @media (prefers-reduced-motion: reduce) { .world-entry .world-hud { transition: none; } }
+    `;
     const cinematicColor = WORLD_DIRECTION === STYLE_PRESETS.R ? PALETTE.ink : PALETTE.paper;
     const bars = ["top", "bottom"].map(edge => {
       const bar = document.createElement("div");
@@ -1041,6 +1062,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const fade = document.createElement("div");
     fade.setAttribute("aria-hidden", "true");
     Object.assign(fade.style, { position: "absolute", inset: "0", background: cinematicColor, pointerEvents: "none", zIndex: "2" });
+    fade.appendChild(hudStyle);
     container.appendChild(fade);
     const skip = document.createElement("button");
     skip.type = "button";
@@ -1124,16 +1146,14 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function updateEndingGrade() {
     if (!sunsetBoost) return;
-    const pathT = nearestPath(physics.position.x, physics.position.z).t;
-    const base = timeOfDayAt(pathT);
-    const tod = base + (1 - base) * sunsetBoost;
-    // B2-155: the ending happens on the coast; keep the same sunset atmosphere compose applies.
-    const grade = applyCoastAtmosphere(directGrade(lightingAt(tod), tod), pathT);
+    // Tick reapplies the player's grade after applyEnding; restore the lens's coast here.
+    const grade = endingAtmosphere(camera.position, sunsetBoost);
     paper.setGrade(grade);
     scene.fog?.color.copy(grade.fogColor);
     sun.color.copy(grade.sunColor);
     sun.intensity = grade.sunIntensity;
-    sun.position.copy(physics.position).addScaledVector(grade.sunDirection, 50);
+    sun.target.position.copy(camera.position);
+    sun.position.copy(camera.position).addScaledVector(grade.sunDirection, 50);
     // Compose owns these scene resources; update their existing uniforms/lights.
     const sky = scene.getObjectByName("position-graded-sky") as Mesh | undefined;
     if (sky) {
@@ -1142,6 +1162,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       uniforms.skyHorizon!.value.copy(grade.skyHorizon);
       // B2-162: the sky dome draws the sun disc/glow; keep it on the ending's sun.
       uniforms.sunDirection?.value.copy(grade.sunDirection);
+      uniforms.sunGlow?.value.copy(grade.sunColor);
+      if (uniforms.coastWeight) uniforms.coastWeight.value = grade.coastWeight ?? 0;
+      const dusk = new Color(PALETTE.cloud).lerp(new Color(PALETTE.indigo), 0.5).lerp(new Color(PALETTE.vermilion), 0.13);
+      uniforms.cloud?.value.set(PALETTE.cloud).lerp(grade.skyTop, 0.25).lerp(grade.sunColor, 0.12).lerp(dusk, grade.coastWeight ?? 0);
+      uniforms.cloudBase?.value.set(PALETTE.cloud).lerp(new Color(PALETTE.indigo), 0.7)
+        .lerp(new Color(PALETTE.vermilion), 0.18).lerp(grade.skyHorizon, 0.06 + 0.12 * (grade.coastWeight ?? 0))
+        .lerp(grade.sunColor, 0.03 + 0.12 * (grade.coastWeight ?? 0));
+    }
+    for (const object of scene.children) if (object.name.startsWith("painted-sea-")) {
+      const material = (object as Mesh).material as WaterMaterial;
+      material.setGrade(grade);
+      material.setSkyMix(0.35);
     }
     for (const light of scene.children) if (light instanceof HemisphereLight) {
       light.color.copy(grade.hemiSky);

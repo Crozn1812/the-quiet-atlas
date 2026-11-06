@@ -275,6 +275,23 @@ it.each(["Escape", "Enter"])("skips with %s while the Skip button has focus", as
   expect(container.dataset.worldIntro).toBe("done");
 });
 
+it("scopes dock/key-hint suppression to active cinematics and removes it at handoff", async () => {
+  await mount();
+  const style = elements.find(element => element.tagName === "style")!;
+  expect(style.parent?.parent).toBe(container);
+  const rules = style.textContent;
+  for (const state of ['data-world-intro="playing"', 'data-world-ending="playing"']) {
+    expect(rules).toContain(state);
+  }
+  expect(rules).toMatch(/\.world-hud\s*\{\s*opacity: 0; visibility: hidden; pointer-events: none;/);
+  expect(rules).toMatch(/\[data-hud-keys\][\s\S]*visibility: hidden/);
+  expect(rules).toMatch(/\[data-world-ending="playing"\] \[data-world-story-feedback\][\s\S]*visibility: hidden/);
+  expect(rules).toContain("prefers-reduced-motion: reduce");
+  send(skipButton()!, "click");
+  expect(container.dataset.worldIntro).toBe("done");
+  expect(container.children).not.toContain(style.parent);
+});
+
 it("preserves outside focus at start and ignores Enter away from Skip", async () => {
   const outside = new Element("button");
   doc.activeElement = outside;

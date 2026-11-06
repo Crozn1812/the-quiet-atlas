@@ -17,7 +17,7 @@ it("retains the gameplay dawn dome above the intro camera without writing fog de
     expect(sky.mesh.material.depthWrite).toBe(false);
     expect(sky.mesh.material.depthTest).toBe(false);
     expect(sky.mesh.material.uniforms.skyTop!.value.equals(sky.mesh.material.uniforms.skyHorizon!.value)).toBe(false);
-    for (const time of [1, 5, 10, 15]) {
+    for (const time of [0, 1.5, 4, 7, 10, 15]) {
       const frame = createIntro(gameplay).sample(time);
       const camera = new PerspectiveCamera(frame.fov, 16 / 9, 0.1, 2000);
       camera.position.copy(frame.position);
@@ -35,7 +35,7 @@ it("covers all below-horizon corner and centre rays with far landscape", () => {
   landscape.mesh.raycast = Mesh.prototype.raycast;
   try {
     expect(landscape.mesh.visible).toBe(true);
-    for (const time of [1, 5, 10, 15]) for (const aspect of [1, 16 / 9]) {
+    for (const time of [0, 1.5, 4, 7, 10, 15]) for (const aspect of [1, 16 / 9]) {
       const frame = createIntro(gameplay).sample(time);
       const camera = new PerspectiveCamera(frame.fov, aspect, 0.1, 2000);
       camera.position.copy(frame.position);
@@ -54,13 +54,13 @@ it("covers all below-horizon corner and centre rays with far landscape", () => {
   } finally { landscape.dispose(); }
 });
 
-it("glides upstream at 8–20 m with sky in the upper quarter to third throughout 8–15 s", () => {
+it("glides above the 18 m pines with an 18 m margin and sky in the upper quarter to third at 8–15 s", () => {
   const intro = createIntro(gameplay);
   for (let time = 8; time <= 15; time += 1 / 60) {
     const frame = intro.sample(time);
     const altitude = frame.position.y - worldHeight(frame.position.x, frame.position.z);
-    expect(altitude).toBeGreaterThanOrEqual(8);
-    expect(altitude).toBeLessThanOrEqual(20);
+    expect(altitude).toBeGreaterThanOrEqual(36);
+    expect(altitude).toBeLessThanOrEqual(40);
     const direction = frame.target.clone().sub(frame.position).normalize();
     expect(direction.z).toBeGreaterThan(0);
     const depression = Math.asin(-direction.y);

@@ -3,9 +3,19 @@ import { pathPointAt } from "../layout/path";
 import { riverPointAt } from "../layout/river";
 import { ZONES } from "../layout/zones";
 import { waterLevelAt, worldHeight } from "../terrain/height";
+import { nearestPath } from "../terrain/samples";
+import { timeOfDayAt } from "../layout/lighting";
+import { applyCoastAtmosphere, lightingAt } from "../sky/grade";
 import { CAMERA_CLEARANCE, ease, type CameraPose, type IntroFrame } from "./intro";
 
 export const ENDING_DURATION = 36;
+
+/** The lens travels beyond the bench while the player remains still until handoff. */
+export function endingAtmosphere(position: Readonly<Vector3>, sunsetBoost: number) {
+  const pathT = nearestPath(position.x, position.z).t;
+  const base = timeOfDayAt(pathT);
+  return applyCoastAtmosphere(lightingAt(base + (1 - base) * sunsetBoost), pathT);
+}
 
 export interface EndingFrame extends IntroFrame {
   /** Additional sunset grade intensity, normalized to [0, 1]. */
@@ -70,13 +80,15 @@ export function createEnding({ bench, gameplayPose }: EndingOptions) {
   const mouth = riverPointAt(1);
   mouth.y = waterLevelAt(mouth.z) + 0.6;
   const coastTarget = seated.clone().lerp(mouth, 0.65);
-  const arrival = postcardTarget.clone().add(new Vector3(16, 10, 18));
+  // Approach from inland, facing the low sunset across the postcard into open water.
+  const arrival = postcardTarget.clone().add(new Vector3(-24, 7, 18));
+  const sunsetTarget = arrival.clone().add(new Vector3(80, -12, -60));
   const shots = [
     { start: 0, end: 5, from: close, to: detail, lookFrom: seated, lookTo: seated, fovFrom: 46, fovTo: 46 },
     { start: 5, end: 17, from: detail, to: wide, lookFrom: seated, lookTo: coastTarget, fovFrom: 46, fovTo: 58 },
-    { start: 17, end: 29, from: wide, to: arrival, lookFrom: coastTarget, lookTo: postcardTarget, fovFrom: 58, fovTo: 50 },
-    { start: 29, end: 32, from: arrival, to: arrival, lookFrom: postcardTarget, lookTo: postcardTarget, fovFrom: 50, fovTo: 50 },
-    { start: 32, end: ENDING_DURATION, from: arrival, to: end.position, lookFrom: postcardTarget, lookTo: end.target, fovFrom: 50, fovTo: end.fov },
+    { start: 17, end: 29, from: wide, to: arrival, lookFrom: coastTarget, lookTo: sunsetTarget, fovFrom: 58, fovTo: 50 },
+    { start: 29, end: 32, from: arrival, to: arrival, lookFrom: sunsetTarget, lookTo: sunsetTarget, fovFrom: 50, fovTo: 50 },
+    { start: 32, end: ENDING_DURATION, from: arrival, to: end.position, lookFrom: sunsetTarget, lookTo: end.target, fovFrom: 50, fovTo: end.fov },
   ].map(shot => ({ ...shot, position: spline(shot.from, shot.to), target: spline(shot.lookFrom, shot.lookTo) }));
 
   function finalFrame(): EndingFrame {
