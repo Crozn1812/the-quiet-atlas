@@ -53,7 +53,7 @@ import { ambienceMixAt } from "../audio/mix";
 import { updateFoliageWind } from "./foliage/instances";
 
 declare global {
-  interface Window { __tqaSkipIntro?: boolean }
+  interface Window { __tqaSkipIntro?: boolean; __tqaJourney?: boolean }
 }
 /** Path metres streamed ahead during the opening overview (covers the river bends it shows). */
 const INTRO_PRELOAD_M = 600;
@@ -434,6 +434,21 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z)
         < Math.hypot(physics.position.x - nearest.position.x, physics.position.z - nearest.position.z) ? zone : nearest);
   }
+  // Opt-in observation only: no per-frame work or controller/camera references escape.
+  const journeyContainer = container as HTMLElement & { __tqaJourney?: {
+    position(): { x: number; y: number; z: number };
+    cameraYaw(): number;
+    zone(): string | null;
+  } };
+  const journey = window.__tqaJourney === true ? Object.freeze({
+    position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
+    cameraYaw: () => yaw,
+    zone: () => {
+      const zone = nearestZone();
+      return Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius ? zone.id : null;
+    },
+  }) : undefined;
+  if (journey) journeyContainer.__tqaJourney = journey;
   function updateMascotHint(dt: number) {
     if (canSimulate(state)) mascotTime += dt;
     if (cinematicLocked()) { clearMascotHint(); return; }
@@ -1254,6 +1269,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   return () => {
     if (disposed) return;
     disposed = true;
+    if (journey && journeyContainer.__tqaJourney === journey) delete journeyContainer.__tqaJourney;
     removeCinematicUI();
     clearTimeout(feedbackTimer);
     feedback.remove();

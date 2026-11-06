@@ -126,7 +126,7 @@ function send(target: EventTarget, type: string, properties: object = {}) {
   return event;
 }
 let doc: TrackedTarget & { activeElement: Element | null; hidden: boolean; body: Element; hasFocus: () => boolean; createElement: (tag: string) => Element };
-let win: TrackedTarget & { __tqaSkipIntro?: boolean };
+let win: TrackedTarget & { __tqaSkipIntro?: boolean; __tqaJourney?: boolean };
 let media: TrackedTarget & { matches: boolean };
 let container: Element;
 let canvas: Element;
@@ -263,6 +263,53 @@ it("reads the test flag without changing it and enters done immediately", async 
   expect(skipButton()).toBeUndefined();
   expect(win.__tqaSkipIntro).toBe(true);
   expect(camera().position.distanceTo(harness.firstPose!.position)).toBe(0);
+});
+
+type Journey = { position(): { x: number; y: number; z: number }; cameraYaw(): number; zone(): string | null };
+const journey = () => (container as Element & { __tqaJourney?: Journey }).__tqaJourney;
+
+it.each([undefined, false])("does not install journey observation with flag %s", async flag => {
+  win.__tqaJourney = flag;
+  await mount();
+  expect(Object.hasOwn(container, "__tqaJourney")).toBe(false);
+  win.__tqaJourney = true; // Setting it after mount must not install a hook.
+  advance();
+  expect(journey()).toBeUndefined();
+});
+
+it("exposes live journey snapshots and yaw without allowing controller mutation", async () => {
+  win.__tqaJourney = true;
+  win.__tqaSkipIntro = true;
+  await mount();
+  const hook = journey()!;
+  expect(Object.keys(hook).sort()).toEqual(["cameraYaw", "position", "zone"]);
+  expect(Object.isFrozen(hook)).toBe(true);
+  expect(hook.position()).toEqual({ x: position().x, y: position().y, z: position().z });
+  const snapshot = hook.position();
+  snapshot.x += 100;
+  expect(hook.position().x).toBe(position().x);
+  const { ZONES } = await import("../../../src/features/world/layout/zones");
+  position().copy(ZONES.find(zone => zone.id === "workshop")!.position);
+  expect(hook.zone()).toBe("workshop");
+  position().set(100_000, 100, 100_000);
+  expect(hook.zone()).toBeNull();
+  const yaw = hook.cameraYaw();
+  send(win, "keydown", { code: "ArrowLeft" });
+  advance();
+  expect(hook.cameraYaw()).toBeGreaterThan(yaw);
+  expect(win.__tqaJourney).toBe(true);
+});
+
+it("removes the journey hook on idempotent cleanup and can mount it again", async () => {
+  win.__tqaJourney = true;
+  await mount();
+  const first = journey();
+  expect(first).toBeDefined();
+  unmount!(); unmount!();
+  expect(Object.hasOwn(container, "__tqaJourney")).toBe(false);
+  await mount();
+  expect(journey()).toBeDefined();
+  expect(journey()).not.toBe(first);
 });
 
 it("waits for the initial pause and freezes camera, mist and letterbox during a playing pause", async () => {
