@@ -17,3 +17,9 @@
 
 - Mọi cây `trailCanopy`: scale/heightScale/lean trong giới hạn trên; khoảng cách thân → tâm lối ≥ PATH_WIDTH/2 + 2,5 m; không cây nào trong 12 m quanh `pathPointAt(0)`.
 - Test foliage cũ pass.
+
+### Lead trả lời (2026-11-06)
+
+- **Được sửa thêm `src/features/world/foliage/instances.ts`** (B2-194 đã merge): tách thân đứng khỏi tán vươn cho cây vòm (shear chỉ áp phần tán, thân thẳng ≤ 6°).
+- Ý đồ giữ nguyên: tán **vẫn vươn che lối** như ảnh rừng của Duy; chỉ thân không được to/nghiêng như cột. Cập nhật test "phủ tâm lối" theo tán vươn (không được giảm về 0/72; mục tiêu ≥ 25/72).
+- Worktree cần rebase lên main mới (đã có B2-194). Lead đã rebase.
