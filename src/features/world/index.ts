@@ -10,7 +10,7 @@ import { PRESETS, type Quality } from "./terrain";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
 import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
-import { createZoneEntryTracker, placeZoneScenes, zoneFoliageBounds } from "./zones";
+import { createDeferredZoneScenes, createZoneEntryTracker, zoneFoliageBounds } from "./zones";
 import { createForestSunShafts } from "./zones/first-light";
 import { placeDressing } from "./dressing";
 import { createFarLandscape, GAMEPLAY_FAR } from "./scene/far-landscape";
@@ -83,7 +83,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let composition: ReturnType<typeof createWorldScene> | undefined;
   let paperPass: ReturnType<typeof createGradedPaperPass> | undefined;
   let renderer: WebGLRenderer | undefined;
-  let zones: ReturnType<typeof placeZoneScenes> = [];
+  let zoneScenes: ReturnType<typeof createDeferredZoneScenes> | undefined;
+  let zones: NonNullable<typeof zoneScenes>["zones"] = [];
+  const zoneMeshes: Mesh[] = [];
+  const contentTargets: (typeof zones)[number]["target"][] = [];
+  const interactionTargets: InteractionTarget[] = [];
   let dressing: ReturnType<typeof placeDressing> | undefined;
   let removeDressingTrimeshes: (() => void) | undefined;
   let forestSun: ReturnType<typeof createForestSunShafts> | undefined;
@@ -105,9 +109,22 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       ? createMeshPhysics()
       : await (await import("./rapier")).createController(undefined, [], { streamed: true });
     if ("step" in physicsBackend) controller = physicsBackend;
-    zones = measure("zones", () => placeZoneScenes(surfaceHeight));
+    zoneScenes = measure("zones", () => createDeferredZoneScenes(surfaceHeight, zone => {
+      scene.add(zone.group);
+      addZoneColliders(zone.boxes);
+      fixedMeshes.push(...zone.boxes);
+      // Both backends retain this array; new obstacles are effective before ensure returns.
+      composition?.collisionMeshes.push(...zone.boxes);
+      zoneBounds.push(...zoneFoliageBounds([zone]));
+      contentTargets.push(zone.target);
+      interactionTargets.push(zone.target);
+      zone.group.traverse(object => { if ((object as Mesh).isMesh) zoneMeshes.push(object as Mesh); });
+    }));
+    zones = zoneScenes.zones;
     dressing = measure("dressing", () => placeDressing({ deferred: true }));
     const zoneBoxes = [...zones.flatMap(zone => zone.boxes), ...dressing.boxes];
+    const fixedMeshes: Mesh[] = [...zoneBoxes, ...dressing.surfaces];
+    const zoneBounds = zoneFoliageBounds(zones);
     for (const zone of zones) scene.add(zone.group);
     for (const group of dressing.groups) scene.add(group);
     // B2-179: the first playable frame only needs the nearby world and fixed colliders.
@@ -126,23 +143,27 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     dressing.defer(farLandscape.build);
     dressing.startDeferred(() => container.dataset.worldIntro === "done");
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
-    if (opts.collision !== "raycast") for (const box of zoneBoxes) {
-      const size = box.geometry.parameters;
-      physicsBackend.world.createCollider(physicsBackend.RAPIER.ColliderDesc.cuboid(size.width / 2, size.height / 2, size.depth / 2)
-        .setTranslation(box.position.x, box.position.y, box.position.z).setRotation(box.quaternion));
+    function addZoneColliders(boxes: typeof zoneBoxes) {
+      if (opts.collision === "raycast") return;
+      for (const box of boxes) {
+        const size = box.geometry.parameters;
+        physicsBackend.world.createCollider(physicsBackend.RAPIER.ColliderDesc.cuboid(size.width / 2, size.height / 2, size.depth / 2)
+          .setTranslation(box.position.x, box.position.y, box.position.z).setRotation(box.quaternion));
+      }
     }
+    addZoneColliders(zoneBoxes);
     // B2-168: bridge decks and rails are trimeshes in Rapier; the raycast backend gets matching meshes below.
     if (opts.collision !== "raycast") removeDressingTrimeshes = addBridgeColliders(physicsBackend.RAPIER, physicsBackend.world, dressing.trimeshes);
     renderer = new WebGLRenderer({ antialias: true });
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, PRESETS[quality].dpr));
     paperPass = createGradedPaperPass(renderer, quality);
-    composition = measure("composition", () => createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: [...zoneBoxes, ...dressing!.surfaces], zoneBounds: zoneFoliageBounds(zones) }));
+    composition = measure("composition", () => createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: fixedMeshes, zoneBounds }));
     if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
     controller.teleport(worldSpawn());
   } catch (error) {
     dressing?.dispose();
-    zones.forEach(zone => zone.dispose());
+    zoneScenes?.dispose();
     removeDressingTrimeshes?.();
     forestSun?.dispose();
     farLandscape?.dispose();
@@ -202,7 +223,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     scene.add(mesh);
     return mesh;
   }
-  const contentTargets = zones.map(zone => zone.target);
+  contentTargets.push(...zones.map(zone => zone.target));
   const props = SIGNPOSTS.map(post => {
     const mesh = placeProp("signpost", post.position.x, post.position.z, `teleport-${post.zoneId}`);
     return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh };
@@ -330,13 +351,13 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let belowTerrainFrames = 0;
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
-  const zoneMeshes: Mesh[] = [];
   zones.forEach(zone => zone.group.traverse(object => { if ((object as Mesh).isMesh) zoneMeshes.push(object as Mesh); }));
   const cameraObstacles = () => [...composed.collisionMeshes, ...zoneMeshes, ...props.map(prop => prop.mesh), ...secretMeshes];
   const sightRay = new Raycaster();
+  interactionTargets.push(...contentTargets, ...props, ...secretTargets, vehicleTarget);
   const interaction = createInteraction({
     container,
-    targets: [...contentTargets, ...props, ...secretTargets, vehicleTarget],
+    targets: interactionTargets,
     locale: () => locale,
     player: () => physics.position,
     enabled: cameraEnabled,
@@ -845,6 +866,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const result = teleport.tick(dt);
     // Navigation emits arrival at completion; move under the opaque paper at the moving boundary.
     if (result.transitions.includes("moving") && destination) {
+      zoneScenes!.ensure(destination);
       const arrival = arrivalPoint(destination);
       const position = new Vector3(arrival.position.x, surfaceHeight(arrival.position.x, arrival.position.z) + HEIGHT + 0.02, arrival.position.z);
       composed.update(position, 0);
@@ -1093,6 +1115,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     startIntro();
     if (cameraEnabled()) yaw = wrapYaw(yaw + (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) * KEY_YAW_SPEED * dt);
     if (canSimulate(state) && !cinematicLocked() && !teleport.inputLocked) {
+      // Idle callbacks can be delayed by a busy tab. Never approach a zone without its colliders.
+      const playerT = nearestPath(physics.position.x, physics.position.z).t;
+      for (const zone of ZONES) if (Math.abs(zone.t - playerT) * pathLength() <= 60) zoneScenes!.ensure(zone.id);
       const plan = limitSteps(accumulator, last ? (now - last) / 1000 : 0);
       accumulator = plan.remainder;
       for (let i = 0; i < plan.steps; i++) {
@@ -1147,7 +1172,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   gpu.domElement.addEventListener("webglcontextlost", loseContext);
   updateCamera(FIXED_DT);
-  const trackZoneEntry = createZoneEntryTracker();
+  const trackZoneEntry = createZoneEntryTracker(id => zones.some(zone => zone.zoneId === id));
   const introOptions = {
     gameplayPose: { position: camera.position, target: physics.position, fov: camera.fov },
     reducedMotion,
@@ -1222,6 +1247,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   player.position.copy(physics.position);
   paper.render(scene, camera);
   startIntro();
+  zoneScenes.startDeferred(() => container.dataset.worldIntro === "done" && !document.hidden && !contextLost);
   if (!document.hidden) frame = requestAnimationFrame(tick);
   return () => {
     if (disposed) return;
@@ -1279,7 +1305,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     motionPreference?.removeEventListener("change", updateMotionPreference);
     dressing?.dispose();
     composed.dispose();
-    zones.forEach(zone => zone.dispose());
+    zoneScenes?.dispose();
     removeDressingTrimeshes?.();
     forestSun?.dispose();
     farLandscape?.dispose();

@@ -131,6 +131,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let streamingError: unknown;
   // B2-047: one shared set of grass/rock instances (<= 5 draw calls) for every resident tile.
   const groundCache = new Map<string, GroundDetail[]>();
+  let zoneBoundsCount = zoneBounds.length;
   let ground = createGroundDetails(4096);
   let groundCapacity = 4096;
   const clearOfZones = (point: { x: number; z: number }) => !zoneBounds.some(box =>
@@ -206,7 +207,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       throw error;
     }
     return {
-      trunks, foliage, setQuality: setCellQuality,
+      trees, trunks, foliage, setQuality: setCellQuality,
       fade(camera: Vector3, player: Vector3, dt: number) {
         for (const [index, visible] of visibleTrees.entries()) {
           // The spring arm is <=16 m. Only nearby crowns can cover its sight lines.
@@ -295,6 +296,16 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
 
   function update(player: Vector3, dt: number) {
     if (disposed) return;
+    // Deferred zones append bounds. Rebuild only foliage cells that now overlap their solids;
+    // filtering cached ground preserves the synchronous scatter order and instance selection.
+    if (zoneBounds.length !== zoneBoundsCount) {
+      for (const [key, cell] of cells) if (cell.trees.some(tree => !treeClearOfZones(tree))) {
+        cell.dispose(); cells.delete(key);
+      }
+      for (const [key, items] of groundCache) groundCache.set(key, items.filter(clearOfZones));
+      zoneBoundsCount = zoneBounds.length;
+      lastT = -Infinity;
+    }
     const { t } = nearestPath(player.x, player.z);
     if (Math.abs(t - lastT) * pathLength() >= 8) {
       try {

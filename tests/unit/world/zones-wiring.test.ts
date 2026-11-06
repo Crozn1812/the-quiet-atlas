@@ -3,7 +3,7 @@ import { InstancedMesh, Matrix4, Mesh, PerspectiveCamera, Scene, Vector3 } from 
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { ZONE_IDS } from "../../../src/features/interaction/targets";
 import { HEIGHT } from "../../../src/features/world/scene";
-import { placeZoneScenes, zoneFoliageBounds, createZoneEntryTracker } from "../../../src/features/world/zones";
+import { placeZoneScenes, zoneFoliageBounds, createZoneEntryTracker, SPAWN_ZONE_IDS } from "../../../src/features/world/zones";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
 // Builds all eight real scenes plus the composer; under a parallel full suite this exceeds the 5 s default
 // (5.04 s observed). Harness limit only, like the contract test (L4-010) — not a performance gate.
@@ -35,9 +35,9 @@ vi.mock("../../../src/features/world/scene/compose", async original => ({
   surfaceHeight: () => 100,
   worldSpawn: () => new Vector3(ZONES[0]!.position.x, 100 + HEIGHT, ZONES[0]!.position.z),
   createWorldScene: ({ zoneBoxes }: { zoneBoxes: Mesh[] }) => {
-    h.collisionMeshes = zoneBoxes;
+    h.collisionMeshes = [...zoneBoxes];
     return ({
-    sun: { castShadow: false }, collisionMeshes: zoneBoxes, visibleMeshes: [], foliageMeshes: [],
+    sun: { castShadow: false }, collisionMeshes: h.collisionMeshes, visibleMeshes: [], foliageMeshes: [],
     update() {}, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload() {}, dispose() {}, setReducedMotion: h.reduced,
   }); },
 }));
@@ -48,10 +48,13 @@ vi.mock("../../../src/features/world/raycast", () => ({ createController: async 
 } }));
 vi.mock("../../../src/features/world/zones", async original => {
   const actual = await original<typeof import("../../../src/features/world/zones")>();
-  return { ...actual, placeZoneScenes: (height: (x: number, z: number) => number) => {
-    const zones = actual.placeZoneScenes(height);
-    zones.forEach(zone => { zone.update = vi.fn(zone.update); zone.dispose = vi.fn(zone.dispose); });
-    h.zones = zones; return zones;
+  const observe = (zone: typeof h.zones[number]) => {
+    zone.update = vi.fn(zone.update); zone.dispose = vi.fn(zone.dispose);
+  };
+  return { ...actual, createDeferredZoneScenes: (...args: Parameters<typeof actual.createDeferredZoneScenes>) => {
+    const deferred = actual.createDeferredZoneScenes(args[0], zone => { observe(zone); args[1](zone); });
+    deferred.zones.forEach(observe);
+    h.zones = deferred.zones; return deferred;
   } };
 });
 vi.mock("../../../src/features/world/character/loader", async () => {
@@ -109,8 +112,12 @@ beforeEach(() => {
 afterEach(() => { unmount?.(); unmount = undefined; vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 it("places eight groups at anchors, aims +Z along the path and opens every localized target via E and click", async () => {
+  const clock = deferredClock();
   await mount();
+  expect(h.zones.map(zone => zone.zoneId)).toEqual(SPAWN_ZONE_IDS);
+  vi.advanceTimersByTime(16); clock.paint(); vi.runAllTimers();
   expect(h.zones.map(zone => zone.zoneId).sort()).toEqual([...ZONE_IDS].sort());
+  expect(h.zones.flatMap(zone => zone.boxes).every(box => h.collisionMeshes.includes(box))).toBe(true);
   const opened: CustomEvent[] = [];
   container.addEventListener("tqa:open-content", event => opened.push(event as CustomEvent));
   for (const zone of h.zones) {
@@ -135,7 +142,8 @@ it("places eight groups at anchors, aims +Z along the path and opens every local
 });
 
 it("freezes all eight zone updates on pause, overrides OS motion for zones/water/idle/mascot, and disposes once", async () => {
-  await mount(); tick(); tick();
+  const clock = deferredClock();
+  await mount(); vi.advanceTimersByTime(16); clock.paint(); vi.runAllTimers(); tick(); tick();
   expect(h.zones.every(zone => vi.mocked(zone.update!).mock.lastCall![0] > 0)).toBe(true);
   send(container, "tqa:pause", { reason: "overlay", paused: true }); tick();
   expect(h.zones.every(zone => vi.mocked(zone.update!).mock.lastCall![0] === 0)).toBe(true);
@@ -166,6 +174,43 @@ it("suppresses zone-enter throughout intro and changes an active intro to the re
   expect(entered[0]!.bubbles).toBe(false);
 });
 
+it("ensures a distant teleport destination, its collisions and content before arrival without running idle work", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  await mount();
+  const entered: CustomEvent[] = [];
+  const opened: CustomEvent[] = [];
+  container.addEventListener("tqa:zone-enter", event => entered.push(event as CustomEvent));
+  container.addEventListener("tqa:open-content", event => opened.push(event as CustomEvent));
+  const post = (h.scene as Scene).getObjectByName("teleport-first-light")!;
+  position().copy(post.position).add(new Vector3(1.5, 0, 0)); tick(); key();
+  expect(container.dataset.worldTeleport).toBe("active");
+  send(container, "tqa:teleport-to", { to: "last-postcard" });
+  expect(h.zones.map(zone => zone.zoneId)).toEqual(SPAWN_ZONE_IDS);
+  for (let i = 0; i < 20; i++) tick();
+  expect(container.dataset.worldTeleport).toBe("idle");
+  const destination = h.zones.find(zone => zone.zoneId === "last-postcard")!;
+  expect(h.zones).toHaveLength(4);
+  expect(destination.group.parent).toBe(h.scene);
+  expect(destination.boxes.every(box => h.collisionMeshes.includes(box))).toBe(true);
+  expect(entered.some(event => event.detail.zoneId === "last-postcard")).toBe(true);
+  position().copy(destination.target.position); tick(); key();
+  expect(opened.at(-1)!.detail).toEqual({ zoneId: "last-postcard" });
+  unmount!(); unmount = undefined;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("ensures colliders before walking or riding into a zone when idle work has been delayed", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  await mount();
+  expect(h.zones).toHaveLength(3);
+  const milestones = ZONES.find(zone => zone.id === "milestones")!;
+  position().set(milestones.position.x, 100 + HEIGHT, milestones.position.z);
+  tick();
+  const placed = h.zones.find(zone => zone.zoneId === "milestones")!;
+  expect(placed.boxes.every(box => h.collisionMeshes.includes(box))).toBe(true);
+  expect(h.zones).toHaveLength(4);
+});
+
 it("applies the 4 m hysteresis independently at all eight zones", () => {
   // Workshop and Roots overlap (t 0.14 / 0.19), so each zone gets a fresh tracker (Lead, B2-100).
   for (const zone of ZONES) {
@@ -178,6 +223,14 @@ it("applies the 4 m hysteresis independently at all eight zones", () => {
     track(p(zone.radius + 4.01), true);
     expect(track(p(0), true)).toContain(zone.id);
   }
+});
+
+it("builds an explicit group without constructing the other zones", () => {
+  const nearby = placeZoneScenes(() => 100, ["first-light", "workshop", "roots"]);
+  try {
+    expect(nearby.map(zone => zone.zoneId)).toEqual(["first-light", "workshop", "roots"]);
+    expect(nearby.every(zone => zone.boxes.length > 0 && zone.target.root === zone.group)).toBe(true);
+  } finally { nearby.forEach(zone => zone.dispose()); }
 });
 
 it("grounds all eight real scenes, keeps fixed colliders across qualities and excludes streamed trees/grass", async () => {
@@ -226,11 +279,12 @@ it("reports mount construction timings", async () => {
 function deferredClock() {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const frames = new Map<number, (now: number) => void>(); let id = 0;
-  vi.stubGlobal("requestAnimationFrame", (callback: (now: number) => void) => { frames.set(++id, callback); return id; });
+  vi.stubGlobal("requestAnimationFrame", (callback: (now: number) => void) => { h.next = callback; frames.set(++id, callback); return id; });
   vi.stubGlobal("cancelAnimationFrame", (id: number) => { frames.delete(id); });
   return { frames, paint() {
-    const [id, callback] = [...frames.entries()].at(-1)!;
-    frames.delete(id); callback(0);
+    const callbacks = [...frames.values()]; frames.clear();
+    now += 100;
+    for (const callback of callbacks) callback(now);
   } };
 }
 
@@ -283,6 +337,8 @@ it("cancels pending optional work when unmounted before a timer, a paint or midw
     expect(clock.frames.size).toBe(0); expect(vi.getTimerCount()).toBe(0);
     expect(geometryDispose).toHaveBeenCalledOnce(); expect(materialDispose).toHaveBeenCalledOnce();
     expect(far.parent).toBeNull();
+    expect(h.zones).toHaveLength(phase === "partial" ? 4 : 3);
+    expect(h.zones.every(zone => vi.mocked(zone.dispose).mock.calls.length === 1 && zone.group.parent === null)).toBe(true);
     vi.runAllTimers();
     expect(scene.getObjectByName("shore-pebbles")).toBeUndefined();
     expect(scene.getObjectByName("forest-path-sun")).toBeUndefined();
