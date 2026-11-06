@@ -63,7 +63,7 @@ function sampleColor(x: number, z: number, height: number, dx = 0, dz = 0, origi
 }
 
 describe("terrain tile mesh", () => {
-  it("paints off-trail forest at least 0.05 luma darker than even the greenest hill grass", () => {
+  it("keeps the forest mean darker than hill grass with brighter dawn moss islands", () => {
     const darkestHill = Math.min(luma(paletteColor("grass")), luma(paletteColor("grassDry")));
     const luminances: number[] = [];
     for (let i = 0; i <= 24; i++) {
@@ -71,12 +71,15 @@ describe("terrain tile mesh", () => {
       expect(direction.forestAtmosphereWeight(nearestPath(p.x, p.z).t)).toBe(1);
       const color = sampleColor(p.x, p.z, waterLevelAt(p.z) + 20);
       luminances.push(luma(color));
-      expect(darkestHill - luma(color)).toBeGreaterThanOrEqual(0.05);
+      // B2-224 permits sunlit moss to approach hill grass; the forest mean stays dim.
+      expect(luma(color)).toBeLessThan(darkestHill + 0.04);
       expect(luma(color)).toBeGreaterThanOrEqual(0.06);
       expect(Math.abs(luma(color) - luma(sampleColor(p.x + 0.25, p.z, waterLevelAt(p.z) + 20))))
         .toBeLessThan(0.04);
     }
     expect(Math.max(...luminances) - Math.min(...luminances)).toBeGreaterThan(0.01);
+    expect(luminances.reduce((a, b) => a + b, 0) / luminances.length)
+      .toBeLessThan(darkestHill - 0.05);
   });
 
   it("doubles forest luma deviation in 20 m cells without lowering the old mean", () => {

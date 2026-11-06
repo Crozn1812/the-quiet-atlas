@@ -73,8 +73,9 @@ it("constructs in small steps and matches the B2-195 mesh baseline byte for byte
     const expected = {
       position: "b360eaef8fc90cb92404ee7d87a9ea60bc56570a14fd57935844e987655d3283",
       normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
-      // B2-190 repainted the forest floor (moss islands, damp soil, leaf flecks, trail); the far mesh shares that paint.
-      color: "ac958f8867bcf35b075e173be65d44a310fdd5b2cd92128c1ad1cc58277b7c2a",
+      // B2-224 lifts dry forest moss; the far terrain shares createTileMesh paint.
+      // Positions, normals and topology retain their B2-195 byte baselines.
+      color: "321615285a6cdfb97cdcaa239878add7e3418b88aa0cd49c43ee950f06169f73",
       index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
     };
     const actual = Object.fromEntries(Object.keys(expected).map(name => {

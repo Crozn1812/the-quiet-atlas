@@ -31,9 +31,9 @@ function detail(x: number, z: number, pigment: Color, distance: number) {
   const sun = lightingAt(0).sunDirection;
   const canopyX = x - sun.x * 3 / Math.max(Math.abs(sun.y), 0.15);
   const canopyZ = z - sun.z * 3 / Math.max(Math.abs(sun.y), 0.15);
-  const patch = (smooth(0.35, 0.65, noise(canopyX / 4.5, canopyZ / 4.5)) * 2 - 1)
-    * (1 - smooth(0.18, 0.28, luma(pigment)));
-  return hue.multiplyScalar(1 + fade * (0.10 * grain + 0.08 * patch));
+  const patch = (smooth(0.35, 0.65, noise(canopyX / 6, canopyZ / 6)) * 2 - 1)
+    * (1 - smooth(0.24, 0.34, luma(pigment)));
+  return hue.multiplyScalar(1 + fade * (0.10 * grain + 0.18 * patch));
 }
 
 it("adds forest detail in the existing interpolated 20 m ground at t=0.15 and fades at 200 m", () => {
@@ -66,7 +66,14 @@ it("adds forest detail in the existing interpolated 20 m ground at t=0.15 and fa
     };
     const old = stats(before), next = stats(after);
     console.info(`terrain detail: baseline ${old.mean}/${old.deviation}; deviation ${(next.deviation / old.deviation).toFixed(3)}x; mean drift ${(100 * (next.mean / old.mean - 1)).toFixed(3)}%; 200m amplitude ${(100 * Math.sqrt(farAmplitude / nearAmplitude)).toFixed(2)}%`);
-    // Existing vertex pigment already has high variance; report the ticket target separately.
+    // Same probes measured before B2-224: albedo mean and B2-215 shaded deviation
+    // (deviation rounded upward). Keep a fixed baseline, including the old sun patches.
+    const albedoGain = old.mean / 0.1993449474708341;
+    const contrastGain = next.deviation / 0.0328;
+    console.info(`B2-224: albedo +${(100 * (albedoGain - 1)).toFixed(2)}%; contrast ${contrastGain.toFixed(3)}x`);
+    expect(albedoGain).toBeGreaterThanOrEqual(1.15);
+    expect(albedoGain).toBeLessThanOrEqual(1.25);
+    expect(contrastGain).toBeGreaterThanOrEqual(1.5);
     expect(next.deviation / old.deviation).toBeGreaterThan(1);
     expect(Math.abs(next.mean / old.mean - 1)).toBeLessThanOrEqual(0.05);
     expect(Math.sqrt(farAmplitude / nearAmplitude)).toBeLessThanOrEqual(0.3);
@@ -86,6 +93,9 @@ it("injects world-space detail only in continuous terrain, after lighting and be
       expect(shader.fragmentShader.indexOf("outgoingLight *= terrainDetail")).toBeLessThan(shader.fragmentShader.indexOf("#include <fog_fragment>"));
       expect(shader.fragmentShader).toContain("terrainWorld.xz / 4.5");
       expect(shader.fragmentShader).toContain("terrainWorld.xz / 0.9");
+      expect(shader.fragmentShader).toContain("terrainNoise(canopy / 6.0)");
+      expect(shader.fragmentShader).toContain("0.18 * sunPatch");
+      expect(shader.fragmentShader).toContain("smoothstep(0.24, 0.34");
     }
     material.dispose();
   }

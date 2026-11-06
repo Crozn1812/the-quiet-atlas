@@ -89,15 +89,15 @@ vec3 terrainDetail(vec3 pigment) {
   vec3 weights = vec3(0.2126, 0.7152, 0.0722);
   hue /= max(dot(hue, weights), 0.0001);
   hue = mix(vec3(1.0), hue, abs(grain) * 0.035 * fade);
-  float forest = 1.0 - smoothstep(0.18, 0.28, dot(pigment, weights));
+  float forest = 1.0 - smoothstep(0.24, 0.34, dot(pigment, weights));
   float sunPatch = 0.0;
   #if NUM_DIR_LIGHTS > 0
     vec3 sun = inverseTransformDirection(directionalLights[0].direction, viewMatrix);
     // Project a virtual canopy 3 m overhead onto the ground along the actual sun.
     vec2 canopy = terrainWorld.xz - sun.xz * (3.0 / max(abs(sun.y), 0.15));
-    sunPatch = (smoothstep(0.35, 0.65, terrainNoise(canopy / 4.5)) * 2.0 - 1.0) * forest;
+    sunPatch = (smoothstep(0.35, 0.65, terrainNoise(canopy / 6.0)) * 2.0 - 1.0) * forest;
   #endif
-  return hue * (1.0 + fade * (0.10 * grain + 0.08 * sunPatch));
+  return hue * (1.0 + fade * (0.10 * grain + 0.18 * sunPatch));
 }
 void main() {`);
       // Analytic half-Lambert has no texel plateaus or band boundaries on curved ground.
@@ -130,7 +130,7 @@ outgoingLight = mix( rampShadow, outgoingLight, smoothstep( 0.0, 0.5, rampLight 
     }
   };
   // Keep terrain and object programs separate; colour/tint remain per-material uniforms.
-  material.customProgramCacheKey = () => continuous ? "painted-terrain-continuous-detail-v2" : "painted-toon-ramp-v1";
+  material.customProgramCacheKey = () => continuous ? "painted-terrain-continuous-detail-v3" : "painted-toon-ramp-v1";
   return material;
 }
 

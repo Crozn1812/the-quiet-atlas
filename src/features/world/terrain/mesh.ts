@@ -15,6 +15,7 @@ const seaDeep = new Color(hex("seaDeep"));
 const dirt = grassDry.clone().lerp(rockDark, 0.32);
 const leafLitter = grassDry.clone().lerp(new Color(hex("dusk")), 0.08);
 const dampSoil = rockDark.clone().lerp(forestDeep, 0.25);
+const sunlitMoss = grass.clone().lerp(grassDry, 0.2);
 const cliffStart = Math.tan(35 * Math.PI / 180);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -99,6 +100,8 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
       tint.lerp(dampSoil, damp);
       const leaves = smoothstep(0.62, 0.85, fleck) * smoothstep(0.45, 0.7, patch);
       tint.lerp(leafLitter, leaves * 0.22 * (1 - damp));
+      // Dawn opens the yellow-green moss islands, leaving wet stream soil dark.
+      tint.lerp(sunlitMoss, 0.65 * moss * moss * smoothstep(2, 9, bankDistance));
       color.lerp(tint, forest);
     }
 
