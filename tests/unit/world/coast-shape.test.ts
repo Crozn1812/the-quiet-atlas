@@ -4,7 +4,7 @@ import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
-import { PATH_WIDTH, worldHeight } from "../../../src/features/world/terrain/height";
+import { PATH_WIDTH, roadBaseHeight, worldHeight } from "../../../src/features/world/terrain/height";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { buildTile, TILE_SIZE } from "../../../src/features/world/terrain/tiles";
 import { createSea } from "../../../src/features/world/water/sea";
@@ -144,11 +144,15 @@ describe("coastal mountain and curved bay", () => {
       -0.01680185748850568, 0.6929674646932081, 1.1976735429469867]],
     ["last-postcard", [0.829999828532066, -1.9596842443915536, 0.4000093441336567, 0.39998487667371874,
       0.8210855926001707, -1.4454988159407285, 0.46071000604332424]],
-  ] as const)("preserves the rendered foundation and surrounding channel heights at %s", (id, baseline) => {
+  ] as const)("keeps rendered foundations and surrounding channels within 5 cm of the %s baseline", (id, baseline) => {
     const zone = ZONES.find(zone => zone.id === id)!;
     const offsets = [[0, 0], [-12, 0], [12, 0], [0, -12], [0, 12], [-8, -8], [8, 8]] as const;
     offsets.forEach(([dx, dz], i) => {
-      expect(surfaceHeight(zone.position.x + dx, zone.position.z + dz)).toBe(baseline[i]);
+      // B2-195 permits a 5 cm foundation cut; include Float32 mesh rounding.
+      const height = surfaceHeight(zone.position.x + dx, zone.position.z + dz);
+      const original = baseline[i]!;
+      expect(height).toBeLessThanOrEqual(original + 1e-6);
+      expect(original - height).toBeLessThanOrEqual(0.05 + 1e-6);
     });
   });
 
@@ -203,9 +207,11 @@ describe("coastal mountain and curved bay", () => {
   it.each([
     [0.82, 1.599925809422297], [0.85, 1.3551162395363545],
     [0.9, 1.0101815306759032], [0.95, 0.7590683251249655], [1, 0.8299999999078336],
-  ])("preserves the existing walking elevation at t=%s", (t, baseline) => {
+  ])("keeps walking ground within 5 cm of the existing elevation at t=%s", (t, baseline) => {
     const { x, z } = pathPointAt(t);
-    expect(worldHeight(x, z)).toBeCloseTo(baseline, 10);
+    expect(roadBaseHeight(x, z)).toBeCloseTo(baseline, 10);
+    expect(worldHeight(x, z)).toBeLessThanOrEqual(baseline + 1e-12);
+    expect(baseline - worldHeight(x, z)).toBeLessThanOrEqual(0.05 + 1e-12);
   });
 
   it("is deterministic across reversed and interleaved coastal queries", () => {

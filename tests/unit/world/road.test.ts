@@ -19,7 +19,7 @@ import {
 import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS } from "../../../src/features/world/road/road";
 import { asphaltColorAt, roadBandOffsetAt } from "../../../src/features/world/road/surface";
 import { lightingAt } from "../../../src/features/world/sky/grade";
-import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
+import { roadBaseHeight, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 
 const luma = (c: Color) => c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
@@ -273,7 +273,8 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       b.fromBufferAttribute(position, i + 1);
       c.fromBufferAttribute(position, i + 2);
       for (const vertex of [a, b, c]) {
-        maximumVertexError = Math.max(maximumVertexError, Math.abs(vertex.y - worldHeight(vertex.x, vertex.z) - ROAD_LIFT));
+        // B2-195: the road rests on the pre-cut ground; terrain under it is cut ≥5 cm lower (clearance below).
+        maximumVertexError = Math.max(maximumVertexError, Math.abs(vertex.y - roadBaseHeight(vertex.x, vertex.z) - ROAD_LIFT));
       }
       // Include every vertex, edge, diagonal and interior on an eighth-triangle lattice.
       for (let u = 0; u <= 8; u++) for (let v = 0; v <= 8 - u; v++) {

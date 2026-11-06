@@ -203,8 +203,8 @@ function coastalRelief(x: number, z: number, land: number, river: ReturnType<typ
   return land + Math.max(0, relief - land) * smoothstep(150, 180, pathDistance);
 }
 
-/** Pure metres above sea level. No quality setting, random state, or tile-local coordinates. */
-export function worldHeight(x: number, z: number): number {
+/** Ground before the road foundation cut; keeps the asphalt's original grade. */
+export function roadBaseHeight(x: number, z: number): number {
   if (!Number.isFinite(x) || !Number.isFinite(z)) throw new RangeError("Terrain coordinates must be finite");
   const river = nearestRiver(x, z);
   const path = nearestPath(x, z);
@@ -217,7 +217,17 @@ export function worldHeight(x: number, z: number): number {
   const widened = smoothstep(4, 12, river.t * streamLength);
   const bedRadius = widened * (riverWidthAt(river.t) / 2 + 1);
   const bankRadius = Math.max(6 + 2 * widened + coastalBankEase, bedRadius + 2);
-  const channel = -1.1 + 1.2 * smoothstep(bedRadius, bankRadius, river.distance);
+  let channel = -1.1 + 1.2 * smoothstep(bedRadius, bankRadius, river.distance);
+  // Only the hill reach gets a shallow bank. Keep the forest/spring and coast
+  // profiles, and the existing path/ford foundations applied below, unchanged.
+  const hillBank = smoothstep(0.37, 0.4, river.t) * (1 - smoothstep(0.75, 0.79, river.t));
+  const waterEdge = riverWidthAt(river.t) / 2;
+  // Meet the water at its actual ribbon edge instead of extending the deep
+  // bed beyond it. Grass is 0.45 m above water after a 3 m eased shoulder.
+  const shallowChannel = river.distance < waterEdge
+    ? -1.1 + 0.75 * smoothstep(waterEdge - 2, waterEdge, river.distance)
+    : -0.35 + 0.45 * smoothstep(waterEdge, waterEdge + 3, river.distance);
+  if (river.distance < bankRadius) channel += (shallowChannel - channel) * hillBank;
   // B2-031: a readable valley (taste §5.2) — hills rise to ~7–12 m beyond the bank instead of 3–4 m.
   const hills = valleyHills(x, z, river.distance);
   const valley = riverLevel(z) + coastal * (channel + hills);
@@ -233,7 +243,7 @@ export function worldHeight(x: number, z: number): number {
   // The coastal shelf must respect the same flat bed as the inland valley.
   // Only lower intruding ground; retain the existing beach outside the channel.
   land -= Math.max(0, land - Math.max(0.05, waterLevelAt(z) - 0.65))
-    * widened * (1 - smoothstep(bedRadius, bankRadius, river.distance));
+    * widened * (1 - hillBank) * (1 - smoothstep(bedRadius, bankRadius, river.distance));
   // A 10 x 8 m pad aligned with the bank, with a 6 m rounded transition.
   const dx = x - workshop.x;
   const dz = z - workshop.z;
@@ -271,6 +281,38 @@ export function worldHeight(x: number, z: number): number {
     height += Math.max(0, dryHeight - height) * protection * smoothstep(0, 0.4, height);
   }
   return height;
+}
+
+/** Pure metres above sea level. No quality setting, random state, or tile-local coordinates. */
+export function worldHeight(x: number, z: number): number {
+  const height = roadBaseHeight(x, z);
+  const path = nearestPath(x, z);
+  if (path.t <= 0.79 || path.distance >= 9.3) return height;
+  // Maximum asphalt + wandering shoulder radius: 2.5 + 0.92 m. Include
+  // a full 2 m cell diagonal (sqrt(8)) so triangles touching the road share
+  // the cut, then ease out over a 3 m talus. Round off the end cap too.
+  let depth = 0.05 + 0.015 * smoothstep(PATH_WIDTH / 2 + 0.01, 2.5, path.distance);
+  for (const zone of coastPads) {
+    depth = Math.min(depth, 0.05 + 0.015 * smoothstep(zone.radius, zone.radius + 3,
+      Math.hypot(x - zone.position.x, z - zone.position.z)));
+  }
+  const roadCut = depth * smoothstep(0.79, 0.8, path.t)
+    * (1 - smoothstep(6.3, 9.3, path.distance))
+    * smoothstep(0.01, 0.25, nearestRiver(x, z).distance)
+    * smoothstep(0, 0.2, Math.abs(height));
+  let ground = height - roadCut;
+  // Retain existing dry walking/zone ground, restoring only the required
+  // clearance. Blend that protection out over 3 m without raising old ground.
+  const dryFloor = Math.min(height, Math.max(0.4, waterLevelAt(z) + 0.4 + 1e-12));
+  const walking = 1 - smoothstep(PATH_WIDTH / 2 + 0.01, 2, path.distance);
+  ground = walking === 1 ? Math.max(ground, dryFloor)
+    : ground + Math.max(0, dryFloor - ground) * walking;
+  for (const zone of coastPads) {
+    const protection = 1 - smoothstep(zone.radius, zone.radius + 3, Math.hypot(x - zone.position.x, z - zone.position.z));
+    ground = protection === 1 ? Math.max(ground, dryFloor)
+      : ground + Math.max(0, dryFloor - ground) * protection;
+  }
+  return ground;
 }
 
 /** Water surface above the river centre: 0.35 m below the bank, easing to sea level (0) at the coast. */

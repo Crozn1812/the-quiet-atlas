@@ -8,7 +8,7 @@ import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS } from "./road/road";
 import { hex, PALETTE } from "./art/palette";
 import { createRampMaterial } from "./materials/ramp";
 import { pathPointAt } from "./layout/path";
-import { waterLevelAt, worldHeight } from "./terrain/height";
+import { roadBaseHeight, waterLevelAt, worldHeight } from "./terrain/height";
 import { nearestPath } from "./terrain/samples";
 import { sampleShoreContour, shoreGroundHeight, shoreNormal, type ShorePoint } from "./shore/contour";
 import { SHORE_SEED, shorePlacementClear, type ShoreLayout, type ShoreStone, type Pebble, type Boulder, type Cairn, type SandPatch } from "./shore/layout";
@@ -333,7 +333,7 @@ function* dressingRoadSurface() {
     const { point, right } = roadFrameAt(t);
     rows.push(ROAD_BANDS.map(offset => {
       const vertex = point.clone().addScaledVector(right, roadBandOffsetAt(offset, t));
-      vertex.y = worldHeight(vertex.x, vertex.z) + ROAD_LIFT;
+      vertex.y = roadBaseHeight(vertex.x, vertex.z) + ROAD_LIFT; // B2-195: same pre-cut ground as road.ts
       return vertex;
     }));
   }

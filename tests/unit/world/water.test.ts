@@ -14,7 +14,7 @@ import {
 import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
 
 describe("river ribbon", () => {
-  it.each(["milestones", "horizon"])("keeps the triangulated %s channel at least 1 m wider than the ribbon", id => {
+  it.each(["milestones", "horizon"])("keeps the triangulated %s channel open inside the ribbon", id => {
     const zone = ZONES.find(zone => zone.id === id)!;
     const station = nearestRiver(zone.position.x, zone.position.z).t;
     const geometry = createRibbonGeometry();
@@ -42,8 +42,11 @@ describe("river ribbon", () => {
         if (PATH_BRIDGES.some(bridge => Math.abs(path.t - bridge.t) * pathLength() < 18)) continue;
         const normal = b.clone().sub(a).normalize();
         for (const across of [-1, -0.5, 0, 0.5, 1]) {
-          // Half a metre on each bank gives one metre of extra channel width.
-          const point = centre.clone().addScaledVector(normal, across * (a.distanceTo(b) / 2 + 0.5));
+          // B2-195: hill banks meet the ribbon instead of flooding beyond it.
+          // Retain the wider rocky forest channel; probe 0.5 m inside the
+          // hill ribbon to allow the 2 m terrain triangles to meet the bank.
+          const margin = row / RIBBON_SEGMENTS >= 0.37 && row / RIBBON_SEGMENTS <= 0.79 ? -0.5 : 0.5;
+          const point = centre.clone().addScaledVector(normal, across * (a.distanceTo(b) / 2 + margin));
           const context = `${id}, row=${row}, across=${across}`;
           expect(worldHeight(point.x, point.z), context).toBeLessThan(point.y);
           expect(renderedHeight(point.x, point.z), context).toBeLessThan(point.y);

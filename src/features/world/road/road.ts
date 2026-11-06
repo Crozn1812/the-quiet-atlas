@@ -2,7 +2,7 @@ import { Group, Mesh } from "three";
 import { hex } from "../art/palette";
 import { pathLength } from "../layout/path";
 import { createRampMaterial } from "../materials/ramp";
-import { worldHeight } from "../terrain/height";
+import { roadBaseHeight as worldHeight } from "../terrain/height"; // B2-195: road sits on pre-cut ground
 import { roadGeometryBuilder } from "./geometry";
 import {
   createRoadLayout, ROAD_END, ROAD_LIFT, ROAD_START, roadFrameAt,

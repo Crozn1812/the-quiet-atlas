@@ -53,8 +53,9 @@ describe("far landscape", () => {
   });
 });
 
-// Captured from the pre-B2-179 factory: every byte of the final vertex/index buffers is unchanged.
-it("constructs in small steps and matches the original mesh byte for byte", () => {
+// B2-179 buffer regression, refreshed for B2-195's hill banks and road bed. The
+// shared heightfield changes positions, derived normals and paint, not topology.
+it("constructs in small steps and matches the B2-195 mesh baseline byte for byte", () => {
   const far = createFarLandscape({ deferred: true });
   try {
     expect(far.mesh.visible).toBe(false);
@@ -70,16 +71,17 @@ it("constructs in small steps and matches the original mesh byte for byte", () =
     expect(steps).toBeGreaterThan(FAR_LANDSCAPE.cells * 2);
     expect(far.mesh.visible).toBe(true);
     const expected = {
-      position: "9136626728d0fdc18c8c49c4d2087818f0c7bd78ff725488444ec7972399e38a",
-      normal: "fbcd5177abd405f8857a1446b8c5b3f196ca81bc6f0b804a37c83246f7e802eb",
+      position: "b360eaef8fc90cb92404ee7d87a9ea60bc56570a14fd57935844e987655d3283",
+      normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
       // B2-190 repainted the forest floor (moss islands, damp soil, leaf flecks, trail); the far mesh shares that paint.
-      color: "6802c90c69d9c12932ee102cae46bb27b88da196b7fbbb9fa3fef508e5f36949",
+      color: "ac958f8867bcf35b075e173be65d44a310fdd5b2cd92128c1ad1cc58277b7c2a",
       index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
     };
-    for (const [name, digest] of Object.entries(expected)) {
+    const actual = Object.fromEntries(Object.keys(expected).map(name => {
       const array = name === "index" ? far.mesh.geometry.index!.array : far.mesh.geometry.getAttribute(name).array;
-      expect(createHash("sha256").update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength)).digest("hex"), name).toBe(digest);
-    }
+      return [name, createHash("sha256").update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength)).digest("hex")];
+    }));
+    expect(actual).toEqual(expected);
     console.log(`B2-179 far landscape: ${steps} steps, max ${maximum.toFixed(2)}ms (Node)`);
   } finally { far.dispose(); }
 });
