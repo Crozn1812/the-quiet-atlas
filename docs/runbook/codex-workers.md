@@ -52,3 +52,10 @@ Duy yêu cầu giao nhiều việc hơn cho Codex. Đợt 18–19 chạy **12 wo
   - tối đa 3 việc nặng chạy cùng lúc (§3.1);
   - Lead chạy gate tuần tự khi merge.
 - **Khi nào giảm lại:** RAM vượt ~26 GB, hoặc test của worker timeout vì tải máy.
+
+## Model và mức suy luận (2026-11-06, Duy chốt)
+
+- Model: `gpt-6.1-sol`. Mức suy luận mặc định: **`low`** (trước đây `high`).
+- Lý do (Duy): Lead đã chia ticket nhỏ, viết tiêu chí cụ thể, tự kiểm render, gate và merge, nên worker không cần suy luận sâu; đỡ tốn lượt.
+- Lệnh: `codex exec -m gpt-6.1-sol -c model_reasoning_effort="low" -s workspace-write -C <worktree> -`.
+- Ticket khó (shader, hình học có nhiều ràng buộc) Lead có thể nâng riêng lên `medium` và ghi vào thẻ.
