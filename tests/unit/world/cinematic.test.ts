@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Vector3 } from "three";
-import { createIntro, INTRO_DURATION, type CameraPose } from "../../../src/features/world/cinematic/intro";
+import { createIntro, introAtmosphere, INTRO_DURATION, type CameraPose } from "../../../src/features/world/cinematic/intro";
 import { createIntroController, REDUCED_MOTION_DURATION } from "../../../src/features/world/cinematic/controller";
 import { RIVER_CONTROL_POINTS, riverPointAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
@@ -22,51 +22,65 @@ function expectGameplay(frame: CameraPose) {
 }
 
 describe("intro camera route", () => {
-  it("lasts 18–24 seconds and frames four alternating river bends from near vertical", () => {
+  it("lasts 18–22 seconds and opens at 80–140 m looking obliquely upstream across two alternating bends", () => {
     const intro = createIntro(gameplay);
     expect(intro.duration).toBeGreaterThanOrEqual(18);
-    expect(intro.duration).toBeLessThanOrEqual(24);
+    expect(intro.duration).toBeLessThanOrEqual(22);
     const first = intro.sample(0);
-    expect(first.position.y).toBeGreaterThanOrEqual(120);
+    const altitude = first.position.y - worldHeight(first.position.x, first.position.z);
+    expect(altitude).toBeGreaterThanOrEqual(80);
+    expect(altitude).toBeLessThanOrEqual(140);
     const direction = first.target.clone().sub(first.position).normalize();
-    expect(direction.dot(new Vector3(0, -1, 0))).toBeGreaterThan(Math.cos(5 * Math.PI / 180));
+    expect(direction.z).toBeGreaterThan(0); // Upstream is toward spawn at z = 0.
+    const depression = Math.asin(-direction.y) * 180 / Math.PI;
+    expect(depression).toBeGreaterThan(0);
+    expect(depression).toBeLessThan(first.fov / 2); // Leave room for sky above the river.
     const camera = new PerspectiveCamera(first.fov, 1, 0.1, 2000);
     camera.position.copy(first.position);
     camera.lookAt(first.target);
     camera.updateMatrixWorld();
-    // Four alternating extrema describe two S bends, inside a square viewport.
-    for (const [x, z] of RIVER_CONTROL_POINTS.slice(1, 5)) {
+    // Opposite extrema establish the S, inside the retained 12% letterbox bars.
+    const bends = RIVER_CONTROL_POINTS.slice(1, 3);
+    expect(bends[0]![0] * bends[1]![0]).toBeLessThan(0);
+    for (const [x, z] of bends) {
       const projected = new Vector3(x, waterLevelAt(z), z).project(camera);
       expect(Math.abs(projected.x)).toBeLessThan(0.95);
-      expect(Math.abs(projected.y)).toBeLessThan(0.95);
+      expect(Math.abs(projected.y)).toBeLessThan(0.76);
       expect(projected.z).toBeGreaterThan(-1);
       expect(projected.z).toBeLessThan(1);
     }
   });
 
-  it("descends along the river toward spawn, builds mist, and holds a 1–2 m detail shot", () => {
+  it("descends upstream with thin mist, then skims water and leaves before the gameplay handoff", () => {
     const intro = createIntro(gameplay);
     let previousHeight = Infinity;
     let previousProgress = Infinity;
-    let previousMist = -1;
-    for (let t = 2; t <= 15; t += 0.1) {
+    for (let t = 2; t <= 8; t += 0.1) {
       const frame = intro.sample(t);
       const river = nearestRiver(frame.position.x, frame.position.z);
-      expect(river.distance).toBeLessThan(20.1);
       expect(river.t).toBeLessThanOrEqual(previousProgress + 1e-4);
       expect(frame.position.y).toBeLessThanOrEqual(previousHeight + 1e-6);
-      expect(frame.mistBoost).toBeGreaterThanOrEqual(previousMist);
+      expect(introAtmosphere(frame.position, frame.mistBoost).mist.strength).toBeLessThanOrEqual(0.08);
       previousHeight = frame.position.y;
       previousProgress = river.t;
-      previousMist = frame.mistBoost;
     }
-    for (let i = 0; i <= 120; i++) {
-      const frame = intro.sample(15 + i / 60);
-      const heightAboveWater = frame.position.y - waterLevelAt(frame.position.z);
-      expect(heightAboveWater).toBeGreaterThanOrEqual(1);
-      expect(heightAboveWater).toBeLessThanOrEqual(2);
-      expect(frame.position.distanceTo(new Vector3(spawn.x, frame.position.y, spawn.z))).toBeLessThan(12);
-      expect(frame.mistBoost).toBe(1);
+    expect(intro.sample(15).position.y).toBeLessThan(intro.sample(1).position.y);
+    // The detail segment descends to water/leaves, then the final reveal starts at 18 s.
+    let previousDetailHeight = intro.sample(15).position.y;
+    for (let i = 15 * 60; i <= 18 * 60; i++) {
+      const frame = intro.sample(i / 60);
+      expect(frame.position.y).toBeLessThanOrEqual(previousDetailHeight + 1e-6);
+      previousDetailHeight = frame.position.y;
+
+    }
+    const detail = intro.sample(18);
+    const heightAboveWater = detail.position.y - waterLevelAt(detail.position.z);
+    expect(heightAboveWater).toBeGreaterThanOrEqual(1);
+    expect(heightAboveWater).toBeLessThanOrEqual(2);
+    for (let i = 0; i <= intro.duration * 60; i++) {
+      const frame = intro.sample(i / 60);
+      expect(frame.mistBoost).toBeGreaterThanOrEqual(0);
+      expect(introAtmosphere(frame.position, frame.mistBoost).mist.strength).toBeLessThanOrEqual(0.08);
     }
     expectGameplay(intro.sample(intro.duration));
     expect(intro.sample(intro.duration).letterbox).toBe(0);

@@ -419,7 +419,7 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         || !Number.isFinite(radius) || radius <= 0)) {
         throw new RangeError(`Corridor needs <= ${CORRIDOR_POINTS} finite points and a positive radius`);
       }
-      corridor.count = points ? points.length : 0;
+      corridor.count = points && !clearAir ? points.length : 0;
       corridor.radius = radius;
       points?.forEach((point, i) => corridor.points[i]!.set(point.x, point.z));
       if (resources) {

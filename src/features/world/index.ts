@@ -27,7 +27,7 @@ import { createCharacterAnimator } from "./character/animator";
 import { loadCharacter } from "./character/loader";
 import { createProp, type PropKind } from "./props";
 import { createGradedPaperPass } from "./scene/paper";
-import { WORLD_DIRECTION } from "./art/direction";
+import { STYLE_PRESETS, WORLD_DIRECTION } from "./art/direction";
 import { pathLength, pathPointAt } from "./layout/path";
 import { CORRIDOR_POINTS } from "./post/paper";
 import { nearestPath, nearestRiver } from "./terrain/samples";
@@ -35,7 +35,7 @@ import { TERRAIN_RADIUS } from "./terrain/tiles";
 import { createIntroController } from "./cinematic/controller";
 import { createEndingController } from "./cinematic/ending-controller";
 import type { EndingFrame } from "./cinematic/ending";
-import type { IntroFrame } from "./cinematic/intro";
+import { introAtmosphere, type IntroFrame } from "./cinematic/intro";
 import { SECRETS, nearestSecret } from "../story/secrets";
 import { initialStory, storyReducer } from "../story/story";
 import { POEM_TOGGLE, storyFeedbackText } from "../story/copy";
@@ -979,13 +979,27 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const { near, far } = WORLD_DIRECTION.background.fog;
     const reach = playing ? pose.position.distanceTo(pose.target) : 0;
     paper.setFog({ near: Math.max(near, reach * 0.6), far: Math.max(far, reach * 1.8) });
+    if (intro?.state === "playing") {
+      // Forest fog must clear the aerial view in both the post pass and Low's native fog.
+      const atmosphere = introAtmosphere(pose.position, pose.mistBoost);
+      paper.setFog(atmosphere.fog);
+      if (scene.fog && "near" in scene.fog) Object.assign(scene.fog, atmosphere.fog);
+      // setFog resets graded mist: apply the thin valley layer afterwards.
+      paper.setMist(atmosphere.mist);
+    }
     if (cinematicUI) {
       for (const bar of cinematicUI.bars) bar.style.height = `${pose.letterbox * 12}%`;
       cinematicUI.fade.style.opacity = String(pose.paperOpacity);
     }
   }
   function applyIntro(pose: IntroFrame) {
-    applyCinematicPose(pose, intro?.state !== "done");
+    const clearAir = WORLD_DIRECTION === STYLE_PRESETS.R;
+    applyCinematicPose(clearAir ? { ...pose, paperOpacity: 0 } : pose, intro?.state !== "done");
+    // Reduced motion keeps its short fixed-pose fade, using ink instead of a cream paper wash.
+    if (clearAir && cinematicUI && pose.paperOpacity > 0) {
+      cinematicUI.fade.style.background = PALETTE.ink;
+      cinematicUI.fade.style.opacity = String(pose.paperOpacity);
+    }
     if (intro?.state === "done") {
       composed.setPreload(0);
       paper.setCorridor(null);
@@ -1003,17 +1017,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     else if (intro?.inputLocked) applyIntro(intro.skip());
   }
   function createCinematicUI(kind: "intro" | "ending") {
+    const cinematicColor = WORLD_DIRECTION === STYLE_PRESETS.R ? PALETTE.ink : PALETTE.paper;
     const bars = ["top", "bottom"].map(edge => {
       const bar = document.createElement("div");
       bar.setAttribute("aria-hidden", "true");
       bar.dataset.worldLetterbox = edge;
-      Object.assign(bar.style, { position: "absolute", left: "0", right: "0", [edge]: "0", background: PALETTE.paper, pointerEvents: "none", zIndex: "2" });
+      Object.assign(bar.style, { position: "absolute", left: "0", right: "0", [edge]: "0", background: cinematicColor, pointerEvents: "none", zIndex: "2" });
       container.appendChild(bar);
       return bar;
     });
     const fade = document.createElement("div");
     fade.setAttribute("aria-hidden", "true");
-    Object.assign(fade.style, { position: "absolute", inset: "0", background: PALETTE.paper, pointerEvents: "none", zIndex: "2" });
+    Object.assign(fade.style, { position: "absolute", inset: "0", background: cinematicColor, pointerEvents: "none", zIndex: "2" });
     container.appendChild(fade);
     const skip = document.createElement("button");
     skip.type = "button";
@@ -1033,8 +1048,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // The overview shows the first bends of the river: stream them before the first intro frame.
     composed.setPreload(INTRO_PRELOAD_M);
     composed.update(physics.position, 0);
-    // Paper wash outside the streamed corridor: tile borders never show in the overview.
-    paper.setCorridor(introCorridor(physics.position), TERRAIN_RADIUS);
+    // Direction R shows the full forest and sky, without the legacy paper corridor.
+    paper.setCorridor(WORLD_DIRECTION === STYLE_PRESETS.R ? null : introCorridor(physics.position), TERRAIN_RADIUS);
     applyIntro(intro.start());
     updateMascot(0);
     clearMascotHint();
@@ -1183,13 +1198,22 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const animDt = canSimulate(state) ? dt : 0;
     animator.update(animDt, vehicle.mode === "ride" || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(animDt);
+    let introFrame: IntroFrame | undefined;
     if (intro?.inputLocked) {
-      if (canSimulate(state) && wasPlaying) applyIntro(intro.tick(dt));
+      introFrame = intro.tick(canSimulate(state) && wasPlaying ? dt : 0);
     } else if (ending?.inputLocked) {
       if (canSimulate(state)) applyEnding(ending.tick(dt));
     } else updateCamera(animDt);
     interaction.update();
     composed.update(physics.position, 0);
+    // Compose grades fog/mist every frame, including pauses; the intro owns the final camera air.
+    if (introFrame) {
+      // Finish the existing backdrop before the first flight render; skipped intros keep deferred dressing.
+      if (intro?.state === "playing" && !reducedMotion && farLandscape && !farLandscape.mesh.visible) {
+        while (!farLandscape.build.next().done) { /* No extra draw calls. */ }
+      }
+      applyIntro(introFrame);
+    }
     updateMascot(canSimulate(state) ? dt : 0);
     updateMascotHint(canSimulate(state) ? dt : 0);
     for (const zone of zones) zone.update?.(animDt, reducedMotion);

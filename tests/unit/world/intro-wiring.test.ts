@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
-import { PerspectiveCamera, Scene, Vector3 } from "three";
+import { Fog, PerspectiveCamera, Scene, Vector3 } from "three";
 import { WORLD_DIRECTION } from "../../../src/features/world/art/direction";
+import { createIntro, introAtmosphere } from "../../../src/features/world/cinematic/intro";
+import { nearestRiver } from "../../../src/features/world/terrain/samples";
+import { waterLevelAt } from "../../../src/features/world/terrain/height";
 const DIRECTED_MIST = WORLD_DIRECTION.background.mist.strength;
 
 const harness = vi.hoisted(() => ({
@@ -10,6 +13,7 @@ const harness = vi.hoisted(() => ({
   scene: undefined as unknown,
   position: undefined as unknown,
   firstPose: undefined as { position: import("three").Vector3; direction: import("three").Vector3; fov: number; far: number } | undefined,
+  resetAtmosphere: false,
   render: vi.fn(),
   mist: vi.fn(),
   fog: vi.fn(),
@@ -55,10 +59,17 @@ vi.mock("../../../src/features/world/scene/compose", () => ({
   worldSpawn: () => new Vector3(0, 100, 0),
   nearestSafePath: (position: Vector3) => position.clone(),
   surfaceHeight: () => 100,
-  createWorldScene: () => ({
+  createWorldScene: ({ scene }: { scene: Scene }) => ({
     groundReady: true, buildGround: (function* () {})(),
     sun: { castShadow: false }, collisionMeshes: [], visibleMeshes: [], foliageMeshes: [],
-    update() {}, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
+    update() {
+      if (harness.resetAtmosphere) {
+        const fog = WORLD_DIRECTION.background.forest!.fog;
+        scene.fog = new Fog(0, fog.near, fog.far);
+        harness.fog(fog);
+        harness.mist({ strength: WORLD_DIRECTION.background.forest!.mist.strength });
+      }
+    }, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
     setReducedMotion: harness.reduced, dispose: harness.dispose,
   }),
 }));
@@ -151,6 +162,7 @@ async function mount() {
 beforeEach(() => {
   vi.clearAllMocks();
   harness.firstPose = undefined;
+  harness.resetAtmosphere = false;
   clock = 100;
   elements = [];
   canvas = new Element("canvas");
@@ -199,8 +211,7 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
   expect(opened).not.toHaveBeenCalled();
   expect(harness.mist.mock.calls.some(([value]) => value.strength > DIRECTED_MIST)).toBe(true);
   expect(harness.mist.mock.calls.every(([value]) => value.strength <= 1)).toBe(true);
-  // Lead review: the 460 m overview stretches fog beyond the directed 260 m so the river is visible.
-  expect(harness.fog.mock.calls.some(([value]) => value.far > WORLD_DIRECTION.background.fog.far)).toBe(true);
+  expect(harness.fog.mock.calls.some(([value]) => value.far > WORLD_DIRECTION.background.forest!.fog.far)).toBe(true);
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
   expect(skip.textContent).toBe("Bỏ qua");
   send(skip, "click");
@@ -212,7 +223,7 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
   expect(camera().fov).toBe(harness.firstPose!.fov);
   // Lead review: the overview streams the river bends, then the reach returns to normal at handoff.
   expect(harness.preload.mock.calls.map(([value]) => value)).toEqual([600, 0]);
-  expect(harness.corridor.mock.calls[0]![0]).toHaveLength(48);
+  expect(harness.corridor.mock.calls.every(([value]) => value === null)).toBe(true);
   expect(harness.corridor).toHaveBeenLastCalledWith(null);
   expect(harness.fog).toHaveBeenLastCalledWith({ near: WORLD_DIRECTION.background.fog.near, far: WORLD_DIRECTION.background.fog.far });
   // Lead batch 25: the gameplay far plane follows quality (adaptive quality may have stepped down meanwhile).
@@ -228,6 +239,34 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
   send(win, "keydown", { code: "KeyW" });
   advance();
   expect(position().distanceTo(start)).toBeGreaterThan(0);
+});
+
+it("applies altitude-aware fog and thin valley mist after grading at 1, 5, 10 and 15 seconds", async () => {
+  harness.resetAtmosphere = true;
+  await mount();
+  advance(); // The first animation frame advances by FIXED_DT (1/60 s).
+  advance(1000 * (0.1 - 1 / 60));
+  const first = harness.firstPose!;
+  const intro = createIntro({ position: first.position, target: first.position.clone().add(first.direction), fov: first.fov });
+  let elapsed = 1;
+  for (const seconds of [1, 5, 10, 15]) {
+    while (elapsed < seconds * 10) { advance(); elapsed++; }
+    const frame = intro.sample(seconds);
+    expect(camera().position.distanceTo(frame.position)).toBeLessThan(1e-4);
+    const atmosphere = introAtmosphere(camera().position, frame.mistBoost);
+    expect(harness.fog.mock.calls.at(-1)![0].far).toBeCloseTo(atmosphere.fog.far, 4);
+    expect(harness.mist.mock.calls.at(-1)![0].strength).toBeCloseTo(atmosphere.mist.strength, 6);
+    expect(harness.mist.mock.calls.at(-1)![0].bands).toEqual(atmosphere.mist.bands);
+    const nativeFog = (harness.scene as Scene).fog as Fog;
+    expect(nativeFog.near).toBeCloseTo(atmosphere.fog.near, 4);
+    expect(nativeFog.far).toBeCloseTo(atmosphere.fog.far, 4);
+    const fogOrder = harness.fog.mock.invocationCallOrder.at(-1)!;
+    expect(harness.mist.mock.invocationCallOrder.at(-1)).toBeGreaterThan(fogOrder);
+    const river = nearestRiver(frame.position.x, frame.position.z);
+    const distance = Math.hypot(river.distance, frame.position.y - waterLevelAt(river.z));
+    expect(distance).toBeLessThan(atmosphere.fog.far);
+    expect(atmosphere.mist.strength).toBeLessThanOrEqual(0.08);
+  }
 });
 
 it.each(["Escape", "Enter"])("skips with %s while the Skip button has focus", async code => {
@@ -326,11 +365,11 @@ it("waits for the initial pause and freezes camera, mist and letterbox during a 
   send(container, "tqa:pause", { detail: { reason: "overlay", paused: true } });
   const frozen = camera().position.clone();
   const heights = elements.filter(element => element.dataset.worldLetterbox).map(bar => bar.style.height);
-  const mistCount = harness.mist.mock.calls.length;
+  const mist = harness.mist.mock.calls.at(-1)![0];
   const renderCount = harness.render.mock.calls.length;
   for (let i = 0; i < 250; i++) advance();
   expect(camera().position.distanceTo(frozen)).toBe(0);
-  expect(harness.mist).toHaveBeenCalledTimes(mistCount);
+  expect(harness.mist).toHaveBeenLastCalledWith(mist);
   expect(elements.filter(element => element.dataset.worldLetterbox).map(bar => bar.style.height)).toEqual(heights);
   expect(harness.render.mock.calls.length).toBeGreaterThan(renderCount);
   expect(container.dataset.worldIntro).toBe("playing");

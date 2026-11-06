@@ -1,6 +1,7 @@
 import { CubicBezierCurve3, Vector3 } from "three";
 import { riverPointAt } from "../layout/river";
 import { waterLevelAt, worldHeight } from "../terrain/height";
+import { WORLD_DIRECTION } from "../art/direction";
 
 export const INTRO_DURATION = 22;
 export const CAMERA_CLEARANCE = 0.8;
@@ -22,6 +23,22 @@ export interface IntroFrame {
   letterbox: number;
   /** Paper overlay opacity: 1 is paper, 0 is the unobscured scene. */
   paperOpacity: number;
+}
+
+/** Keep the river below the aerial camera inside clear air, with only low valley mist. */
+export function introAtmosphere(position: Readonly<Vector3>, mistBoost: number) {
+  const altitude = Math.max(0, position.y - worldHeight(position.x, position.z));
+  const fog = WORLD_DIRECTION.background.forest?.fog ?? WORLD_DIRECTION.background.fog;
+  const near = Math.max(fog.near, altitude * 1.5);
+  const far = Math.max(fog.far, altitude * 4);
+  return {
+    fog: { near, far },
+    mist: {
+      bands: [far * 0.28, far * 0.52, far * 0.8] as [number, number, number],
+      height: waterLevelAt(position.z) + 1.2,
+      strength: Math.min(0.08, WORLD_DIRECTION.background.mist.strength + mistBoost),
+    },
+  };
 }
 
 /** Quintic easing has zero velocity and acceleration at both ends, without overshoot. */
@@ -67,11 +84,12 @@ export function createIntro(gameplayPose: CameraPose) {
   }
   if (end.position.y < floorAt(end.position)) throw new RangeError("Gameplay camera is below the safe terrain/water floor");
 
-  // At 460 m / 72 degrees, the opening covers the first four alternating bends
-  // (z = -115, -250, -390, -535), with a slight 20 m tilt from vertical.
-  const overview = overWater(0.3, 460).add(new Vector3(0, 0, 20));
-  const overviewTarget = overWater(0.3, 0);
-  const close = overWater(0.002, 1.5);
+  // Look upstream across the S bend, with dawn sky above the canopy.
+  const overview = overWater(0.3, 115).add(new Vector3(0, 0, -100));
+  const overviewTarget = overWater(0.14, 0);
+  const glide = overWater(0.16, 18);
+  const close = overWater(0.025, 18);
+  const upstreamTarget = (position: Vector3) => position.clone().add(new Vector3(0, -18, 105));
   const leaf = overWater(0, 1.5).add(new Vector3(-1, 0, 1));
   // Lead (B2-043b review): look downstream; the ribbon's cut source at t=0 must stay behind the camera.
   const closeTarget = overWater(0.025, 0);
@@ -98,31 +116,37 @@ export function createIntro(gameplayPose: CameraPose) {
       target = overviewTarget.clone();
       fov = 72;
       mistBoost = 0;
-    } else if (time <= 15) {
-      const u = ease((time - 1) / 14);
+    } else if (time <= 8) {
+      const u = ease((time - 1) / 7);
       // Reuse the layout's centripetal river spline, travelling upstream to spawn.
-      position = overWater(0.3 + (0.002 - 0.3) * u, 460 + (1.5 - 460) * u);
-      position.z += 20 * (1 - u);
-      target = overviewTarget.clone().lerp(closeTarget, u);
-      fov = 72 + (50 - 72) * u;
-      mistBoost = u;
-    } else if (time <= 17) {
-      const u = ease((time - 15) / 2);
+      position = overWater(0.3 + (0.16 - 0.3) * u, 115 + (18 - 115) * u);
+      position.z -= 100 * (1 - u);
+      target = overviewTarget.clone().lerp(upstreamTarget(glide), u);
+      fov = 72 + (60 - 72) * u;
+      mistBoost = 0.04 * u;
+    } else if (time <= 15) {
+      const u = ease((time - 8) / 7);
+      position = overWater(0.16 + (0.025 - 0.16) * u, 18);
+      target = upstreamTarget(position);
+      fov = 60;
+      mistBoost = 0.04;
+    } else if (time <= 18) {
+      const u = ease((time - 15) / 3);
       position = detailCurve.getPoint(u);
-      target = closeTarget.clone().lerp(leafTarget, u);
-      fov = 50;
-      mistBoost = 1;
+      target = upstreamTarget(close).lerp(leafTarget, u);
+      fov = 60 + (50 - 60) * u;
+      mistBoost = 0.04;
     } else {
-      const u = ease((time - 17) / 5);
+      const u = ease((time - 18) / 4);
       position = revealCurve.getPoint(u);
       target = revealTarget.getPoint(u);
       fov = 50 + (end.fov - 50) * u;
-      mistBoost = 1 - u;
+      mistBoost = 0.04 * (1 - u);
       letterbox = 1 - u;
     }
     // Smooth upper envelope avoids the velocity kink of a hard terrain clamp.
     // Its width eases to zero at handoff, preserving the exact validated endpoint.
-    const width = 0.2 * (time <= 17 ? 1 : 1 - ease((time - 17) / 5));
+    const width = 0.2 * (time <= 18 ? 1 : 1 - ease((time - 18) / 4));
     const floor = floorAt(position);
     const gap = position.y - floor;
     if (width > 0) {
