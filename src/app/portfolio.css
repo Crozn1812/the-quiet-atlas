@@ -356,7 +356,8 @@ nav[aria-label="Language"] ul {
   min-block-size: 44px;
 }
 @media (max-width: 900px) {
-  .forest-backdrop img { object-position: 65% center; }
+  /* Lead: the card covers the lower half on phones, so show sun + sea in the visible top half. */
+  .forest-backdrop img { block-size: 52vh; object-position: 72% 58%; }
   .forest-backdrop::after {
     background: linear-gradient(0deg, #eee8d866, #eee8d81a 65%, #2b2a261a);
   }
