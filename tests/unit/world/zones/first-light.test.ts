@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { Box3, Color, Mesh, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry } from "three";
+import { Box3, Color, CylinderGeometry, MeshBasicMaterial, Mesh, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CAMERA_PITCH, INITIAL_ZOOM } from "../../../../src/features/world/camera";
+import { CAMERA_CLEARANCE, CAMERA_PITCH, INITIAL_ZOOM, springArm } from "../../../../src/features/world/camera";
 import { paletteColor } from "../../../../src/features/world/art/direction";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -13,6 +13,10 @@ import { createFirstLightScene } from "../../../../src/features/world/zones/firs
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
 } from "../../../../src/features/world/zones/types";
+
+import { createIntro, INTRO_DURATION } from "../../../../src/features/world/cinematic/intro";
+import { createFoliageColliders } from "../../../../src/features/world/foliage/colliders";
+import { scatterTile } from "../../../../src/features/world/foliage/scatter";
 
 const scenes: ZoneScene[] = [];
 const context = (overrides: Partial<ZoneSceneContext> = {}): ZoneSceneContext => ({
@@ -364,7 +368,7 @@ describe("First Light pine clearing", () => {
       [-10.557801, 8.5, 1.140655, 2.7, 17, 2.532003],
       [-11.776724, 7.5, 10.972408, 2.674772, 15, 2.7],
       [9.813375, 8, 9.071885, 2.689813, 16, 2.7],
-      [5.398912, 0.454785, -6.753996, 3.797172, 0.909570, 1.475537],
+      [4.998912, 0.454785, -4.453996, 3.797172, 0.909570, 1.475537],
     ];
     expect(scene.colliders).toHaveLength(expected.length);
     for (const [index, collider] of scene.colliders.entries()) {
@@ -459,50 +463,107 @@ describe("First Light pine clearing", () => {
     expect(meshes(sibling)[0]!.material.gradientMap).toBe(ramp);
   });
 
-  it("shows named welcome parts 6?12 metres ahead of the opening camera on real terrain", () => {
-    const zones = placeZoneScenes(surfaceHeight, ["first-light"]);
+  it("frames the welcome at the real intro/skip handoff without trunk occlusion", () => {
+    const zones = placeZoneScenes(surfaceHeight);
+    const geometry = new CylinderGeometry(1, 1, 2, 6), material = new MeshBasicMaterial();
+    // Use the same full-density, leaning trunk collider data as compose.ts.
+    // Keeping trees excluded by zone boxes is conservative for visibility.
+    const trunks = [-1, 0, 1].flatMap(ix => [-1, 0, 1].flatMap(iz =>
+      createFoliageColliders(scatterTile({ ix, iz })).map(trunk => {
+        const mesh = new Mesh(geometry, material);
+        mesh.position.set(trunk.x, trunk.y, trunk.z);
+        mesh.quaternion.copy(trunk.rotation);
+        mesh.scale.set(trunk.radius, trunk.halfHeight, trunk.radius);
+        mesh.updateMatrixWorld(true);
+        return mesh;
+      })));
     try {
-      const scene = zones[0]!, spawn = worldSpawn();
-      const forward = new Vector3(-7, 0, -9).normalize();
-      const camera = new PerspectiveCamera(55, 16 / 9, 0.1, 100);
-      camera.position.copy(spawn).add(new Vector3(-forward.x * Math.cos(CAMERA_PITCH),
-        Math.sin(CAMERA_PITCH), -forward.z * Math.cos(CAMERA_PITCH)).multiplyScalar(INITIAL_ZOOM));
-      camera.lookAt(spawn); camera.updateMatrixWorld(true);
-      const wanted = ["welcome-log-seat", "seat-open-notebook", "notebook-ink-strokes",
-        "seat-cup", "cup-handle", "seat-mailbox-post", "seat-mailbox-pocket",
-        "seat-foot-moss", "welcome-fern", "welcome-white-flowers", "seat-sun-shaft"];
-      for (const name of wanted) {
-        const candidates: Vector3[] = [];
+      const scene = zones.find(zone => zone.zoneId === "first-light")!, spawn = worldSpawn();
+      // index.ts updateCamera: initial yaw, arm retraction and terrain clamp.
+      const yaw = Math.atan2(7, 9);
+      const direction = new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH),
+        Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH));
+      const armRay = new Raycaster(spawn, direction, 0, INITIAL_ZOOM);
+      const hit = armRay.intersectObjects([...trunks, ...zones.flatMap(zone => zone.boxes)])[0];
+      expect(hit).toBeUndefined(); // Exclusion filtering cannot change this unobstructed arm.
+      const position = spawn.clone().addScaledVector(direction,
+        springArm(INITIAL_ZOOM, INITIAL_ZOOM, hit?.distance, 1 / 60));
+      position.y = Math.max(position.y, surfaceHeight(position.x, position.z) + CAMERA_CLEARANCE);
+      const intro = createIntro({ position, target: spawn, fov: 55 });
+      const bounds = (name: string) => {
+        const box = new Box3();
         for (const mesh of meshes(scene)) {
           const ranges = mesh.geometry.userData.parts as { name: string; start: number; count: number }[];
-          for (const range of ranges.filter(p => p.name === name)) {
-            const box = new Box3(), positions = mesh.geometry.getAttribute("position");
+          for (const range of ranges.filter(part => part.name === name)) {
+            const vertices = mesh.geometry.getAttribute("position");
             for (let i = range.start; i < range.start + range.count; i++) box.expandByPoint(
-              new Vector3().fromBufferAttribute(positions, i).applyMatrix4(scene.group.matrixWorld));
-            const center = box.getCenter(new Vector3()), clip = center.clone().project(camera);
-            if (Math.abs(clip.x) < 1 && Math.abs(clip.y) < 1 && clip.z > -1 && clip.z < 1)
-              candidates.push(center.sub(spawn).setY(0));
+              new Vector3().fromBufferAttribute(vertices, i).applyMatrix4(mesh.matrixWorld));
           }
         }
-        expect(candidates.some(p => p.length() >= 6 && p.length() <= 12
-          && p.clone().normalize().dot(forward) > 0), name).toBe(true);
-      }
-      for (const mesh of meshes(scene)) {
-        const positions = mesh.geometry.getAttribute("position");
-        for (let i = 0; i < positions.count; i++) {
-          const delta = new Vector3().fromBufferAttribute(positions, i)
-            .applyMatrix4(scene.group.matrixWorld).sub(spawn).setY(0);
-          expect(delta.length()).toBeGreaterThan(3);
+        expect(box.isEmpty(), name).toBe(false);
+        return box;
+      };
+      const names = ["welcome-log-seat", "seat-open-notebook", "notebook-ink-strokes",
+        "seat-cup", "cup-handle", "seat-mailbox-post", "seat-mailbox-pocket", "seat-foot-moss"];
+      const cluster = names.reduce((box, name) => box.union(bounds(name)), new Box3());
+      const center = cluster.getCenter(new Vector3());
+      const notebookCenter = bounds("seat-open-notebook").getCenter(new Vector3());
+      // The moved light must survive real-terrain footprint validation, too.
+      const sun = meshes(scene).find(mesh => mesh.name === "first-light-sun")!;
+      const sunVertices = sun.geometry.getAttribute("position");
+      let shaftDistance = Infinity;
+      for (let i = 0; i < sunVertices.count; i++) shaftDistance = Math.min(shaftDistance,
+        new Vector3().fromBufferAttribute(sunVertices, i).applyMatrix4(sun.matrixWorld).distanceTo(notebookCenter));
+      expect(shaftDistance).toBeLessThan(0.25);
+      expect(center.clone().sub(spawn).setY(0).length()).toBeGreaterThanOrEqual(6);
+      expect(center.clone().sub(spawn).setY(0).length()).toBeLessThanOrEqual(10);
+      expect(center.clone().sub(spawn).setY(0).dot(direction.clone().negate())).toBeGreaterThan(0);
+      expect(cluster.getSize(new Vector3()).y).toBeGreaterThanOrEqual(0.8);
+      expect(cluster.getSize(new Vector3()).y).toBeLessThanOrEqual(1.6);
+      for (const pose of [intro.sample(INTRO_DURATION), intro.finalFrame()]) {
+        expect(pose.position).toEqual(position);
+        const camera = new PerspectiveCamera(pose.fov, 16 / 9, 0.1, 100);
+        camera.position.copy(pose.position); camera.lookAt(pose.target); camera.updateMatrixWorld(true);
+        const angle = camera.getWorldDirection(new Vector3()).angleTo(center.clone().sub(camera.position)) * 180 / Math.PI;
+        expect(angle).toBeGreaterThanOrEqual(10);
+        expect(angle).toBeLessThanOrEqual(25);
+        const sight = center.clone().sub(camera.position);
+        expect(new Raycaster(camera.position, sight.clone().normalize(), 0, sight.length())
+          .intersectObjects(trunks)).toHaveLength(0);
+        for (const name of names) {
+          const box = bounds(name), point = box.getCenter(new Vector3());
+          const clip = point.clone().project(camera);
+          expect(Math.abs(clip.x), name).toBeLessThan(1);
+          expect(Math.abs(clip.y), name).toBeLessThan(1);
+          expect(clip.z, name).toBeGreaterThan(-1);
+          expect(clip.z, name).toBeLessThan(1);
+          const delta = point.clone().sub(camera.position);
+          expect(new Raycaster(camera.position, delta.clone().normalize(), 0, delta.length())
+            .intersectObjects(trunks), name).toHaveLength(0);
         }
       }
-    } finally { zones.forEach(zone => zone.dispose()); }
+      const paper = meshes(scene).find(mesh => mesh.name === "first-light-paper")!;
+      const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+      for (const mesh of meshes(scene).filter(mesh => !["first-light-paper", "first-light-sun"].includes(mesh.name)))
+        expect(luma(paper.material.color)).toBeGreaterThan(luma(mesh.material.color));
+      for (const mesh of meshes(scene)) {
+        const vertices = mesh.geometry.getAttribute("position");
+        for (let i = 0; i < vertices.count; i++) expect(new Vector3().fromBufferAttribute(vertices, i)
+          .applyMatrix4(mesh.matrixWorld).sub(spawn).setY(0).length()).toBeGreaterThan(3);
+      }
+      console.info("B2-222 handoff:", position.toArray(), "cluster:", center.toArray(),
+        "distance from spawn:", center.clone().sub(spawn).setY(0).length(),
+        "height:", cluster.getSize(new Vector3()).y);
+    } finally {
+      zones.forEach(zone => zone.dispose()); geometry.dispose(); material.dispose();
+    }
   });
 
   it("lands the sun shaft at the notebook seat", () => {
     const scene = create();
     const sun = meshes(scene).find(m => m.name === "first-light-sun")!;
     const positions = sun.geometry.getAttribute("position");
-    const target = new Vector3(5.4, 0.84, -6.8);
+    const target = new Vector3(5, 0.84, -4.5);
     let nearest = Infinity;
     for (let i = 0; i < positions.count; i++) nearest = Math.min(nearest,
       new Vector3().fromBufferAttribute(positions, i).distanceTo(target));
@@ -536,8 +597,8 @@ describe("First Light pine clearing", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // B2-220 adds the seat notebook/cup/mailbox and aims a shaft at the new seat.
-    expect(fingerprint).toBe("6864a675a72e5337b50a4e4618690459abfce83fbc3ce0201b8a56e9afa20e35");
+    // B2-222 moves the welcome assembly, its collider, plants and shaft into the spawn frame.
+    expect(fingerprint).toBe("edd59548931d900613143bee59679e9010cfcc7fcf88fe8e9c63221c83b513d9");
   });
 
 });

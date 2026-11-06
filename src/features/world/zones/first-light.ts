@@ -185,6 +185,9 @@ function notebook(side: number): Part[] {
 
 // Collision envelopes stay at their shipped anchors as the visible assets change.
 const logBox = new Box3(new Vector3(-1.899674, 0, -0.691764), new Vector3(1.897498, 0.909570, 0.783773));
+// Local clearing coordinates: 6.73 m from spawn, on the dry shoulder of the
+// actual handoff camera (yaw atan2(7, 9)), with room for the entire log footprint.
+const welcomeX = 5, welcomeZ = -4.5;
 /** Retain the old seeded collision extents without rendering the old prop geometry. */
 function rockCollisionBox(seed: number, scale: number): Box3 {
   const bounds = new Box3();
@@ -376,13 +379,13 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     welcomeLog.computeBoundingBox();
     const size = welcomeLog.boundingBox!.getSize(new Vector3());
     const seatPlaced = place([{ ...kit(welcomeLog.scale(3.65 / size.x, 0.86 / size.y, 0.8 / size.z)
-      .rotateY(-0.18), "wood"), name: "welcome-log-seat" }], 5.4, -6.8, true, logBox);
+      .rotateY(-0.18), "wood"), name: "welcome-log-seat" }], welcomeX, welcomeZ, true, logBox);
     if (seatPlaced) {
       welcomeCollider = colliders.pop();
-      place(details, 5.4, -6.8);
+      place(details, welcomeX, welcomeZ);
     } else details.forEach(p => p.geometry.dispose());
     for (const dx of [-1.25, 1.35]) place([named(new IcosahedronGeometry(1, 0)
-      .scale(0.42, 0.075, 0.3).translate(0, -0.025, 0), "green", "seat-foot-moss")], 5.4 + dx, -6.6);
+      .scale(0.42, 0.075, 0.3).translate(0, -0.025, 0), "green", "seat-foot-moss")], welcomeX + dx, welcomeZ + 0.2);
   }
 
   // Three pin-sized orange blooms along the open edge of the fallen pine.
@@ -433,7 +436,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       x!, z!, true, box);
   }
 
-  for (const [x, z] of [[-5.8, 6], [-8.8, 2.7], [5.4, -8.4]]) {
+  for (const [x, z] of [[-5.8, 6], [-8.8, 2.7], [welcomeX, welcomeZ - 1.6]]) {
     place([{ ...kit(createFern().scale(0.75, 0.6, 0.75).rotateY(context.seed * 0.01 + x!), "green"), name: "welcome-fern" }], x!, z!);
     const flowers: Part[] = [];
     for (let i = 0; i < 3; i++) {
@@ -450,7 +453,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     place(flowers, x!, z!);
   }
 
-  for (const [x, z, width] of [[6.8, 8, 0.65], [5.4, -6.8, 1.4]]) {
+  for (const [x, z, width] of [[6.8, 8, 0.65], [welcomeX, welcomeZ, 1.4]]) {
     const veil = sunVeil(width!);
     place([{ ...part(veil.translate(0, 3, 0).rotateZ(-0.28).rotateY(0.35).translate(0, 0.84, 0), "sun"),
       name: "seat-sun-shaft" }], x!, z!);
