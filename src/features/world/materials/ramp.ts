@@ -61,6 +61,45 @@ export function createRampMaterial(
 
   material.onBeforeCompile = (shader) => {
     if (continuous) {
+      shader.uniforms.terrainDry = { value: new Color(hex("grassDry")) };
+      shader.uniforms.terrainDeep = { value: new Color(hex("forestDeep")) };
+      shader.vertexShader = shader.vertexShader
+        .replace("#include <common>", "#include <common>\nvarying vec3 terrainWorld;")
+        .replace("#include <project_vertex>", "#include <project_vertex>\nterrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+      shader.fragmentShader = shader.fragmentShader.replace("void main() {", `
+varying vec3 terrainWorld;
+uniform vec3 terrainDry;
+uniform vec3 terrainDeep;
+float terrainHash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float terrainNoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(terrainHash(i), terrainHash(i + vec2(1.0, 0.0)), f.x),
+    mix(terrainHash(i + vec2(0.0, 1.0)), terrainHash(i + vec2(1.0)), f.x), f.y);
+}
+vec3 terrainDetail(vec3 pigment) {
+  float fade = 1.0 - 0.8 * smoothstep(40.0, 200.0, distance(cameraPosition, terrainWorld));
+  float coarse = smoothstep(0.25, 0.75, terrainNoise(terrainWorld.xz / 4.5)) * 2.0 - 1.0;
+  float fine = smoothstep(0.25, 0.75, terrainNoise(terrainWorld.xz / 0.9)) * 2.0 - 1.0;
+  float grain = 0.65 * coarse + 0.35 * fine;
+  vec3 hue = grain > 0.0 ? terrainDry : terrainDeep;
+  // Equal-luma hue drift avoids a systematic brightening toward dry grass.
+  vec3 weights = vec3(0.2126, 0.7152, 0.0722);
+  hue /= max(dot(hue, weights), 0.0001);
+  hue = mix(vec3(1.0), hue, abs(grain) * 0.035 * fade);
+  float forest = 1.0 - smoothstep(0.18, 0.28, dot(pigment, weights));
+  float sunPatch = 0.0;
+  #if NUM_DIR_LIGHTS > 0
+    vec3 sun = inverseTransformDirection(directionalLights[0].direction, viewMatrix);
+    // Project a virtual canopy 3 m overhead onto the ground along the actual sun.
+    vec2 canopy = terrainWorld.xz - sun.xz * (3.0 / max(abs(sun.y), 0.15));
+    sunPatch = (smoothstep(0.35, 0.65, terrainNoise(canopy / 4.5)) * 2.0 - 1.0) * forest;
+  #endif
+  return hue * (1.0 + fade * (0.10 * grain + 0.08 * sunPatch));
+}
+void main() {`);
       // Analytic half-Lambert has no texel plateaus or band boundaries on curved ground.
       // Only replace angular irradiance: Three's light colour still carries cast shadows.
       shader.fragmentShader = shader.fragmentShader.replace("#include <gradientmap_pars_fragment>", `
@@ -85,9 +124,13 @@ if ( rampClearLight ) {
 }
 outgoingLight = mix( rampShadow, outgoingLight, smoothstep( 0.0, 0.5, rampLight ) );
 #include <opaque_fragment>`);
+    if (continuous) {
+      shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>",
+        "outgoingLight *= terrainDetail(diffuseColor.rgb);\n#include <opaque_fragment>");
+    }
   };
   // Keep terrain and object programs separate; colour/tint remain per-material uniforms.
-  material.customProgramCacheKey = () => continuous ? "painted-terrain-continuous-v1" : "painted-toon-ramp-v1";
+  material.customProgramCacheKey = () => continuous ? "painted-terrain-continuous-detail-v2" : "painted-toon-ramp-v1";
   return material;
 }
 

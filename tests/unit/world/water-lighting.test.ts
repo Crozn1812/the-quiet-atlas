@@ -62,6 +62,8 @@ function groundSample(pigment: Color, grade: LightingGrade): Color {
   material.onBeforeCompile(shader, {} as WebGLRenderer);
   const body = shader.fragmentShader.match(/float rampLight = ([\s\S]*?)#include <opaque_fragment>/)![0]!
     .replace("#include <opaque_fragment>", "return outgoingLight;")
+    // B2-215 world-space detail is a ±10% zero-mean modulation; the bank comparison uses mean ground.
+    .replace("outgoingLight *= terrainDetail(diffuseColor.rgb);", "")
     .replace(/dot\( outgoingLight, vec3\( [^)]* \) \)/, "rampLuma")
     .replaceAll("vec3( 0.25 )", "0.25").replaceAll("vec3( 1.0 )", "1.0")
     .replace(/\b(float|vec3)\b/g, "let").replaceAll("diffuseColor.rgb", "diffuseColor");
