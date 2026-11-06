@@ -36,7 +36,8 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
   await expect(world).toHaveAttribute("data-world-paused", "true");
   // Adaptive quality (L2-007) may already have stepped down under load; the menu pauses it from here on.
   const initial = (await world.getAttribute("data-world-quality")) ?? "";
-  const select = dialog(page).getByRole("combobox", { name: "Quality" });
+  // B2-230: quality is a radio group; focus the checked radio (the control a keyboard user lands on).
+  const select = dialog(page).getByRole("group", { name: "Quality" }).locator(`input[value="${initial}"]`);
   await select.focus();
   await expect(select).toBeFocused();
 
@@ -46,7 +47,7 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
     await expect(world, `"${key}" changed paused`).toHaveAttribute("data-world-paused", "true");
   }
   await expect(select).toBeFocused();
-  await expect(select).toHaveValue(initial);
+  await expect(select).toBeChecked();
   await expect(world).toHaveAttribute("data-world-quality", initial);
   expect(errors, errors.join("\n")).toEqual([]);
 });
@@ -129,7 +130,8 @@ test("Q21 (reload): reloading while in the world starts a new session on Welcome
 // The running scene is not pixel-stable while idle, so position after resuming is only checked via `data-world-hint`.
 test.describe("Q21 language switch inside the world", () => {
   const world = (page: Page) => page.locator(`[data-world-chunk]`);
-  const languages = (page: Page) => dialog(page).locator("fieldset");
+  // B2-230 adds a quality fieldset; the language fieldset is the one with the locale buttons.
+  const languages = (page: Page) => dialog(page).locator("fieldset").filter({ has: page.getByRole("button", { name: "Tiếng Việt" }) });
   const overlay = (page: Page) => page.locator("dialog.world-content");
   /**
    * HUD/corner card text changes with the language; hide it so canvas pixels compare only the 3D scene.
@@ -210,7 +212,7 @@ test.describe("Q21 language switch inside the world", () => {
     await expect(dialog(page).getByRole("button", { name: vi.leave, exact: true })).toBeVisible();
     await expect(dialog(page).getByRole("button", { name: "× Đóng", exact: true })).toBeVisible();
     await expect(dialog(page).getByRole("button", { name: "× Đóng", exact: true })).toBeVisible();
-    await expect(dialog(page).getByRole("combobox", { name: "Chất lượng" })).toBeVisible();
+    await expect(dialog(page).getByRole("group", { name: "Chất lượng" })).toBeVisible();
     await expect(dialog(page).getByRole("link", { name: "Mở Quick Portfolio" })).toHaveAttribute("href", "/vi/quick/");
     await expect(languages(page).locator("legend")).toHaveText("Ngôn ngữ");
     await expect(page.locator(HUD)).toHaveAttribute("aria-label", "Thao tác world");
@@ -402,7 +404,7 @@ test.describe("Q21 world copy follows the language (ADR 0008 đợt 10)", () => 
 
     await page.locator(MENU_TRIGGER).click();
     await expect(dialog(page)).toHaveAttribute("open", "");
-    await dialog(page).locator("fieldset").getByRole("button", { name: "Tiếng Việt" }).click();
+    await dialog(page).getByRole("button", { name: "Tiếng Việt" }).click();
     await expect(page).toHaveURL(/\/vi\/$/);
     await expect(entered!).toHaveAttribute("data-world-locale", "vi");
     await expect(canvas).toHaveAttribute("aria-label", CANVAS_LABEL.vi);

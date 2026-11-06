@@ -69,11 +69,12 @@ test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-s
   // Adaptive quality (L2-007) may already have stepped down under load, so start from whatever is current.
   const initial = (await world.getAttribute("data-world-quality")) as "low" | "balanced" | "high";
   expect(["low", "balanced", "high"]).toContain(initial);
-  const select = dialog(page).getByRole("combobox", { name: "Quality" });
-  await expect(select).toHaveValue(initial);
+  // B2-230: quality is a radio group (fieldset legend "Quality") instead of a native select.
+  const qualities = dialog(page).getByRole("group", { name: "Quality" });
+  await expect(qualities.locator(`input[value="${initial}"]`)).toBeChecked();
   const sequence = [...(["low", "high", "balanced"] as const).filter(quality => quality !== initial), initial];
   for (const quality of sequence) {
-    await select.selectOption(quality);
+    await qualities.locator(`input[value="${quality}"]`).check();
     await expect(world).toHaveAttribute("data-world-quality", quality);
   }
 
