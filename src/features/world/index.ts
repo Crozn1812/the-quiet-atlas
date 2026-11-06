@@ -442,6 +442,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     cameraYaw(): number;
     zone(): string | null;
     goTo(zoneId: string): Promise<void>;
+    visitSecret(id: string): boolean;
   } };
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
@@ -475,6 +476,17 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       } finally {
         container.removeEventListener("tqa:teleport-end", ended);
       }
+    },
+    /** QA only: stand on a secret and interact with it, as walking there and pressing E would. */
+    visitSecret: (id: string) => {
+      const secret = SECRETS.find(entry => entry.id === id);
+      if (!secret) throw new Error(`Invalid journey secret: ${id}`);
+      if (disposed || cinematicLocked() || contextLost || teleport.inputLocked) throw new Error("Journey secret unavailable");
+      const position = new Vector3(secret.position.x, secret.position.y + HEIGHT, secret.position.z);
+      composed.update(position, 0);
+      physics.teleport(position);
+      state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
+      return discover(id);
     },
   }) : undefined;
   if (journey) journeyContainer.__tqaJourney = journey;
