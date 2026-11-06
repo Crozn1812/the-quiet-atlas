@@ -141,8 +141,10 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
         // Intersect a cloud sheet: distant footprints become small, flat silhouettes;
         // overhead footprints stay round. No latitude cutoff can turn them into a curtain.
         float breeze = 0.045 * sin(cloudTime * 6.28318530718 / 1280.0);
-        float planeX = direction.x * 2.6 / (height + 0.08) + 64.0 + breeze;
-        float planeY = direction.z * 2.6 / (height + 0.08) + 64.0 + breeze * 0.43;
+        // A coarse sheet leaves broad clear sky between a few nearby cloud masses;
+        // perspective alone supplies the small, flat fragments at the horizon.
+        float planeX = direction.x / (height + 0.08) + 63.6 + breeze;
+        float planeY = direction.z / (height + 0.08) + 62.9 + breeze * 0.43;
         float x = planeX + 0.72 * (cloudFbm(planeX * 0.73, planeY * 0.73) - 0.5);
         float y = planeY + 0.72 * (cloudFbm(planeX * 0.73 + 29.4, planeY * 0.73 + 13.7) - 0.5);
         float column = floor(x);
@@ -156,8 +158,9 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
           for (float i = -1.0; i <= 1.0; i += 1.0) {
             float c = column + i;
             float seed = cloudSeed(c, r);
-            float sizeNoise = cloudNoise(c * 0.61 + 5.3, r * 0.61 + 11.8);
-            float width = 0.14 + 0.50 * smoothstep(0.18, 0.82, sizeNoise);
+            // Cubing the seed gives many small footprints and a few dominant masses,
+            // rather than filling every cell with a similarly sized puff.
+            float width = 0.15 + 0.67 * seed * seed * seed;
             float depth = width * (0.65 + 0.6 * seed);
             float dx = x - c - 0.5 - 0.78 * (cloudNoise(c * 1.37 + 41.7, r * 1.37 + 9.2) - 0.5);
             float dy = y - r - 0.5 - 0.78 * (cloudNoise(c * 1.37 + 8.3, r * 1.37 + 53.1) - 0.5);

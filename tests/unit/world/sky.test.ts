@@ -68,6 +68,10 @@ function cloudRegions(dome: ReturnType<typeof createSkyDome>) {
       mask[y * width + x] = Number(sampleDomeData(dome, rayAt((x + 0.5) * Math.PI / 180, (y + 0.5) * Math.PI / 180)).density >= 0.5);
     }
   }
+  return connectedCloudRegions(mask, width, height, true);
+}
+
+function connectedCloudRegions(mask: Uint8Array, width: number, height: number, wrap = false) {
   const regions: { area: number; span: number; bottom: number; top: number }[] = [];
   for (let start = 0; start < mask.length; start++) {
     if (!mask[start]) continue;
@@ -83,7 +87,9 @@ function cloudRegions(dome: ReturnType<typeof createSkyDome>) {
       columns.add(x);
       bottom = Math.min(bottom, y);
       top = Math.max(top, y);
-      for (const next of [y * width + (x + 1) % width, y * width + (x + width - 1) % width, index - width, index + width]) {
+      const left = x > 0 ? index - 1 : wrap ? index + width - 1 : -1;
+      const right = x < width - 1 ? index + 1 : wrap ? index - width + 1 : -1;
+      for (const next of [right, left, index - width, index + width]) {
         if (next < 0 || next >= mask.length || !mask[next]) continue;
         mask[next] = 0;
         queue.push(next);
@@ -95,9 +101,39 @@ function cloudRegions(dome: ReturnType<typeof createSkyDome>) {
       const next = sorted[(i + 1) % sorted.length]! + (i === sorted.length - 1 ? width : 0);
       gap = Math.max(gap, next - column);
     });
-    regions.push({ area: queue.length, span: width - gap + 1, bottom, top });
+    regions.push({ area: queue.length, span: wrap ? width - gap + 1 : sorted[sorted.length - 1]! - sorted[0]! + 1, bottom, top });
   }
   return regions;
+}
+
+// Angular sky crop: 55° azimuth × 30° above the horizon, quarter-degree cells.
+// Gameplay yaw 0 looks towards -Z; camera translation/path grade cannot rotate the sky.
+function cloudViewport(dome: ReturnType<typeof createSkyDome>, yaw = 0) {
+  const step = 0.25;
+  const width = 55 / step;
+  const height = 30 / step;
+  const densities = Array.from({ length: width * height }, (_, index) => sampleDomeData(dome, rayAt(
+    -Math.PI / 2 - yaw + ((index % width + 0.5) * step - 27.5) * Math.PI / 180,
+    (Math.floor(index / width) + 0.5) * step * Math.PI / 180,
+  )).density);
+  const mask = Uint8Array.from(densities, density => Number(density >= 0.5));
+  const coverage = mask.reduce((sum, value) => sum + value, 0) / mask.length;
+  const regions = connectedCloudRegions(mask, width, height);
+  // Require a real 5°-tall clear patch, above the 6° horizon haze, not a single
+  // empty scanline or a winding connected background slipping between puffs.
+  let clearSpan = 0;
+  for (let y = 6 / step; y <= height - 5 / step; y++) {
+    let run = 0;
+    for (let x = 0; x < width; x++) {
+      let clear = true;
+      for (let dy = 0; dy < 5 / step; dy++) {
+        if (densities[(y + dy) * width + x]! > 0.1) { clear = false; break; }
+      }
+      run = clear ? run + 1 : 0;
+      clearSpan = Math.max(clearSpan, run * step);
+    }
+  }
+  return { coverage, regions, clearSpan, step };
 }
 
 // Frozen pre-B2-188 density, evaluated by the same CPU GLSL adapter as production.
@@ -466,6 +502,27 @@ describe("grade follower", () => {
 });
 
 describe("sky dome without a GPU", () => {
+  it.each([0.15, 0.55, 0.86])("leaves large clear sky between unequal cloud masses in the 55° × 30° yaw-0 frame at path %s", pathT => {
+    const dome = createSkyDome(placedGrade(pathT));
+    try {
+      for (const seconds of [0, 120, 320, 600, 960]) {
+        dome.mesh.material.uniforms.cloudTime!.value = seconds;
+        const { regions, clearSpan, step, coverage } = cloudViewport(dome);
+        const areas = regions.map(region => region.area).sort((a, b) => a - b);
+        const median = (areas[Math.floor((areas.length - 1) / 2)]! + areas[Math.floor(areas.length / 2)]!) / 2;
+        expect(regions.length).toBeGreaterThanOrEqual(4);
+        expect(regions.length).toBeLessThanOrEqual(15);
+        expect(areas[areas.length - 1]! / median).toBeGreaterThanOrEqual(4);
+        expect(clearSpan, `clear patch after ${seconds}s`).toBeGreaterThanOrEqual(30);
+        expect(coverage).toBeGreaterThanOrEqual(0.2);
+        expect(coverage).toBeLessThanOrEqual(0.35);
+        const largest = regions.reduce((a, b) => a.area > b.area ? a : b);
+        expect(largest.span * step).toBeGreaterThanOrEqual(15);
+        expect(largest.span * step).toBeLessThanOrEqual(40);
+      }
+    } finally { dome.dispose(); }
+  });
+
   it.each([0, 120, 600, 960])("has no azimuth density correlation above 0.5 at any 10–90 degree lag after %s seconds", seconds => {
     const dome = createSkyDome();
     try {
@@ -657,9 +714,9 @@ describe("sky dome without a GPU", () => {
     } finally { domes.forEach(dome => dome.dispose()); }
   });
 
-  // B2-188 replaces the old 5–35 degree shelf: cover is now measured over the whole
-  // upper hemisphere, with darker condensation bases instead of uniformly white cores.
-  it.each([0.15, 0.3, 0.9, 0.93])("keeps 25–40 percent solid-angle cloud cover above the horizon at path %s", pathT => {
+  // B2-188c lowers cover to 20–35% to leave larger areas of quiet sky. Keep the
+  // equal-solid-angle hemisphere measurement and all existing colour/edge checks.
+  it.each([0.15, 0.3, 0.9, 0.93])("keeps 20–35 percent solid-angle cloud cover above the horizon at path %s", pathT => {
     const dome = createSkyDome(placedGrade(pathT));
     try {
       dome.mesh.material.uniforms.sunGlow!.value.setRGB(0, 0, 0);
@@ -681,8 +738,8 @@ describe("sky dome without a GPU", () => {
           }
         }
         const coverage = cloudy / (48 * 192);
-        expect(coverage).toBeGreaterThanOrEqual(0.25);
-        expect(coverage).toBeLessThanOrEqual(0.40);
+        expect(coverage).toBeGreaterThanOrEqual(0.20);
+        expect(coverage).toBeLessThanOrEqual(0.35);
         expect(densities.some(value => value > 0 && value < 0.5)).toBe(true); // Soft painted edges.
         expect(densities.some(value => value > 0.99)).toBe(true); // White opaque cores.
       }
