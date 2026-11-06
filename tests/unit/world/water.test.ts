@@ -198,7 +198,7 @@ describe("painted water material", () => {
     const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
       .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)).multiplyScalar(0.2 / Math.PI);
     expect(material.uniforms.uDeepColor!.value.toArray()).toEqual(
-      new Color(PALETTE.seaDeep).lerp(new Color(PALETTE.forestLight), 0.5).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
+      new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.seaShallow), 0.6).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(
       new Color(PALETTE.seaShallow).lerp(new Color(PALETTE.forestLight), 0.25).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.transparent).toBe(false);

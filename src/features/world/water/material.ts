@@ -97,15 +97,18 @@ const fragmentShader = /* glsl */ `
       float density = mix(9.0, 15.0, 1.0 - smoothstep(1.0, 8.0, riverWidth));
       density *= mix(1.3, 1.0, smoothstep(0.0, 0.8, bankDistance));
       float lane = vWaterUv.x * riverWidth * density + 0.45 * sin(flow * 0.7);
-      float stroke = pow(0.5 + 0.5 * cos(lane), 12.0);
+      float stroke = pow(0.5 + 0.5 * cos(lane), mix(6.0, 12.0, smoothstep(0.0, 0.4, uSkyMix)));
       stroke *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(flow * 0.65 + vWaterUv.x * 37.0));
-      float modulation = 1.0 + mix(0.2, 3.2, smoothstep(0.0, 0.4, uSkyMix)) * (stroke - 0.092)
+      float modulation = 1.0 + 3.2 * (stroke - mix(0.15, 0.092, smoothstep(0.0, 0.4, uSkyMix)))
         * (1.0 - smoothstep(0.6, 1.0, edge));
       float riverBrush = 0.5 + 0.5 * sin(flow * 1.73 + 1.2 * sin(flow * 0.43) + vWaterUv.x * 11.0);
       float riverFoam = (1.0 - smoothstep(0.2, 0.6, bankDistance))
         * smoothstep(0.48, 0.58, riverBrush);
       // End river detail scalars.
-      color *= modulation;
+      // A metre-based wet margin blends into the existing edge pigment.
+      float wetBank = 1.0 - smoothstep(0.0, 0.55, bankDistance);
+      color = mix(color, uEdgeColor * 0.92, wetBank);
+      color *= mix(min(modulation, 1.2), modulation, smoothstep(0.0, 0.4, uSkyMix));
       color = mix(color, uPaperColor, riverFoam * 0.06);
     #endif
     #ifdef SEA_WATER
@@ -130,6 +133,10 @@ const fragmentShader = /* glsl */ `
       float grazing = 1.0 - clamp(dot(surfaceNormal, normalize(vViewDirection)), 0.0, 1.0);
       float fresnel = grazing * grazing * grazing;
       float reflection = fresnel * SKY_REFLECTION * mix(0.85, 1.0, uSkyMix);
+      #ifndef SEA_WATER
+        // Canopy leaves a peach Fresnel veil without washing the dawn stream grey.
+        reflection *= mix(0.55, 1.0, smoothstep(0.0, 0.4, uSkyMix));
+      #endif
       #ifdef SEA_WATER
         reflection *= mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore));
       #endif
@@ -216,7 +223,7 @@ export class WaterMaterial extends ShaderMaterial {
     if (!sea) {
       // Clear green-turquoise banks, with denser pigment down the centre of the stream.
       edge.lerp(new Color(PALETTE.forestLight), 0.25);
-      deep.lerp(new Color(PALETTE.forestLight), 0.5);
+      deep.copy(new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.seaShallow), 0.6));
     }
     // The broad sea mirrors more of the painted sky than the shaded river.
     const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22, WATER_REFLECTION: 1 };
@@ -281,7 +288,7 @@ export class WaterMaterial extends ShaderMaterial {
     // Keep this on Low too: a static reflection needs no animated flow or extra pass.
     // The grade's eastern dawn direction proxies forest canopy; it releases toward
     // noon and leaves the open western coast untouched, without needing path state.
-    const skyVisibility = sea ? 1 : 1 - 0.7 * Math.max(0, -grade.sunDirection.x);
+    const skyVisibility = sea ? 1 : 1 - 0.74 * Math.max(0, -grade.sunDirection.x);
     this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon).multiplyScalar((sea ? 0.5 : 0.45) * skyVisibility);
     this.uniforms.uSunWashColor!.value.copy(this.sunWash).multiply(grade.sunColor)
       .multiplyScalar(grade.sunIntensity * 0.65);

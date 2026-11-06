@@ -32,15 +32,15 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
       color = mix(color, uPaperColor, stroke * 0.065);`;
   const reflection = source.slice(source.indexOf("float fresnel ="), source.indexOf("#ifdef SEA_WATER", source.indexOf("float fresnel =")));
   const evaluate = new Function("vWaterUv", "flow", "grazing", "uDeepColor", "uEdgeColor", "uPaperColor", "uSkyMix",
-    "SKY_REFLECTION", "riverWidth", "bankDistance", "abs", "sin", "cos", "pow", "smoothstep", "mix", `
-    ${[pigment, stroke, reflection].join("\n").replace(/\b(float|vec3)\s+/g, "let ")}
+    "SKY_REFLECTION", "riverWidth", "bankDistance", "abs", "sin", "cos", "pow", "min", "smoothstep", "mix", `
+    ${[pigment, stroke, reflection.replace(/#ifndef SEA_WATER|#endif/g, "")].join("\n").replace(/\b(float|vec3)\s+/g, "let ")}
     return { color, reflection };
   `);
   const uniforms = material.uniforms;
   const channels = (["r", "g", "b"] as const).map(channel => {
     const result = evaluate({ x }, flow, grazing, uniforms.uDeepColor!.value[channel], uniforms.uEdgeColor!.value[channel],
       uniforms.uPaperColor!.value[channel], uniforms.uSkyMix!.value, material.defines.SKY_REFLECTION, width, Math.min(x, 1 - x) * width,
-      Math.abs, Math.sin, Math.cos, Math.pow, smoothstep, (a: number, b: number, u: number) => a + (b - a) * u);
+      Math.abs, Math.sin, Math.cos, Math.pow, Math.min, smoothstep, (a: number, b: number, u: number) => a + (b - a) * u);
     return material.defines.WATER_REFLECTION
       ? result.color + (uniforms.uSkyHorizon!.value[channel] - result.color) * result.reflection : result.color;
   });
@@ -98,7 +98,7 @@ describe("water receives the player's grade", () => {
   it.each(["Low", "Balanced", "High"] as const)("bounds the %s dawn reflection against wet banks for pedestrian and downward views", quality => {
     const material = createWaterMaterial(quality);
     try {
-      for (const t of [0, 0.15]) {
+      for (const t of [0, 0.02, 0.15]) {
         const grade = gradeAt(t);
         material.setGrade(grade);
         const river = riverPointAt(t);
@@ -249,5 +249,59 @@ it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons",
     }
     expect(sample(1, 0.2, 0).density).toBeGreaterThan(sample(8, 0.2, 0).density);
     expect(sample(8, 0.2, 0).density).toBeGreaterThan(sample(8, 2, 0).density);
+  } finally { material.dispose(); }
+});
+
+
+describe("B2-221 dawn stream", () => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s green-cyan water and readable ripples at 5?20 m", quality => {
+    const t = 0.02;
+    const material = createWaterMaterial(quality, { grade: gradeAt(t), skyMix: timeOfDayAt(t) });
+    try {
+      for (const distance of [5, 10, 20]) for (const width of [4, 6, 8]) {
+        const values: number[] = [];
+        const colors: Color[] = [];
+        for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) {
+          const u = 0.5 + ((x + 0.5) / 48 * 4 - 2) / width;
+          const flow = t * riverLength() + (y + 0.5) / 48 * 4;
+          const view = new Vector3(0, 1.7, distance);
+          // Display RGB measures the visible dawn colour/contrast after Three's output conversion.
+          const color = riverSample(material, u, flow, grazingAt(material, u, flow, view), width).convertLinearToSRGB();
+          values.push(luma(color));
+          colors.push(color);
+        }
+        const meanColor = colors.reduce((sum, color) => sum.add(color), new Color(0, 0, 0)).multiplyScalar(1 / colors.length);
+        const chroma = Math.max(meanColor.r, meanColor.g, meanColor.b) - Math.min(meanColor.r, meanColor.g, meanColor.b);
+        const mean = values.reduce((a, b) => a + b) / values.length;
+        const std = Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
+        expect(chroma).toBeGreaterThanOrEqual(0.04);
+        expect(Math.max(meanColor.g, meanColor.b)).toBeGreaterThan(meanColor.r);
+        expect(std).toBeGreaterThanOrEqual(0.015);
+        process.stdout.write(quality + ' dawn distance=' + distance + ', width=' + width + ': chroma=' + chroma.toFixed(4) + ', std=' + std.toFixed(4) + '\n');
+      }
+    } finally { material.dispose(); }
+  });
+});
+
+
+it("blends the wet river margin smoothly over 0.55 m", () => {
+  const material = createWaterMaterial("High");
+  try {
+    const source = material.fragmentShader;
+    const body = source.slice(source.indexOf("float wetBank ="), source.indexOf("color *= mix(min(modulation"));
+    const evaluate = new Function("bankDistance", "color", "uEdgeColor", "smoothstep", "mix",
+      body.replace(/\b(float|vec3)\s+/g, "let ") + "return color;");
+    const sample = (distance: number) => evaluate(distance, 1, 1, smoothstep,
+      (a: number, b: number, t: number) => a + (b - a) * t) as number;
+    expect(sample(0)).toBeCloseTo(0.92);
+    expect(sample(0.55)).toBe(1);
+    expect(sample(0.8)).toBe(1);
+    let previous = sample(0);
+    for (let i = 1; i <= 55; i++) {
+      const value = sample(i / 100);
+      expect(value).toBeGreaterThanOrEqual(previous);
+      expect(value - previous).toBeLessThan(0.003);
+      previous = value;
+    }
   } finally { material.dispose(); }
 });

@@ -43,6 +43,7 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
     .replace(/SEA_FOAM_MAX_SLOPE/g, String(SEA_FOAM_MAX_SLOPE))
     .replace(/fwidth\(alongSun \* 0.24 \* perspective\)/g, "washPixelWidth")
     .replace(/fwidth\(alongSun \* 1.7\)/g, "glimmerPixelWidth")
+    .replace(/#ifndef SEA_WATER[\s\S]*?#endif/g, "")
     .replace(/#ifdef SEA_WATER|#endif/g, "")
     .replace(/fwidth\(offshore\)/g, "offshorePixelWidth");
   const evaluate = new Function("inputs", "smoothstep", "mix", "clamp", `
