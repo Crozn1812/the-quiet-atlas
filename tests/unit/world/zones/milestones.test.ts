@@ -1,8 +1,14 @@
-import { Box3, BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
+import { Box3, BufferGeometry, Color, CylinderGeometry, Mesh, MeshBasicMaterial, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ZONE_IDS } from "../../../../src/features/interaction/targets";
+import { arrivalPoint } from "../../../../src/features/navigation/signposts";
+import { CAMERA_CLEARANCE, CAMERA_PITCH, INITIAL_ZOOM } from "../../../../src/features/world/camera";
+import { pathLength, pathPointAt } from "../../../../src/features/world/layout/path";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { createPineCrownV2 } from "../../../../src/features/world/foliage/pine";
+import { createFoliageColliders } from "../../../../src/features/world/foliage/colliders";
+import { scatterTile } from "../../../../src/features/world/foliage/scatter";
+import { TILE_SIZE } from "../../../../src/features/world/terrain/tiles";
 import { disposeRampGradients, RAMP_PRESETS } from "../../../../src/features/world/materials/ramp";
 import { HEIGHT } from "../../../../src/features/world/scene";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
@@ -86,6 +92,59 @@ afterEach(() => {
 });
 
 describe("The Milestones hillside", () => {
+  it("shows the main stone from arrival and the 10–25 m approach in the default camera", () => {
+    const [scene] = placeZoneScenes(surfaceHeight, ["milestones"]);
+    const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
+    const trunkMaterial = new MeshBasicMaterial();
+    try {
+      const arrival = arrivalPoint("milestones");
+      const layout = ZONES.find(zone => zone.id === "milestones")!;
+      const main = new Box3().setFromPoints(rockPoints(scene!, 0).map(p => scene!.group.localToWorld(p)));
+      const aim = main.getCenter(new Vector3());
+      // Include all scattered trunks, even those composition removes near zone
+      // boxes: this is stricter than the runtime exclusion and quality settings.
+      const trunks: Mesh[] = [];
+      for (let ix = Math.floor((aim.x - 64) / TILE_SIZE); ix <= Math.floor((aim.x + 64) / TILE_SIZE); ix++) {
+        for (let iz = Math.floor((aim.z - 64) / TILE_SIZE); iz <= Math.floor((aim.z + 64) / TILE_SIZE); iz++) {
+          for (const trunk of createFoliageColliders(scatterTile({ ix, iz }))) {
+            const mesh = new Mesh(trunkGeometry, trunkMaterial);
+            mesh.position.set(trunk.x, trunk.y, trunk.z);
+            mesh.quaternion.copy(trunk.rotation);
+            mesh.scale.set(trunk.radius, trunk.halfHeight, trunk.radius);
+            mesh.updateMatrixWorld(true);
+            trunks.push(mesh);
+          }
+        }
+      }
+      for (const distance of [undefined, 10, 15, 20, 25]) {
+        const point = distance === undefined ? new Vector3(arrival.position.x, 0, arrival.position.z)
+          : pathPointAt(layout.t - distance / pathLength());
+        const yaw = distance === undefined ? arrival.yaw
+          : Math.atan2(point.x - layout.position.x, point.z - layout.position.z);
+        const target = new Vector3(point.x, surfaceHeight(point.x, point.z) + HEIGHT + 0.02, point.z);
+        const direction = new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH));
+        const camera = new PerspectiveCamera(55, 1, 0.1, 100);
+        camera.position.copy(target).addScaledVector(direction, INITIAL_ZOOM);
+        camera.position.y = Math.max(camera.position.y, surfaceHeight(camera.position.x, camera.position.z) + CAMERA_CLEARANCE);
+        camera.lookAt(target);
+        camera.updateMatrixWorld(true);
+        const angle = camera.getWorldDirection(new Vector3()).angleTo(aim.clone().sub(camera.position)) * 180 / Math.PI;
+        expect(angle).toBeLessThanOrEqual(25);
+        const projected = aim.clone().project(camera);
+        expect(Math.abs(projected.x)).toBeLessThanOrEqual(1);
+        expect(Math.abs(projected.y)).toBeLessThanOrEqual(1);
+        expect(projected.z).toBeGreaterThan(-1);
+        expect(projected.z).toBeLessThan(1);
+        const ray = new Raycaster(camera.position, aim.clone().sub(camera.position).normalize(), 0, camera.position.distanceTo(aim));
+        expect(ray.intersectObject(named(scene!, "ink"))).toHaveLength(0);
+        expect(ray.intersectObjects(trunks)).toHaveLength(0);
+        for (const vertex of rockPoints(scene!, 0)) {
+          const ndc = scene!.group.localToWorld(vertex).project(camera);
+          expect(Math.max(Math.abs(ndc.x), Math.abs(ndc.y), Math.abs(ndc.z))).toBeLessThanOrEqual(1);
+        }
+      }
+    } finally { scene!.dispose(); trunkGeometry.dispose(); trunkMaterial.dispose(); }
+  });
   it("keeps the previous box centres and labelled target within 0.1 m", () => {
     // Captured before the kit migration (seed 104); sizes still enclose the new silhouettes.
     const previous = [

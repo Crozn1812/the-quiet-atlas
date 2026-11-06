@@ -270,10 +270,14 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     surface: "flower", x, z, solid: false,
   });
 
-  // Move the whole composition together to the flattest dry shoulder, keeping the target near the road.
+  // Arrival faces local +Z. Prefer a dry shoulder ahead of the signpost so the
+  // complete kit stays in the default camera, then choose the gentlest slope.
+  // A rise/run above 0.5 remains a last resort rather than winning on visibility.
+  // Retain upstream sites only as a fallback for constrained custom terrain.
   const placement = [0, -4, 4, -8, 8, -12, 12, -16, 16]
     .flatMap(offsetZ => [1, -1].map(side => ({ side, offsetZ, slope: slopeAtSite(context, side, offsetZ) })))
-    .sort((a, b) => a.slope - b.slope)
+    .sort((a, b) => Number(a.slope > 0.5) - Number(b.slope > 0.5)
+      || Number(a.offsetZ < 0) - Number(b.offsetZ < 0) || a.slope - b.slope)
     .find(({ side, offsetZ }) => fits(parts, context, side, offsetZ));
   if (!placement) {
     parts.forEach(part => { part.geometry.dispose(); part.collisionGeometry?.dispose(); });
