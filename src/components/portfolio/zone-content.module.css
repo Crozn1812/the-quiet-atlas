@@ -1,3 +1,22 @@
+.closeButton[type="button"] {
+  display: block;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #2b2a26;
+  background: #eee8d8;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid #2e5e73;
+  outline-offset: 3px;
+}
+
 .page {
   /* PALETTE values, kept local to avoid importing the world renderer. */
   --paper: #eee8d8;
@@ -22,38 +41,55 @@
 
 .header,
 .body {
-  max-inline-size: 44rem;
+  inline-size: 100%;
+  max-inline-size: 66ch;
   margin-inline: auto;
 }
 
+.page[data-zone] {
+  display: grid;
+  grid-template-areas: "heading" "body" "art";
+  gap: 1.75rem;
+}
+
+.header { grid-area: heading; }
+.body { grid-area: body; }
+
 .kicker {
-  margin: 0 0 1.5rem;
-  font-size: .875rem;
-  letter-spacing: .08em;
+  margin: 0 0 1.25rem;
+  font-size: .8125rem;
+  letter-spacing: .12em;
 }
 
 .title {
   margin: 0;
-  font-size: clamp(2rem, 1.1rem + 4vw, 4.75rem);
-  line-height: 1.18;
+  font-size: clamp(2rem, 1.1rem + 3vw, 3.75rem);
+  line-height: 1.22;
   text-wrap: balance;
 }
 
-.lead {
-  font-size: clamp(1.125rem, 1rem + .4vw, 1.375rem);
+.title:focus {
+  outline: none;
 }
 
-.wash {
-  block-size: clamp(8rem, 22vw, 15rem);
-  margin: 2rem calc(-1 * var(--gutter)) 3rem;
-  background:
-    radial-gradient(ellipse at 77% 40%, var(--dusk) 0%, transparent 9%),
-    radial-gradient(ellipse at 64% 65%, color-mix(in srgb, var(--water) 40%, transparent), transparent 44%),
-    radial-gradient(ellipse at 40% 54%, color-mix(in srgb, var(--forest) 65%, transparent), transparent 49%),
-    radial-gradient(ellipse at 25% 45%, var(--mist), transparent 48%);
-  border-radius: 38% 62% 47% 53% / 43% 37% 63% 57%;
-  transform: rotate(-3deg);
-  opacity: .8;
+.body > :first-child { margin-block-start: 0; }
+.body > :last-child { margin-block-end: 0; }
+
+.lead {
+  margin-block: 0 1.5rem;
+  font-size: clamp(1.125rem, 1rem + .4vw, 1.375rem);
+  line-height: 1.6;
+}
+
+.illustration {
+  grid-area: art;
+  display: block;
+  inline-size: calc(100% + 2 * var(--gutter));
+  max-inline-size: 36rem;
+  block-size: auto;
+  margin: 0 auto 0 calc(-1 * var(--gutter));
+  align-self: start;
+  pointer-events: none;
 }
 
 .page[data-zone="milestones"],
@@ -132,6 +168,35 @@
   font-style: normal;
 }
 
+@media (min-width: 64rem) {
+  .page[data-zone] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
+    grid-template-areas: "art heading" "art body";
+    column-gap: clamp(2rem, 4vw, 4rem);
+    row-gap: 1.75rem;
+    padding-block: clamp(3rem, 5vw, 5rem);
+  }
+
+  .page:is([data-zone="roots"], [data-zone="milestones"], [data-zone="horizon"], [data-zone="last-postcard"]) {
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+    grid-template-areas: "heading art" "body art";
+  }
+
+  .illustration {
+    margin-block-start: 1rem;
+  }
+
+  .page[data-zone="last-postcard"] .postcard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page[data-zone="last-postcard"] .address {
+    padding: 2rem 0 0;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--forest);
+  }
+}
+
 @media (max-width: 40rem) {
   .postcard {
     grid-template-columns: minmax(0, 1fr);
@@ -143,3 +208,16 @@
     border-block-start: 1px solid var(--forest);
   }
 }
+
+/* Lead (B2-232): the overlay shell's heading reads as the page kicker, without a script-focus box. */
+.shellTitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.shellTitle:focus { outline: none; }
+/* The shell already names the zone; avoid printing it twice inside the world overlay. */
+:global(.world-content) .kicker { display: none; }

@@ -39,7 +39,18 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     const html = render(locale, zoneId);
     expect(html).toMatch(/^<article\b/);
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain('aria-hidden="true"');
+    expect(html).toMatch(/<h1[^>]*id="zone-content-title"[^>]*tabindex="-1"/);
+    const svg = html.match(/<svg\b[^>]*>[\s\S]*?<\/svg>/g)!;
+    expect(svg).toHaveLength(1);
+    expect(svg[0]).toContain('aria-hidden="true"');
+    expect(svg[0]).toContain('focusable="false"');
+    expect(new TextEncoder().encode(svg[0]).byteLength).toBeLessThanOrEqual(4096);
+    expect(svg[0]).not.toMatch(/<image\b|<foreignObject\b|<filter\b/);
+    const header = html.match(/<header\b[^>]*>([\s\S]*?)<\/header>/)![1]!;
+    expect(header.match(/<h[12]\b/g)).toHaveLength(1);
+    const kicker = header.match(/<p[^>]*>(.*?)<\/p>/)![1];
+    const title = header.match(/<h1[^>]*>(.*?)<\/h1>/)![1];
+    expect(title).not.toBe(kicker);
     expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD|<h3\b|<img\b|target=/);
   });
 
@@ -147,4 +158,9 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     }
     expect(renderToStaticMarkup(createElement(OverlayProject, { locale, project: data.projects[0]! }))).not.toContain("TBD");
   });
+});
+
+it("draws a distinct illustration for each zone", () => {
+  const drawings = zones.map(zoneId => render("en", zoneId).match(/<svg\b[^>]*>[\s\S]*?<\/svg>/)![0]);
+  expect(new Set(drawings).size).toBe(zones.length);
 });

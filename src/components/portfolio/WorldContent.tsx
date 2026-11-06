@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { WorldContentData } from "./worldContentData";
+import magazine from "./zone-content.module.css";
 import { OverlayProject, ZoneContent } from "./ZoneContent";
 
 const cache = new Map<string, Promise<WorldContentData>>();
@@ -71,12 +72,15 @@ export function mountWorldContent(container: HTMLElement, language: string) {
       <>
         <button
           type="button"
+          className={magazine.closeButton}
           onClick={close}
         >
           × {locale === "vi" ? "Đóng" : "Close"}
         </button>
+        {/* Lead (B2-232): the shell heading is the zone kicker; the magazine page carries the big title. */}
         <h2
           id="world-content-title"
+          className={magazine.shellTitle}
           tabIndex={-1}
         >
           {zoneNames[zoneId!]}
