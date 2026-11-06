@@ -182,7 +182,7 @@ describe("road-view sunset sea", () => {
             const outside = seaColor(material, point, camera);
             minContrast = Math.min(minContrast, luma(centre) - luma(outside));
             minWarmth = Math.min(minWarmth, (centre.r - centre.b) - (outside.r - outside.b));
-            expect(luma(centre) - luma(outside), `${quality}, grade=${skyMix}, frame=${frame}`).toBeGreaterThanOrEqual(0.1);
+            expect(luma(centre) - luma(outside), `${quality}, grade=${skyMix}, frame=${frame}`).toBeGreaterThanOrEqual(0.07); // 70% of the former contrast, per B2-229.
             expect(centre.r - centre.b).toBeGreaterThan(outside.r - outside.b);
           }
         }
@@ -230,7 +230,7 @@ describe("road-view sunset sea", () => {
           }
         }
       }
-      expect(peak).toBeGreaterThan(0.5); // A missing reflection must not pass this gate.
+      expect(peak).toBeGreaterThan(0.35); // Visibility gate follows the 30% strength reduction. // A missing reflection must not pass this gate.
       expect(longest).toBeLessThanOrEqual(40);
       console.info(`${quality} horizon: longest continuous wash >1% = ${longest.toFixed(1)} m`);
     } finally { sea.dispose(); }
@@ -302,7 +302,7 @@ describe("road-view sunset sea", () => {
           }
         }
       }
-      expect(peak).toBeGreaterThan(0.5);
+      expect(peak).toBeGreaterThan(0.35); // Visibility gate follows the 30% strength reduction.
       expect(longest).toBeLessThanOrEqual(40);
       process.stdout.write(`${quality} projected road/wide: longest bright ray=${longest.toFixed(2)} m\n`);
     } finally { sea.dispose(); }
@@ -330,7 +330,7 @@ describe("road-view sunset sea", () => {
               previousWeight = pigment.shallows;
               if (distance === 5) expect(pigment.color).toEqual(material.uniforms.uEdgeColor!.value);
               if (distance === 300) expect(pigment.color).toEqual(material.uniforms.uDeepColor!.value);
-              if (distance === 80) expect(pigment.shallows).toBeGreaterThan(0);
+              if (distance >= 40) expect(pigment.shallows).toBe(0);
             }
           }
         }
@@ -430,6 +430,60 @@ describe("B2-219 foam support and coverage", () => {
             "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, slope: 0}, ["foam"]).foam).toBe(0);
         }
       }
+    } finally { material.dispose(); }
+  });
+});
+
+
+describe("B2-229 dusk sea colour and sun corridor", () => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s offshore blue and nearshore jade at t=0.95", quality => {
+    const t = 0.95;
+    const material = createWaterMaterial(quality, { surface: "sea",
+      grade: applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t),
+      shoreline: { minX: -400, width: 800, z: Array<number>(SEA_SHORE_SAMPLES).fill(-800) },
+    });
+    try {
+      const near = seaPigment(material, new Vector3(0, WATER_LEVEL, -805)).color;
+      expect(near.g).toBeGreaterThanOrEqual(near.b);
+      for (const distance of [40.01, 60, 160, 300]) {
+        const point = new Vector3(0, WATER_LEVEL, -800 - distance);
+        const pigment = seaPigment(material, point).color;
+        expect(pigment.b).toBeGreaterThan(pigment.g);
+        expect(pigment.b).toBeGreaterThan(pigment.r);
+        // Looking away from the sun includes paper and sky reflection, without orange wash.
+        const color = seaColor(material, point, point.clone().add(new Vector3(0, 1.7, -30)));
+        expect(color.b).toBeGreaterThan(color.g);
+        expect(color.b).toBeGreaterThan(color.r);
+      }
+    } finally { material.dispose(); }
+  });
+
+  it("bounds half-intensity to 12 degrees, with soft edges and at most 70% of the old strength", () => {
+    const material = createWaterMaterial("High", { surface: "sea" });
+    try {
+      let lit = 0;
+      for (const along of [5, 12, 25, 40, 80, 160, 300, 500]) {
+        for (const phase of [0, 1, 3, 5]) {
+          const centre = washAt(material, along, 0, phase).washStrength!;
+          for (let angle = -20; angle <= 20; angle += 0.25) {
+            const across = along * Math.tan(angle * Math.PI / 180);
+            const sample = washAt(material, along, across, phase);
+            if (Math.abs(angle) >= 12) expect(sample.washStrength!).toBeLessThan(1e-12);
+            if (centre > 0.01 && sample.washStrength! >= centre * 0.5) expect(Math.abs(angle)).toBeLessThanOrEqual(12);
+            // Old transverse envelope/width; other brush and distance factors are unchanged.
+            const oldWidth = mix(30, 7, smoothstep(12, 360, along));
+            const oldWash = (1 - smoothstep(oldWidth * 0.18, oldWidth, Math.abs(across)))
+              * smoothstep(0, 12, along) * sample.distanceFade!
+              * smoothstep(0, 0.08, material.uniforms.uSunDirection!.value.y)
+              * (1 - smoothstep(0.25, 0.8, material.uniforms.uSunDirection!.value.y));
+            const oldCore = (1 - smoothstep(oldWidth * 0.12, oldWidth * 0.4, Math.abs(across))) * smoothstep(20, 220, along);
+            const oldStrength = oldWash * sample.washMarks! * (0.5 + 0.14 * oldCore + 0.24 * sample.glimmer!);
+            expect(sample.washStrength!).toBeLessThanOrEqual(oldStrength * 0.7 + 1e-12);
+            if (sample.washStrength! > 0 && sample.washStrength! < centre * 0.1) lit++;
+          }
+        }
+      }
+      expect(lit).toBeGreaterThan(0);
     } finally { material.dispose(); }
   });
 });

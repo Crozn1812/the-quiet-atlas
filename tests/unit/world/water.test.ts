@@ -368,9 +368,11 @@ describe("sea and water lifecycle", () => {
     const grade = lightingAt(1);
     const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
       .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)).multiplyScalar(0.85 / Math.PI);
-    expect(material.uniforms.uDeepColor!.value.toArray()).toEqual(new Color(PALETTE.seaDeep)
-      .lerp(new Color(PALETTE.indigo), (grade.sunColor.r - grade.sunColor.b) * 0.8)
-      .multiply(light).toArray().map(v => expect.closeTo(v, 12)));
+    // B2-229: warm incident light must leave the open sea blue, not green.
+    const deep = material.uniforms.uDeepColor!.value as Color;
+    expect(deep.b).toBeGreaterThan(deep.g);
+    expect(deep.b).toBeGreaterThan(deep.r);
+    expect(Math.max(deep.r, deep.g, deep.b)).toBeLessThan(0.35);
     expect(material.defines.SKY_REFLECTION).toBe(0.5);
     expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(new Color(PALETTE.seaShallow)
       .multiply(light).toArray().map(v => expect.closeTo(v, 12)));

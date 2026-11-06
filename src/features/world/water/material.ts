@@ -83,7 +83,7 @@ const fragmentShader = /* glsl */ `
       float shoreZ = mix(shoreA, shoreB, shoreSample - float(shoreIndex));
       float slope = (shoreB - shoreA) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)} / uShoreBounds.y;
       float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + slope * slope);
-      float shallows = (1.0 - smoothstep(12.0, 160.0, offshore)) * uHasShore;
+      float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * uHasShore;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
     float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));
@@ -165,10 +165,13 @@ const fragmentShader = /* glsl */ `
       float signedAcrossSun = dot(fromViewer, vec2(-sunAxis.y, sunAxis.x));
       float acrossSun = abs(signedAcrossSun);
       // Sun wash scalars: also evaluated directly by the CPU colour regression.
-      float washWidth = mix(30.0, 7.0, smoothstep(12.0, 360.0, alongSun));
+      float washWidth = mix(24.0, 5.6, smoothstep(12.0, 360.0, alongSun));
       float washDistance = sqrt(alongSun * alongSun + acrossSun * acrossSun);
       float distanceFade = 1.0 - smoothstep(120.0, 640.0, washDistance);
-      float wash = 1.0 - smoothstep(washWidth * 0.18, washWidth, acrossSun);
+      // tan(12 degrees): soften the entire sun corridor to zero at its edge.
+      float angularWidth = max(alongSun, 0.0) * 0.21255656;
+      float angularFade = 1.0 - smoothstep(0.0, max(angularWidth, 0.0001), acrossSun);
+      float wash = (1.0 - smoothstep(0.0, washWidth, acrossSun)) * angularFade;
       wash *= smoothstep(0.0, 12.0, alongSun);
       wash *= distanceFade;
       wash *= smoothstep(0.0, 0.08, uSunDirection.y) * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
@@ -189,7 +192,7 @@ const fragmentShader = /* glsl */ `
       glimmer *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(signedAcrossSun * 0.82 + 2.0 * sin(alongSun * 0.37)));
       glimmer *= distanceFade;
       glimmer *= 1.0 - smoothstep(0.4, 1.2, glimmerFootprint);
-      float washStrength = wash * washMarks * (0.5 + 0.14 * core + 0.24 * glimmer);
+      float washStrength = 0.7 * wash * washMarks * (0.5 + 0.14 * core + 0.24 * glimmer);
       // End sun wash scalars.
       color = mix(color, uSunWashColor, washStrength);
       float brush = 0.5 + 0.5 * sin(vWaterWorld.x * 0.73 + vWaterWorld.z * 0.27);
@@ -297,6 +300,12 @@ export class WaterMaterial extends ShaderMaterial {
     const dusk = Math.max(0, Math.min(1, grade.sunColor.r - grade.sunColor.b));
     this.uniforms.uDeepColor!.value.copy(this.deepPigment).lerp(this.indigo, sea ? dusk * 0.8 : 0)
       .multiply(this.irradiance).multiplyScalar(absorption);
+    if (sea) {
+      // Preserve deep blue under warm sun while brightness still follows incident light.
+      const energy = this.irradiance.r * 0.2126 + this.irradiance.g * 0.7152 + this.irradiance.b * 0.0722;
+      this.fill.copy(this.deepPigment).lerp(this.indigo, dusk).multiplyScalar(energy * absorption);
+      this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85);
+    }
     this.uniforms.uPaperColor!.value.copy(this.paper).multiply(this.irradiance).multiplyScalar(absorption);
     // Fresnel reflects incoming sky radiance, independent of irradiance on the water.
     // Keep this on Low too: a static reflection needs no animated flow or extra pass.
@@ -304,6 +313,12 @@ export class WaterMaterial extends ShaderMaterial {
     // noon and leaves the open western coast untouched, without needing path state.
     const skyVisibility = sea ? 1 : 1 - 0.74 * Math.max(0, -grade.sunDirection.x);
     this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon).multiplyScalar((sea ? 0.5 : 0.45) * skyVisibility);
+    if (sea) {
+      // Deep-water indigo filters the reflected horizon without adding emission.
+      // Incident sky radiance remains independent of surface irradiance (B2-181c).
+      this.fill.copy(grade.skyHorizon).multiply(this.indigo).multiplyScalar(0.5);
+      this.uniforms.uSkyHorizon!.value.lerp(this.fill, 0.95);
+    }
     this.uniforms.uSunWashColor!.value.copy(this.sunWash).multiply(grade.sunColor)
       .multiplyScalar(grade.sunIntensity * 0.65);
     this.setSunDirection(grade.sunDirection);
