@@ -15,8 +15,8 @@ it("keeps kit wood readable in forest shade and limits sky rims and sunlit chang
   material.onBeforeCompile(shader, {} as WebGLRenderer);
   try {
     // Pin the CPU model to the installed shader and retain the upstream ramp hook.
-    for (const source of ["uniform vec3 propShadeTint;", "rampShadowTint", "0.08 + 0.04 * propAlbedoLuma",
-      "smoothstep(0.05, 0.2, propDirect)", "mix(diffuseColor.rgb, propShadeTint, 0.55)",
+    for (const source of ["uniform vec3 propShadeTint;", "rampShadowTint", "0.03 + 0.02 * propAlbedoLuma",
+      "smoothstep(0.05, 0.2, propDirect)", "mix(diffuseColor.rgb / max(1.0, dot(diffuseColor.rgb, propLumaWeights)), propShadeTint, 0.2)",
       "1.0 - propLight / propFloor", "0.1 * propSky * propFresnel", "hemisphereLights[0].direction",
       "pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0)"])
       expect(shader.fragmentShader).toContain(source);
@@ -33,8 +33,9 @@ it("keeps kit wood readable in forest shade and limits sky rims and sunlit chang
           const shadow = pigment.clone().multiply(new Color(0.25, 0.25, 0.25).lerp(shader.uniforms.rampShadowTint!.value, 0.6));
           lit.multiply(new Color(1, 1, 1).lerp(shader.uniforms.rampHighlightTint!.value, smooth((light - 0.5) / 0.5) * 0.12));
           const old = shadow.lerp(lit, smooth(light / 0.5));
-          const floor = 0.08 + 0.04 * luma(pigment);
-          const shade = pigment.clone().lerp(shader.uniforms.propShadeTint!.value, 0.55);
+          // Lead 2026-11-06 render check: 0.08 floor + forest mist read as white planks; 0.03 keeps dark readable wood.
+          const floor = 0.03 + 0.02 * luma(pigment);
+          const shade = pigment.clone().lerp(shader.uniforms.propShadeTint!.value, 0.2);
           shade.multiplyScalar(floor / luma(shade));
           const weight = 1 - smooth((luma(direct) / luma(pigment) - 0.05) / 0.15);
           const center = old.clone().add(shade.clone().multiplyScalar(Math.max(0, 1 - luma(old) / floor) * weight));
@@ -46,11 +47,12 @@ it("keeps kit wood readable in forest shade and limits sky rims and sunlit chang
             if (visibility <= 0.1) minimum = Math.min(minimum, luma(rim));
             if (visibility === 1 && nl === 1) ratio = Math.max(ratio, luma(rim) / luma(old));
           }
-          if (visibility === 0) expect(shade.b).toBeGreaterThan(shade.r);
+          // Cooler than the wood itself (taste §5.4), not fully blue: 55% blue read as pale blue planks.
+          if (visibility === 0) expect(shade.b / shade.r).toBeGreaterThan(pigment.b / pigment.r);
         }
       }
     }
-    expect(minimum).toBeGreaterThanOrEqual(0.08);
+    expect(minimum).toBeGreaterThanOrEqual(0.03);
     expect(ratio).toBeLessThanOrEqual(1.1 + 1e-12);
     process.stdout.write(`B2-216 CPU t=0.15/0.93: min shadow linear luma=${minimum.toFixed(4)}; max front-lit ratio=${ratio.toFixed(4)}; rim <=10%\n`);
   } finally { material.dispose(); }

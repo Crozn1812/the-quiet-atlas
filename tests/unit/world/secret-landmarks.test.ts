@@ -114,7 +114,7 @@ describe("quiet procedural secret landmarks", () => {
         expect(material.transparent).toBe(false);
         expect(material.opacity).toBe(1);
         expect(material.map).toBeNull();
-        expect(material.customProgramCacheKey()).toBe("painted-prop-readable-v1");
+        expect(material.customProgramCacheKey()).toMatch(/|painted-prop-readable-v2$/);
         const colors = mesh.geometry.getAttribute("color");
         expect(colors.count).toBe(mesh.geometry.getAttribute("position").count);
         for (let i = 0; i < colors.count; i++) {

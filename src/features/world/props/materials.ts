@@ -12,6 +12,7 @@ export function createPropMaterial(kind: PropMaterialKind): MeshToonMaterial {
   const material = createRampMaterial(color.getHex(), WORLD_DIRECTION.foliage.ramp);
   material.vertexColors = true;
   const compileRamp = material.onBeforeCompile;
+  const rampKey = material.customProgramCacheKey.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
     compileRamp(shader, renderer);
     shader.uniforms.propShadeTint = { value: new Color(PALETTE.skyHigh).lerp(new Color(PALETTE.indigo), 0.35) };
@@ -20,9 +21,10 @@ export function createPropMaterial(kind: PropMaterialKind): MeshToonMaterial {
       .replace("#include <opaque_fragment>", `
 // Use the final albedo, including kit vertex pigments and caller colour overrides.
 vec3 propLumaWeights = vec3(0.2126, 0.7152, 0.0722);
-float propAlbedoLuma = dot(diffuseColor.rgb, propLumaWeights);
-vec3 propShade = mix(diffuseColor.rgb, propShadeTint, 0.55);
-propShade *= (0.08 + 0.04 * propAlbedoLuma) / max(dot(propShade, propLumaWeights), 0.0001);
+// Lead: kit vertex pigments are relative to a white base and can exceed 1; clamp so the floor stays dim.
+float propAlbedoLuma = min(1.0, dot(diffuseColor.rgb, propLumaWeights));
+vec3 propShade = mix(diffuseColor.rgb / max(1.0, dot(diffuseColor.rgb, propLumaWeights)), propShadeTint, 0.2);
+propShade *= (0.03 + 0.02 * propAlbedoLuma) / max(dot(propShade, propLumaWeights), 0.0001);
 // Direct irradiance distinguishes a dark pigment in sunlight from cast forest shade.
 float propDirect = dot(reflectedLight.directDiffuse, propLumaWeights) / max(propAlbedoLuma, 0.0001);
 float propShadeWeight = 1.0 - smoothstep(0.05, 0.2, propDirect);
@@ -38,6 +40,6 @@ outgoingLight += propShade * max(0.0, 1.0 - propLight / propFloor) * propShadeWe
 #endif
 #include <opaque_fragment>`);
   };
-  material.customProgramCacheKey = () => "painted-prop-readable-v1";
+  material.customProgramCacheKey = () => rampKey() + "|painted-prop-readable-v2";
   return material;
 }
