@@ -17,6 +17,9 @@ export default defineConfig({
   testMatch: "**/*.spec.ts",
   fullyParallel: true,
   forbidOnly: isCI,
+  // enterWorld() may wait 45 s + 30 s under parallel software-WebGL load (tests/e2e/helpers.ts);
+  // a 30 s default test timeout made world specs flaky (2026-11-06). Assertions keep their own timeouts.
+  timeout: 90_000,
   retries: isCI ? 1 : 0,
   workers: isCI ? 2 : undefined,
   reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
