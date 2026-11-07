@@ -3,6 +3,7 @@ import { Box3, BoxGeometry, CylinderGeometry, Mesh, MeshBasicMaterial, Perspecti
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { HEIGHT } from "../../../src/features/world/scene";
+import { DISMOUNT_COPY } from "../../../src/features/world/vehicle/dismount";
 import { WORLD_COPY } from "../../../src/features/world/copy";
 
 const harness = vi.hoisted(() => ({
@@ -234,7 +235,7 @@ it("parks 2 m off First Light clear of signs, localizes Ride, gates range and mo
   key("KeyE", true);
   expect(container.dataset.worldVehicle).toBe("parked");
   key("KeyE");
-  expect(player().visible).toBe(false);
+  expect(player().visible).toBe(true);
   key("KeyE", true);
   expect(container.dataset.worldVehicle).toBe("manual");
 });
@@ -325,9 +326,9 @@ it("keeps the rider aboard on wet, blocked or moving ground and localizes the fa
   harness.wet = true;
   key("KeyE");
   expect(container.dataset.worldVehicle).toBe("manual");
-  expect(container.children.some(child => child.textContent === WORLD_COPY.en.vehicleUnsafe)).toBe(true);
+  expect(container.children.some(child => child.textContent === DISMOUNT_COPY.en["unsafe-ground"])).toBe(true);
   send(container, "tqa:set-locale", { detail: { locale: "vi" } });
-  expect(container.children.some(child => child.textContent === WORLD_COPY.vi.vehicleUnsafe)).toBe(true);
+  expect(container.children.some(child => child.textContent === DISMOUNT_COPY.vi["unsafe-ground"])).toBe(true);
   harness.wet = false;
   advance();
   const blocker = new Mesh(new BoxGeometry(6, 3, 6), new MeshBasicMaterial());
@@ -339,6 +340,7 @@ it("keeps the rider aboard on wet, blocked or moving ground and localizes the fa
   harness.collisions.pop(); blocker.geometry.dispose(); blocker.material.dispose();
   key("KeyW"); drive(1); release("KeyW"); key("KeyE");
   expect(container.dataset.worldVehicle).toBe("manual");
+  expect(container.children.some(child => child.textContent === DISMOUNT_COPY.vi.moving)).toBe(true);
   drive(3); key("KeyE");
   expect(container.dataset.worldVehicle).toBe("parked");
 });

@@ -43,6 +43,8 @@ import { createSecretLandmark, disposeLandmark } from "./props/secrets";
 import type { WaterMaterial } from "./water/material";
 import { timeOfDayAt } from "./layout/lighting";
 import { createVehicleView } from "./vehicle/view";
+import { DISMOUNT_COPY, requestDismount } from "./vehicle/dismount";
+import { createRiderPose } from "./character/ride";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
 import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
@@ -215,6 +217,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const player = character.root;
   scene.add(player);
   const animator = createCharacterAnimator(character, { reducedMotion });
+  // B2-237: seated pose on the GD110 (reuses the skinned rig; walking clips restore on dismount).
+  const rider = createRiderPose(character);
   const lastPlayer = new Vector3();
   // Teleport signs retain their separate interaction; zone scenes own all content objects.
   function placeProp(kind: PropKind, x: number, z: number, name: string) {
@@ -284,6 +288,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const parkedVehicle = initialVehicle(corridor, 6, -2);
   let vehicle = parkedVehicle;
   let unsafeStop = false;
+  let dismountReason: keyof typeof DISMOUNT_COPY.en | undefined;
   scene.add(bike.group);
   const vehicleTarget: InteractionTarget = {
     id: "gd110", kind: "vehicle", zoneId: "first-light", position: new Vector3(),
@@ -292,7 +297,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     bike.update(vehicle, corridor, dt);
     Object.assign(vehicleTarget.position, bike.group.position);
     vehicleTarget.position.y += HEIGHT;
-    player.visible = vehicle.mode !== "ride";
+    rider.update(vehicle, bike.riderFrame);
     container.dataset.worldVehicle = vehicle.mode === "walk" ? "parked" : vehicle.cruise ? "cruise" : "manual";
   }
   publishVehicle();
@@ -381,7 +386,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     hint() {
       if (!cameraEnabled() || vehicle.mode !== "ride") return undefined;
       if (nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z })) return WORLD_COPY[locale].secretHint;
-      return unsafeStop ? WORLD_COPY[locale].vehicleUnsafe
+      return unsafeStop ? dismountReason ? DISMOUNT_COPY[locale][dismountReason] : WORLD_COPY[locale].vehicleUnsafe
         : `${VEHICLE_LABELS[locale].getOff} · ${VEHICLE_LABELS[locale].cruise}`;
     },
     chooseTeleport(from) {
@@ -645,27 +650,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     }
     return nearest;
   }
-  function safeDismountPosition() {
-    const centre = vehiclePosition(vehicle, corridor);
-    const tangent = corridor.tangentAt(vehicle.s);
-    const obstacles = solidBounds(0.4);
-    for (const side of [1, -1]) {
-      const candidate = groundPoint({ x: centre.x + tangent.z * side * 1.5, z: centre.z - tangent.x * side * 1.5 });
-      const dry = [[0, 0], [0.35, 0], [-0.35, 0], [0, 0.35], [0, -0.35]].every(([dx, dz]) => {
-        const x = candidate.x + dx!, z = candidate.z + dz!;
-        const height = surfaceHeight(x, z);
-        return height > waterLevelAt(z) + 0.08 && Math.abs(height - candidate.y) < 0.3;
-      });
-      const from = groundPoint(centre);
-      if (dry && composed.contains(candidate) && clearance(from, candidate, obstacles) > from.distanceTo(candidate)
-        && clearance(candidate, candidate, obstacles) > 0) return candidate.add(new Vector3(0, HEIGHT + 0.02, 0));
-    }
-    return undefined;
-  }
   function getOffVehicle() {
-    const safe = safeDismountPosition();
-    const result = dismount(vehicle, !!safe);
+    const obstacles = solidBounds(0.4);
+    const result = requestDismount(vehicle, corridor, {
+      surfaceHeight, waterLevelAt, contains: point => composed.contains(point),
+      clear: (from, to) => clearance(from, to, obstacles) > from.distanceTo(to) && clearance(to, to, obstacles) > 0,
+    }, locale);
+    const safe = result.ok ? result.position : undefined;
     unsafeStop = !result.ok;
+    dismountReason = result.ok ? undefined : result.reason;
     if (result.ok && safe) {
       vehicle = result.state;
       physics.teleport(safe);

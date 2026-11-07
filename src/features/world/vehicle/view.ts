@@ -27,6 +27,8 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
 
   return {
     group,
+    /** Attach the rider pose to this frame so banking keeps all contacts aligned. */
+    riderFrame: bike,
     setReducedMotion(reduced: boolean): void {
       if (disposed) return;
       reducedMotion = reduced;

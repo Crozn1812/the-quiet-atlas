@@ -255,7 +255,7 @@ it.each([
     approach(bike);
     send(window, "keydown", { code: "KeyE" });
     expect(container.dataset.worldVehicle).toBe("manual");
-    expect(player.visible).toBe(false);
+    expect(player.visible).toBe(true);
     const parked = bike.position.clone();
     send(window, "keydown", { code: "KeyW" });
     for (let i = 0; i < 10; i++) tick(now += 100);
