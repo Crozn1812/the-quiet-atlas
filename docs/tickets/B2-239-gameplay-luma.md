@@ -29,3 +29,22 @@ Nhận xét Lead: rừng chìm trong sương xanh đen, nhân vật và lối đ
 ### Test
 - Unit: cập nhật/giữ `sky.test.ts`; thêm kiểm tra horizon reference luma > rừng và > biển.
 - Bàn giao: bảng luma 8 khu sau sửa (chạy `luma.mjs`), kèm đường dẫn ảnh.
+
+### Trả lại vòng 1 (Lead, đo render)
+
+Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-239-r0.webp`. Luma sau sửa (cùng cách đo):
+
+| Khu | trước | sau | |
+|---|---|---|---|
+| first-light | 0,187 | **0,143** | tệ hơn |
+| roots | 0,198 | **0,153** | tệ hơn |
+| workshop | 0,194 | **0,149** | tệ hơn |
+| milestones | 0,189 | **0,145** | tệ hơn |
+| old-trail | 0,401 | 0,401 | giữ |
+| horizon | 0,161 | 0,316 | **đạt** |
+| quiet-shore | 0,208 | 0,260 | **đạt** |
+| last-postcard | 0,211 | 0,220 | sát dưới |
+
+Giữ phần Horizon, biển. Rừng phải 0,24–0,32: giảm nắng trực tiếp làm rừng tối hơn vì camera nhìn xuống mặt đất, phần lớn khung là cỏ/lối đi dưới tán. Hướng: nâng albedo/biến thể màu mặt đất rừng và lối đi (lối đi phải sáng hơn cỏ rõ rệt để đọc được), nâng hemi ground, giảm độ đậm bóng tán (shadow/AO) trên mặt đất, fog rừng sáng hơn (màu sương sớm nhạt, không xanh đen). Được sửa thêm vật liệu mặt đất/lối đi (`src/features/world/terrain/*`, `src/features/world/road/*` phần màu) nếu cần.
+
+**Tự đo trước khi bàn giao** (sandbox cho phép chạy Edge local): `pnpm build`, `node tools/serve-out/index.mjs out --port 4181` (chạy nền), `node tools/review/ingame-shots.mjs <dir> http://127.0.0.1:4181 vi`, `node tools/review/luma.mjs <dir>`; dán bảng 8 khu.
