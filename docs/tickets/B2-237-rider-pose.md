@@ -16,3 +16,11 @@
 - Unit: khi `mode = ride`, các xương hông/tay/bàn chân nằm trong hộp yên/ghi-đông/gác chân (sai số vài cm); đầu cao hơn đỉnh ghi-đông.
 - Dừng hẳn rồi E → `mode = walk` (khi có chỗ an toàn).
 - Test cũ pass. Lead duyệt bằng ảnh.
+
+### Trả lại vòng 1 (Lead)
+
+Lead đã nối module vào `src/features/world/index.ts` trong worktree (rider.update trong `publishVehicle`, bỏ ẩn player, `getOffVehicle` dùng `requestDismount`, hint dùng `dismountMessage`, xoá `safeDismountPosition`). Gate còn 6 test đỏ:
+- `tests/unit/world/contract.test.ts` › "implements container events in place …" (4 biến thể)
+- `tests/unit/world/vehicle-wiring.test.ts` › "keeps the rider aboard on wet, blocked or moving ground and localizes the failure hint" và "parks 2 m off First Light clear of signs, localizes Ride, gates range and mounts once"
+
+Được sửa thêm: các phần nối trên trong `index.ts` và hai file test này. Hành vi **cố ý đổi**: người chơi hiện trên xe khi ride (trước đây bị ẩn); hint thất bại dùng chuỗi theo lý do. Cập nhật test cho đúng hành vi mới, sửa code nếu test bắt lỗi thật (vd. mock character không có xương → `supported=false` phải không ném lỗi). Chạy `pnpm vitest run tests/unit/world` và dán kết quả.
