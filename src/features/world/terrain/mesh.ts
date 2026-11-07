@@ -12,6 +12,7 @@ const meadowMoss = grass.clone().lerp(grassDry, 0.64).lerp(new Color(hex("cloud"
 const rock = new Color(hex("rock"));
 const rockDark = new Color(hex("rockDark"));
 const sand = new Color(hex("sand"));
+const bankStone = rock.clone().lerp(sand, 0.22);
 const trailSoil = sand.clone().lerp(new Color(hex("sunGold")), 0.06).lerp(new Color(hex("flower")), 0.12);
 const seaDeep = new Color(hex("seaDeep"));
 const dirt = grassDry.clone().lerp(rockDark, 0.32);
@@ -133,6 +134,18 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     color.lerp(tint, Math.max(bank * (1 - smoothstep(1.2, 2.2, aboveWater)), sea * (1 - smoothstep(0.5, 1.1, aboveWater))));
     tint.copy(rockDark).lerp(seaDeep, 0.2 + 0.45 * smoothstep(0, 3, -aboveWater));
     color.lerp(tint, sea * (1 - smoothstep(-0.3, 0, aboveWater)));
+
+    // The coastal stream is still above sea level. Its exposed outer bank must
+    // not inherit the sea-depth pigment merely because z is south of -720.
+    // A 2 m terrain cell straddles the ribbon edge: retain warm mineral colour
+    // just below local water too, so interpolation cannot leave a black rim.
+    // Keep the asphalt foundation and the deep channel/sea unchanged.
+    const waterEdge = riverWidthAt(river.t) / 2;
+    const coastalBank = smoothstep(0.82, 0.85, path.t) * bank
+      * smoothstep(waterEdge - 2, waterEdge - 0.5, river.distance)
+      * smoothstep(7, 10, path.distance) * smoothstep(-1.1, -0.75, aboveWater);
+    tint.copy(bankStone).lerp(rock, 0.12 * patch + 0.08 * fleck);
+    color.lerp(tint, coastalBank);
 
     // The unpaved forest route stays light brown, including its low river-bank stretches.
     const trail = (1 - smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance))

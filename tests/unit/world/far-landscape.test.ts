@@ -76,7 +76,8 @@ it("constructs in small steps and matches the B2-195 mesh baseline byte for byte
       // B2-239 lifts shaded forest moss and mineral trails; the far terrain shares createTileMesh paint.
       // Positions, normals and topology retain their B2-195 byte baselines.
       // Lead (batch 29): far canopy blends 80 % moss so the brighter near tiles show no rectangular edge.
-      color: "8e985193a0e06ffb35c62a1a5c6ab4d1a2be3d120bd4272b088d05af6675bf8d",
+      // B2-242: coastal outer river banks retain warm stone instead of sea-depth pigment.
+      color: "ba84691150b75be9c827fde5a0cebf3c02007ff15882b48527b1c21d6436e895",
       index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
     };
     const actual = Object.fromEntries(Object.keys(expected).map(name => {
