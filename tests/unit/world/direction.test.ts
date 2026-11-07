@@ -82,7 +82,8 @@ describe("R clear-air world direction", () => {
     expect(WORLD_DIRECTION.background.mist.strength).toBeLessThanOrEqual(0.02);
     // B2-169: clear hills/coast retain R; only the humid forest uses closer fog.
     for (const t of [0.5, 0.76, 0.9, 1]) expect(directedFogAt(t).near).toBeGreaterThanOrEqual(120);
-    expect(directedFogAt(0.3)).toEqual({ near: 25, far: 145, forestWeight: 1 });
+    expect(directedFogAt(0.3)).toEqual({ near: 35, far: 190, forestWeight: 1 });
+    expect(WORLD_DIRECTION.background.forest!.mist.strength).toBeLessThanOrEqual(0.08);
     expect(directedFogAt(0.5)).toEqual({ near: 120, far: 700, forestWeight: 0 });
     expect(directedFogAt(0.9)).toEqual({ near: 160, far: 900, forestWeight: 0 });
     expect(directedFogAt(NaN)).toEqual(directedFogAt(0));

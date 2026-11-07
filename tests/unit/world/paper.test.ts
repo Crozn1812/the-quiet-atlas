@@ -156,14 +156,14 @@ describe("R clear post", () => {
     } finally { paper.dispose(); }
   });
 
-  it.each([0.3, 0.9])("directs fog at path t=%s toward warm dawn/dusk air without paper", t => {
+  it.each([0.3, 0.93])("directs fog at path t=%s toward warm dawn/dusk air without paper", t => {
     const tod = timeOfDayAt(t);
     const fog = directGrade(lightingAt(tod), tod).fogColor;
     const distance = (color: Color) => new Vector3(...fog.toArray()).distanceTo(new Vector3(...color.toArray()));
     // B2-180 intentionally replaces B2-161's blue-at-all-times fog expectation.
     expect(distance(new Color(PALETTE.mist))).toBeLessThan(distance(new Color(PALETTE.paper)));
     expect(fog.r).toBeGreaterThan(fog.b);
-    if (t === 0.9) expect(fog.toArray()).toEqual(lightingAt(1).fogColor.toArray().map(v => expect.closeTo(v, 12)));
+    if (t === 0.93) expect(fog.toArray()).toEqual(lightingAt(1).fogColor.toArray().map(v => expect.closeTo(v, 12)));
   });
 
   it("keeps grain off across quality changes, reads no paper texture, and retains one post triangle", () => {
@@ -275,7 +275,9 @@ describe("forest depth atmosphere (B2-169)", () => {
         if (t === 0.1) {
           for (const depth of [0, 8, 12, 24.99]) expect(amount(depth)).toBeLessThanOrEqual(0.03);
           expect(amount(30)).toBeLessThanOrEqual(0.15);
-          expect(amount(100)).toBeGreaterThanOrEqual(0.45);
+          // B2-239: less opaque forest depth, while retaining separation at 100 m.
+          expect(amount(100)).toBeGreaterThanOrEqual(0.3);
+          expect(amount(100)).toBeLessThan(0.45);
           const depths = [40, 60, 80, 100, 120].map(amount);
           depths.slice(1).forEach((value, i) => expect(value).toBeGreaterThan(depths[i]!));
           expect(native.color).toEqual(forestColor);

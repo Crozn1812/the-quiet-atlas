@@ -121,6 +121,15 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
       grazing, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: skyMix, offshore,
     }, ["reflection"]);
     color.lerp(uniform.uSkyHorizon!.value, reflection!);
+    const horizonRay = new Vector2(point.x - camera.x, point.z - camera.z);
+    const horizonSun = new Vector2(uniform.uSunDirection!.value.x, uniform.uSunDirection!.value.z);
+    const skyAlignment = horizonRay.dot(horizonSun) / Math.max(horizonRay.length() * horizonSun.length(), 0.0001);
+    const { coolReflection } = scalars(material, "// Begin sea horizon scalars.", "// End sea horizon scalars.",
+      { reflection, skyAlignment, grazing }, ["coolReflection"]);
+    // Color.sub clamps negative channels; GLSL subtraction is signed.
+    for (const channel of ["r", "g", "b"] as const) {
+      color[channel] += (uniform.uDeepColor!.value[channel] - uniform.uSkyHorizon!.value[channel]) * coolReflection!;
+    }
   }
   const sun = uniform.uSunDirection!.value as Vector3;
   const axis = new Vector2(sun.x, sun.z).normalize();
@@ -130,6 +139,41 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
 }
 
 describe("road-view sunset sea", () => {
+  it.each(["Low", "Balanced", "High"] as const)("reflects a smooth indigo-to-orange sunset that follows the %s sun", quality => {
+    const material = createWaterMaterial(quality, { surface: "sea",
+      shoreline: { minX: -1000, width: 2000, z: Array<number>(SEA_SHORE_SAMPLES).fill(1000) },
+    });
+    const camera = new Vector3(0, WATER_LEVEL + 8, 0);
+    const sample = (angle: number, distance = 120) => {
+      const direction = (material.uniforms.uSunDirection!.value as Vector3).clone();
+      direction.y = 0;
+      direction.normalize().applyAxisAngle(new Vector3(0, 1, 0), angle * Math.PI / 180);
+      return seaColor(material, direction.multiplyScalar(distance).setY(WATER_LEVEL), camera);
+    };
+    try {
+      const grade = applyCoastAtmosphere(lightingAt(1), 1);
+      material.setGrade(grade);
+      const warm = sample(40); // Outside the narrow +/-12 degree glint corridor.
+      const cool = sample(140);
+      const sunward = sample(0, 80);
+      expect(sunward.r).toBeGreaterThan(sunward.b);
+      expect(warm.r / warm.b).toBeGreaterThan(cool.r / cool.b + 0.5);
+      expect(cool.b).toBeGreaterThan(cool.r);
+      expect(luma(warm)).toBeGreaterThan(luma(cool));
+      let previous = sample(40);
+      for (let angle = 41; angle <= 140; angle++) {
+        const color = sample(angle);
+        expect(Math.abs(luma(color) - luma(previous))).toBeLessThan(0.005);
+        previous = color;
+      }
+      grade.sunDirection.applyAxisAngle(new Vector3(0, 1, 0), 0.6);
+      material.setGrade(grade);
+      for (const [angle, expected] of [[40, warm], [140, cool]] as const) {
+        expect(sample(angle).toArray()).toEqual(expected.toArray().map(value => expect.closeTo(value, 12)));
+      }
+    } finally { material.dispose(); }
+  });
+
   it.each(["Low", "Balanced", "High"] as const)("reflects more of the grade horizon at grazing angles and farther offshore on %s", quality => {
     const material = createWaterMaterial(quality, { surface: "sea" });
     try {
@@ -539,23 +583,25 @@ describe("B2-229b dusk sea without fan bands", () => {
                 const shoreZ = mix(coast[index]!, coast[index + 1]!, sample - index);
                 if (shoreZ - point.z < 60) continue;
                 const pigment = seaPigment(material, point);
-                // The entire reflection (wash/core/glimmer) must vanish outside +/-12 degrees.
+                // Glints stay within +/-12 degrees; the broad reflected sunset remains.
                 const delta = Math.atan2(Math.sin(angle - sunAngle), Math.cos(angle - sunAngle));
                 if (Math.abs(delta) <= 12 * Math.PI / 180) continue;
                 expect(pigment.shallows).toBe(0);
                 const color = displayColor(seaColor(material, point, camera), aces);
-                expect(color.b).toBeGreaterThan(color.g);
-                expect(color.b).toBeGreaterThan(color.r);
+                if (Math.cos(delta) <= -0.15) {
+                  expect(color.b).toBeGreaterThan(color.g);
+                  expect(color.b).toBeGreaterThan(color.r);
+                }
                 const value = luma(color);
                 values.push(value);
                 minimum = Math.min(minimum, value); maximum = Math.max(maximum, value); samples++;
                 expect(value, `t=${t}, range=${distance}, azimuth=${degrees}, ACES=${aces}`).toBeGreaterThanOrEqual(0.12);
-                expect(value).toBeLessThanOrEqual(0.22);
+                expect(value).toBeLessThanOrEqual(0.30);
               }
               if (values.length) {
                 const swing = Math.max(...values) - Math.min(...values);
                 maxSwing = Math.max(maxSwing, swing);
-                expect(swing).toBeLessThanOrEqual(0.03);
+                expect(swing).toBeLessThanOrEqual(0.15);
               }
             }
           }

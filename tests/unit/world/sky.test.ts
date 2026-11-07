@@ -206,6 +206,31 @@ function referenceLuma(grade: LightingGrade) {
 }
 
 describe("V6 dawn to dusk CPU reference", () => {
+  it("keeps Horizon at the clear late-sun hill grade, brighter than forest and sea", () => {
+    const horizon = ZONES.find(zone => zone.id === "horizon")!;
+    const grade = placedGrade(horizon.t);
+    expect(timeOfDayAt(horizon.t)).toBe(0.5);
+    expect(grade.sunIntensity).toBe(2.2);
+    expect(grade.hemiIntensity).toBe(1.6);
+    expect(Math.asin(grade.sunDirection.y) * 180 / Math.PI).toBeCloseTo(35);
+    expect(fogAt(horizon.t)).toEqual({ near: 120, far: 700, forestWeight: 0 });
+    expect(grade.fogColor).toEqual(new Color(PALETTE.skyLow));
+    const reference = referenceLuma(grade).mean;
+    for (const zone of ZONES.filter(zone => zone.biome !== "hill")) {
+      expect(reference).toBeGreaterThan(referenceLuma(placedGrade(zone.t)).mean);
+    }
+  });
+
+  it("preserves Old Trail's illumination while extending late sun to Horizon", () => {
+    const oldTrail = ZONES.find(zone => zone.id === "old-trail")!;
+    const legacyProgress = (oldTrail.t - 0.2) / 0.7;
+    const legacy = referenceLuma(lightingAt(legacyProgress * legacyProgress * (3 - 2 * legacyProgress)));
+    const current = referenceLuma(placedGrade(oldTrail.t));
+    for (const key of ["floor", "wall", "mean"] as const) {
+      expect(Math.abs(current[key] - legacy[key])).toBeLessThan(0.01);
+    }
+  });
+
   it.each([
     { t: 0.15, min: 0.26, max: 0.32, low: 3, high: 7 },
     { t: 0.93, min: 0.24, max: 0.30, low: 2, high: 5 },
@@ -222,13 +247,19 @@ describe("V6 dawn to dusk CPU reference", () => {
   });
 
   it("bounds each plane and the mean by 0.02 per 0.005 path step, including reversal", () => {
+    let maximum = 0;
     // Offset the 0.005 windows by 0.001 as well, catching a peak between the main samples.
     for (let i = 5; i <= 1000; i++) {
       const a = referenceLuma(placedGrade((i - 5) / 1000));
       const b = referenceLuma(placedGrade(i / 1000));
-      for (const key of ["floor", "wall", "mean"] as const) expect(Math.abs(b[key] - a[key])).toBeLessThanOrEqual(0.02);
+      for (const key of ["floor", "wall", "mean"] as const) {
+        const delta = Math.abs(b[key] - a[key]);
+        maximum = Math.max(maximum, delta);
+        expect(delta).toBeLessThanOrEqual(0.02);
+      }
       expect(referenceLuma(placedGrade((i - 5) / 1000))).toEqual(a);
     }
+    process.stdout.write(`B2-239 CPU maximum plane/mean step luma=${maximum.toFixed(5)} (path step 0.005)\n`);
   });
 
   it("releases forest sky/fog over the same 40 m in both directions, independently of light following", () => {
@@ -289,8 +320,8 @@ describe("position-driven sky grade", () => {
     expect(grade.shadowTint.g).toBeGreaterThan(grade.shadowTint.r);
     expect(grade.sunDirection.length()).toBeCloseTo(1, 12);
     if (tod === 0) {
-      expect(grade.sunIntensity / 2.3).toBeCloseTo(0.6);
-      expect(grade.hemiIntensity).toBe(0.55);
+      expect(grade.sunIntensity).toBe(1.05);
+      expect(grade.hemiIntensity).toBe(0.8);
       expect(grade.sunColor).toEqual(new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.6).lerp(new Color(PALETTE.flower), 0.03));
       expect(grade.sunDirection.x).toBeLessThan(0);
       expect(grade.sunDirection.z).toBeGreaterThan(0);
@@ -338,7 +369,7 @@ describe("position-driven sky grade", () => {
     grade.sunDirection.set(0, 0, 0);
     expect(lightingAt(0).skyTop).toEqual(dawnTop);
     expect(lightingAt(0).sunDirection.length()).toBeCloseTo(1);
-    expect(lightingAt(timeOfDayAt(0.9))).toEqual(lightingAt(1));
+    expect(lightingAt(timeOfDayAt(0.93))).toEqual(lightingAt(1));
   });
 });
 
@@ -349,12 +380,14 @@ describe("coast dusk atmosphere", () => {
       const { sunDirection } = lightingAt(timeOfDayAt(t));
       const forward = pathPointAt(Math.min(1, t + 0.001)).sub(pathPointAt(t - 0.001)).normalize();
       const right = forward.clone().cross(new Vector3(0, 1, 0));
-      expect(sunDirection.z).toBeLessThan(0);
+      // B2-239: the sun travels from the 35-degree Horizon grade into dusk,
+      // rather than prematurely reaching sunset on the hill itself.
+      if (t >= 0.89) expect(sunDirection.z).toBeLessThan(0);
       expect(sunDirection.dot(right)).toBeGreaterThan(0);
-      expect(sunDirection.dot(forward)).toBeGreaterThan(0);
+      if (t >= 0.93) expect(sunDirection.dot(forward)).toBeGreaterThan(0);
       const elevation = Math.asin(sunDirection.y) * 180 / Math.PI;
       expect(elevation).toBeGreaterThan(0);
-      expect(elevation).toBeLessThanOrEqual(12);
+      expect(elevation).toBeLessThanOrEqual(t >= 0.93 ? 5 : t >= 0.89 ? 15 : 35);
     }
   });
 

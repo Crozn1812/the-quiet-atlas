@@ -176,15 +176,28 @@ const fragmentShader = /* glsl */ `
       float reflection = fresnel * SKY_REFLECTION * mix(0.85, 1.0, uSkyMix);
       #ifndef SEA_WATER
         // Canopy leaves a peach Fresnel veil without washing the dawn stream grey.
-        reflection *= mix(0.55, 1.0, smoothstep(0.0, 0.4, uSkyMix));
+        reflection = max(reflection, 0.07) * mix(0.8, 1.0, smoothstep(0.0, 0.4, uSkyMix));
       #endif
       #ifdef SEA_WATER
         reflection *= mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore));
         // A restrained sky veil offshore opens into the actual sky at the horizon.
         // Elevation only: no azimuth lobes or alternating camera-centred bands.
-        reflection *= mix(0.05, 2.0, smoothstep(0.995, 1.0, grazing));
+        reflection *= mix(0.18, 2.0, smoothstep(0.995, 1.0, grazing));
       #endif
       color = mix(color, uSkyHorizon, reflection);
+      #ifdef SEA_WATER
+        // Reflect the warm horizon on the sunward side and retain lit indigo
+        // elsewhere. This broad sky gradient is independent of the narrow glints.
+        vec2 horizonRay = vWaterWorld.xz - cameraPosition.xz;
+        vec2 horizonSun = uSunDirection.xz;
+        float skyAlignment = dot(horizonRay, horizonSun)
+          / max(length(horizonRay) * length(horizonSun), 0.0001);
+        // Begin sea horizon scalars.
+        float coolReflection = reflection * (1.0 - smoothstep(-0.15, 0.85, skyAlignment))
+          * (1.0 - smoothstep(0.995, 1.0, grazing));
+        // End sea horizon scalars.
+        color += (uDeepColor - uSkyHorizon) * coolReflection;
+      #endif
     #endif
     #ifdef SEA_WATER
       // A broad pigment wash along the sun/viewer axis, broken into soft brush marks.
@@ -324,7 +337,9 @@ export class WaterMaterial extends ShaderMaterial {
     this.irradiance.copy(grade.sunColor).multiplyScalar(grade.sunIntensity * (0.25 + 0.75 * halfLambert))
       .add(this.fill).multiplyScalar(1 / Math.PI);
     // The shaded stream sits beside dark wet soil (B2-190), including its lit strokes.
-    const absorption = sea ? 0.85 : 0.2;
+    // The coast stream opens out of canopy shade with the position-driven air;
+    // keep it readable beside asphalt while retaining the darker forest ribbon.
+    const absorption = sea ? 0.85 : 0.32 - 0.04 * (grade.coastWeight ?? 0);
     this.uniforms.uEdgeColor!.value.copy(this.edgePigment).multiply(this.irradiance).multiplyScalar(absorption);
     // Low warm sun shifts the open sea toward indigo without changing the turquoise banks.
     const dusk = Math.max(0, Math.min(1, grade.sunColor.r - grade.sunColor.b));
@@ -334,7 +349,7 @@ export class WaterMaterial extends ShaderMaterial {
       // Preserve deep blue under warm sun while brightness still follows incident light.
       const energy = this.irradiance.r * 0.2126 + this.irradiance.g * 0.7152 + this.irradiance.b * 0.0722;
       this.fill.copy(this.deepPigment).lerp(this.indigo, dusk).multiplyScalar(energy * absorption);
-      this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85).multiplyScalar(1.6);
+      this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85).multiplyScalar(1.85);
       // Neutral absorption keeps jade dark while reducing its displayed chroma.
       const edge = this.uniforms.uEdgeColor!.value as Color;
       const grey = edge.r * 0.2126 + edge.g * 0.7152 + edge.b * 0.0722;

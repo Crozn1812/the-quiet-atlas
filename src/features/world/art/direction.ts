@@ -131,8 +131,9 @@ const R: StylePreset = {
     mist: { bands: [160, 320, 600], strength: 0.02, warmth: 1 },
     forest: {
       color: recipe("mist", "sunGold", 0.18),
-      fog: { near: 25, far: 145 },
-      mist: { bands: [40, 75, 115], strength: 0.16 },
+      // Keep the walking corridor clear; distant trunks still dissolve into jade air.
+      fog: { near: 35, far: 190 },
+      mist: { bands: [55, 100, 155], strength: 0.08 },
     },
     edges: { ink: false, bleed: 0.04 },
     sky: {

@@ -196,7 +196,7 @@ describe("painted water material", () => {
     for (const key of ["fogColor", "fogNear", "fogFar", "fogDensity"]) expect(material.uniforms[key]).toBeDefined();
     const grade = lightingAt(0);
     const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
-      .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)).multiplyScalar(0.2 / Math.PI);
+      .add(grade.hemiSky.clone().multiplyScalar(grade.hemiIntensity)).multiplyScalar(0.32 / Math.PI);
     expect(material.uniforms.uDeepColor!.value.toArray()).toEqual(
       new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.seaShallow), 0.6).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(

@@ -71,9 +71,10 @@ it("adds forest detail in the existing interpolated 20 m ground at t=0.15 and fa
     const albedoGain = old.mean / 0.1993449474708341;
     const contrastGain = next.deviation / 0.0328;
     console.info(`B2-224: albedo +${(100 * (albedoGain - 1)).toFixed(2)}%; contrast ${contrastGain.toFixed(3)}x`);
-    expect(albedoGain).toBeGreaterThanOrEqual(1.15);
-    expect(albedoGain).toBeLessThanOrEqual(1.25);
-    expect(contrastGain).toBeGreaterThanOrEqual(1.5);
+    // B2-239 lifts the shaded floor and softens virtual canopy contrast.
+    expect(old.mean).toBeGreaterThanOrEqual(0.4);
+    expect(old.mean).toBeLessThanOrEqual(0.65);
+    expect(next.deviation).toBeGreaterThanOrEqual(0.02);
     expect(next.deviation / old.deviation).toBeGreaterThan(1);
     expect(Math.abs(next.mean / old.mean - 1)).toBeLessThanOrEqual(0.05);
     expect(Math.sqrt(farAmplitude / nearAmplitude)).toBeLessThanOrEqual(0.3);
@@ -101,10 +102,3 @@ it("injects world-space detail only in continuous terrain, after lighting and be
   }
   disposeRampGradients();
 });
-
-
-
-
-
-
-

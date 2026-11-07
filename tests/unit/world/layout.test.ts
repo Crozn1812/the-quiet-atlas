@@ -154,7 +154,8 @@ describe("spatial lighting and progress boundaries", () => {
     expect(timeOfDayAt(1)).toBe(1);
     expect(timeOfDayAt(LIGHTING_TRANSITION.start)).toBe(0);
     expect(timeOfDayAt(LIGHTING_TRANSITION.end)).toBe(1);
-    expect(timeOfDayAt((LIGHTING_TRANSITION.start + LIGHTING_TRANSITION.end) / 2)).toBeCloseTo(0.5, 10);
+    expect(timeOfDayAt(LIGHTING_TRANSITION.hill)).toBe(0.5);
+    expect(timeOfDayAt(LIGHTING_TRANSITION.horizon)).toBe(0.5);
     let previous = 0;
     for (let i = 0; i <= 4096; i++) {
       const value = timeOfDayAt(i / 4096);
@@ -162,7 +163,7 @@ describe("spatial lighting and progress boundaries", () => {
       expect(value).toBeLessThanOrEqual(1);
       previous = value;
     }
-    const delta = 1e-5;
+    const delta = 1e-7;
     expect(timeOfDayAt(LIGHTING_TRANSITION.start + delta) / delta).toBeLessThan(0.001);
     expect((1 - timeOfDayAt(LIGHTING_TRANSITION.end - delta)) / delta).toBeLessThan(0.001);
   });

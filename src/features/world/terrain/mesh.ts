@@ -8,14 +8,16 @@ import type { TerrainTile } from "./tiles";
 const grass = new Color(hex("grass"));
 const grassDry = new Color(hex("grassDry"));
 const forestDeep = new Color(hex("forestDeep"));
+const meadowMoss = grass.clone().lerp(grassDry, 0.64).lerp(new Color(hex("cloud")), 0.045);
 const rock = new Color(hex("rock"));
 const rockDark = new Color(hex("rockDark"));
 const sand = new Color(hex("sand"));
+const trailSoil = sand.clone().lerp(new Color(hex("sunGold")), 0.06).lerp(new Color(hex("flower")), 0.12);
 const seaDeep = new Color(hex("seaDeep"));
 const dirt = grassDry.clone().lerp(rockDark, 0.32);
 const leafLitter = grassDry.clone().lerp(new Color(hex("dusk")), 0.08);
 const dampSoil = rockDark.clone().lerp(forestDeep, 0.25);
-const sunlitMoss = grass.clone().lerp(grassDry, 0.2);
+const sunlitMoss = grass.clone().lerp(grassDry, 0.72).lerp(new Color(hex("cloud")), 0.045);
 const cliffStart = Math.tan(35 * Math.PI / 180);
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -94,10 +96,10 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const bankDistance = river.distance - riverWidthAt(river.t) / 2;
     if (forest > 0) {
       const moss = smoothstep(0.2, 0.8, 0.65 * patch + 0.35 * fleck);
-      tint.copy(forestDeep).lerp(grass, 0.14 + 0.58 * moss).lerp(rockDark, 0.08);
+      tint.copy(meadowMoss).lerp(grass, 0.15 * moss);
       // Damp soil fades out beyond the stream; it never changes the water masks below.
       const damp = (1 - smoothstep(2, 9, bankDistance)) * (0.3 + 0.2 * patch);
-      tint.lerp(dampSoil, damp);
+      tint.lerp(dampSoil, damp * 0.4);
       const leaves = smoothstep(0.62, 0.85, fleck) * smoothstep(0.45, 0.7, patch);
       tint.lerp(leafLitter, leaves * 0.22 * (1 - damp));
       // Dawn opens the yellow-green moss islands, leaving wet stream soil dark.
@@ -136,15 +138,16 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const trail = (1 - smoothstep(PATH_WIDTH / 2, PATH_WIDTH / 2 + 1.5, path.distance))
       * (1 - smoothstep(0.8, 0.82, path.t)) * smoothstep(0, 0.15, aboveWater) * (1 - cliff);
     color.lerp(dirt, trail * (1 - forest));
-    // A 1.2–2 m warm trail: wandering soft edges and occasional grass fingers.
-    const trailRadius = 0.6 + 0.4 * patch;
+    // A 2.6–3.4 m mineral trail survives interpolation on the existing 2 m grid.
+    const trailRadius = 1.3 + 0.4 * patch;
     // A small pigment footprint keeps a sub-cell trail visible on the existing 2 m grid.
     const trailFeather = Math.min(0.5, step * 0.25);
     const trailEdge = smoothstep(trailRadius - trailFeather, trailRadius + trailFeather, path.distance);
     const encroachment = smoothstep(0.55, 0.8, fleck) * smoothstep(0.2, trailRadius, path.distance);
     const forestTrail = (1 - trailEdge) * (1 - 0.65 * encroachment)
       * forest * smoothstep(0, 0.15, aboveWater) * (1 - cliff);
-    tint.copy(sand).lerp(rockDark, 0.62 + 0.1 * fleck);
+    // Pale mineral soil separates the walking line from jade moss under canopy.
+    tint.copy(trailSoil).lerp(rock, 0.02 + 0.03 * fleck);
     color.lerp(tint, forestTrail);
     colors.set([color.r, color.g, color.b], offset);
 
