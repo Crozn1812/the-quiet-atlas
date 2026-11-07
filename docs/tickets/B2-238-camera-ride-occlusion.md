@@ -12,3 +12,22 @@
 - Unit: tại 4 vị trí bí mật + điểm đến 8 khu, tia nhân vật→camera không cắt mesh nào không nằm trong obstacles/fade.
 - Unit: khoảng cách camera khi ride < khi walk; chuyển tiếp không nhảy (> X m/frame).
 - Test cũ (T05, e2e camera) pass.
+
+### Trả lại vòng 1 (Lead)
+
+Hình ảnh **đạt** (`docs/showcase/29-hoan-thien/lead-review-b2-238-r0.webp`: hết khối đen ở reflection; camera xe gần hơn).
+**Hiệu năng chưa đạt.** `node tools/review/frame-compare.mjs <base>` (Edge, CPU throttle ×6, đi bộ 150 khung, 2 lần mỗi bản):
+
+| | First Light p50 / p95 | Roots | Workshop |
+|---|---|---|---|
+| main | 20,0 / 40,1 ; 20,0 / 30,1 | 10–20 / 20,1 | 20 / 20–30 |
+| B2-238 | **30,0 / 40,1 ; 30,0 / 50,0** | 20 / 20 | 20 / 30 |
+
+Nguyên nhân khả dĩ: mỗi khung `cameraObstacles()` dựng mảng mới, duyệt toàn bộ `dressing` groups, thêm **InstancedMesh thân cây** (raycast duyệt từng instance), rồi bắn **5 tia**; thêm `traverse` mọi landmark bí mật mỗi khung.
+
+Sửa:
+1. Cache danh sách vật cản; chỉ dựng lại khi zone/dressing/quality đổi.
+2. Không raycast InstancedMesh thân cây mỗi khung: dùng collider đơn giản (trụ/bounding sphere theo instance, lọc theo khoảng cách ≤ arm + 2 m) hoặc BVH thưa.
+3. Tia phụ ở mép: chỉ bắn khi tia giữa trúng hoặc camera trong vùng có vật cản gần; hoặc giảm tần suất (mỗi 2–3 khung) nhưng giữ spring arm mượt.
+4. Fade landmark: chỉ xét landmark trong bán kính vài mét quanh nhân vật (không traverse mọi bí mật mỗi khung).
+5. Đo lại bằng `frame-compare.mjs` với main (4180) và worktree (cổng khác); kết quả **không tệ hơn main** ở cả 3 khu; dán bảng vào bàn giao. Thêm unit test: `updateCamera` không cấp phát mảng vật cản mới mỗi khung (đếm lần dựng).
