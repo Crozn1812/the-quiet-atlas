@@ -5,7 +5,6 @@ import { createEnding, endingAtmosphere } from "../../../src/features/world/cine
 import { createFarLandscape } from "../../../src/features/world/scene/far-landscape";
 import { createSea } from "../../../src/features/world/water/sea";
 import { createRiverRibbon } from "../../../src/features/world/water/ribbon";
-import { createEndingEstuaryMask } from "../../../src/features/world/cinematic/estuary";
 import { SECRETS } from "../../../src/features/story/secrets";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { pathPointAt } from "../../../src/features/world/layout/path";
@@ -37,8 +36,6 @@ it("keeps the postcard foreground on open water or detailed upward-facing terrai
   const landscape = createFarLandscape();
   const sea = createSea("High");
   const river = createRiverRibbon("High");
-  const estuary = createEndingEstuaryMask();
-  estuary.update([river.mesh], true);
   landscape.mesh.raycast = Mesh.prototype.raycast;
   sea.mesh.updateMatrixWorld(true);
   const tiles = tilesForPathRange(pathLength() * 0.8, pathLength()).map(({ ix, iz }) => {
@@ -81,15 +78,13 @@ it("keeps the postcard foreground on open water or detailed upward-facing terrai
         expect(hit.face!.normal.y).toBeGreaterThan(0);
       }
     }
-    // Regression: the almost sea-level river tail was the dark right-hand wedge.
+    // Regression (B2-236/240): the almost sea-level river tail was the dark right-hand wedge.
+    // The ribbon now ends at the sea edge, so the sea owns this pixel without any ending mask.
     const ray = new Raycaster();
     ray.setFromCamera(new Vector2(0.97 * 2 - 1, 1 - 0.8 * 2), cameraAt(ending.sample(34.5), 16 / 9));
-    estuary.update([river.mesh], false);
-    expect(ray.intersectObjects([sea.mesh, river.mesh])[0]!.object).toBe(river.mesh);
-    estuary.update([river.mesh], true);
     expect(ray.intersectObjects([sea.mesh, river.mesh])[0]!.object).toBe(sea.mesh);
   } finally {
-    estuary.dispose(); river.dispose(); landscape.dispose(); sea.dispose();
+    river.dispose(); landscape.dispose(); sea.dispose();
     tiles.forEach(tile => tile.geometry.dispose());
   }
 });

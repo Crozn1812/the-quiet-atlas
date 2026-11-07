@@ -4,11 +4,12 @@ import type { Quality } from "../terrain";
 import { worldHeight } from "../terrain/height";
 import { createWaterMaterial, SEA_SHORE_SAMPLES, type WaterMaterialOptions } from "./material";
 import { WATER_LEVEL } from "./ribbon";
+import { SEA_INLAND_OVERLAP } from "./bounds";
 import { createWaterSurface, type WaterSurface } from "./surface";
 
 export const SEA_SIZE = 800;
 // 250 m: B2-152b's bay reaches z ≈ −680 (mouth −900). Land north of it is above sea level, so the plane stays hidden.
-export const SEA_INLAND_OVERLAP = 250;
+export { SEA_INLAND_OVERLAP } from "./bounds";
 
 /** Static terrain samples, uploaded as uniforms once; no extra geometry or texture. */
 function sampleShoreline(left: number, near: number): number[] {
@@ -30,6 +31,22 @@ function sampleShoreline(left: number, near: number): number[] {
   });
 }
 
+/** Reject secants across a submerged inlet or the far side of a headland.
+ * A one-dimensional coast is only trusted where it follows a real zero crossing. */
+function shoreValidity(left: number, near: number, shore: readonly number[]): number[] {
+  const spacing = SEA_SIZE / (SEA_SHORE_SAMPLES - 1);
+  return shore.map((z, i) => {
+    if (i === shore.length - 1 || z > near || shore[i + 1]! > near) return 0;
+    for (let j = 0; j <= 16; j++) {
+      const t = j / 16;
+      const x = left + (i + t) * spacing;
+      const height = worldHeight(x, z + (shore[i + 1]! - z) * t);
+      if (Math.abs(height) > 0.08) return 0;
+    }
+    return 1;
+  });
+}
+
 /** Hide the near edge beneath land; the terrain/sea intersection draws the shore. */
 export function createSea(quality: Quality, options: Pick<WaterMaterialOptions, "sunDirection"> = {}): WaterSurface {
   const mouth = riverPointAt(1);
@@ -38,6 +55,7 @@ export function createSea(quality: Quality, options: Pick<WaterMaterialOptions, 
   const far = mouth.z - SEA_SIZE;
   const near = mouth.z + SEA_INLAND_OVERLAP;
   const distance = riverLength();
+  const shore = sampleShoreline(left, near);
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute([
     left, WATER_LEVEL, near, right, WATER_LEVEL, near,
@@ -53,6 +71,6 @@ export function createSea(quality: Quality, options: Pick<WaterMaterialOptions, 
   geometry.computeBoundingSphere();
   return createWaterSurface(geometry, createWaterMaterial(quality, {
     ...options, surface: "sea", skyMix: 1,
-    shoreline: { minX: left, width: SEA_SIZE, z: sampleShoreline(left, near) },
+    shoreline: { minX: left, width: SEA_SIZE, z: shore, valid: shoreValidity(left, near, shore) },
   }));
 }

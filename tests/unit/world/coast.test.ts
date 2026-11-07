@@ -25,6 +25,7 @@ describe("organic coast", () => {
       for (let i = 0; i < shore.length; i++) {
         const x = bounds.x + i / (shore.length - 1) * bounds.y;
         const z = shore[i]!;
+        if (z >= 10000) continue;
         if (z > near) {
           expect(worldHeight(x, near)).toBeLessThan(0);
         } else {

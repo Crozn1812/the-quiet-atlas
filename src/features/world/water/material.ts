@@ -19,7 +19,7 @@ export interface WaterMaterialOptions {
   /** Player-local lighting, including any directed/coast atmosphere adjustments. */
   grade?: LightingGrade;
   /** Sampled outer coastline; absent on standalone materials and river ribbons. */
-  shoreline?: { minX: number; width: number; z: readonly number[] };
+  shoreline?: { minX: number; width: number; z: readonly number[]; valid?: readonly number[] };
 }
 
 const vertexShader = /* glsl */ `
@@ -116,7 +116,12 @@ const fragmentShader = /* glsl */ `
       // Headland secants in z(x) are not local shore normals: bound their reach
       // so shallow-colour columns cannot project hundreds of metres offshore.
       float distanceSlope = clamp(slope, -1.0, 1.0);
-      float offshore = (shoreZ - vWaterWorld.z) / sqrt(1.0 + distanceSlope * distanceSlope);
+      // B2-240: secants across a submerged inlet or the far side of a headland are
+      // marked invalid (sentinel z) and have no shore influence; valid ones keep the
+      // signed offshore distance, so the shallow band stays on the water side only.
+      float shoreDistance = (shoreZ - vWaterWorld.z) / sqrt(1.0 + distanceSlope * distanceSlope);
+      float shoreValid = 1.0 - smoothstep(9999.0, 10000.0, max(shoreA, shoreB));
+      float offshore = mix(1000.0, shoreDistance, shoreValid);
       float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * uHasShore;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
@@ -274,7 +279,8 @@ export class WaterMaterial extends ShaderMaterial {
   constructor(readonly quality: Quality, options: WaterMaterialOptions = {}) {
     const shore = options.shoreline;
     if (shore && (!Number.isFinite(shore.minX) || !Number.isFinite(shore.width) || shore.width <= 0
-      || shore.z.length !== SEA_SHORE_SAMPLES || !shore.z.every(Number.isFinite))) {
+      || shore.z.length !== SEA_SHORE_SAMPLES || !shore.z.every(Number.isFinite)
+      || (shore.valid && (shore.valid.length !== SEA_SHORE_SAMPLES || !shore.valid.every(v => v === 0 || v === 1))))) {
       throw new RangeError("Water shoreline must contain finite, evenly spaced coast samples");
     }
     const sea = options.surface === "sea";
@@ -306,7 +312,10 @@ export class WaterMaterial extends ShaderMaterial {
           uSunWashColor: { value: new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.72)
             .lerp(new Color(PALETTE.flower), 0.1) },
           uShoreBounds: { value: new Vector2(options.shoreline?.minX ?? 0, options.shoreline?.width ?? 1) },
-          uShoreZ: { value: options.shoreline ? [...options.shoreline.z] : Array<number>(SEA_SHORE_SAMPLES).fill(0) },
+          // Out-of-world sentinels disable both secants touching an unsafe sample.
+          // Keep the existing uniform budget, with no texture or per-frame work.
+          uShoreZ: { value: shore ? shore.z.map((z, i) => shore.valid?.[i] === 0 ? 100000 : z)
+            : Array<number>(SEA_SHORE_SAMPLES).fill(0) },
           uHasShore: { value: options.shoreline ? 1 : 0 },
         },
       ]),
