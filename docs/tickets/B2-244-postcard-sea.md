@@ -17,3 +17,8 @@
 - **Ending 31 / 34,5 s: chưa đạt** — biển thành nâu tím xỉn, mất chàm sâu; trước đó (main) chàm đậm + vệt nắng cam rõ. Sắc hoàng hôn mới chỉ nên áp khi nhìn **chếch xuống** (góc nhìn dốc); ở góc gần ngang mặt nước (ending, chân trời) giữ màu như main.
 - **Sông ở Quiet Shore** (mục bổ sung phía trên) chưa làm: dải sông gần cửa vẫn gần đen.
 - Rebase lên main mới nhất trước khi làm (B2-243 đã đổi `ribbon.ts`; `estuary.ts` đã bị xoá).
+
+### Trả lại vòng 2 (Lead), vòng cuối
+
+Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-244-r1.webp`. **Giữ nguyên** kết quả vòng này cho ending (chàm sâu, vệt nắng) và sông Quiet Shore (chàm sáng, đọc được là nước).
+Còn thiếu: **gameplay Last Postcard** mất lại ánh hoàng hôn của vòng 0 (luma 0,238 → 0,208; mảng chàm phẳng). Camera chơi nhìn xuống ~30° nhưng phần biển trong khung ở xa nên góc nhìn tới mặt nước nhỏ hơn — ngưỡng 20° cắt mất. Đặt ngưỡng/hàm theo **khoảng cách từ camera** hoặc theo góc thực tế của khung chơi sao cho: gameplay Last Postcard luma ≥ 0,22 và thấy rõ vệt ấm phía mặt trời; ending 31/34,5 s giữ như vòng này. Thêm test CPU cho cả hai góc nhìn (gameplay ≈ camera cao 8–12 m nhìn xuống 30°, ending ≈ camera thấp gần ngang).
