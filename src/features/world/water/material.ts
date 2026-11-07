@@ -51,9 +51,12 @@ const fragmentShader = /* glsl */ `
   uniform float uSkyMix;
   uniform float uTime;
   varying vec2 vWaterUv;
+  uniform vec3 uSunDirection;
+  uniform vec3 uSunWashColor;
+  #ifndef SEA_WATER
+    uniform float uCoastWeight;
+  #endif
   #ifdef SEA_WATER
-    uniform vec3 uSunDirection;
-    uniform vec3 uSunWashColor;
     uniform vec2 uShoreBounds;
     uniform float uShoreZ[${SEA_SHORE_SAMPLES}];
     uniform float uHasShore;
@@ -162,7 +165,7 @@ const fragmentShader = /* glsl */ `
         * seaDetail * rippleDistanceFade;
       // End sea ripple scalars.
       color = mix(color, uPaperColor, 0.00875);
-      color *= 1.0 + 0.12 * seaStroke;
+      color *= 1.0 + 0.24 * seaStroke;
     #endif
     #ifdef WATER_REFLECTION
       vec3 surfaceNormal = normalize(vSurfaceNormal);
@@ -190,6 +193,17 @@ const fragmentShader = /* glsl */ `
         reflection *= mix(0.18, 2.0, smoothstep(0.995, 1.0, grazing));
       #endif
       color = mix(color, uSkyHorizon, reflection);
+      #ifndef SEA_WATER
+        // Only the open coastal reach receives sunset; forest water stays shaded.
+        vec2 riverRay = vWaterWorld.xz - cameraPosition.xz;
+        float riverAlignment = dot(riverRay, uSunDirection.xz)
+          / max(length(riverRay) * length(uSunDirection.xz), 0.0001);
+        // Begin river sunset scalars.
+        float riverSunset = uCoastWeight * 0.08 * smoothstep(-0.15, 0.95, riverAlignment)
+          * (1.0 - smoothstep(0.65, 0.95, grazing));
+        // End river sunset scalars.
+        color = mix(color, uSunWashColor, riverSunset);
+      #endif
       #ifdef SEA_WATER
         // Reflect the warm horizon on the sunward side and retain lit indigo
         // elsewhere. This broad sky gradient is independent of the narrow glints.
@@ -202,6 +216,22 @@ const fragmentShader = /* glsl */ `
           * (1.0 - smoothstep(0.995, 1.0, grazing));
         // End sea horizon scalars.
         color += (uDeepColor - uSkyHorizon) * coolReflection;
+        // Downward gameplay views need warm pigment, not a uniform sky veil.
+        // Camera pitch also covers distant water in the downward gameplay frame.
+        // viewMatrix[1][2] is the world-up component of the camera's backward axis.
+        // Near-horizontal ending frames retain their original grazing reflection.
+        // Begin sea sunset pigment scalars.
+        float sunsetFacing = smoothstep(-0.15, 0.95, skyAlignment);
+        float sunsetFrame = smoothstep(0.18, 0.42, viewMatrix[1][2]);
+        float sunsetDownview = max(1.0 - smoothstep(0.35, 0.65, grazing),
+          sunsetFrame * (1.0 - smoothstep(0.94, 0.995, grazing)));
+        float sunsetRange = 1.0 - smoothstep(80.0, 320.0, length(horizonRay));
+        float sunsetLowSun = smoothstep(0.0, 0.08, uSunDirection.y)
+          * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
+        float sunsetPigment = 0.12 * sunsetFacing * sunsetDownview * sunsetRange
+          * sunsetLowSun * mix(0.35, 1.0, smoothstep(12.0, 40.0, offshore));
+        // End sea sunset pigment scalars.
+        color = mix(color, uSunWashColor, sunsetPigment);
       #endif
     #endif
     #ifdef SEA_WATER
@@ -307,6 +337,7 @@ export class WaterMaterial extends ShaderMaterial {
           uPaperColor: { value: new Color(PALETTE.paper) },
           uSkyHorizon: { value: new Color() },
           uSkyMix: { value: 0 },
+          ...(!sea ? { uCoastWeight: { value: 0 } } : {}),
           uTime: { value: 0 },
           uSunDirection: { value: new Vector3() },
           uSunWashColor: { value: new Color(PALETTE.paper).lerp(new Color(PALETTE.dusk), 0.72)
@@ -341,6 +372,8 @@ export class WaterMaterial extends ShaderMaterial {
   setGrade(grade: LightingGrade): void {
     if (this.disposed) return;
     const sea = Boolean(this.defines.SEA_WATER);
+    const coast = Math.max(0, Math.min(1, grade.coastWeight ?? 0));
+    if (!sea) this.uniforms.uCoastWeight!.value = coast;
     const halfLambert = Math.max(0, Math.min(1, grade.sunDirection.y * 0.5 + 0.5));
     this.fill.copy(grade.hemiSky).multiplyScalar(grade.hemiIntensity);
     this.irradiance.copy(grade.sunColor).multiplyScalar(grade.sunIntensity * (0.25 + 0.75 * halfLambert))
@@ -359,10 +392,17 @@ export class WaterMaterial extends ShaderMaterial {
       const energy = this.irradiance.r * 0.2126 + this.irradiance.g * 0.7152 + this.irradiance.b * 0.0722;
       this.fill.copy(this.deepPigment).lerp(this.indigo, dusk).multiplyScalar(energy * absorption);
       this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85).multiplyScalar(1.85);
-      // Neutral absorption keeps jade dark while reducing its displayed chroma.
+      // Retain muted jade, with less neutral absorption in the clear shallows.
       const edge = this.uniforms.uEdgeColor!.value as Color;
       const grey = edge.r * 0.2126 + edge.g * 0.7152 + edge.b * 0.0722;
-      edge.lerp(this.fill.setRGB(grey, grey, grey), 0.65).multiplyScalar(0.7);
+      edge.lerp(this.fill.setRGB(grey, grey, grey), 0.5).multiplyScalar(0.75);
+    }
+    if (!sea && coast > 0) {
+      // Open-sky indigo fill retains blue energy under the low orange sun.
+      const energy = this.irradiance.r * 0.2126 + this.irradiance.g * 0.7152 + this.irradiance.b * 0.0722;
+      this.fill.copy(this.indigo).multiplyScalar(energy * 1.6);
+      this.uniforms.uDeepColor!.value.lerp(this.fill, coast);
+      this.uniforms.uEdgeColor!.value.lerp(this.fill, coast * 0.55);
     }
     this.uniforms.uPaperColor!.value.copy(this.paper).multiply(this.irradiance).multiplyScalar(absorption);
     // Fresnel reflects incoming sky radiance, independent of irradiance on the water.

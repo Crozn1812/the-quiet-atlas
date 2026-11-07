@@ -56,6 +56,8 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
     .replace(/\bfloat\(/g, "Number(")
     .replace(/\bint\(/g, "Math.trunc(")
     .replace(/uSunDirection\.y/g, "sunElevation")
+    .replace(/length\(horizonRay\)/g, "horizonRange")
+    .replace(/viewMatrix\[1\]\[2\]/g, "cameraDownTilt")
     .replace(/\b(sin|cos|sqrt|abs|max|min|floor)\(/g, "Math.$1(")
     .replace(/SEA_FOAM_MAX_SLOPE/g, String(SEA_FOAM_MAX_SLOPE))
     .replace(/fwidth\(alongSun \* 0.24 \* perspective\)/g, "washPixelWidth")
@@ -97,9 +99,15 @@ function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: numb
     }, ["washStrength", "washWidth", "core", "glimmer", "washMarks", "distanceFade"]);
 }
 
+function sunsetAt(material: WaterMaterial, skyAlignment: number, grazing: number, horizonRange: number, offshore = 100, cameraDownTilt = 0) {
+  return scalars(material, "// Begin sea sunset pigment scalars.", "// End sea sunset pigment scalars.", {
+    skyAlignment, grazing, horizonRange, offshore, cameraDownTilt, sunElevation: material.uniforms.uSunDirection!.value.y,
+  }, ["sunsetPigment"]).sunsetPigment!;
+}
+
 // Full sea pigment/swell/Fresnel/wash in linear working space, before
 // renderer tone mapping and scene fog. Samples are offshore, beyond the foam.
-function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Color {
+function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3, cameraDownTilt = 0): Color {
   const uniform = material.uniforms;
   const time = uniform.uTime!.value as number;
   const phase = time * Number((2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10));
@@ -113,7 +121,7 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
     vWaterWorld: point, uTime: time, phase, offshore, uHasShore: uniform.uHasShore!.value,
     rippleDistanceFade: 1 - smoothstep(15, 40, point.distanceTo(camera)),
   }, ["seaStroke"]);
-  color.lerp(uniform.uPaperColor!.value, 0.00875).multiplyScalar(1 + 0.12 * seaStroke!);
+  color.lerp(uniform.uPaperColor!.value, 0.00875).multiplyScalar(1 + 0.24 * seaStroke!);
   if (material.defines.WATER_REFLECTION) {
     const normal = new Vector3(crossSwell * 0.006 * seaStroke!, 1, swell * 0.006 * seaStroke!).normalize();
     const grazing = 1 - Math.max(0, Math.min(1, normal.dot(camera.clone().sub(point).normalize())));
@@ -130,6 +138,8 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
     for (const channel of ["r", "g", "b"] as const) {
       color[channel] += (uniform.uDeepColor!.value[channel] - uniform.uSkyHorizon!.value[channel]) * coolReflection!;
     }
+    color.lerp(uniform.uSunWashColor!.value,
+      sunsetAt(material, skyAlignment, grazing, horizonRay.length(), offshore, cameraDownTilt));
   }
   const sun = uniform.uSunDirection!.value as Vector3;
   const axis = new Vector2(sun.x, sun.z).normalize();
@@ -137,6 +147,113 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3): Col
   const strength = washAt(material, offset.dot(axis), offset.dot(new Vector2(-axis.y, axis.x)), phase).washStrength!;
   return color.lerp(uniform.uSunWashColor!.value, strength);
 }
+
+describe("B2-244 downward gameplay sunset", () => {
+  it.each(["Low", "Balanced", "High"] as const)("lights distant %s gameplay water while preserving low ending views", quality => {
+    const material = createWaterMaterial(quality, { surface: "sea" });
+    try {
+      material.setGrade(applyCoastAtmosphere(directGrade(lightingAt(1), 1), 1));
+      const axis = (material.uniforms.uSunDirection!.value as Vector3).clone().setY(0).normalize()
+        .applyAxisAngle(new Vector3(0, 1, 0), 25 * Math.PI / 180);
+      for (const height of [8, 10, 12]) for (const distance of [40, 80, 120]) {
+        const camera = new Vector3(0, WATER_LEVEL + height, 0);
+        const point = axis.clone().multiplyScalar(distance).setY(WATER_LEVEL);
+        const grazing = 1 - height / Math.hypot(height, distance);
+        const pigment = sunsetAt(material, Math.cos(25 * Math.PI / 180), grazing, distance, 100, 0.5);
+        expect(pigment).toBeGreaterThan(0.05);
+        const warm = displayColor(seaColor(material, point, camera, 0.5));
+        const prior = displayColor(seaColor(material, point, camera));
+        expect(luma(warm)).toBeGreaterThan(luma(prior));
+        expect(warm.r / warm.b).toBeGreaterThan(prior.r / prior.b + 0.3);
+      }
+      for (const height of [0.6, 2, 8]) for (const distance of [40, 80, 120]) {
+        const grazing = 1 - height / Math.hypot(height, distance);
+        // Ending's near-horizontal camera (about 4.6 degrees) never enables the new frame mask.
+        expect(sunsetAt(material, 1, grazing, distance, 100, 0.08)).toBe(0);
+      }
+      expect(sunsetAt(material, 1, 1, 80, 100, 0.5)).toBe(0);
+      expect(sunsetAt(material, -1, 0.9, 80, 100, 0.5)).toBe(0);
+    } finally { material.dispose(); }
+  });
+
+  it.each(["Low", "Balanced", "High"] as const)("opens only the coastal %s river into indigo and directional sunset", quality => {
+    const river = createWaterMaterial(quality);
+    const reference = createWaterMaterial(quality);
+    try {
+      const grade = directGrade(lightingAt(1), 1);
+      reference.setGrade(grade);
+      river.setGrade(applyCoastAtmosphere(directGrade(lightingAt(1), 1), 0.93));
+      const deep = (river.uniforms.uDeepColor!.value as Color).clone();
+      expect(deep.b).toBeGreaterThan(deep.r);
+      expect(luma(deep)).toBeGreaterThan(luma(reference.uniforms.uDeepColor!.value));
+      const sample = (riverAlignment: number, grazing: number) =>
+        scalars(river, "// Begin river sunset scalars.", "// End river sunset scalars.", {
+          uCoastWeight: river.uniforms.uCoastWeight!.value, riverAlignment, grazing,
+        }, ["riverSunset"]).riverSunset!;
+      expect(sample(1, 0.4)).toBeCloseTo(0.08);
+      expect(sample(-1, 0.4)).toBe(0);
+      expect(sample(1, 1)).toBe(0);
+      river.setGrade(grade);
+      expect(sample(1, 0.4)).toBe(0);
+      expect(river.uniforms.uDeepColor!.value).toEqual(reference.uniforms.uDeepColor!.value);
+      river.setGrade(applyCoastAtmosphere(directGrade(lightingAt(1), 1), 0.93));
+      expect(river.uniforms.uDeepColor!.value).toEqual(deep);
+    } finally { river.dispose(); reference.dispose(); }
+  });
+
+  it.each(["Low", "Balanced", "High"] as const)("keeps a chromatic %s sunset under a downward camera", quality => {
+    const material = createWaterMaterial(quality, { surface: "sea",
+      shoreline: { minX: -1000, width: 2000, z: Array<number>(SEA_SHORE_SAMPLES).fill(1000) },
+    });
+    try {
+      material.setGrade(applyCoastAtmosphere(directGrade(lightingAt(1), 1), 1));
+      // Outside the existing +/-12 degree glints: isolate the broad sunset pigment.
+      const sun = (material.uniforms.uSunDirection!.value as Vector3).clone().setY(0).normalize()
+        .applyAxisAngle(new Vector3(0, 1, 0), 25 * Math.PI / 180);
+      let minimum = Infinity, maximum = 0;
+      for (const distance of [20, 40, 80]) for (const heightRatio of [0.5, 1, 2]) {
+        const camera = new Vector3(0, WATER_LEVEL + distance * heightRatio, 0);
+        const point = sun.clone().multiplyScalar(distance).setY(WATER_LEVEL);
+        const away = point.clone().multiplyScalar(-1).setY(WATER_LEVEL);
+        for (const aces of [false, true]) {
+          const warm = displayColor(seaColor(material, point, camera), aces);
+          const cool = displayColor(seaColor(material, away, camera), aces);
+          expect(warm.r / warm.b).toBeGreaterThan(cool.r / cool.b + 0.3);
+          expect(warm.r - warm.b).toBeGreaterThan(cool.r - cool.b + 0.04); // Purple-to-orange shift, retaining blue at the fade.
+          expect(cool.b).toBeGreaterThan(cool.r);
+          expect(luma(warm)).toBeGreaterThan(luma(cool));
+          expect(luma(warm)).toBeLessThan(0.35); // Surface samples, not frame luma.
+          minimum = Math.min(minimum, luma(warm)); maximum = Math.max(maximum, luma(warm));
+        }
+      }
+      process.stdout.write(`${quality} downward sunward surface luma=${minimum.toFixed(4)}-${maximum.toFixed(4)} (not frame luma)\n`);
+    } finally { material.dispose(); }
+  });
+
+  it("fades the new pigment smoothly out of the ending horizon, far sea and unlit side", () => {
+    const material = createWaterMaterial("Balanced", { surface: "sea" });
+    try {
+      expect(sunsetAt(material, 1, 0.2, 40)).toBeGreaterThan(0.05);
+      let previous = sunsetAt(material, 1, 0.35, 80);
+      for (let i = 1; i <= 100; i++) {
+        const value = sunsetAt(material, 1, 0.35 + 0.3 * i / 100, 80);
+        expect(value).toBeLessThanOrEqual(previous);
+        expect(previous - value).toBeLessThan(0.002);
+        previous = value;
+      }
+      for (const grazing of [0, 0.5, 0.9, 0.96, 1]) {
+        expect(sunsetAt(material, -0.15, grazing, 40)).toBe(0);
+        expect(sunsetAt(material, 1, grazing, 320)).toBe(0);
+      }
+      for (const distance of [20, 80, 160, 320]) expect(sunsetAt(material, 1, 0.65, distance)).toBe(0);
+      expect(sunsetAt(material, 1, 0.5, 40, 6)).toBeLessThan(sunsetAt(material, 1, 0.5, 40, 60));
+      material.setSunDirection(new Vector3(0.8, 0, -0.6));
+      expect(sunsetAt(material, 1, 0.2, 40)).toBe(0);
+      material.setSunDirection(new Vector3(0, 1, 0));
+      expect(sunsetAt(material, 1, 0.2, 40)).toBe(0);
+    } finally { material.dispose(); }
+  });
+});
 
 describe("road-view sunset sea", () => {
   it.each(["Low", "Balanced", "High"] as const)("reflects a smooth indigo-to-orange sunset that follows the %s sun", quality => {
