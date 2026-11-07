@@ -9,3 +9,11 @@
 ### Bổ sung (Lead, từ B2-242)
 
 Ở Quiet Shore, dải tối chiếm 1/4 khung bên trái là **mặt nước sông** gần cửa (ribbon) lúc hoàng hôn, gần như đen. Cùng việc với biển: sông đoạn ven biển phải phản chiếu trời hoàng hôn (tím/chàm sáng hơn, ánh cam ở phía mặt trời), đọc được là nước. Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-242.webp` (ô 1).
+
+### Trả lại vòng 1 (Lead, render)
+
+Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-244-r0.webp` (Quiet Shore, Last Postcard gameplay, ending 31 / 34,5 s).
+- Gameplay Last Postcard: **đạt** (ánh hoàng hôn phía mặt trời, luma 0,210 → 0,238).
+- **Ending 31 / 34,5 s: chưa đạt** — biển thành nâu tím xỉn, mất chàm sâu; trước đó (main) chàm đậm + vệt nắng cam rõ. Sắc hoàng hôn mới chỉ nên áp khi nhìn **chếch xuống** (góc nhìn dốc); ở góc gần ngang mặt nước (ending, chân trời) giữ màu như main.
+- **Sông ở Quiet Shore** (mục bổ sung phía trên) chưa làm: dải sông gần cửa vẫn gần đen.
+- Rebase lên main mới nhất trước khi làm (B2-243 đã đổi `ribbon.ts`; `estuary.ts` đã bị xoá).
