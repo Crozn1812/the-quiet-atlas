@@ -60,6 +60,11 @@ declare global {
 }
 /** Path metres streamed ahead during the opening overview (covers the river bends it shows). */
 const INTRO_PRELOAD_M = 600;
+/** B2-238: chase camera while riding, as a fraction of the walking arm, and its extra downward tilt. */
+const RIDE_DISTANCE = 0.75;
+const RIDE_PITCH_DROP = Math.PI / 24;
+/** B2-238: hits closer than this start inside geometry that surrounds the character. */
+const CAMERA_IGNORE_INSIDE = 0.35;
 
 /** Path polyline (XZ) over the streamed intro range, for the paper corridor mask. */
 function introCorridor(position: { x: number; z: number }) {
@@ -357,6 +362,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let lastAmbience = -Infinity;
   let zoom = INITIAL_ZOOM;
   let arm = INITIAL_ZOOM;
+  let rideBlend = 0;
   let belowTerrainFrames = 0;
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
@@ -953,11 +959,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function updateCamera(dt: number) {
     const target = physics.position.clone();
-    const direction = new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH));
+    // B2-238: riding eases into a closer, lower chase framing (bike + rider ~12–18 % of the frame).
+    rideBlend += ((vehicle.mode === "ride" ? 1 : 0) - rideBlend) * (1 - Math.exp(-4 * Math.max(0, Math.min(dt, 0.1))));
+    const pitch = CAMERA_PITCH - rideBlend * RIDE_PITCH_DROP;
+    const direction = new Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
     raycaster.set(target, direction);
-    const distance = zoom * (vehicle.mode === "ride" ? 1.3 : 1);
+    const distance = zoom * (1 - rideBlend * (1 - RIDE_DISTANCE));
     raycaster.far = distance;
+    // B2-238: geometry the character stands inside (a landmark arch or mirror) starts within this
+    // range; counting it collapsed the arm to zero and put the near plane inside the mesh (black frame).
+    raycaster.near = CAMERA_IGNORE_INSIDE;
     const hit = raycaster.intersectObjects(cameraObstacles())[0];
+    raycaster.near = 0;
     arm = springArm(arm, distance, hit?.distance, dt);
     camera.position.copy(target).addScaledVector(direction, arm);
     camera.position.y = Math.max(camera.position.y, surfaceHeight(camera.position.x, camera.position.z) + CAMERA_CLEARANCE);

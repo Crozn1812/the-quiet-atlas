@@ -241,7 +241,7 @@ it("parks 2 m off First Light clear of signs, localizes Ride, gates range and mo
   expect(container.dataset.worldVehicle).toBe("manual");
 });
 
-it("moves manually on the corridor, expands the camera and limits steering", async () => {
+it("moves manually on the corridor, brings the camera closer (B2-238) and limits steering", async () => {
   await ride();
   const start = bike().position.clone();
   const zoom = camera().position.distanceTo(position());
@@ -251,7 +251,7 @@ it("moves manually on the corridor, expands the camera and limits steering", asy
   expect(nearestPath(bike().position.x, bike().position.z).distance).toBeLessThanOrEqual(2.01);
   expect(position().x).toBeCloseTo(bike().position.x, 3);
   expect(position().z).toBeCloseTo(bike().position.z, 3);
-  expect(camera().position.distanceTo(position())).toBeCloseTo(zoom * 1.3, 1);
+  expect(camera().position.distanceTo(position())).toBeCloseTo(zoom * 0.75, 1);
   release("KeyD"); release("KeyW");
   drive(6);
   key("KeyE");
