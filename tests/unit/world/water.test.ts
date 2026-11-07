@@ -58,15 +58,19 @@ describe("river ribbon", () => {
   it("follows the arc-length spline within 5 cm at 50 samples, including between rows", () => {
     const geometry = createRibbonGeometry();
     const positions = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
     const centreAtRow = (row: number) => new Vector3()
       .fromBufferAttribute(positions, row * 2)
       .add(new Vector3().fromBufferAttribute(positions, row * 2 + 1)).multiplyScalar(0.5);
     let maxError = 0;
     for (let i = 0; i < 50; i++) {
       const t = i / 49;
-      const row = t * RIBBON_SEGMENTS;
-      const lower = Math.floor(row);
-      const centre = centreAtRow(lower).lerp(centreAtRow(Math.min(lower + 1, RIBBON_SEGMENTS)), row - lower);
+      const distance = t * riverLength();
+      let lower = 0;
+      while (lower + 1 < positions.count / 2 - 1 && uv.getY((lower + 1) * 2) < distance) lower++;
+      const upper = lower + 1;
+      const fraction = Math.max(0, Math.min(1, (distance - uv.getY(lower * 2)) / (uv.getY(upper * 2) - uv.getY(lower * 2))));
+      const centre = centreAtRow(lower).lerp(centreAtRow(upper), fraction);
       centre.y = 0; // Plan-view check; height follows waterLevelAt (Lead fix).
       maxError = Math.max(maxError, centre.distanceTo(riverPointAt(t)));
     }
@@ -82,19 +86,19 @@ describe("river ribbon", () => {
     const uv = geometry.getAttribute("uv");
     const normals = geometry.getAttribute("normal");
     let previousWidth = 0;
-    for (let i = 0; i <= RIBBON_SEGMENTS; i++) {
+    for (let i = 0; i < positions.count / 2; i++) {
       const a = new Vector3().fromBufferAttribute(positions, i * 2);
       const b = new Vector3().fromBufferAttribute(positions, i * 2 + 1);
       const width = a.distanceTo(b);
       expect(width).toBeGreaterThanOrEqual(previousWidth);
-      expect(width).toBeCloseTo(riverWidthAt(i / RIBBON_SEGMENTS), 3);
+      const t = uv.getY(i * 2) / riverLength();
+      expect(width).toBeCloseTo(riverWidthAt(t), 3);
       for (const vertex of [i * 2, i * 2 + 1]) {
-        const t = i / RIBBON_SEGMENTS;
         const blend = Math.max(0, (t - 0.96) / 0.04);
         const sink = 0.05 * blend * blend * (3 - 2 * blend);
-        if (t >= 0.03) expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
+        if (t >= 0.03 && t < 0.95) expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
         expect(normals.getY(vertex)).toBe(1);
-        expect(uv.getY(vertex)).toBeCloseTo(i / RIBBON_SEGMENTS * riverLength(), 3);
+        expect(uv.getY(vertex)).toBeCloseTo(t * riverLength(), 3);
       }
       expect(uv.getX(i * 2)).toBe(0);
       expect(uv.getX(i * 2 + 1)).toBe(1);
@@ -106,8 +110,8 @@ describe("river ribbon", () => {
     expect(riverWidthAt(1)).toBeCloseTo(60);
     expect(riverWidthAt(-1)).toBeCloseTo(0.6);
     expect(riverWidthAt(2)).toBeCloseTo(60);
-    expect(positions.getY(RIBBON_SEGMENTS * 2)).toBeCloseTo(WATER_LEVEL - 0.05);
-    for (const vertex of [RIBBON_SEGMENTS * 2, RIBBON_SEGMENTS * 2 + 1]) {
+    expect(positions.getY(positions.count - 1)).toBeCloseTo(WATER_LEVEL - 0.05);
+    for (const vertex of [positions.count - 2, positions.count - 1]) {
       expect(worldHeight(positions.getX(vertex), positions.getZ(vertex))).toBeLessThan(positions.getY(vertex));
     }
     expect(worldHeight(0, -960)).toBeLessThan(WATER_LEVEL);

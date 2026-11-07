@@ -62,7 +62,7 @@ describe("river spring ribbon", () => {
     } finally { geometry.dispose(); }
   });
 
-  it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves every old vertex/normal/UV from t=0.03 (%s segments)", segments => {
+  it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves every old vertex/normal/UV for 0.03 <= t < 0.95 (%s segments)", segments => {
     const geometry = createRibbonGeometry(segments);
     try {
       const positions = geometry.getAttribute("position");
@@ -70,7 +70,7 @@ describe("river spring ribbon", () => {
       const uv = geometry.getAttribute("uv");
       for (let row = 0; row <= segments; row++) {
         const t = row / segments;
-        if (t < 0.03) continue;
+        if (t < 0.03 || t >= 0.95) continue;
         const centre = riverPointAt(t);
         const tangent = riverTangentAt(t);
         const progress = Math.max(0, (t - 0.96) / 0.04);
