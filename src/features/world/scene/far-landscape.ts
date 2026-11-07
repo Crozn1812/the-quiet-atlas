@@ -25,6 +25,9 @@ export const GAMEPLAY_FAR = Object.freeze({ Low: 260, Balanced: 500, High: 800 }
 
 const canopyDeep = new Color(hex("forestDeep"));
 const canopyLight = new Color(hex("forestLight"));
+/** B2-239 lifted near forest ground to sunlit moss; the far canopy averages moss and crowns so tile edges stay hidden. */
+const canopyMoss = new Color(hex("grass")).lerp(new Color(hex("grassDry")), 0.64);
+const FAR_CANOPY_MOSS = 0.8;
 
 /**
  * Trees only stream along the path, so far slopes would read as bare lawn. Where the scatter grows forest (the
@@ -51,7 +54,7 @@ function* paintFarCanopy(geometry: BufferGeometry, heights: Float32Array) {
       const dz = (heights[x * stride + Math.min(cells, z + 1)]! - heights[x * stride + Math.max(0, z - 1)]!) / (2 * step);
       const steep = Math.min(1, Math.max(0, (Math.hypot(dx, dz) - 0.8) / 0.4));
       const speckle = (Math.sin(wx * 0.37 + wz * 0.11) * Math.sin(wz * 0.29 - wx * 0.07) + 1) / 2;
-      canopy.copy(canopyDeep).lerp(canopyLight, 0.25 + 0.35 * speckle);
+      canopy.copy(canopyDeep).lerp(canopyLight, 0.25 + 0.35 * speckle).lerp(canopyMoss, FAR_CANOPY_MOSS);
       ground.fromBufferAttribute(colors, vertex).lerp(canopy, forested * (1 - steep) * 0.85);
       colors.setXYZ(vertex, ground.r, ground.g, ground.b);
     }

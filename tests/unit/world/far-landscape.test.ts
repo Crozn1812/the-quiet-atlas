@@ -75,7 +75,8 @@ it("constructs in small steps and matches the B2-195 mesh baseline byte for byte
       normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
       // B2-239 lifts shaded forest moss and mineral trails; the far terrain shares createTileMesh paint.
       // Positions, normals and topology retain their B2-195 byte baselines.
-      color: "79baf8162d828f940d21596867a5621f5486f470fdd1aeec0f40f4c946260592",
+      // Lead (batch 29): far canopy blends 80 % moss so the brighter near tiles show no rectangular edge.
+      color: "8e985193a0e06ffb35c62a1a5c6ab4d1a2be3d120bd4272b088d05af6675bf8d",
       index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
     };
     const actual = Object.fromEntries(Object.keys(expected).map(name => {
