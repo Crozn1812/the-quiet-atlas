@@ -443,6 +443,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     zone(): string | null;
     goTo(zoneId: string): Promise<void>;
     visitSecret(id: string): boolean;
+    nearVehicle(): void;
   } };
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
@@ -487,6 +488,16 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       physics.teleport(position);
       state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
       return discover(id);
+    },
+    /** QA only: stand beside the parked bike (press E next to it to ride). */
+    nearVehicle: () => {
+      if (disposed || cinematicLocked() || contextLost || teleport.inputLocked || vehicle.mode === "ride") throw new Error("Journey vehicle unavailable");
+      const at = vehicleTarget.position;
+      const position = new Vector3(at.x + 1.2, surfaceHeight(at.x + 1.2, at.z) + HEIGHT + 0.02, at.z);
+      composed.update(position, 0);
+      physics.teleport(position);
+      state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
+      interaction.update();
     },
   }) : undefined;
   if (journey) journeyContainer.__tqaJourney = journey;
