@@ -31,3 +31,16 @@ Sửa:
 3. Tia phụ ở mép: chỉ bắn khi tia giữa trúng hoặc camera trong vùng có vật cản gần; hoặc giảm tần suất (mỗi 2–3 khung) nhưng giữ spring arm mượt.
 4. Fade landmark: chỉ xét landmark trong bán kính vài mét quanh nhân vật (không traverse mọi bí mật mỗi khung).
 5. Đo lại bằng `frame-compare.mjs` với main (4180) và worktree (cổng khác); kết quả **không tệ hơn main** ở cả 3 khu; dán bảng vào bàn giao. Thêm unit test: `updateCamera` không cấp phát mảng vật cản mới mỗi khung (đếm lần dựng).
+
+### Trả lại vòng 2 (Lead), vòng cuối
+
+`frame-compare.mjs` lượng tử 10 ms nên không phân biệt được. Lead đo bằng `node tools/review/cpu-compare.mjs <base>` (CDP `ScriptDuration`, ms script mỗi giây khi đi bộ 4 s; 3 lượt xen kẽ, lượt 1 bỏ vì máy đang chạy worker khác):
+
+| | First Light | Roots | Workshop |
+|---|---|---|---|
+| main (lượt 2, 3) | 266, 248 | 215, 207 | 244, 248 |
+| B2-238 (lượt 2, 3) | **306, 299** | 225, 223 | 253, 255 |
+
+First Light vẫn **+45 ms/s** (≈ +0,75 ms/khung ở 60 fps trên máy bàn; Iris Xe gấp 2–3 lần). Ngưỡng duyệt: mỗi khu **≤ main + 10 ms/s** (trung bình 2 lượt, đo khi không có worker khác chạy).
+
+Gợi ý: First Light có nhiều dressing/prop gần spawn. Đo riêng `updateCamera` (performance.now quanh hàm, gom 300 khung) để biết phần nào tốn: lọc vật cản theo khoảng cách (Box3 cache, không `setFromObject` mỗi khung), raycast bằng Box3/Sphere đơn giản thay cho mesh tam giác của dressing, fade landmark chỉ khi trong bán kính. Dán bảng `cpu-compare` vào bàn giao.
