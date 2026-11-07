@@ -5,7 +5,7 @@ import { riverLength, riverPointAt, riverTangentAt } from "../../../src/features
 import { surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
-import { createRibbonGeometry, riverSeaJoinT, riverWidthAt, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
+import { createRibbonGeometry, riverWidthAt, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
 
 describe("river spring ribbon", () => {
   it("starts at 0.6 m and widens monotonically into the unchanged ribbon at t=0.03", () => {
@@ -22,14 +22,12 @@ describe("river spring ribbon", () => {
     try {
       const positions = geometry.getAttribute("position");
       let previousWidth = 0;
-      // B2-240: rows are spread over [0, riverSeaJoinT()] instead of [0, 1].
-      const endT = riverSeaJoinT();
-      for (let row = 0; row / RIBBON_SEGMENTS * endT <= 0.03; row++) {
+      for (let row = 0; row / RIBBON_SEGMENTS <= 0.03; row++) {
         const a = new Vector3().fromBufferAttribute(positions, row * 2);
         const b = new Vector3().fromBufferAttribute(positions, row * 2 + 1);
         const width = a.distanceTo(b);
         expect(width).toBeGreaterThanOrEqual(previousWidth);
-        expect(width).toBeCloseTo(riverWidthAt(row / RIBBON_SEGMENTS * endT), 5);
+        expect(width).toBeCloseTo(riverWidthAt(row / RIBBON_SEGMENTS), 5);
         previousWidth = width;
       }
     } finally { geometry.dispose(); }
@@ -47,15 +45,14 @@ describe("river spring ribbon", () => {
         expect(surfaceHeight(x, z) - y).toBeGreaterThanOrEqual(0.05);
       }
       // The cap gives way to visible water before leaving the 4 m hollow.
-      const endT = riverSeaJoinT();
-      const row = Math.floor(3.5 / (riverLength() * endT) * RIBBON_SEGMENTS);
+      const row = Math.floor(3.5 / riverLength() * RIBBON_SEGMENTS);
       for (const vertex of [row * 2, row * 2 + 1]) {
         expect(Math.hypot(positions.getX(vertex), positions.getZ(vertex))).toBeLessThan(4);
         expect(positions.getY(vertex)).toBeGreaterThan(surfaceHeight(positions.getX(vertex), positions.getZ(vertex)));
       }
       let previousSink = Infinity;
-      for (let row = 0; row / RIBBON_SEGMENTS * endT <= 0.03; row++) {
-        const t = row / RIBBON_SEGMENTS * endT;
+      for (let row = 0; row / RIBBON_SEGMENTS <= 0.03; row++) {
+        const t = row / RIBBON_SEGMENTS;
         const sink = waterLevelAt(riverPointAt(t).z) - positions.getY(row * 2);
         // Float32 heights can differ from the analytic surface by a fraction of a micrometre.
         expect(sink).toBeLessThanOrEqual(previousSink + 1e-6);
@@ -72,9 +69,8 @@ describe("river spring ribbon", () => {
       const normals = geometry.getAttribute("normal");
       const uv = geometry.getAttribute("uv");
       for (let row = 0; row <= segments; row++) {
-        const t = row / segments * riverSeaJoinT();
-        // B2-240: the mouth widening and the final 16 m descent into the sea are new geometry.
-        if (t < 0.03 || t > 0.96 || (riverSeaJoinT() - t) * riverLength() < 16) continue;
+        const t = row / segments;
+        if (t < 0.03) continue;
         const centre = riverPointAt(t);
         const tangent = riverTangentAt(t);
         const progress = Math.max(0, (t - 0.96) / 0.04);

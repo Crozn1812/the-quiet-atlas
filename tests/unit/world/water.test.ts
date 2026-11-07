@@ -9,27 +9,11 @@ import { lightingAt } from "../../../src/features/world/sky/grade";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createWaterMaterial, SEA_WAVE_PERIOD, WATER_FLOW_SPEED } from "../../../src/features/world/water/material";
 import {
-  createRibbonGeometry, createRiverRibbon, riverWidthAt, riverSeaJoinT, RIBBON_SEGMENTS, WATER_LEVEL,
+  createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
 } from "../../../src/features/world/water/ribbon";
 import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
 
 describe("river ribbon", () => {
-  it.each([1, 17, RIBBON_SEGMENTS])("ends every bank at the sea boundary without overlapping triangles (%s rows)", segments => {
-    const geometry = createRibbonGeometry(segments);
-    const repeat = createRibbonGeometry(segments);
-    try {
-      const near = riverPointAt(1).z + SEA_INLAND_OVERLAP;
-      const positions = geometry.getAttribute("position");
-      for (let i = 0; i < positions.count; i++) expect(positions.getZ(i)).toBeGreaterThanOrEqual(near - 0.0001);
-      for (const i of [positions.count - 2, positions.count - 1]) {
-        expect(positions.getZ(i)).toBeCloseTo(near, 3);
-        expect(positions.getY(i)).toBeCloseTo(WATER_LEVEL, 6);
-      }
-      expect(geometry.index!.count / 3).toBe(segments * 2);
-      expect(positions.array).toEqual(repeat.getAttribute("position").array);
-    } finally { geometry.dispose(); repeat.dispose(); }
-  });
-
   it.each(["milestones", "horizon"])("keeps the triangulated %s channel open inside the ribbon", id => {
     const zone = ZONES.find(zone => zone.id === id)!;
     const station = nearestRiver(zone.position.x, zone.position.z).t;
@@ -48,9 +32,7 @@ describe("river ribbon", () => {
     };
     try {
       for (let row = 0; row <= RIBBON_SEGMENTS; row++) {
-        if (Math.abs(row / RIBBON_SEGMENTS * riverSeaJoinT() - station) > 0.08) continue;
-        // The sea takes over the final descending join, rather than flooding the river banks.
-        if ((1 - row / RIBBON_SEGMENTS) * riverSeaJoinT() * riverLength() < 16) continue;
+        if (Math.abs(row / RIBBON_SEGMENTS - station) > 0.08) continue;
         const a = new Vector3().fromBufferAttribute(positions, row * 2);
         const b = new Vector3().fromBufferAttribute(positions, row * 2 + 1);
         const centre = a.clone().add(b).multiplyScalar(0.5);
@@ -63,7 +45,7 @@ describe("river ribbon", () => {
           // B2-195: hill banks meet the ribbon instead of flooding beyond it.
           // Retain the wider rocky forest channel; probe 0.5 m inside the
           // hill ribbon to allow the 2 m terrain triangles to meet the bank.
-          const margin = row / RIBBON_SEGMENTS * riverSeaJoinT() >= 0.37 && row / RIBBON_SEGMENTS * riverSeaJoinT() <= 0.79 ? -0.5 : 0.5;
+          const margin = row / RIBBON_SEGMENTS >= 0.37 && row / RIBBON_SEGMENTS <= 0.79 ? -0.5 : 0.5;
           const point = centre.clone().addScaledVector(normal, across * (a.distanceTo(b) / 2 + margin));
           const context = `${id}, row=${row}, across=${across}`;
           expect(worldHeight(point.x, point.z), context).toBeLessThan(point.y);
@@ -80,9 +62,9 @@ describe("river ribbon", () => {
       .fromBufferAttribute(positions, row * 2)
       .add(new Vector3().fromBufferAttribute(positions, row * 2 + 1)).multiplyScalar(0.5);
     let maxError = 0;
-    for (let i = 0; i < 49; i++) {
-      const t = i / 49 * riverSeaJoinT();
-      const row = t / riverSeaJoinT() * RIBBON_SEGMENTS;
+    for (let i = 0; i < 50; i++) {
+      const t = i / 49;
+      const row = t * RIBBON_SEGMENTS;
       const lower = Math.floor(row);
       const centre = centreAtRow(lower).lerp(centreAtRow(Math.min(lower + 1, RIBBON_SEGMENTS)), row - lower);
       centre.y = 0; // Plan-view check; height follows waterLevelAt (Lead fix).
@@ -94,7 +76,7 @@ describe("river ribbon", () => {
     geometry.dispose();
   });
 
-  it("widens downstream and eases to sea level at the shared inland edge", () => {
+  it("widens from a 0.6 m spring to 10 metres then flares to 60 m and sinks into the sea", () => {
     const geometry = createRibbonGeometry();
     const positions = geometry.getAttribute("position");
     const uv = geometry.getAttribute("uv");
@@ -104,15 +86,15 @@ describe("river ribbon", () => {
       const a = new Vector3().fromBufferAttribute(positions, i * 2);
       const b = new Vector3().fromBufferAttribute(positions, i * 2 + 1);
       const width = a.distanceTo(b);
-      if (i < RIBBON_SEGMENTS) expect(width).toBeGreaterThanOrEqual(previousWidth);
-      if (i < RIBBON_SEGMENTS) expect(width).toBeCloseTo(riverWidthAt(i / RIBBON_SEGMENTS * riverSeaJoinT()), 3);
+      expect(width).toBeGreaterThanOrEqual(previousWidth);
+      expect(width).toBeCloseTo(riverWidthAt(i / RIBBON_SEGMENTS), 3);
       for (const vertex of [i * 2, i * 2 + 1]) {
-        const t = i / RIBBON_SEGMENTS * riverSeaJoinT();
-        const blend = Math.min(1, (riverSeaJoinT() - t) * riverLength() / 16);
-        const level = waterLevelAt(riverPointAt(t).z) * blend * blend * (3 - 2 * blend);
-        if (t >= 0.03) expect(positions.getY(vertex)).toBeCloseTo(level, 5);
+        const t = i / RIBBON_SEGMENTS;
+        const blend = Math.max(0, (t - 0.96) / 0.04);
+        const sink = 0.05 * blend * blend * (3 - 2 * blend);
+        if (t >= 0.03) expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
         expect(normals.getY(vertex)).toBe(1);
-        expect(uv.getY(vertex)).toBeCloseTo(i / RIBBON_SEGMENTS * riverSeaJoinT() * riverLength(), 3);
+        expect(uv.getY(vertex)).toBeCloseTo(i / RIBBON_SEGMENTS * riverLength(), 3);
       }
       expect(uv.getX(i * 2)).toBe(0);
       expect(uv.getX(i * 2 + 1)).toBe(1);
@@ -124,9 +106,9 @@ describe("river ribbon", () => {
     expect(riverWidthAt(1)).toBeCloseTo(60);
     expect(riverWidthAt(-1)).toBeCloseTo(0.6);
     expect(riverWidthAt(2)).toBeCloseTo(60);
-    expect(positions.getY(RIBBON_SEGMENTS * 2)).toBeCloseTo(WATER_LEVEL);
+    expect(positions.getY(RIBBON_SEGMENTS * 2)).toBeCloseTo(WATER_LEVEL - 0.05);
     for (const vertex of [RIBBON_SEGMENTS * 2, RIBBON_SEGMENTS * 2 + 1]) {
-      expect(positions.getZ(vertex)).toBeCloseTo(riverPointAt(1).z + SEA_INLAND_OVERLAP, 3);
+      expect(worldHeight(positions.getX(vertex), positions.getZ(vertex))).toBeLessThan(positions.getY(vertex));
     }
     expect(worldHeight(0, -960)).toBeLessThan(WATER_LEVEL);
     geometry.dispose();

@@ -32,6 +32,7 @@ import { pathLength, pathPointAt } from "./layout/path";
 import { CORRIDOR_POINTS } from "./post/paper";
 import { nearestPath, nearestRiver } from "./terrain/samples";
 import { TERRAIN_RADIUS } from "./terrain/tiles";
+import { createEndingEstuaryMask } from "./cinematic/estuary";
 import { createIntroController } from "./cinematic/controller";
 import { createEndingController } from "./cinematic/ending-controller";
 import { endingAtmosphere, type EndingFrame } from "./cinematic/ending";
@@ -1145,8 +1146,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     clearMascotHint();
     interaction.update();
   }
+  const endingEstuary = createEndingEstuaryMask();
   function applyEnding(pose: EndingFrame) {
     if (!ending) return;
+    endingEstuary.update(scene.children.filter(object => /^painted-(river|sea)-/.test(object.name)) as Mesh[], ending.inputLocked);
     sunsetBoost = pose.sunsetBoost;
     applyCinematicPose(pose, ending.inputLocked);
     if (ending.state !== "done") return;

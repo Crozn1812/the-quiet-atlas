@@ -20,3 +20,7 @@
 ### Lead hoàn tất (2026-11-07, Codex hết lượt tuần giữa chừng)
 
 Giữ của Codex: ribbon sông kết thúc tại mép biển (`riverSeaJoinT`), hạ dần 16 m cuối; mẫu bờ biển không đáng tin bị đánh dấu (sentinel) nên không còn "bóng đất giả"; gỡ mặt nạ `estuary` của ending. Lead bỏ: khoảng cách bờ dạng trị tuyệt đối (tạo các dải xám chéo trên biển) và lớp phản chiếu trời 18 % (biển xám đục) — giữ khoảng cách có dấu như trước. Sửa test nguồn suối theo tham số mới; `sea-sunset.test.ts` giữ bản main. Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-240.webp`.
+
+### Lead sửa hồi quy (cùng ngày)
+
+Ảnh 8 khu sau merge cho thấy **suối ở Horizon biến mất** (lòng cát khô): `riverSeaJoinT` cắt dải sông theo trục z của mép biển, nhưng suối đi qua vùng z đó dưới đất liền trước khi tới cửa sông. Đã hoàn lại phần dải sông (`ribbon.ts`, test sông) và khôi phục mặt nạ cửa sông chỉ dùng trong ending (B2-236). Giữ phần bờ biển (không còn bóng đất giả lúc chơi). Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-240-fix.webp`. Bài học: duyệt render phải chụp **đủ 8 khu**, không chỉ khu của ticket.
