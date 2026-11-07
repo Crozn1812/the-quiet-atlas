@@ -1,12 +1,13 @@
 // Lead (batch 25): the gameplay camera used to clip at 100 m, so Duy's coast (sea horizon, the B2-173 peak, far
 // ridges) never reached the screen. This is one coarse, shadowless mesh of the whole landscape, coloured by the same
-// tile colouring, sunk slightly below the streamed detail terrain so the near tiles always win.
+// tile colouring. Ground stays below streamed detail; B2-241 adds individual distant dawn crowns.
 import { BufferAttribute, BufferGeometry, Color, Mesh, type Material } from "three";
 import { hex } from "../art/palette";
 import { foliageBiomeAt } from "../foliage/scatter";
-import { nearestRiver } from "../terrain/samples";
+import { farCanopyAt, farCrownSeed } from "../foliage/far-canopy";
+import { nearestPath, nearestRiver } from "../terrain/samples";
 import { createRampMaterial, RAMP_PRESETS, RAMP_STEPS } from "../materials/ramp";
-import { worldHeight } from "../terrain/height";
+import { waterLevelAt, worldHeight } from "../terrain/height";
 import { createTileMesh } from "../terrain/mesh";
 
 export const FAR_LANDSCAPE = Object.freeze({
@@ -16,7 +17,7 @@ export const FAR_LANDSCAPE = Object.freeze({
   originZ: -1600,
   size: 2048,
   cells: 160,
-  /** Sink below the detail tiles (and polygon offset) so the two surfaces never fight. */
+  /** Sink ground below detail tiles; individual crowns sit above it. */
   sink: 0.6,
 });
 
@@ -25,6 +26,7 @@ export const GAMEPLAY_FAR = Object.freeze({ Low: 260, Balanced: 500, High: 800 }
 
 const canopyDeep = new Color(hex("forestDeep"));
 const canopyLight = new Color(hex("forestLight"));
+const canopyMist = new Color(hex("mist"));
 /** B2-239 lifted near forest ground to sunlit moss; the far canopy averages moss and crowns so tile edges stay hidden. */
 const canopyMoss = new Color(hex("grass")).lerp(new Color(hex("grassDry")), 0.64);
 const FAR_CANOPY_MOSS = 0.8;
@@ -49,7 +51,8 @@ function* paintFarCanopy(geometry: BufferGeometry, heights: Float32Array) {
       const height = heights[vertex]!;
       const biome = foliageBiomeAt(wx, wz);
       const forested = biome === "forest-dawn" ? 1 : biome === "coast-dusk" ? Math.min(1, Math.max(0, (height - 4) / 6)) : 0.25;
-      if (forested <= 0 || nearestRiver(wx, wz).distance < 14) continue;
+      const riverDistance = nearestRiver(wx, wz).distance;
+      if (forested <= 0 || riverDistance < 14) continue;
       const dx = (heights[Math.min(cells, x + 1) * stride + z]! - heights[Math.max(0, x - 1) * stride + z]!) / (2 * step);
       const dz = (heights[x * stride + Math.min(cells, z + 1)]! - heights[x * stride + Math.max(0, z - 1)]!) / (2 * step);
       const steep = Math.min(1, Math.max(0, (Math.hypot(dx, dz) - 0.8) / 0.4));
@@ -60,6 +63,79 @@ function* paintFarCanopy(geometry: BufferGeometry, heights: Float32Array) {
     }
   }
   colors.needsUpdate = true;
+}
+
+/** Trade remote ground interiors for separate crowns in the same draw. Full
+ * resolution perimeter vertices keep the coarser ground fans watertight. */
+function* addFarCrowns(geometry: BufferGeometry) {
+  const { cells, size, originX, originZ } = FAR_LANDSCAPE;
+  const stride = cells + 1, step = size / cells;
+  const positions = Array.from(geometry.getAttribute("position").array);
+  const normals = Array.from(geometry.getAttribute("normal").array);
+  const colors = Array.from(geometry.getAttribute("color").array);
+  const indices: number[] = [];
+  for (let x = 0; x < cells; x += 8) {
+    yield;
+    for (let z = 0; z < cells; z += 8) {
+      const wx = originX + (x + 4) * step, wz = originZ + (z + 4) * step;
+      if (nearestPath(wx, wz).distance > 300) {
+        const ring: number[] = [];
+        for (let i = 0; i < 8; i++) ring.push((x + i) * stride + z);
+        for (let i = 0; i < 8; i++) ring.push((x + 8) * stride + z + i);
+        for (let i = 0; i < 8; i++) ring.push((x + 8 - i) * stride + z + 8);
+        for (let i = 0; i < 8; i++) ring.push(x * stride + z + 8 - i);
+        const center = (x + 4) * stride + z + 4;
+        for (let i = 0; i < 32; i++) indices.push(center, ring[(i + 1) % 32]!, ring[i]!);
+      } else {
+        for (let dx = 0; dx < 8; dx++) for (let dz = 0; dz < 8; dz++) {
+          const a = (x + dx) * stride + z + dz, b = a + stride;
+          indices.push(a, a + 1, b, b, a + 1, b + 1);
+        }
+      }
+    }
+  }
+  const capacity = Math.floor((cells * cells * 6 - indices.length) / 36);
+  let count = 0;
+  const color = new Color();
+  // World-space lattice, unrelated to tile edges. The crown's alternating rim
+  // radii make distinct 6–12 m lobes rather than a connected raised heightfield.
+  for (let gx = -32; gx <= 32; gx++) {
+    yield;
+    for (let gz = -26; gz <= 16; gz++) {
+      if (count >= capacity) continue;
+      const a = farCrownSeed(gx, gz), b = farCrownSeed(gz + 19, gx - 7);
+      const x = gx * 12 + (a - 0.5) * 6, z = gz * 12 + (b - 0.5) * 6;
+      if (foliageBiomeAt(x, z) !== "forest-dawn") continue;
+      const y = worldHeight(x, z);
+      const slope = Math.hypot(worldHeight(x + 2, z) - worldHeight(x - 2, z), worldHeight(x, z + 2) - worldHeight(x, z - 2)) / 4;
+      const mask = farCanopyAt(x, z, nearestRiver(x, z).distance, slope);
+      const edge = Math.max(0, Math.min(1, Math.min(384 - Math.abs(x), z + 312, 192 - z) / 48));
+      const fade = edge * edge * (3 - 2 * edge);
+      mask.weight *= fade;
+      mask.lift *= fade;
+      if (mask.weight < 0.01 || y < waterLevelAt(z) + 1) continue;
+      const base = positions.length / 3;
+      color.copy(canopyLight).lerp(canopyMoss, 0.3).lerp(canopyMist, 0.12 + a * 0.48);
+      positions.push(x - originX, y + mask.lift, z - originZ);
+      normals.push(0, 1, 0); colors.push(color.r, color.g, color.b);
+      for (let i = 0; i < 12; i++) {
+        const angle = i * Math.PI / 6 + b * Math.PI;
+        const radius = (i % 2 ? 5.5 : 7 + a * 2) * mask.weight;
+        const px = x + Math.cos(angle) * radius, pz = z + Math.sin(angle) * radius;
+        positions.push(px - originX, worldHeight(px, pz) + mask.lift * (0.6 + 0.12 * (i % 2)), pz - originZ);
+        normals.push(Math.cos(angle) * 0.28, 0.96, Math.sin(angle) * 0.28);
+        const rim = color.clone().lerp(canopyDeep, 0.1 + (i % 2) * 0.1);
+        colors.push(rim.r, rim.g, rim.b);
+      }
+      for (let i = 0; i < 12; i++) indices.push(base, base + 1 + (i + 1) % 12, base + 1 + i);
+      count++;
+    }
+  }
+  geometry.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+  geometry.setAttribute("normal", new BufferAttribute(new Float32Array(normals), 3));
+  geometry.setAttribute("color", new BufferAttribute(new Float32Array(colors), 3));
+  geometry.setIndex(indices);
+  geometry.userData.farCrowns = count;
 }
 
 /** Same single draw and vertex data as the synchronous terrain factory. Only construction is sliced.
@@ -125,6 +201,7 @@ export function createFarLandscape({ deferred = false } = {}) {
     geometry.setAttribute("color", new BufferAttribute(colors, 3));
     geometry.setIndex(new BufferAttribute(indices, 1));
     yield* paintFarCanopy(geometry, heights);
+    yield* addFarCrowns(geometry);
     geometry.computeBoundingBox();
     yield;
     geometry.computeBoundingSphere();

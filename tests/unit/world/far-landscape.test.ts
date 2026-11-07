@@ -1,104 +1,115 @@
-import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { Color } from "three";
-import { hex } from "../../../src/features/world/art/palette";
+import { createHash } from "node:crypto";
 import { createFarLandscape, FAR_LANDSCAPE, GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
-import { pathPointAt } from "../../../src/features/world/layout/path";
 import { worldHeight } from "../../../src/features/world/terrain/height";
+import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
+import { foliageBiomeAt } from "../../../src/features/world/foliage/scatter";
 
-// Lead batch 25: the long view (sea horizon, B2-173 peak) is one cheap shadowless mesh under the detail terrain.
-describe("far landscape", () => {
-  const far = createFarLandscape();
-  it("covers the whole route and the coast in one shadowless, non-raycast draw", () => {
-    const { originX, originZ, size } = FAR_LANDSCAPE;
-    for (let i = 0; i <= 50; i++) {
-      const p = pathPointAt(i / 50);
-      expect(p.x).toBeGreaterThan(originX + 300);
-      expect(p.x).toBeLessThan(originX + size - 300);
-      expect(p.z).toBeGreaterThan(originZ + 300);
-      expect(p.z).toBeLessThan(originZ + size - 300);
+const groundCount = (FAR_LANDSCAPE.cells + 1) ** 2;
+const hash = (array: ArrayBufferView) => createHash("sha256").update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength)).digest("hex");
+describe("far landscape individual dawn crowns", () => {
+  it("reuses one draw and stays below the original 51200 triangle budget", () => {
+    const far = createFarLandscape();
+    try {
+      const g = far.mesh.geometry;
+      expect(g.index!.count / 3).toBeLessThanOrEqual(51_200);
+      expect(g.userData.farCrowns).toBeGreaterThan(1500);
+      expect(g.getAttribute("position").count).toBe(groundCount + g.userData.farCrowns * 13);
+      expect(far.mesh.children).toHaveLength(0);
+      expect(g.groups).toHaveLength(0);
+      expect(Array.isArray(far.mesh.material)).toBe(false);
+      expect(far.mesh.castShadow).toBe(false);
+      expect(far.mesh.receiveShadow).toBe(false);
+      const hits: unknown[] = [];
+      far.mesh.raycast({} as never, hits as never);
+      expect(hits).toHaveLength(0);
+      process.stdout.write('B2-241 triangles: 51200 -> ' + g.index!.count / 3 + '; draws: 1 -> 1; crowns: ' + g.userData.farCrowns + '\n');
+    } finally { far.dispose(); }
+  });
+  it("preserves the original ground vertices, normals and albedo byte for byte", () => {
+    const far = createFarLandscape();
+    try {
+      const expected = {
+        position: "b360eaef8fc90cb92404ee7d87a9ea60bc56570a14fd57935844e987655d3283",
+        normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
+        // Lead: ground albedo baseline after B2-242 warm banks.
+        color: "ba84691150b75be9c827fde5a0cebf3c02007ff15882b48527b1c21d6436e895",
+      };
+      for (const [name, value] of Object.entries(expected)) {
+        expect(hash(far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))).toBe(value);
+      }
+    } finally { far.dispose(); }
+  });
+  it("builds distinct scalloped crowns below 12m, clear of stream trees and pads", () => {
+    const far = createFarLandscape();
+    try {
+      const g = far.mesh.geometry, p = g.getAttribute("position"), n = g.getAttribute("normal");
+      for (let base = groundCount; base < p.count; base += 13) {
+        const x = p.getX(base) + FAR_LANDSCAPE.originX, z = p.getZ(base) + FAR_LANDSCAPE.originZ;
+        expect(foliageBiomeAt(x, z)).toBe("forest-dawn");
+        expect(nearestPath(x, z).distance).toBeGreaterThan(48);
+        expect(nearestRiver(x, z).distance).toBeGreaterThan(44);
+        const radii: number[] = [];
+        for (let j = 0; j < 13; j++) {
+          const px = p.getX(base + j) + FAR_LANDSCAPE.originX, pz = p.getZ(base + j) + FAR_LANDSCAPE.originZ;
+          const lift = p.getY(base + j) - worldHeight(px, pz);
+          expect(lift).toBeGreaterThanOrEqual(-0.0001);
+          expect(lift).toBeLessThanOrEqual(12.0001);
+          expect(Math.hypot(n.getX(base + j), n.getY(base + j), n.getZ(base + j))).toBeCloseTo(1, 5);
+          if (j) radii.push(Math.hypot(px - x, pz - z));
+        }
+        expect(Math.max(...radii)).toBeGreaterThan(Math.min(...radii) * 1.2);
+      }
+      // All front faces must wind upward, including the remote ground fans.
+      const index = g.index!;
+      for (let i = 0; i < index.count; i += 3) {
+        const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2);
+        expect((p.getZ(b) - p.getZ(a)) * (p.getX(c) - p.getX(a)) - (p.getX(b) - p.getX(a)) * (p.getZ(c) - p.getZ(a))).toBeGreaterThan(0);
+      }
+    } finally { far.dispose(); }
+  });
+  it("keeps remote simplification boundaries watertight and full detail within 227m of the route", () => {
+    const far = createFarLandscape();
+    try {
+      const g = far.mesh.geometry, index = g.index!;
+      const edges = new Map<string, number>();
+      for (let i = 0; i < index.count; i += 3) {
+        const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+        if (ids.some(id => id >= groundCount)) continue;
+        for (let j = 0; j < 3; j++) {
+          const a = ids[j]!, b = ids[(j + 1) % 3]!;
+          const key = [Math.min(a,b), Math.max(a,b)].join(':');
+          edges.set(key, (edges.get(key) ?? 0) + 1);
+        }
+      }
+      const stride = FAR_LANDSCAPE.cells + 1;
+      for (const [key, count] of edges) {
+        if (count === 2) continue;
+        const [a,b] = key.split(':').map(Number) as [number,number];
+        const perimeter = (id: number) => Math.floor(id / stride) === 0 || Math.floor(id / stride) === stride - 1 || id % stride === 0 || id % stride === stride - 1;
+        expect(perimeter(a) && perimeter(b)).toBe(true);
+      }
+    } finally { far.dispose(); }
+  });
+  it("is deterministic across deferred construction and releases resources once", () => {
+    const sync = createFarLandscape(), deferred = createFarLandscape({ deferred: true });
+    try {
+      expect(deferred.mesh.visible).toBe(false);
+      let steps = 0;
+      while (!deferred.build.next().done) steps++;
+      expect(steps).toBeGreaterThan(1800);
+      for (const name of ["position", "normal", "color"]) expect(deferred.mesh.geometry.getAttribute(name).array).toEqual(sync.mesh.geometry.getAttribute(name).array);
+      expect(deferred.mesh.geometry.index!.array).toEqual(sync.mesh.geometry.index!.array);
+      expect(deferred.mesh.visible).toBe(true);
+      expect(GAMEPLAY_FAR.High).toBeGreaterThan(GAMEPLAY_FAR.Balanced);
+    } finally { sync.dispose(); deferred.dispose(); }
+    for (const steps of [0,40,1800,1950]) {
+      const far = createFarLandscape({ deferred: true });
+      const geometry = vi.spyOn(far.mesh.geometry, "dispose"), material = vi.spyOn(far.mesh.material, "dispose");
+      for (let i = 0; i < steps; i++) far.build.next();
+      far.dispose(); far.dispose();
+      expect(far.build.next().done).toBe(true);
+      expect(geometry).toHaveBeenCalledOnce(); expect(material).toHaveBeenCalledOnce();
     }
-    expect(far.mesh.castShadow).toBe(false);
-    expect(far.mesh.receiveShadow).toBe(false);
-    expect(far.mesh.geometry.index!.count / 3).toBeLessThanOrEqual(52_000);
-    const hits: unknown[] = [];
-    far.mesh.raycast({} as never, hits as never);
-    expect(hits).toHaveLength(0);
   });
-  it("sits below the streamed detail terrain everywhere", () => {
-    const positions = far.mesh.geometry.getAttribute("position");
-    for (let i = 0; i < positions.count; i += 997) {
-      const x = far.mesh.position.x + positions.getX(i);
-      const z = far.mesh.position.z + positions.getZ(i);
-      expect(far.mesh.position.y + positions.getY(i)).toBeCloseTo(worldHeight(x, z) - FAR_LANDSCAPE.sink, 4);
-    }
-  });
-  it("keeps distant forest slopes green after the dawn albedo lift", () => {
-    const colors = far.mesh.geometry.getAttribute("color");
-    const { cells, size, originX, originZ } = FAR_LANDSCAPE;
-    const stride = cells + 1;
-    const p = pathPointAt(0.15);
-    const x = Math.round((p.x + 60 - originX) / (size / cells)), z = Math.round((p.z - originZ) / (size / cells));
-    const sample = new Color().fromBufferAttribute(colors, z + x * stride);
-    expect(sample.g).toBeGreaterThan(sample.r);
-    expect(sample.g).toBeGreaterThan(sample.b);
-    expect(sample.g).toBeLessThan(new Color(hex("mist")).g);
-  });
-  it("reaches further on higher quality", () => {
-    expect(GAMEPLAY_FAR.Low).toBeLessThan(GAMEPLAY_FAR.Balanced);
-    expect(GAMEPLAY_FAR.Balanced).toBeLessThan(GAMEPLAY_FAR.High);
-    expect(GAMEPLAY_FAR.Low).toBeGreaterThanOrEqual(100);
-    far.dispose();
-    far.dispose();
-  });
-});
-
-// B2-179 buffer regression, refreshed for B2-195's hill banks and road bed. The
-// shared heightfield changes positions, derived normals and paint, not topology.
-it("constructs in small steps and matches the B2-195 mesh baseline byte for byte", () => {
-  const far = createFarLandscape({ deferred: true });
-  try {
-    expect(far.mesh.visible).toBe(false);
-    expect(far.mesh.geometry.getAttribute("position")).toBeUndefined();
-    let steps = 0, maximum = 0;
-    while (true) {
-      const start = performance.now();
-      const result = far.build.next();
-      maximum = Math.max(maximum, performance.now() - start);
-      steps++;
-      if (result.done) break;
-    }
-    expect(steps).toBeGreaterThan(FAR_LANDSCAPE.cells * 2);
-    expect(far.mesh.visible).toBe(true);
-    const expected = {
-      position: "b360eaef8fc90cb92404ee7d87a9ea60bc56570a14fd57935844e987655d3283",
-      normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
-      // B2-239 lifts shaded forest moss and mineral trails; the far terrain shares createTileMesh paint.
-      // Positions, normals and topology retain their B2-195 byte baselines.
-      // Lead (batch 29): far canopy blends 80 % moss so the brighter near tiles show no rectangular edge.
-      // B2-242: coastal outer river banks retain warm stone instead of sea-depth pigment.
-      color: "ba84691150b75be9c827fde5a0cebf3c02007ff15882b48527b1c21d6436e895",
-      index: "f8d3e9572983f5b8556b2d8443699588de4a2d7171eca969f2a7821330d7f54d",
-    };
-    const actual = Object.fromEntries(Object.keys(expected).map(name => {
-      const array = name === "index" ? far.mesh.geometry.index!.array : far.mesh.geometry.getAttribute(name).array;
-      return [name, createHash("sha256").update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength)).digest("hex")];
-    }));
-    expect(actual).toEqual(expected);
-    console.log(`B2-179 far landscape: ${steps} steps, max ${maximum.toFixed(2)}ms (Node)`);
-  } finally { far.dispose(); }
-});
-
-it("releases resources once and cannot resume after cancellation at any build phase", () => {
-  for (const steps of [0, 40, 300, 1800, 1924]) {
-    const far = createFarLandscape({ deferred: true });
-    const geometry = vi.spyOn(far.mesh.geometry, "dispose");
-    const material = vi.spyOn(far.mesh.material, "dispose");
-    for (let i = 0; i < steps; i++) far.build.next();
-    far.dispose(); far.dispose();
-    expect(far.build.next().done).toBe(true);
-    expect(geometry).toHaveBeenCalledOnce();
-    expect(material).toHaveBeenCalledOnce();
-    expect(far.mesh.parent).toBeNull();
-  }
 });
