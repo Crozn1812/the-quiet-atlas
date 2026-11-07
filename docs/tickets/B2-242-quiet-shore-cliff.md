@@ -5,3 +5,7 @@
 - Hiện trạng: `docs/showcase/29-hoan-thien/hien-trang/quiet-shore-dai-toi.webp`: mép trái là dải vách/taluy gần đen chạy dọc đường, chiếm 1/4 khung, nặng nề so với hoàng hôn ấm.
 - Việc: tìm nguyên nhân (màu `rockDark`, bóng đổ, mặt dốc quay lưng nắng hoàng hôn, hay mặt nước sông tối) bằng raycast giữa dải tối; sửa để vách đọc được (đá ấm trong bóng, có chi tiết), luma Quiet Shore 0,24–0,32, vẫn khác biệt rõ với đường và cỏ.
 - Test: unit màu vách trong khoảng; ảnh trước/sau; 8 khu luma.
+
+### Lead duyệt
+
+Bờ thoải dùng đá ấm (luma đỉnh 0,10 → 0,25) — merge. Dải tối lớn còn lại là **mặt nước sông** lúc hoàng hôn (raycast của Codex): chuyển sang B2-244 (cùng `water/material.ts`). Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-242.webp`; luma 8 khu không đổi quá ±0,01.

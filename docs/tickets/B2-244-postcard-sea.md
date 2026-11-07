@@ -5,3 +5,7 @@
 - Hiện trạng: `docs/showcase/29-hoan-thien/hien-trang/last-postcard-bien-toi.webp`: camera chơi nhìn xuống, biển là mảng chàm tối phẳng (luma khung 0,21), không thấy chút hoàng hôn nào.
 - Việc: mặt biển khi nhìn chếch xuống vẫn có ánh hoàng hôn: chuyển sắc chàm → tím/cam nhạt về phía mặt trời, gợn sáng nhỏ, nước nông gần bờ trong hơn; giữ chàm sâu ở xa và **không** làm xám đục. Luma Last Postcard 0,22–0,30; ending không xấu đi (so ảnh 31/34,5 s).
 - Test: cập nhật CPU mirror trong `sea-sunset.test.ts` đúng theo shader; ảnh trước/sau gameplay + ending.
+
+### Bổ sung (Lead, từ B2-242)
+
+Ở Quiet Shore, dải tối chiếm 1/4 khung bên trái là **mặt nước sông** gần cửa (ribbon) lúc hoàng hôn, gần như đen. Cùng việc với biển: sông đoạn ven biển phải phản chiếu trời hoàng hôn (tím/chàm sáng hơn, ánh cam ở phía mặt trời), đọc được là nước. Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-242.webp` (ô 1).
