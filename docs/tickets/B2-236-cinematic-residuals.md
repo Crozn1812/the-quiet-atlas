@@ -20,3 +20,7 @@
   1. Xác định object thật: trong ending ở 31 s, raycast từ camera qua pixel (0,55·W; 0,95·H) và (0,85·W; 0,9·H); ghi `name`, `type`, material, normal tại điểm trúng vào phần bàn giao. Nếu tia không trúng gì → đó là nền/clear color hoặc mặt sau bị cull: sửa đúng chỗ đó (ví dụ tile chưa nạp quanh camera → stream tile quanh vị trí camera trong ending như intro đã làm, hoặc đổi khung).
   2. Bỏ `coast-light` nếu không còn cần sau khi sửa nguyên nhân.
 - Kỹ thuật: **không** `paper.dispose()` + tạo pass mới + `Object.assign(paper, …)` giữa intro (biên dịch lại shader khi bàn giao, dễ giật khung, dễ rò). Thay bằng API trên pass hiện có, ví dụ `paper.setFogColorOverride(color | null)` để grade không ghi đè màu fog trong intro.
+
+### Lead trả lời (vòng 1, tiếp)
+
+Cho phép sửa `src/features/world/scene/paper.ts` (chỉ thêm `setFogColorOverride(color | null)` hoặc tương đương + test). Thay đoạn dispose/tạo lại pass trong `applyIntro` bằng API này. Sau đó build và tự chụp ending bằng `tools/review/ending-shots.mjs` (server cổng 4181: `node tools/serve-out/index.mjs out --port 4181`, truyền base URL làm tham số 2); ghi trong bàn giao mảng tối ở góc dưới 26–34,5 s còn hay hết. Mảng tối đó là `tile:0,-15` (MeshToonMaterial, normal hướng lên): nếu đổi khung vẫn thấy, tìm vì sao tile này tối hơn hẳn cát/cỏ lân cận (vertex color/biome nước sâu, ramp toon, bóng đổ) và sửa nguyên nhân.
