@@ -44,3 +44,9 @@ Quyết định của Duy (2026-11-07): khi thanh **weekly usage của Claude đ
 - Hook QA chỉ bật khi `window.__tqaJourney = true`: `position`, `cameraYaw`, `zone`, `goTo(zoneId)`, `visitSecret(id)`, `nearVehicle()`.
 - ADR 0009: thẻ Welcome neo ở góc dưới trái. Test L3-008 kiểm tra điều này.
 - Máy tham chiếu chính thức là laptop Iris Xe của Duy. T08/T09 vẫn NOT RUN; máy RTX 3060 chỉ để tham khảo.
+
+## 4. Tự chạy tiếp, không chờ lệnh (Duy, 2026-11-07)
+
+- Duy đã cấp **full access** cho Codex. Codex-Lead **không chờ lệnh**. Hết lượt thì đọc giờ reset trong log ("try again at …"); tới giờ đó tự chạy tiếp từ mục 2.
+- Việc cần Duy (push, chấm T10, mua/đăng ký, nội dung thật) ghi vào `docs/DUY_QUEUE.md`, rồi làm tiếp phần độc lập.
+- Vẫn giữ: không push khi chưa có đồng ý, không chạm cloud/credential, không ghi PASS khi chưa chạy.
