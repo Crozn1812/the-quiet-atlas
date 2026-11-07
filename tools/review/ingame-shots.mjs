@@ -31,6 +31,16 @@ try {
   await world.waitFor({ state: "visible" });
   await page.bringToFront();
   await world.locator("canvas").focus();
+  // Optional TQA_QUALITY=low|balanced|high: set it through the menu (adaptive quality may otherwise step down).
+  const wanted = process.env.TQA_QUALITY;
+  if (wanted) {
+    await page.keyboard.press("Escape");
+    await page.locator(`.world-menu dialog input[value="${wanted}"]`).check();
+    await page.keyboard.press("Escape");
+    await world.locator("canvas").focus();
+    await page.waitForTimeout(4000);
+  }
+  console.log(`quality: ${await world.getAttribute("data-world-quality")}`);
   for (const [index, zone] of zones.entries()) {
     if (index > 0) {
       await world.evaluate(async (element, target) => {

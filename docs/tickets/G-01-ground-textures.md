@@ -30,3 +30,7 @@
 - Nhìn từ camera lúc chơi không lộ lưới lặp.
 - Luma 8 khu lệch không quá ±0,03.
 - Ở xa trong cảnh mở đầu và cảnh kết cũng không lộ lặp.
+
+### Trả lại vòng 1
+
+Xem `docs/tickets/_graphics-r1.md`.

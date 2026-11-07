@@ -23,3 +23,7 @@
 - Ảnh trước/sau: 8 khu và ảnh cận chân cây, chân nhà.
 - Kết quả `cpu-compare.mjs`.
 - Thời gian khung GPU ở High và Balanced trên máy dev. Ghi rõ số này chỉ để tham khảo; T08/T09 trên Iris Xe vẫn NOT RUN.
+
+### Trả lại vòng 1
+
+Xem `docs/tickets/_graphics-r1.md`.

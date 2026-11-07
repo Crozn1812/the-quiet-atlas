@@ -22,3 +22,7 @@
 
 - Ảnh cận (`extras-shots.mjs`: các bí mật, gần xe) và ảnh 8 khu, trước/sau.
 - Dung lượng và số tam giác nằm trong bảng ngân sách.
+
+### Trả lại vòng 1
+
+Xem `docs/tickets/_graphics-r1.md`.

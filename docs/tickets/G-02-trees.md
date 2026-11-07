@@ -35,3 +35,7 @@
 - Tổng tam giác ở mức High tăng không quá 25 %.
 - Thời gian vào chơi ≤ 6 s.
 - Kết quả `cpu-compare.mjs` đạt ngưỡng chung.
+
+### Trả lại vòng 1
+
+Xem `docs/tickets/_graphics-r1.md`.
