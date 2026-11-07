@@ -546,6 +546,30 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 | T10, playtest người thật | **DEFERRED** (chờ UX/UI ~90–100 %) |
 | T08/T09 Iris Xe | **NOT RUN** |
 
+### Đợt 29b (2026-11-07): đi xe, camera, ánh sáng lúc chơi, cửa sông
+
+- B2-236 (Codex, 2 vòng): chân trời intro mượt (`setFogColorOverride`), cảnh bưu thiếp hết mảng tối (mặt nạ cửa sông chỉ trong ending).
+- B2-237 (Codex + Lead nối): người lái ngồi trên xe bằng rig sẵn có; xuống xe tìm chỗ an toàn hai bên, báo lý do vi/en.
+- B2-238 (**Lead tự làm**): bản Codex tốn CPU (+45 ms/s ở First Light) và gây màn hình đen sau ending → bỏ; Lead sửa tối thiểu: camera xe 0,75× arm, thấp hơn 7,5°; bỏ va chạm < 0,35 m quanh nhân vật (hết khối đen ở bí mật reflection).
+- B2-239 (Codex, 2 vòng): luma lúc chơi theo art bible (rừng 0,19 → 0,24–0,26 giữ xanh rêu; Horizon 0,16 → 0,32 do sửa ánh xạ tod).
+- B2-240 (Codex hết lượt giữa chừng, Lead hoàn tất): hết "bóng đất giả" ở biển Last Postcard. Phần cắt dải sông làm **mất suối ở Horizon** → Lead hoàn lại phần đó, giữ mặt nạ ending.
+- Lead: tán xa pha màu rêu (hết khối vuông tối trong intro sau B2-239); hook QA `nearVehicle`, `visitSecret`; công cụ `tools/review/{ending-shots,extras-shots,luma,ground-hue,cpu-compare,frame-compare}.mjs`.
+- Codex: tài khoản hiện tại hết lượt tuần (tới 12/11 16:23). Chờ Duy đổi tài khoản.
+
+| Kiểm tra (trên `5e2c61c`) | Kết quả |
+|---|---|
+| lint, typecheck, unit 1642 | **PASS** |
+| e2e | **151/151 PASS** |
+| perf: thời gian tới playable | **5,16 s** (xấu nhất 3 lần) **PASS** |
+| perf: 3D bytes | **PASS**, 2,00 MB / 8 MB |
+| Lighthouse | **PASS** |
+| T10, playtest người thật | **DEFERRED** (chờ UX/UI ~90–100 %) |
+| T08/T09 Iris Xe | **NOT RUN** |
+
+Showcase: `docs/showcase/29-hoan-thien/checklist.md`.
+
+Việc tiếp theo đề xuất: (1) intro nhìn từ trên cao rừng thưa như đồng cỏ: cần tán xa dạng cây/impostor; (2) dải tối dọc vách ở Quiet Shore; (3) biển Last Postcard lúc chơi còn tối (luma 0,21); (4) cửa sông đè biển lúc chơi (sửa gốc đúng cách, theo độ cao địa hình thay vì trục z).
+
 ### Ticket tiếp theo
 
 1. Vòng sửa thứ hai đã xong (B2-181c, 188c, 191b, 194, 195, 196, 197, 204b, 208b). Còn B2-198: cây vòm có cành lớn thật để tán khép trên lối.
