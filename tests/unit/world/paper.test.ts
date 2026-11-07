@@ -62,6 +62,30 @@ function shaderDepthJump(shader: string) {
 
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); });
 
+it("changes and clears cinematic fog on the existing pass without rebuilding GPU resources", () => {
+  const { gpu, renderer } = mockRenderer();
+  const pass = createGradedPaperPass(gpu, "High");
+  const scene = new Scene();
+  const camera = new PerspectiveCamera();
+  try {
+    pass.render(scene, camera);
+    const material = screenMaterial(renderer).material;
+    const allocations = vi.mocked(WebGLRenderTarget).mock.calls.length;
+    const horizon = new Color(PALETTE.sunGold);
+    pass.setFogColorOverride(horizon);
+    pass.setGrade(lightingAt(0.8));
+    pass.render(scene, camera);
+    expect(screenMaterial(renderer).material).toBe(material);
+    expect(material.uniforms.fogColor!.value.toArray()).toEqual(horizon.toArray());
+    pass.setFogColorOverride(null);
+    pass.setGrade(lightingAt(0.2));
+    pass.render(scene, camera);
+    expect(screenMaterial(renderer).material).toBe(material);
+    expect(vi.mocked(WebGLRenderTarget).mock.calls.length).toBe(allocations);
+    expect(material.uniforms.fogColor!.value.toArray()).not.toEqual(horizon.toArray());
+  } finally { pass.dispose(); }
+});
+
 // Resolve the material's feature switches before checking which reads/operations
 // execute. Merely finding grain text in an inactive #ifdef would miss this contract.
 function activeShader(material: ShaderMaterial) {

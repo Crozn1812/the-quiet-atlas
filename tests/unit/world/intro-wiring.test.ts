@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
-import { Fog, PerspectiveCamera, Scene, Vector3 } from "three";
+import { Color, Fog, Mesh, PerspectiveCamera, Scene, ShaderMaterial, Vector3 } from "three";
+import { PALETTE } from "../../../src/features/world/art/palette";
 import { WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { createIntro, introAtmosphere } from "../../../src/features/world/cinematic/intro";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
@@ -41,6 +42,7 @@ vi.mock("three", async importOriginal => {
 });
 vi.mock("../../../src/features/world/scene/paper", () => ({
   createGradedPaperPass: () => ({
+    setFogColorOverride() {},
     setMist: harness.mist,
     setFog: harness.fog,
     setCorridor: harness.corridor,
@@ -244,12 +246,17 @@ it("renders first, starts with localized Skip and paper bars, locks movement/int
 it("applies altitude-aware fog and thin valley mist after grading at 1, 5, 10 and 15 seconds", async () => {
   harness.resetAtmosphere = true;
   await mount();
+  const horizon = new Color(PALETTE.paper);
+  const sky = new Mesh(undefined, new ShaderMaterial({ uniforms: { skyHorizon: { value: horizon } } }));
+  sky.name = "position-graded-sky";
+  (harness.scene as Scene).add(sky);
   advance(); // The first animation frame advances by FIXED_DT (1/60 s).
   advance(1000 * (0.1 - 1 / 60));
   const first = harness.firstPose!;
   const intro = createIntro({ position: first.position, target: first.position.clone().add(first.direction), fov: first.fov });
   let elapsed = 1;
-  for (const seconds of [1, 5, 10, 15]) {
+  for (const seconds of [1, 1.5, 4, 5, 7, 10, 15]) {
+    horizon.set(seconds % 2 ? PALETTE.paper : PALETTE.skyLow);
     while (elapsed < seconds * 10) { advance(); elapsed++; }
     const frame = intro.sample(seconds);
     expect(camera().position.distanceTo(frame.position)).toBeLessThan(1e-4);
@@ -258,6 +265,8 @@ it("applies altitude-aware fog and thin valley mist after grading at 1, 5, 10 an
     expect(harness.mist.mock.calls.at(-1)![0].strength).toBeCloseTo(atmosphere.mist.strength, 6);
     expect(harness.mist.mock.calls.at(-1)![0].bands).toEqual(atmosphere.mist.bands);
     const nativeFog = (harness.scene as Scene).fog as Fog;
+    expect(harness.fog.mock.calls.at(-1)![0].color.toArray()).toEqual(horizon.toArray());
+    expect(nativeFog.color.toArray()).toEqual(horizon.toArray());
     expect(nativeFog.near).toBeCloseTo(atmosphere.fog.near, 4);
     expect(nativeFog.far).toBeCloseTo(atmosphere.fog.far, 4);
     const fogOrder = harness.fog.mock.invocationCallOrder.at(-1)!;
@@ -267,6 +276,8 @@ it("applies altitude-aware fog and thin valley mist after grading at 1, 5, 10 an
     expect(distance).toBeLessThan(atmosphere.fog.far);
     expect(atmosphere.mist.strength).toBeLessThanOrEqual(0.08);
   }
+  sky.geometry.dispose();
+  sky.material.dispose();
 });
 
 it.each(["Escape", "Enter"])("skips with %s while the Skip button has focus", async code => {

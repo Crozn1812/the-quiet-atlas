@@ -32,6 +32,7 @@ import { pathLength, pathPointAt } from "./layout/path";
 import { CORRIDOR_POINTS } from "./post/paper";
 import { nearestPath, nearestRiver } from "./terrain/samples";
 import { TERRAIN_RADIUS } from "./terrain/tiles";
+import { createEndingEstuaryMask } from "./cinematic/estuary";
 import { createIntroController } from "./cinematic/controller";
 import { createEndingController } from "./cinematic/ending-controller";
 import { endingAtmosphere, type EndingFrame } from "./cinematic/ending";
@@ -1005,7 +1006,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     paper.setFog({ near: Math.max(near, reach * 0.6), far: Math.max(far, reach * 1.8) });
     if (intro?.state === "playing") {
       // Forest fog must clear the aerial view in both the post pass and Low's native fog.
-      const atmosphere = introAtmosphere(pose.position, pose.mistBoost);
+      const sky = scene.getObjectByName("position-graded-sky") as Mesh | undefined;
+      const horizon = sky && (sky.material as ShaderMaterial).uniforms.skyHorizon?.value as Color | undefined;
+      const atmosphere = introAtmosphere(pose.position, pose.mistBoost, horizon);
+      paper.setFogColorOverride(horizon ?? null);
       paper.setFog(atmosphere.fog);
       if (scene.fog && "near" in scene.fog) Object.assign(scene.fog, atmosphere.fog);
       // setFog resets graded mist: apply the thin valley layer afterwards.
@@ -1018,6 +1022,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function applyIntro(pose: IntroFrame) {
     const clearAir = WORLD_DIRECTION === STYLE_PRESETS.R;
+    if (intro?.state !== "playing" || reducedMotion) paper.setFogColorOverride(null);
     applyCinematicPose(clearAir ? { ...pose, paperOpacity: 0 } : pose, intro?.state !== "done");
     // Reduced motion keeps its short fixed-pose fade, using ink instead of a cream paper wash.
     if (clearAir && cinematicUI && pose.paperOpacity > 0) {
@@ -1128,8 +1133,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     clearMascotHint();
     interaction.update();
   }
+  const endingEstuary = createEndingEstuaryMask();
   function applyEnding(pose: EndingFrame) {
     if (!ending) return;
+    endingEstuary.update(scene.children.filter(object => /^painted-(river|sea)-/.test(object.name)) as Mesh[], ending.inputLocked);
     sunsetBoost = pose.sunsetBoost;
     applyCinematicPose(pose, ending.inputLocked);
     if (ending.state !== "done") return;

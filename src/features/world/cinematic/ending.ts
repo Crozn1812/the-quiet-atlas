@@ -80,9 +80,10 @@ export function createEnding({ bench, gameplayPose }: EndingOptions) {
   const mouth = riverPointAt(1);
   mouth.y = waterLevelAt(mouth.z) + 0.6;
   const coastTarget = seated.clone().lerp(mouth, 0.65);
-  // Approach from inland, facing the low sunset across the postcard into open water.
-  const arrival = postcardTarget.clone().add(new Vector3(-24, 7, 18));
-  const sunsetTarget = arrival.clone().add(new Vector3(80, -12, -60));
+  // Move the postcard lens toward the shore to avoid the inland foreground shelf;
+  // retain the low sun, reflection and distant island in the seaward frame.
+  const arrival = postcardTarget.clone().add(new Vector3(-4, 7, 3));
+  const sunsetTarget = arrival.clone().add(new Vector3(60, -6, -45));
   const shots = [
     { start: 0, end: 5, from: close, to: detail, lookFrom: seated, lookTo: seated, fovFrom: 46, fovTo: 46 },
     { start: 5, end: 17, from: detail, to: wide, lookFrom: seated, lookTo: coastTarget, fovFrom: 46, fovTo: 58 },

@@ -42,6 +42,7 @@ vi.mock("three", async importOriginal => {
 });
 vi.mock("../../../src/features/world/scene/paper", () => ({
   createGradedPaperPass: () => ({
+    setFogColorOverride() {},
     setGrade: harness.grade,
     setMist: harness.mist,
     setFog: harness.fog,

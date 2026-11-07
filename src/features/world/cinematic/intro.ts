@@ -1,4 +1,4 @@
-import { CubicBezierCurve3, Vector3 } from "three";
+import { Color, CubicBezierCurve3, Vector3 } from "three";
 import { riverPointAt } from "../layout/river";
 import { waterLevelAt, worldHeight } from "../terrain/height";
 import { WORLD_DIRECTION } from "../art/direction";
@@ -26,13 +26,13 @@ export interface IntroFrame {
 }
 
 /** Keep the river below the aerial camera inside clear air, with only low valley mist. */
-export function introAtmosphere(position: Readonly<Vector3>, mistBoost: number) {
+export function introAtmosphere(position: Readonly<Vector3>, mistBoost: number, skyHorizon?: Readonly<Color>) {
   const altitude = Math.max(0, position.y - worldHeight(position.x, position.z));
   const fog = WORLD_DIRECTION.background.forest?.fog ?? WORLD_DIRECTION.background.fog;
   const near = Math.max(fog.near, altitude * 2.5);
   const far = Math.max(fog.far, altitude * 8);
   return {
-    fog: { near, far },
+    fog: { near, far, ...(skyHorizon ? { color: new Color().copy(skyHorizon) } : {}) },
     mist: {
       bands: [far * 0.28, far * 0.52, far * 0.8] as [number, number, number],
       height: waterLevelAt(position.z) + 1.2,

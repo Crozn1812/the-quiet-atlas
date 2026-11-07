@@ -12,6 +12,7 @@ export function createGradedPaperPass(renderer: WebGLRenderer, quality: Quality,
   const { mist, edges, forest } = preset.background;
   let fog = fogAt(0, preset);
   let coastMist = false;
+  let fogColorOverride: Color | null = null;
   const mistColor = new Color();
   const fogColor = new Color();
   const forestColor = forest ? new Color(paletteColor(forest.color)) : undefined;
@@ -25,7 +26,7 @@ export function createGradedPaperPass(renderer: WebGLRenderer, quality: Quality,
     const weight = fog.forestWeight ?? 0;
     fogColor.copy(clearFog ?? gradeColor);
     if (forestColor) fogColor.lerp(forestColor, weight);
-    paper.setFog({ ...fog, color: fogColor });
+    paper.setFog({ ...fog, color: fogColorOverride ?? fogColor });
     mistColor.set(PALETTE.mist).lerp(clearFog ?? gradeColor, mist.warmth);
     if (forestColor) mistColor.lerp(forestColor, weight);
     mist.bands.forEach((band, i) => { bands[i] = band + ((forest?.mist.bands[i] ?? band) - band) * weight; });
@@ -39,10 +40,14 @@ export function createGradedPaperPass(renderer: WebGLRenderer, quality: Quality,
   paper.setEdges(edges);
   return {
     ...paper,
+    setFogColorOverride(color: Readonly<Color> | null) {
+      fogColorOverride = color ? new Color().copy(color) : null;
+      applyAtmosphere(false);
+    },
     setFog(options: DirectedFog) {
       paper.setFog(options);
       fog = { ...options };
-      if (forest) applyAtmosphere();
+      if (forest || fogColorOverride) applyAtmosphere();
     },
     setGrade(grade: LightingGrade) {
       gradeColor.copy(grade.fogColor);

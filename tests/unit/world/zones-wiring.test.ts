@@ -27,6 +27,7 @@ vi.mock("three", async original => {
   } };
 });
 vi.mock("../../../src/features/world/scene/paper", () => ({ createGradedPaperPass: () => ({
+    setFogColorOverride() {},
   setGrade() {}, setMist() {}, setFog() {}, setCorridor() {}, setSize() {}, setQuality() {}, dispose() {},
   render(scene: Scene, camera: PerspectiveCamera) {
     scene.updateMatrixWorld(true); camera.updateMatrixWorld(true); h.scene = scene; h.camera = camera;
