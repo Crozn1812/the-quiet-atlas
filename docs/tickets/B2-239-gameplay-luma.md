@@ -48,3 +48,16 @@ Nhận xét Lead: rừng chìm trong sương xanh đen, nhân vật và lối đ
 Giữ phần Horizon, biển. Rừng phải 0,24–0,32: giảm nắng trực tiếp làm rừng tối hơn vì camera nhìn xuống mặt đất, phần lớn khung là cỏ/lối đi dưới tán. Hướng: nâng albedo/biến thể màu mặt đất rừng và lối đi (lối đi phải sáng hơn cỏ rõ rệt để đọc được), nâng hemi ground, giảm độ đậm bóng tán (shadow/AO) trên mặt đất, fog rừng sáng hơn (màu sương sớm nhạt, không xanh đen). Được sửa thêm vật liệu mặt đất/lối đi (`src/features/world/terrain/*`, `src/features/world/road/*` phần màu) nếu cần.
 
 **Tự đo trước khi bàn giao** (sandbox cho phép chạy Edge local): `pnpm build`, `node tools/serve-out/index.mjs out --port 4181` (chạy nền), `node tools/review/ingame-shots.mjs <dir> http://127.0.0.1:4181 vi`, `node tools/review/luma.mjs <dir>`; dán bảng 8 khu.
+
+### Trả lại vòng 2 (Lead), vòng cuối
+
+Luma **đạt** (Lead đo lại khớp bảng bàn giao) nhưng **màu sai**: `docs/showcase/29-hoan-thien/lead-review-b2-239-r1.webp`. Mặt đất 4 khu rừng thành xám xanh lạnh như sương giá/bê tông; mất xanh rêu; lối đi và cỏ khó phân biệt; suối thành dải đen gắt. Đo mảng đất góc dưới trái bằng `node tools/review/ground-hue.mjs <dir>`:
+
+| | hue | sat | val |
+|---|---|---|---|
+| first-light trước | 113° | 0,26 | 0,24 |
+| first-light B2-239 | **165°** | **0,20** | 0,36 |
+| roots trước | 113° | 0,23 | 0,25 |
+| roots B2-239 | **158°** | **0,18** | 0,32 |
+
+Yêu cầu: giữ luma đạt **và** mặt cỏ rừng hue 85–130° (xanh rêu/lá), sat ≥ 0,22 (`ground-hue.mjs`, cùng khung `ingame-shots`). Lối đi đất ấm (nâu/be) phân biệt rõ với cỏ. Suối trong rừng không đen tuyền (đọc được mặt nước, phản chiếu trời nhạt). Nguyên nhân khả dĩ: fog/hemi màu xanh lạnh pha lên mặt đất, hoặc albedo mới quá xám. Dán bảng luma + ground-hue 8 khu vào bàn giao.
