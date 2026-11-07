@@ -16,3 +16,7 @@
 ### Test
 - Unit: không đỉnh ribbon sông nào nằm ở vùng biển (ngoài `SEA_INLAND_OVERLAP`); shader bờ không cho "đất" tại các điểm biển sâu quanh mũi đất (lấy mẫu).
 - Bàn giao: ảnh gameplay Last Postcard + Quiet Shore + ending 31 s trước/sau, luma (`luma.mjs`).
+
+### Lead hoàn tất (2026-11-07, Codex hết lượt tuần giữa chừng)
+
+Giữ của Codex: ribbon sông kết thúc tại mép biển (`riverSeaJoinT`), hạ dần 16 m cuối; mẫu bờ biển không đáng tin bị đánh dấu (sentinel) nên không còn "bóng đất giả"; gỡ mặt nạ `estuary` của ending. Lead bỏ: khoảng cách bờ dạng trị tuyệt đối (tạo các dải xám chéo trên biển) và lớp phản chiếu trời 18 % (biển xám đục) — giữ khoảng cách có dấu như trước. Sửa test nguồn suối theo tham số mới; `sea-sunset.test.ts` giữ bản main. Ảnh: `docs/showcase/29-hoan-thien/lead-review-b2-240.webp`.
