@@ -12,3 +12,11 @@
 - Ending 26/31/34 s: không pixel nào dưới chân trời có độ sáng < ngưỡng tối của cát/cỏ đang được chiếu (dùng test logic, ví dụ raycast từ camera qua lưới 8×5 điểm chỉ trúng mesh đã biết, không trúng mặt dưới/mép tile).
 - Intro: màu fog trong intro = màu `skyHorizon` của grade hiện tại (sai số nhỏ).
 - Test cũ pass.
+
+### Trả lại vòng 1 (Lead, review render)
+
+- Intro: **đạt** (chân trời chuyển mượt vào màu trời).
+- Ending: **chưa đạt**. `docs/showcase/28-ux/lead-review/b2-236-r0-ending-sheet.webp` (20 / 26 / 31 / 34,5 s): mảng gần đen hình tam giác **vẫn còn** ở góc dưới 31 và 34,5 s; ở 26 s có vách tối cạnh đường. `coast-light` (đổi màu mesh thấp) không trúng nguyên nhân.
+  1. Xác định object thật: trong ending ở 31 s, raycast từ camera qua pixel (0,55·W; 0,95·H) và (0,85·W; 0,9·H); ghi `name`, `type`, material, normal tại điểm trúng vào phần bàn giao. Nếu tia không trúng gì → đó là nền/clear color hoặc mặt sau bị cull: sửa đúng chỗ đó (ví dụ tile chưa nạp quanh camera → stream tile quanh vị trí camera trong ending như intro đã làm, hoặc đổi khung).
+  2. Bỏ `coast-light` nếu không còn cần sau khi sửa nguyên nhân.
+- Kỹ thuật: **không** `paper.dispose()` + tạo pass mới + `Object.assign(paper, …)` giữa intro (biên dịch lại shader khi bàn giao, dễ giật khung, dễ rò). Thay bằng API trên pass hiện có, ví dụ `paper.setFogColorOverride(color | null)` để grade không ghi đè màu fog trong intro.
