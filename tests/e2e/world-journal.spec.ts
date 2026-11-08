@@ -22,7 +22,8 @@ test("J opens the journal and pauses the world; a visited zone is stamped; J clo
   await expect(journal).toBeVisible();
   await expect(world!).toHaveAttribute("data-world-paused", "true");
   await expect(journal.getByRole("button")).toHaveCount(9); // 8 zones + Close
-  await expect(journal.getByRole("button", { name: "The Workshop Projects, visited" })).toBeVisible();
+  // A separate visually-hidden visited span can introduce whitespace before the comma.
+  await expect(journal.getByRole("button", { name: /^The Workshop Projects\s*, visited$/ })).toBeVisible();
   await expect(journal.getByRole("button", { name: "The Roots Skills", exact: true })).toBeVisible();
 
   await page.keyboard.press("j");

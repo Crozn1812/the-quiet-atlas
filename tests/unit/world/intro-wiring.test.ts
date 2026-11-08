@@ -286,6 +286,26 @@ it.each(["Escape", "Enter"])("skips with %s while the Skip button has focus", as
   expect(container.dataset.worldIntro).toBe("done");
 });
 
+it("freezes the gameplay frame while paused, redraws explicit quality changes, and resumes rendering", async () => {
+  win.__tqaSkipIntro = true;
+  await mount();
+  advance();
+  expect(container.dataset.worldIntro).toBe("done");
+  send(container, "tqa:pause", { detail: { reason: "overlay", paused: true } });
+  advance();
+  const frozen = harness.render.mock.calls.length;
+  advance(); advance();
+  expect(harness.render).toHaveBeenCalledTimes(frozen);
+  send(container, "tqa:set-quality", { detail: { quality: "low" } });
+  advance();
+  expect(harness.render).toHaveBeenCalledTimes(frozen + 1);
+  advance();
+  expect(harness.render).toHaveBeenCalledTimes(frozen + 1);
+  send(container, "tqa:pause", { detail: { reason: "overlay", paused: false } });
+  advance();
+  expect(harness.render).toHaveBeenCalledTimes(frozen + 2);
+});
+
 it("scopes dock/key-hint suppression to active cinematics and removes it at handoff", async () => {
   await mount();
   const style = elements.find(element => element.tagName === "style")!;

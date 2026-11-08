@@ -149,9 +149,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     farLandscape = measure("far-landscape", () => createFarLandscape({ deferred: true }));
     scene.add(farLandscape.mesh);
     dressing.defer(farLandscape.build);
-    // Tests that compare frames wait for "done": deferred dressing/ground may still land while paused.
+    // Optional construction waits while paused, just like simulation: no scenery may pop into a frozen menu view.
     container.dataset.worldBuild = "pending";
-    dressing.startDeferred(() => container.dataset.worldIntro === "done", () => { container.dataset.worldBuild = "done"; });
+    dressing.startDeferred(() => container.dataset.worldIntro === "done" && canSimulate(state), () => { container.dataset.worldBuild = "done"; });
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     function addZoneColliders(boxes: typeof zoneBoxes) {
       if (opts.collision === "raycast") return;
@@ -322,6 +322,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const previousMarker = container.dataset.worldChunk;
   container.dataset.worldChunk = WORLD_CHUNK_MARKER;
   let state = sessionReducer(initialSession(), { type: "mode", mode: "world" });
+  // Resize/quality changes may clear the drawing buffer even while gameplay is paused.
+  let redraw = true;
   let cinematicUI: { skip: HTMLButtonElement; bars: HTMLDivElement[]; fade: HTMLDivElement } | undefined;
   // Lead batch 25: the view reaches the sea horizon and far ridges; shorter on lower quality.
   let gameplayFar = GAMEPLAY_FAR[quality];
@@ -516,9 +518,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let postcard: { position: number[]; target: number[] } | undefined;
   const onPostcard = (event: Event) => {
     const pose = (event as CustomEvent).detail;
-    if (pose === null) { postcard = undefined; player.visible = true; return; }
+    if (pose === null) { postcard = undefined; player.visible = true; redraw = true; return; }
     if (pose && [pose.position, pose.target].every(values => Array.isArray(values)
-      && values.length === 3 && values.every(Number.isFinite))) postcard = pose;
+      && values.length === 3 && values.every(Number.isFinite))) { postcard = pose; redraw = true; }
   };
   if (journey) {
     container.dataset.worldPostcard = "ready";
@@ -1221,6 +1223,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     paper.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    redraw = true;
   }
   function loseContext() {
     if (disposed || contextLost) return;
@@ -1308,7 +1311,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       camera.position.fromArray(postcard.position);
       camera.lookAt(new Vector3().fromArray(postcard.target));
     }
-    paper.render(scene, camera);
+    // Async asset completion must not change the picture behind an open menu/journal.
+    // Keep RAF/input/clock ownership alive; resume draws the latest scene normally.
+    if (canSimulate(state) || cinematicLocked() || redraw) {
+      paper.render(scene, camera);
+      redraw = false;
+    }
     if (metrics) {
       if (!metricStart) metricStart = now;
       metricFrames++;
@@ -1419,7 +1427,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       yield;
     }
   })());
-  zoneScenes.startDeferred(() => container.dataset.worldIntro === "done" && !document.hidden && !contextLost);
+  zoneScenes.startDeferred(() => container.dataset.worldIntro === "done" && canSimulate(state) && !document.hidden && !contextLost);
   if (!document.hidden) frame = requestAnimationFrame(tick);
   return () => {
     if (disposed) return;

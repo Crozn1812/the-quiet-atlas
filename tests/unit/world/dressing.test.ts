@@ -168,3 +168,26 @@ it("yields to the timer budget and does not starve other queued construction", (
     expect(vi.getTimerCount()).toBe(0);
   } finally { dressing.dispose(); }
 });
+
+it("freezes pending construction when control is paused and completes it after resume", () => {
+  fakeFrames();
+  const dressing = placeDressing();
+  let time = 0; vi.spyOn(performance, "now").mockImplementation(() => time += 4);
+  let running = true;
+  let steps = 0;
+  const done = vi.fn();
+  dressing.defer((function* () { for (let i = 0; i < 5; i++) { steps++; yield; } })());
+  try {
+    dressing.startDeferred(() => running, done);
+    vi.advanceTimersByTime(48);
+    expect(steps).toBe(1);
+    running = false;
+    vi.advanceTimersByTime(500);
+    expect(steps).toBe(1);
+    expect(done).not.toHaveBeenCalled();
+    running = true;
+    vi.runAllTimers();
+    expect(steps).toBe(5);
+    expect(done).toHaveBeenCalledOnce();
+  } finally { dressing.dispose(); }
+});
