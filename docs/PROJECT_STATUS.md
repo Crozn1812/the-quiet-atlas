@@ -574,6 +574,22 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 | T10, playtest người thật | **DEFERRED** (chờ UX/UI ~90–100 %) |
 | T08/T09 Iris Xe | **NOT RUN** |
 
+### Đợt 32–33 (2026-11-09): First Light R1 + nguồn suối + lan can (Claude-Lead)
+
+- Duy giữ hướng **R1** (First Light). **FL-02**: nguồn suối là cụm 7 tảng đá rêu, thác nhỏ có bọt, vũng trũng viền đá; sửa mảng tối intro 10 s. R1 + FL-02 merge `f7f8c27`.
+- **RD-01** (`6740901`): đường đủ rộng tới cuối, lan can chắn; E "Ngắm biển" → nhân vật tựa hai tay nhìn mặt trời, camera thấp sau lưng, HUD ẩn; lan can dọc đường biển; e2e `world-railing.spec.ts`.
+- Lead: `_common-b2.md` cho phép sửa index.ts/e2e khi ticket ghi rõ và cho Codex tự mở Edge kiểm tra; sửa `autoresume.sh`; e2e local tối đa 4 worker (8 worker SwiftShader làm Enter World quá thời gian).
+
+| Kiểm tra (trên `f7f8c27`) | Kết quả |
+|---|---|
+| lint, typecheck, unit 1723 | **PASS** |
+| e2e | **153/153 PASS** (4 worker) |
+| perf: tới playable (EN/VI, xấu nhất 3 lần) | **5,34 s / 5,49 s PASS** (nội bộ 6 s) |
+| perf: 3D bytes | **PASS**, 2,03 MB / 8 MB |
+| Lighthouse | **PASS** |
+| Duyệt gu R1 nhân rộng 7 khu, T10, playtest | **DEFERRED** |
+| T08/T09 Iris Xe | **NOT RUN** |
+
 ### Đợt 30 (2026-11-07/08): mở đợt đồ họa (ADR 0014) + ưu tiên UX/UI
 
 - Merge: B2-241 tán rừng xa (intro đọc là rừng), B2-242 bờ đá ấm Quiet Shore, B2-243 sông chỉ nhường biển ở cửa sông thật (giữ suối Horizon), B2-244 hoàng hôn trên biển lúc chơi + sông ven biển đọc được.
