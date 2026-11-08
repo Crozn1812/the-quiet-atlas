@@ -1,5 +1,8 @@
 /* Lead: the label is "× Close" / "× Đóng" (kept for e2e and screen readers), so a pill, not a 44 px disc. */
 .closeButton[type="button"] {
+  position: sticky;
+  inset-block-start: .5rem;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -10,7 +13,7 @@
   border-radius: 999px;
   color: #2b2a26;
   background: #eee8d8;
-  font-size: 0.95rem;
+  font-size: 1rem;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -37,6 +40,7 @@
   border: 0;
   color: var(--ink);
   background: var(--paper);
+  font-size: max(17px, 1.0625rem);
   font-family: "Noto Serif", Georgia, serif;
   line-height: 1.75;
   overflow-wrap: anywhere;
@@ -51,7 +55,7 @@
 
 .page[data-zone] {
   display: grid;
-  grid-template-areas: "heading" "body" "art";
+  grid-template-areas: "art" "heading" "body";
   gap: 1.75rem;
 }
 
@@ -84,26 +88,26 @@
   line-height: 1.6;
 }
 
-.illustration {
+.scene {
   grid-area: art;
-  display: block;
-  inline-size: calc(100% + 2 * var(--gutter));
-  max-inline-size: 36rem;
-  block-size: auto;
-  margin: 0 auto 0 calc(-1 * var(--gutter));
+  min-inline-size: 0;
+  margin: 0;
   align-self: start;
-  pointer-events: none;
 }
 
-.page[data-zone="milestones"],
-.page[data-zone="horizon"] {
-  --forest: #2f5446;
+.scene img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--mist);
 }
 
-.page[data-zone="quiet-shore"],
-.page[data-zone="last-postcard"] {
-  --forest: #2e5e73;
-  --water: #23476b;
+.scene figcaption {
+  padding-block: .75rem;
+  color: var(--ink);
+  font-size: max(17px, 1.0625rem);
 }
 
 .page h2 {
@@ -115,9 +119,24 @@
 .page a {
   display: inline-block;
   margin: 0;
-  min-block-size: 24px;
+  min-block-size: 44px;
+  padding-block: .5rem;
   color: inherit;
   text-underline-offset: .22em;
+}
+
+.page a:focus-visible {
+  outline: 2px solid var(--water);
+  outline-offset: 3px;
+}
+
+.links > a,
+.body > a,
+.postcard section > a {
+  padding: .65rem 1rem;
+  border: 1px solid var(--water);
+  color: var(--water);
+  font-weight: 700;
 }
 
 .links {
@@ -146,7 +165,7 @@
 }
 
 .meta {
-  font-size: .875rem;
+  font-size: max(17px, 1.0625rem);
 }
 
 .postcard {
@@ -171,33 +190,25 @@
   font-style: normal;
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 58rem) {
   .page[data-zone] {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
     grid-template-areas: "art heading" "art body";
-    column-gap: clamp(2rem, 4vw, 4rem);
+    column-gap: clamp(1.5rem, 3vw, 3rem);
     row-gap: 1.75rem;
-    padding-block: clamp(3rem, 5vw, 5rem);
+    padding-block: 2rem;
   }
+}
 
-  .page:is([data-zone="roots"], [data-zone="milestones"], [data-zone="horizon"], [data-zone="last-postcard"]) {
-    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
-    grid-template-areas: "heading art" "body art";
-  }
+.page[data-zone="last-postcard"] .postcard {
+  grid-template-columns: minmax(0, 1fr);
+}
 
-  .illustration {
-    margin-block-start: 1rem;
-  }
-
-  .page[data-zone="last-postcard"] .postcard {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .page[data-zone="last-postcard"] .address {
-    padding: 2rem 0 0;
-    border-inline-start: 0;
-    border-block-start: 1px solid var(--forest);
-  }
+.page[data-zone="last-postcard"] .address {
+  padding: 2rem 0 0;
+  border-inline-start: 0;
+  border-block-start: 1px solid var(--forest);
 }
 
 @media (max-width: 40rem) {
@@ -224,3 +235,5 @@
 .shellTitle:focus { outline: none; }
 /* The shell already names the zone; avoid printing it twice inside the world overlay. */
 :global(.world-content) .kicker { display: none; }
+
+:global(.world-content) > div:has(.page) { max-inline-size: 88rem; }

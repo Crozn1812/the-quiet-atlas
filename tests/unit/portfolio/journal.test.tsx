@@ -23,16 +23,17 @@ describe("Atlas Journal", () => {
     expect(html).toMatch(/<button[^>]*>Close<\/button>/);
   });
 
-  it("labels only visited rows and uses a hidden text-free vermilion stamp", () => {
+  it("announces visible titles/topics naturally, and only stamps visited rows", () => {
     const html = render();
-    const stamped = /<button[^>]*aria-label="The Roots, visited"[^>]*>(.*?)<\/button>/.exec(html)?.[1];
+    const stamped = [...html.matchAll(/<li><button[^>]*>(.*?)<\/button><\/li>/g)].find(row => row[1]!.includes("The Roots"))?.[1];
     expect(stamped).toContain('<svg');
     expect(stamped).toContain('aria-hidden="true"');
     expect(stamped).toContain('focusable="false"');
     expect(stamped).toContain('stroke="#B5432F"');
     expect(stamped).not.toMatch(/<text\b/);
     expect(html.match(/<svg\b/g)).toHaveLength(1);
-    expect(html.match(/, visited"/g)).toHaveLength(1);
+    expect(html.match(/, visited<\/span>/g)).toHaveLength(1);
+    expect(html).not.toContain("aria-label=");
     expect(render({ entries: journalEntries(initialJournal(), "en") })).not.toContain('<svg');
   });
 
@@ -67,7 +68,8 @@ describe("Atlas Journal", () => {
     expect(html).toContain('lang="vi"');
     expect(html).toContain('Sổ Atlas');
     expect(html).toMatch(/<button[^>]*>Đóng<\/button>/);
-    expect(html).toContain('aria-label="The Roots, đã ghé"');
+    expect(html).toContain('Kỹ năng</span>');
+    expect(html).toContain('visually-hidden">, đã ghé</span>');
     expect(html).not.toContain(', visited');
   });
 

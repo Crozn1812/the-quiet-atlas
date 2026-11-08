@@ -512,6 +512,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     },
   }) : undefined;
   if (journey) journeyContainer.__tqaJourney = journey;
+  // Explicitly opt-in review camera; normal visitors never install this listener.
+  let postcard: { position: number[]; target: number[] } | undefined;
+  const onPostcard = (event: Event) => {
+    const pose = (event as CustomEvent).detail;
+    if (pose === null) { postcard = undefined; player.visible = true; return; }
+    if (pose && [pose.position, pose.target].every(values => Array.isArray(values)
+      && values.length === 3 && values.every(Number.isFinite))) postcard = pose;
+  };
+  if (journey) {
+    container.dataset.worldPostcard = "ready";
+    container.addEventListener("tqa:postcard", onPostcard);
+  }
   function updateMascotHint(dt: number) {
     if (canSimulate(state)) mascotTime += dt;
     if (cinematicLocked()) { clearMascotHint(); return; }
@@ -1291,6 +1303,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     updateEndingGrade();
     if (canSimulate(state) && !reducedMotion) chimeTime += dt;
     chimes.rotation.z = reducedMotion ? 0 : Math.sin(chimeTime * 1.4) * 0.045;
+    if (postcard) {
+      player.visible = false;
+      camera.position.fromArray(postcard.position);
+      camera.lookAt(new Vector3().fromArray(postcard.target));
+    }
     paper.render(scene, camera);
     if (metrics) {
       if (!metricStart) metricStart = now;
@@ -1407,6 +1424,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   return () => {
     if (disposed) return;
     disposed = true;
+    if (journey) {
+      container.removeEventListener("tqa:postcard", onPostcard);
+      delete container.dataset.worldPostcard;
+    }
     if (journey && journeyContainer.__tqaJourney === journey) delete journeyContainer.__tqaJourney;
     removeCinematicUI();
     clearTimeout(feedbackTimer);

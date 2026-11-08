@@ -86,12 +86,12 @@ export function AtlasJournal({ entries, blankPages, title, locale, onOpenZone, o
         {entries.map((entry, index) => (
           <li key={entry.zoneId}>
             <button type="button" className={styles.entry}
-              aria-label={entry.stamped ? `${entry.title}, ${visited}` : entry.title}
               onClick={() => { if (!closingRef.current) onOpenZone(entry.zoneId); }}>
               <span className={styles.numeral} aria-hidden="true">{zoneNumerals[index]}</span>
-              <span className={styles.entryCopy}><span>{entry.title}</span>
-                <span className={styles.topic} aria-hidden="true">{zoneTopic(entry.zoneId, locale)}</span>
+              <span className={styles.entryCopy}><span>{entry.title}</span>{" "}
+                <span className={styles.topic}>{zoneTopic(entry.zoneId, locale)}</span>
               </span>
+              {entry.stamped && <span className="visually-hidden">, {visited}</span>}
               {entry.stamped && (
                 <svg className={styles.stamp} viewBox="0 0 40 40" width="32" height="32"
                   aria-hidden="true" focusable="false" fill="none" stroke="#B5432F" strokeLinecap="round">

@@ -79,7 +79,7 @@ describe("world teleport chooser", () => {
   async function click(element: TestElement) { await act(async () => { element.click(); }); }
   function dialog() { return dom.document.querySelector("dialog[open]"); }
   function button(label: string) {
-    const found = dom.shell.querySelectorAll("button").find(element => (element.getAttribute("aria-label") ?? element.textContent) === label);
+    const found = dom.shell.querySelectorAll("button").find(element => element.textContent === label || element.textContent.includes(label));
     expect(found, label).toBeDefined();
     return found!;
   }

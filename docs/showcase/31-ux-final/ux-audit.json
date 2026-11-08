@@ -1,0 +1,137 @@
+{
+  "results": [
+    {
+      "name": "menu-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "clipped": false,
+      "focusTrap": "PASS",
+      "file": "menu-1366.webp"
+    },
+    {
+      "name": "journal-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "clipped": false,
+      "focusTrap": "PASS",
+      "file": "journal-1366.webp"
+    },
+    {
+      "name": "teleport-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "clipped": false,
+      "focusTrap": "PASS",
+      "file": "teleport-1366.webp"
+    },
+    {
+      "name": "menu-390",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "clipped": false,
+      "focusTrap": "PASS",
+      "file": "menu-390.webp"
+    },
+    {
+      "name": "journal-390",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "clipped": false,
+      "focusTrap": "PASS",
+      "file": "journal-390.webp"
+    },
+    {
+      "name": "teleport-390",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "clipped": false,
+      "focusTrap": "PASS",
+      "file": "teleport-390.webp"
+    },
+    {
+      "name": "quick-vi-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "file": "quick-vi-1366.webp"
+    },
+    {
+      "name": "quick-vi-390",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "file": "quick-vi-390.webp"
+    },
+    {
+      "name": "quick-vi-320",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "file": "quick-vi-320.webp"
+    },
+    {
+      "name": "quick-en-1366",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "file": "quick-en-1366.webp"
+    },
+    {
+      "name": "quick-en-390",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "file": "quick-en-390.webp"
+    },
+    {
+      "name": "quick-en-320",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "violations": [],
+      "overflow": false,
+      "file": "quick-en-320.webp"
+    }
+  ],
+  "errors": []
+}

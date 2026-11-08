@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { readFileSync, statSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { content } from "@/content";
@@ -35,23 +36,26 @@ function escaped(value: string) {
 }
 
 describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
-  it.each(zones)("renders %s as an article with one h1 and decorative art", zoneId => {
+  it.each(zones)("renders %s as an article with one h1 and a lazy project render", zoneId => {
     const html = render(locale, zoneId);
     expect(html).toMatch(/^<article\b/);
     expect(html.match(/<h1\b/g)).toHaveLength(1);
     expect(html).toMatch(/<h1[^>]*id="zone-content-title"[^>]*tabindex="-1"/);
-    const svg = html.match(/<svg\b[^>]*>[\s\S]*?<\/svg>/g)!;
-    expect(svg).toHaveLength(1);
-    expect(svg[0]).toContain('aria-hidden="true"');
-    expect(svg[0]).toContain('focusable="false"');
-    expect(new TextEncoder().encode(svg[0]).byteLength).toBeLessThanOrEqual(4096);
-    expect(svg[0]).not.toMatch(/<image\b|<foreignObject\b|<filter\b/);
+    const images = html.match(/<img\b[^>]*>/g)!;
+    expect(images).toHaveLength(1);
+    expect(images[0]).toContain(`src="/zones/${zoneId}.webp"`);
+    expect(images[0]).toContain('loading="lazy"');
+    expect(images[0]).toContain('width="960"');
+    expect(images[0]).toContain('height="640"');
+    expect(images[0]).toMatch(/alt="[^"]{15,}"/);
+    expect(images[0]).not.toContain("?");
+    expect(html).not.toMatch(/<svg\b|rel="preload"/);
     const header = html.match(/<header\b[^>]*>([\s\S]*?)<\/header>/)![1]!;
     expect(header.match(/<h[12]\b/g)).toHaveLength(1);
     const kicker = header.match(/<p[^>]*>(.*?)<\/p>/)![1];
     const title = header.match(/<h1[^>]*>(.*?)<\/h1>/)![1];
     expect(title).not.toBe(kicker);
-    expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD|<h3\b|<img\b|target=/);
+    expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD|<h3\b|target=/);
   });
 
   it("keeps the public introduction and offers Quick and the CV page", () => {
@@ -160,7 +164,17 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
   });
 });
 
-it("draws a distinct illustration for each zone", () => {
-  const drawings = zones.map(zoneId => render("en", zoneId).match(/<svg\b[^>]*>[\s\S]*?<\/svg>/)![0]);
-  expect(new Set(drawings).size).toBe(zones.length);
+it("uses a distinct project render and description for each zone", () => {
+  const images = zones.map(zoneId => render("en", zoneId).match(/<img\b[^>]*>/)![0]);
+  expect(new Set(images).size).toBe(zones.length);
+});
+
+it.each(zones)("ships a licensed WebP under 60 KB for %s", zoneId => {
+  const file = `public/zones/${zoneId}.webp`;
+  expect(statSync(file).size).toBeLessThanOrEqual(60_000);
+  const bytes = readFileSync(file);
+  expect(bytes.toString("ascii", 0, 4)).toBe("RIFF");
+  expect(bytes.toString("ascii", 8, 12)).toBe("WEBP");
+  const record = readFileSync("assets/LICENSES.csv", "utf8").split("\n").find(line => line.startsWith(`${file},`));
+  expect(record).toContain("project-original");
 });

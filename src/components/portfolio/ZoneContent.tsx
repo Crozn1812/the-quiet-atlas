@@ -24,60 +24,34 @@ function published(value?: string) {
   return value && !/\bTBD\b/i.test(value) ? value : "";
 }
 
-// Compact, deterministic ink drawings; layered translucent washes need no bitmap/filter.
-const illustrations: Record<string, { wash: string; ink: string; water?: string }> = {
-  "first-light": {
-    wash: "M25 240Q6 154 71 65Q115 25 148 110L174 245ZM263 236Q229 135 283 74Q345 35 373 232Z",
-    water: "M221 32C121 78 297 104 208 147S115 214 237 285L292 285C143 206 187 196 249 162S181 80 247 32Z",
-    ink: "M63 242L76 73M76 105L56 88M75 140L100 113M113 230L123 47M122 88L103 65M121 125L145 97M307 249L299 87M300 129L324 103M300 161L282 137M224 36C142 81 291 105 218 150S129 218 258 283",
-  },
-  workshop: {
-    wash: "M54 139L178 61L339 119L309 148L178 99L77 164ZM83 166L305 149L307 248L85 255Z",
-    ink: "M45 147L177 61L348 120L311 150L178 102L66 167ZM87 163L87 251L308 245L308 153M121 249L121 181L176 178L176 248M213 176L273 173L273 214L213 217ZM196 107L196 143M65 268Q186 256 339 260",
-  },
-  roots: {
-    wash: "M159 52Q199 23 233 53L221 173L318 242L221 219L194 262L161 216L64 247L173 168Z",
-    ink: "M178 40L179 150Q168 190 72 246M213 42L205 155Q231 199 328 246M190 150Q199 211 194 273M172 181L140 235L104 270M218 186L249 236L286 267M150 203L91 207L55 225M237 209L297 211L345 231M189 90L198 126",
-  },
-  milestones: {
-    wash: "M47 247L62 176L125 169L135 249ZM153 247L169 113L233 106L243 249ZM263 247L277 61L334 68L345 247Z",
-    ink: "M55 248L64 181L119 175L129 247M161 248L172 117L225 114L235 248M270 248L280 66L327 73L338 247M81 199L103 197M186 141L211 140M292 94L315 97M37 254Q185 243 362 255",
-  },
-  "old-trail": {
-    wash: "M29 239Q75 103 145 132Q211 54 282 106L376 242ZM141 288Q250 194 171 155Q129 129 211 68L229 71Q154 129 195 151Q292 209 187 288Z",
-    ink: "M36 235Q92 127 143 146M219 120Q279 73 358 220M157 281Q260 205 180 153Q143 129 217 70M86 193L86 130M65 146L114 143L110 162L66 165ZM305 207L307 173",
-  },
-  horizon: {
-    wash: "M26 207Q120 164 211 186Q303 161 375 200L375 253L26 253ZM243 105a32 32 0 1 0 64 0a32 32 0 1 0-64 0",
-    water: "M26 218Q143 202 211 216T375 213L375 254L26 254Z",
-    ink: "M25 202Q131 182 213 199T375 196M62 231L151 228M246 238L331 234M253 106a23 23 0 0 1 46 0M178 167L191 155L204 165M214 148L227 138L240 146",
-  },
-  "quiet-shore": {
-    wash: "M27 180Q111 150 181 177T375 174L375 247Q253 227 182 254T27 251Z",
-    water: "M27 188Q116 168 185 190T375 186L375 219Q272 201 185 222T27 223Z",
-    ink: "M27 183Q116 163 185 185T375 181M42 215Q133 194 204 215T352 211M90 248Q199 228 298 243M294 174L297 81M297 99L263 82M297 111L329 90M297 122L271 114",
-  },
-  "last-postcard": {
-    wash: "M47 86L341 67L355 239L57 258ZM65 101L195 177L326 84L198 199Z",
-    ink: "M45 86L342 66L356 240L56 260ZM48 91L195 185L339 73M58 254L156 164M352 235L232 163M283 91L317 89L319 122L285 124ZM84 212L132 209M85 226L150 222",
-  },
+// Static project renders keep the content renderer independent of the engine.
+const scenes: Record<string, { en: string; vi: string }> = {
+  "first-light": { en: "Morning light through the forest beside the stream", vi: "Ánh bình minh qua rừng cây bên dòng suối" },
+  roots: { en: "Trees and green hills around The Roots", vi: "Cây xanh và những ngọn đồi quanh khu The Roots" },
+  workshop: { en: "The workshop house beside the forest path", vi: "Ngôi nhà xưởng bên lối đi trong rừng" },
+  milestones: { en: "Stone markers along the hillside path", vi: "Những cột mốc đá dọc lối đi trên đồi" },
+  "old-trail": { en: "The old trail winding through the trees", vi: "Con đường cũ uốn quanh những hàng cây" },
+  horizon: { en: "Open hills looking toward the distant horizon", vi: "Những ngọn đồi mở ra phía chân trời xa" },
+  "quiet-shore": { en: "The quiet shore overlooking the sea", vi: "Bờ biển yên tĩnh nhìn ra mặt biển" },
+  "last-postcard": { en: "The final stop beside the coast", vi: "Điểm dừng cuối cùng bên bờ biển" },
 };
 
-function ZoneIllustration({ zoneId }: { zoneId: string }) {
-  const art = illustrations[zoneId] ?? illustrations["first-light"]!;
+function ZoneImage({ zoneId, locale }: { zoneId: string; locale: Locale }) {
+  const id = Object.hasOwn(scenes, zoneId) ? zoneId : "first-light";
   return (
-    <svg className={styles.illustration} viewBox="0 0 400 320" aria-hidden="true" focusable="false">
-      <path d={art.wash} fill="var(--forest)" opacity=".16" />
-      <path d={art.wash} fill="var(--mist)" opacity=".3" transform="translate(4 -5)" />
-      {art.water && <path d={art.water} fill="var(--water)" opacity=".32" />}
-      <circle cx="254" cy="57" r="9" fill="var(--dusk)" opacity=".65" />
-      <path d={art.ink} fill="none" stroke="var(--ink)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" opacity=".72" />
-    </svg>
+    <figure className={styles.scene}>
+      {/* Plain static files: no optimizer request or image preload before opening the overlay. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/zones/${id}.webp`} width={960} height={640}
+        loading="lazy" decoding="async" alt={scenes[id]![locale]} />
+      <figcaption>{zones[id as keyof typeof zones]}</figcaption>
+    </figure>
   );
 }
 
-function Magazine({ zoneId, title, children }: {
+function Magazine({ zoneId, locale, title, children }: {
   zoneId: string;
+  locale: Locale;
   title: string;
   children: ReactNode;
 }) {
@@ -87,7 +61,7 @@ function Magazine({ zoneId, title, children }: {
         <p className={styles.kicker}>{zones[zoneId as keyof typeof zones] ?? "The Quiet Atlas"}</p>
         <h1 className={styles.title} id="zone-content-title" tabIndex={-1}>{title}</h1>
       </header>
-      <ZoneIllustration zoneId={zoneId} />
+      <ZoneImage zoneId={zoneId} locale={locale} />
       <div className={styles.body}>{children}</div>
     </article>
   );
@@ -128,7 +102,7 @@ export function ZoneContent({ locale, zoneId, data }: {
   const cv = <a href="/cv/">{vi ? "Tải CV" : "Download CV"}</a>;
   const unwritten = vi ? "Duy đang viết phần này." : "Duy is still writing this page.";
   const page = (title: string, body: ReactNode) => (
-    <Magazine zoneId={zoneId} title={title}>{body}</Magazine>
+    <Magazine zoneId={zoneId} locale={locale} title={title}>{body}</Magazine>
   );
 
   if (zoneId === "first-light") {

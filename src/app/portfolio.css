@@ -474,8 +474,8 @@ nav[aria-label="Language"] ul {
   background: transparent;
   border: 0;
   font: inherit;
-  font-size: .75rem;
-  letter-spacing: .09em;
+  font-size: .875rem;
+  letter-spacing: .06em;
   text-transform: uppercase;
   text-decoration: none;
   text-underline-offset: .35em;
@@ -483,18 +483,30 @@ nav[aria-label="Language"] ul {
 }
 .welcome-card button { cursor: pointer; }
 .welcome-card nav[aria-label="World"] > :is(button, a) {
+  min-block-size: 52px;
+  min-inline-size: 14rem;
   padding: .85rem 1.5rem;
-  background: var(--welcome-paper);
+  font-size: 1rem;
+  color: var(--welcome-paper);
+  background: var(--welcome-ink);
   border: 1px solid var(--welcome-ink);
   letter-spacing: .14em;
 }
+.welcome-card nav[aria-label="World"] > :is(button:enabled, a):hover {
+  background: var(--welcome-dusk);
+  border-color: var(--welcome-dusk);
+}
+.welcome-card nav[aria-label="World"] > :is(button, a):focus-visible {
+  outline: 2px solid var(--welcome-ink);
+  outline-offset: 4px;
+}
 .welcome-card button:disabled {
-  color: var(--welcome-dusk);
+  color: var(--welcome-paper);
   cursor: default;
 }
 .welcome-card :is(button:enabled, a):hover { text-decoration: underline; }
 .welcome-card :is(button, a):focus-visible {
-  outline: 1px solid var(--welcome-dusk);
+  outline: 2px solid var(--welcome-ink);
   outline-offset: 3px;
   text-decoration: underline;
 }
@@ -502,7 +514,8 @@ nav[aria-label="Language"] ul {
 .corner-panel:has(.welcome-card:not([hidden])) > .world-hud[data-compact="false"] {
   margin-inline: clamp(1.5rem, 3vw, 2.5rem);
   padding: .75rem 0 1.25rem;
-  gap: .25rem 1rem;
+  gap: .25rem .75rem;
+  flex-wrap: nowrap;
   color: var(--welcome-ink);
   background: transparent;
   border: 0;
@@ -510,7 +523,22 @@ nav[aria-label="Language"] ul {
   border-radius: 0;
 }
 .world-hud[data-compact="false"] :is(a, button) {
+  flex: 0 0 auto;
   min-block-size: 44px;
+  min-inline-size: 24px;
+  padding-inline: 0;
+  color: var(--welcome-ink);
+  font-size: .875rem;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.world-hud[data-compact="false"] a[href^="mailto:"] {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+.world-hud[data-compact="false"] a[href^="mailto:"] span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 @media (max-width: 900px) {
   /* Lead: the card covers the lower half on phones, so show sun + sea in the visible top half. */

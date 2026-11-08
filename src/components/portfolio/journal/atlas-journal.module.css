@@ -40,7 +40,7 @@
 
 .journal .entry {
   display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
   inline-size: 100%;
@@ -83,7 +83,7 @@
   }
 }
 
-.numeral { font-size: var(--ui-secondary); letter-spacing: .1em; color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
+.numeral { font-size: var(--ui-secondary); letter-spacing: .1em; white-space: nowrap; color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
 .entryCopy { display: grid; gap: .2rem; }
 .topic { font-family: system-ui, sans-serif; font-size: var(--ui-secondary); color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
 

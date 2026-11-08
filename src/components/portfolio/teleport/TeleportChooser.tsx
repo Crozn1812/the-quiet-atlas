@@ -65,12 +65,11 @@ export function TeleportChooser({ from, locale, container, onChoose, onClose }: 
         {zones.map((zone, index) => (
           <li key={zone.zoneId}>
             <button type="button" className={styles.zone} data-zone={zone.zoneId}
-              aria-label={zone.title + (zone.zoneId === from ? (locale === "vi" ? " (đang ở đây)" : " (you are here)") : "")}
               disabled={zone.zoneId === from} onClick={() => onChoose(zone.zoneId)}>
               <span className={styles.numeral} aria-hidden="true">{zoneNumerals[index]}</span>
               <span className={styles.entryCopy}><span>{zone.title}{zone.zoneId === from && (
                 <span className={styles.current}>{locale === "vi" ? " (đang ở đây)" : " (you are here)"}</span>
-              )}</span><span className={styles.topic} aria-hidden="true">{zoneTopic(zone.zoneId, locale)}</span></span>
+              )}</span>{" "}<span className={styles.topic}>{zoneTopic(zone.zoneId, locale)}</span></span>
             </button>
           </li>
         ))}

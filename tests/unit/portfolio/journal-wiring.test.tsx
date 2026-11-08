@@ -40,7 +40,7 @@ describe("world journal session", () => {
   async function click(button: TestElement) { await act(async () => { button.click(); }); }
   function journal() { return dom.document.querySelector("dialog[open]"); }
   function button(label: string) {
-    const found = dom.shell.querySelectorAll("button").find(node => (node.getAttribute("aria-label")?.split(",")[0] ?? node.textContent) === label);
+    const found = dom.shell.querySelectorAll("button").find(node => node.textContent === label || node.textContent.includes(label));
     expect(found, label).toBeDefined();
     return found!;
   }
@@ -57,8 +57,8 @@ describe("world journal session", () => {
     await key("j");
     expect(journal()!.querySelectorAll("li")).toHaveLength(8);
     expect(journal()!.querySelectorAll("svg")).toHaveLength(1);
-    expect(button("The Roots").getAttribute("aria-label")).toBe("The Roots, visited");
-    expect(button("The Workshop").getAttribute("aria-label")).toBe("The Workshop");
+    expect(button("The Roots").textContent).toContain("The Roots Skills, visited");
+    expect(button("The Workshop").textContent).toContain("The Workshop Projects");
     expect(journal()!.textContent).not.toContain("secret");
   });
 
@@ -128,7 +128,7 @@ describe("world journal session", () => {
     await key("Escape");
     expect(journal()).toBeNull();
     await key("j");
-    expect(button("The Workshop").getAttribute("aria-label")).toBe("The Workshop, visited");
+    expect(button("The Workshop").textContent).toContain("The Workshop Projects, visited");
   });
 
   it("opens from the localized menu, prevents stacking, and keeps labels live", async () => {
@@ -160,7 +160,7 @@ describe("world journal session", () => {
     await act(async () => { dispose!.setLocale("vi"); });
     expect(journal()).toBe(original);
     expect(journal()!.querySelector("h2")!.textContent).toBe("Sổ Atlas");
-    expect(button("The Roots").getAttribute("aria-label")).toBe("The Roots, đã ghé");
+    expect(button("The Roots").textContent).toContain("The Roots Kỹ năng, đã ghé");
     expect(button("Đóng")).toBeDefined();
     expect(pauses).toEqual([{ reason: "journal", paused: true }]);
   });
