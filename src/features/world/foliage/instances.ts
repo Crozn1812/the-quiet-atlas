@@ -7,12 +7,14 @@ import { nearestPath } from "../terrain/samples";
 import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
 import { createPineCrownV2 } from "./pine";
-import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createTreeTrunk, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
+import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createTreeTrunk, fitAuthoredTree, loadAuthoredTrees, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
 
 type FoliageWind = { value: Vector2 };
 const foliageWinds = new WeakMap<Material, FoliageWind>();
+const foliageLoads = new WeakMap<Material, () => void>();
+let authoredTrees: ReturnType<typeof loadAuthoredTrees> | undefined;
 
 function advanceWind(wind: FoliageWind, dt: number, reducedMotion: boolean) {
   wind.value.y = reducedMotion ? 0 : 1;
@@ -26,6 +28,7 @@ export function updateFoliageWind(meshes: readonly Mesh[], dt: number, reducedMo
     const wind = foliageWinds.get(material);
     if (wind && !updated.has(wind)) {
       advanceWind(wind, dt, reducedMotion);
+      if (dt > 0) foliageLoads.get(material)?.();
       updated.add(wind);
     }
   }
@@ -371,6 +374,60 @@ export function createFoliage(maxPerKind: number) {
   let trees: readonly FoliageTree[] = [];
   let quality: Quality = "High";
   let disposed = false;
+  const replacements = new Map<typeof species.pine.variants[number], { procedural: typeof trunkGeometry; authored: typeof trunkGeometry }>();
+  let requested = false;
+  function requestTrees() {
+    if (requested || disposed || quality === "Low" || typeof window === "undefined" || typeof window.setTimeout !== "function") return;
+    requested = true;
+    // First active frame has entered play. Yield a paint before importing decoders/fetching.
+    window.setTimeout(() => {
+      if (disposed) return;
+      authoredTrees ??= loadAuthoredTrees().catch(error => { authoredTrees = undefined; throw error; });
+      void authoredTrees.then(assets => {
+        if (disposed) return;
+        const pending: typeof replacements = new Map();
+        try {
+          for (const [kind, { variants }] of Object.entries(species)) for (const variant of variants) {
+            const original = variant.crowns.geometry;
+            const offset = kind === "pine" ? 0 : 3;
+            const shapes = (kind === "pine" ? [assets[offset + PINE_VARIANT_SEEDS.indexOf(variant.seed as 300 | 301 | 302)]!] : assets.slice(3))
+              .map(asset => fitAuthoredTree(asset, original));
+            const geometry = shapes[0]!;
+            const position = geometry.getAttribute("position");
+            // Recover the old reaching silhouette before replacing the base geometry.
+            const expanded = original.toNonIndexed();
+            for (const [name, target] of [["shapeA", shapes[1]], ["shapeB", shapes[2]], ["trailShape", expanded]] as const) {
+              const values = new Float32Array(position.count * 3);
+              if (target) {
+                const p = target.getAttribute("position"), trail = expanded.getAttribute("trailShape");
+                for (let i = 0; i < values.length; i++) values[i] = p.array[i]! + (name === "trailShape" ? trail.array[i]! : 0) - position.array[i]!;
+                geometry.boundingBox!.union(target.boundingBox ?? original.boundingBox!);
+              }
+              geometry.setAttribute(name, new Float32BufferAttribute(values, 3));
+            }
+            geometry.setAttribute("trailNormal", expanded.getAttribute("trailNormal").clone());
+            geometry.setAttribute("treeStyle", original.getAttribute("treeStyle"));
+            geometry.boundingBox!.union(original.boundingBox!);
+            geometry.boundingBox!.getBoundingSphere(geometry.boundingSphere!);
+            expanded.dispose(); shapes.slice(1).forEach(shape => shape.dispose());
+            pending.set(variant, { procedural: original, authored: geometry });
+          }
+          for (const [variant, pair] of pending) replacements.set(variant, pair);
+          applyTreeQuality(); update();
+        } catch {
+          for (const pair of pending.values()) pair.authored.dispose();
+          // Malformed/over-budget assets retain the complete procedural fallback.
+        }
+      }).catch(() => { /* Network/decoder failure never blocks play. */ });
+    }, 0);
+  }
+  function applyTreeQuality() {
+    for (const [variant, pair] of replacements) {
+      variant.crowns.geometry = quality === "Low" ? pair.procedural : pair.authored;
+      variant.crownBounds.copy(variant.crowns.geometry.boundingBox!);
+    }
+  }
+  foliageLoads.set(crownMaterial, requestTrees);
   const transform = new Object3D();
   function update() {
     if (disposed) throw new Error("Foliage has been disposed");
@@ -449,6 +506,7 @@ export function createFoliage(maxPerKind: number) {
     update(dt: number, reducedMotion: boolean) {
       if (disposed) throw new Error("Foliage has been disposed");
       advanceWind(wind, dt, reducedMotion);
+      if (dt > 0) requestTrees();
     },
     setTiles(next: readonly FoliageTree[]) {
       if (disposed) throw new Error("Foliage has been disposed");
@@ -461,20 +519,27 @@ export function createFoliage(maxPerKind: number) {
     setQuality(next: Quality) {
       if (disposed) throw new Error("Foliage has been disposed");
       quality = next;
+      applyTreeQuality();
       update();
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       foliageWinds.delete(crownMaterial);
+      foliageLoads.delete(crownMaterial);
       trees = [];
       group.removeFromParent();
       group.clear();
       for (const mesh of meshes) { mesh.count = 0; mesh.dispose(); }
       trunkGeometry.dispose();
       for (const { variants } of Object.values(species)) {
-        for (const { crowns } of variants) crowns.geometry.dispose();
+        for (const variant of variants) {
+          const pair = replacements.get(variant);
+          if (pair) { pair.procedural.dispose(); pair.authored.dispose(); }
+          else variant.crowns.geometry.dispose();
+        }
       }
+      replacements.clear();
       trunkMaterial.dispose();
       crownMaterial.dispose();
       depthMaterial.dispose();

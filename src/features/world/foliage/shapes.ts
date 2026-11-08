@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, Float32BufferAttribute, Vector3 } from "three";
+import { BufferGeometry, Color, Float32BufferAttribute, InstancedBufferAttribute, Mesh, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { RAMP_PRESETS } from "../materials/ramp";
 import { TRUNK_HEIGHT, TRUNK_RADIUS } from "./colliders";
@@ -9,6 +9,90 @@ export const BROADLEAF_VARIANT_SEEDS = [600, 602, 604] as const;
 export const BROADLEAF_BATCH_SEEDS = [600, 602] as const;
 /** Broadleaf crowns retain their existing clearance relative to TRUNK_HEIGHT. */
 export const CROWN_BASE = -2.9;
+
+/** Loaded only after a running frame; rejected loads leave procedural trees intact. */
+export async function loadAuthoredTrees(): Promise<BufferGeometry[]> {
+  const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([
+    import("three/examples/jsm/loaders/GLTFLoader.js"),
+    import("three/examples/jsm/libs/meshopt_decoder.module.js"),
+  ]);
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  return Promise.all(["pine", "broadleaf"].flatMap(kind => [1, 2, 3].map(async variant => {
+    const gltf = await loader.loadAsync(`/world/foliage/tree-${kind}-${variant}.glb`);
+    const positions: number[] = [], normals: number[] = [], colors: number[] = [], surfaces: number[] = [];
+    const base = new Color(RAMP_PRESETS.crown);
+    gltf.scene.updateMatrixWorld(true);
+    gltf.scene.traverse(object => {
+      if (!(object instanceof Mesh)) return;
+      const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry.clone();
+      // Meshopt quantization uses normalized integer buffers. World transforms
+      // must write floats, otherwise translated/scaled coordinates clamp to ±1.
+      for (const name of ["position", "normal"]) {
+        const attribute = geometry.getAttribute(name), values: number[] = [];
+        if (!attribute) throw new Error(`Tree asset is missing ${name}`);
+        for (let i = 0; i < attribute.count; i++) values.push(attribute.getX(i), attribute.getY(i), attribute.getZ(i));
+        geometry.setAttribute(name, new Float32BufferAttribute(values, 3));
+      }
+      geometry.applyMatrix4(object.matrixWorld);
+      const p = geometry.getAttribute("position"), n = geometry.getAttribute("normal"), c = geometry.getAttribute("color");
+      if (!p || !n || !c) throw new Error("Tree asset is missing vertex pigment or normals");
+      for (let i = 0; i < p.count; i++) {
+        positions.push(p.getX(i), p.getY(i) - TRUNK_HEIGHT, p.getZ(i));
+        normals.push(n.getX(i), n.getY(i), n.getZ(i));
+        colors.push(c.getX(i) / base.r, c.getY(i) / base.g, c.getZ(i) / base.b);
+        surfaces.push(object.name.startsWith("leaves") ? 0 : 1);
+      }
+      geometry.dispose(); object.geometry.dispose();
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.dispose();
+    });
+    if (positions.length === 0 || positions.length / 9 > (kind === "pine" ? 1200 : 1500)) {
+      throw new Error("Tree asset is empty or exceeds its triangle budget");
+    }
+    const geometry = geometryFrom(positions, []);
+    geometry.setIndex(null);
+    geometry.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+    geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    geometry.setAttribute("surface", new Float32BufferAttribute(surfaces, 1));
+    return geometry;
+  })));
+}
+
+/** Fit authored triangles to existing surface slots; unused slots degenerate.
+ * This preserves ribbons, trail shape, shader attributes and the triangle budget.
+ * Vertex sharing is expanded because meshopt may reorder each variant differently.
+ */
+export function fitAuthoredTree(source: BufferGeometry, template: BufferGeometry): BufferGeometry {
+  for (const name of ["position", "normal", "color", "surface"]) {
+    const attribute = source.getAttribute(name);
+    if (!attribute || attribute.count !== source.getAttribute("position")?.count) {
+      throw new Error(`Invalid authored tree attribute: ${name}`);
+    }
+  }
+  const result = template.index ? template.toNonIndexed() : template.clone();
+  for (const [name, attribute] of Object.entries(template.attributes)) {
+    if (attribute instanceof InstancedBufferAttribute) result.setAttribute(name, attribute);
+  }
+  const surface = result.getAttribute("surface"), importedSurface = source.getAttribute("surface");
+  for (const kind of [0, 1]) {
+    const slots: number[] = [], faces: number[] = [];
+    for (let i = 0; i < surface.count; i += 3) if (surface.getX(i) === kind) slots.push(i);
+    for (let i = 0; i < importedSurface.count; i += 3) if (importedSurface.getX(i) === kind) faces.push(i);
+    if (faces.length > slots.length) { result.dispose(); throw new Error("Authored tree exceeds existing surface budget"); }
+    for (const name of ["position", "normal", "color"]) {
+      const target = result.getAttribute(name), input = source.getAttribute(name);
+      slots.forEach((slot, face) => {
+        const start = faces[face] ?? faces[0];
+        if (start === undefined) throw new Error("Empty authored tree surface");
+        for (let j = 0; j < 3; j++) {
+          const index = start + (face < faces.length ? j : 0);
+          target.setXYZ(slot + j, input.getX(index), input.getY(index), input.getZ(index));
+        }
+      });
+    }
+  }
+  result.computeBoundingBox(); result.computeBoundingSphere();
+  return result;
+}
 
 /** Nominal height before instance variation; the lower two thirds are bare. */
 export function pineHeight(seed: number): number {
