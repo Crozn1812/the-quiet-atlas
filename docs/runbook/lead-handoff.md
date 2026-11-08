@@ -1,5 +1,7 @@
 # Bàn giao UX/UI — 2026-11-08
 
+**Duy yêu cầu bàn giao lại cho Claude.** Bản tiếp nhận đầy đủ: [claude-handoff-2026-11-08.md](claude-handoff-2026-11-08.md). Codex đã chuẩn bị tài liệu, chờ Duy gọi Claude tiếp nhận; chưa xác nhận Claude đã đọc. Không còn lịch heartbeat tự chạy.
+
 ## Chỉ dẫn mới nhất: mẫu một khu, chờ Duy duyệt
 
 Duy không nghiệm thu hình ảnh đợt 31 và yêu cầu làm lại First Light trước. FL-01 đã ở trạng thái **review** trên `lane/FirstLight-R1`, source `56d29d5`, docs `720e48e`, worktree `D:/tqa-worktrees/FirstLight-R1`. Gallery: `docs/showcase/32-first-light-prototype/README.md`. Mã mẫu chưa merge main; chỉ sao chép ảnh/báo cáo để duyệt. Không tự mở rộng worker hoặc sửa tiếp gu khi chưa có phản hồi Duy. CPU của mẫu vẫn chưa được ghi PASS (giữ kết quả ban đầu và cặp xác nhận trong báo cáo); cần giải quyết trước sản xuất hàng loạt.

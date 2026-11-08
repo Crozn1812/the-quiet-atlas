@@ -1,5 +1,7 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+**Điều phối mới nhất:** Duy yêu cầu bàn giao cho Claude; xem [bản bàn giao 08/11](runbook/claude-handoff-2026-11-08.md). Codex đã lưu toàn bộ mã/bằng chứng và dừng thi công, chờ Duy gọi Claude tiếp nhận. Mẫu First Light R1 vẫn chờ duyệt, chưa merge.
+
 > Cập nhật lần cuối: 2026-11-08 (đợt 31: UX/UI, e2e 151/151, unit 1697/1697, tải lạnh và Lighthouse PASS trên main `7774ae8`).
 
 **Phản hồi mới của Duy (08/11): hình ảnh/UX/UI chưa đạt yêu cầu, chưa nghiệm thu.** Gate PASS ở đợt 31 chỉ là kết quả kỹ thuật. Bản mẫu **The First Light R1** đã sẵn sàng để Duy chấm gu tại `D:/tqa-worktrees/FirstLight-R1` (`lane/FirstLight-R1`): source `56d29d5`, báo cáo bổ sung `720e48e`. **Chưa merge mẫu lên main, chưa mở rộng sang 7 khu khác.** [Ảnh trước/sau và báo cáo mẫu](showcase/32-first-light-prototype/README.md).
