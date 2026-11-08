@@ -1,0 +1,9 @@
+
+ RUN  v5.1.0 D:/tqa-worktrees/FirstLight-R1
+
+{"before":{"triangles":149929,"draws":84},"after":{"triangles":142800,"draws":82},"ratio":0.9524508267246496}
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:07:19
+   Duration  3.70s (tests 89%, import 6%, transform 5%)

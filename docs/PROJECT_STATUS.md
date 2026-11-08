@@ -2,6 +2,10 @@
 
 > Cập nhật lần cuối: 2026-11-08 (đợt 31: UX/UI, e2e 151/151, unit 1697/1697, tải lạnh và Lighthouse PASS trên main `7774ae8`).
 
+**Phản hồi mới của Duy (08/11): hình ảnh/UX/UI chưa đạt yêu cầu, chưa nghiệm thu.** Gate PASS ở đợt 31 chỉ là kết quả kỹ thuật. Bản mẫu **The First Light R1** đã sẵn sàng để Duy chấm gu tại `D:/tqa-worktrees/FirstLight-R1` (`lane/FirstLight-R1`): source `56d29d5`, báo cáo bổ sung `720e48e`. **Chưa merge mẫu lên main, chưa mở rộng sang 7 khu khác.** [Ảnh trước/sau và báo cáo mẫu](showcase/32-first-light-prototype/README.md).
+
+FL-01: full unit **1703/1703 PASS** trên source mẫu, sau đó thêm test regression và compose **13/13 PASS**; lint/typecheck/build và render ba quality PASS, tải lạnh EN/VI worst **5,38 s**, bảy khu còn lại max luma delta **0,001155**. CPU **chưa đạt/chưa kết luận**, không ghi PASS: hai cặp đầu Workshop +12 ms/s (trần +10); cặp xác nhận đảo thứ tự +6, tổng ba cặp Script +10 / Task +10,33 ms/s. Giữ mọi số đo, cần xử lý/xác nhận gate trước nhân rộng. Duy đang chấm hình khối/màu/mật độ của mẫu; không dùng test PASS thay nghiệm thu thẩm mỹ.
+
 ## Đợt 31 — UX/UI hoàn thiện và kiểm tra cuối (2026-11-08)
 
 Showcase và bản chấm: [docs/showcase/31-ux-final/checklist.md](showcase/31-ux-final/checklist.md). Kết quả chi tiết: [qa-final.md](showcase/31-ux-final/qa-final.md).

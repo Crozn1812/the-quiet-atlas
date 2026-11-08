@@ -1,0 +1,235 @@
+{
+  "source": "56d29d5c9fae057fa332ffe5e1161a5648854faa",
+  "quality": "Balanced",
+  "unit": "ms per actual CDP wall second",
+  "limit": 10,
+  "originalTwoPairStatus": "FAIL; preserved unchanged",
+  "purpose": "Exactly one reverse-order diagnostic pair; no source changes, no repeats; does not supersede original gate",
+  "pairs": [
+    {
+      "order": "baseline then candidate",
+      "baseline": {
+        "first-light": {
+          "seconds": 4.01,
+          "script": 315,
+          "task": 336
+        },
+        "roots": {
+          "seconds": 4.01,
+          "script": 275,
+          "task": 296
+        },
+        "workshop": {
+          "seconds": 4.01,
+          "script": 302,
+          "task": 323
+        }
+      },
+      "candidate": {
+        "first-light": {
+          "seconds": 4.01,
+          "script": 320,
+          "task": 340
+        },
+        "roots": {
+          "seconds": 4.02,
+          "script": 276,
+          "task": 297
+        },
+        "workshop": {
+          "seconds": 4.01,
+          "script": 325,
+          "task": 347
+        }
+      }
+    },
+    {
+      "order": "baseline then candidate",
+      "baseline": {
+        "first-light": {
+          "seconds": 4.01,
+          "script": 309,
+          "task": 328
+        },
+        "roots": {
+          "seconds": 4.02,
+          "script": 273,
+          "task": 294
+        },
+        "workshop": {
+          "seconds": 4.01,
+          "script": 304,
+          "task": 325
+        }
+      },
+      "candidate": {
+        "first-light": {
+          "seconds": 4.01,
+          "script": 319,
+          "task": 339
+        },
+        "roots": {
+          "seconds": 4.01,
+          "script": 285,
+          "task": 306
+        },
+        "workshop": {
+          "seconds": 4.01,
+          "script": 305,
+          "task": 326
+        }
+      }
+    },
+    {
+      "order": "candidate then baseline",
+      "baseline": {
+        "first-light": {
+          "seconds": 4.01,
+          "script": 312,
+          "task": 332
+        },
+        "roots": {
+          "seconds": 4.02,
+          "script": 270,
+          "task": 292
+        },
+        "workshop": {
+          "seconds": 4.02,
+          "script": 303,
+          "task": 324
+        }
+      },
+      "candidate": {
+        "first-light": {
+          "seconds": 4.01,
+          "script": 315,
+          "task": 335
+        },
+        "roots": {
+          "seconds": 4.02,
+          "script": 269,
+          "task": 290
+        },
+        "workshop": {
+          "seconds": 4.01,
+          "script": 309,
+          "task": 330
+        }
+      }
+    }
+  ],
+  "originalTwoPair": {
+    "first-light": {
+      "script": {
+        "baseline": 312,
+        "candidate": 319.5,
+        "delta": 7.5
+      },
+      "task": {
+        "baseline": 332,
+        "candidate": 339.5,
+        "delta": 7.5
+      }
+    },
+    "roots": {
+      "script": {
+        "baseline": 274,
+        "candidate": 280.5,
+        "delta": 6.5
+      },
+      "task": {
+        "baseline": 295,
+        "candidate": 301.5,
+        "delta": 6.5
+      }
+    },
+    "workshop": {
+      "script": {
+        "baseline": 303,
+        "candidate": 315,
+        "delta": 12
+      },
+      "task": {
+        "baseline": 324,
+        "candidate": 336.5,
+        "delta": 12.5
+      }
+    }
+  },
+  "confirmation": {
+    "first-light": {
+      "script": {
+        "baseline": 312,
+        "candidate": 315,
+        "delta": 3
+      },
+      "task": {
+        "baseline": 332,
+        "candidate": 335,
+        "delta": 3
+      }
+    },
+    "roots": {
+      "script": {
+        "baseline": 270,
+        "candidate": 269,
+        "delta": -1
+      },
+      "task": {
+        "baseline": 292,
+        "candidate": 290,
+        "delta": -2
+      }
+    },
+    "workshop": {
+      "script": {
+        "baseline": 303,
+        "candidate": 309,
+        "delta": 6
+      },
+      "task": {
+        "baseline": 324,
+        "candidate": 330,
+        "delta": 6
+      }
+    }
+  },
+  "allThreePair": {
+    "first-light": {
+      "script": {
+        "baseline": 312,
+        "candidate": 318,
+        "delta": 6
+      },
+      "task": {
+        "baseline": 332,
+        "candidate": 338,
+        "delta": 6
+      }
+    },
+    "roots": {
+      "script": {
+        "baseline": 272.6666666666667,
+        "candidate": 276.6666666666667,
+        "delta": 4
+      },
+      "task": {
+        "baseline": 294,
+        "candidate": 297.6666666666667,
+        "delta": 3.6666666666666856
+      }
+    },
+    "workshop": {
+      "script": {
+        "baseline": 303,
+        "candidate": 313,
+        "delta": 10
+      },
+      "task": {
+        "baseline": 324,
+        "candidate": 334.3333333333333,
+        "delta": 10.333333333333314
+      }
+    }
+  }
+}

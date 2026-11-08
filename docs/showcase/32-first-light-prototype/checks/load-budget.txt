@@ -1,0 +1,49 @@
+[WebServer] (node:59236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:53760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+run 1: Welcome /en/ initial transfer=242512 PASS; Welcome /en/ JS (gzip)=140811 PASS; Quick /en/quick/ initial transfer=183421 PASS; Quick /en/quick/ JS (gzip)=137943 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2166471 PASS; Time to playable=5329.89990234375 PASS
+run 2: Welcome /en/ initial transfer=242512 PASS; Welcome /en/ JS (gzip)=140811 PASS; Quick /en/quick/ initial transfer=183421 PASS; Quick /en/quick/ JS (gzip)=137943 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2166471 PASS; Time to playable=5330.7998046875 PASS
+run 3: Welcome /en/ initial transfer=242512 PASS; Welcome /en/ JS (gzip)=140811 PASS; Quick /en/quick/ initial transfer=183421 PASS; Quick /en/quick/ JS (gzip)=137943 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2166471 PASS; Time to playable=5339.300048828125 PASS
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /en/ initial transfer | ≤ 1.00 MB | 236.8 KB (242512 B) | 236.8 KB (242512 B) | 236.8 KB (242512 B) | 236.8 KB (242512 B) | **PASS** |
+| Welcome /en/ JS (gzip) | ≤ 150.0 KB | 137.5 KB (140811 B) | 137.5 KB (140811 B) | 137.5 KB (140811 B) | 137.5 KB (140811 B) | **PASS** |
+| Quick /en/quick/ initial transfer | ≤ 1.00 MB | 179.1 KB (183421 B) | 179.1 KB (183421 B) | 179.1 KB (183421 B) | 179.1 KB (183421 B) | **PASS** |
+| Quick /en/quick/ JS (gzip) | ≤ 150.0 KB | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | **PASS** |
+| Welcome /en/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /en/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | ≤ 8.00 MB | 2.07 MB (2166471 B) | 2.07 MB (2166471 B) | 2.07 MB (2166471 B) | 2.07 MB (2166471 B) | **PASS** |
+| Time to playable | ≤ 10 s | 5.33 s | 5.33 s | 5.34 s | 5.34 s | **PASS** |
+
+Tổng: **PASS** (gate theo kết quả xấu nhất của 3 lần cold load).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.42","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\tqa-worktrees\FirstLight-R1\test-results\load-budget
+  ok 1 tests\perf\load-budget.perf.ts:222:3 › load budget §8 /en/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (30.0s)
+run 1: Welcome /vi/ initial transfer=248734 PASS; Welcome /vi/ JS (gzip)=140811 PASS; Quick /vi/quick/ initial transfer=189794 PASS; Quick /vi/quick/ JS (gzip)=137943 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2166471 PASS; Time to playable=5380.900146484375 PASS
+run 2: Welcome /vi/ initial transfer=248734 PASS; Welcome /vi/ JS (gzip)=140811 PASS; Quick /vi/quick/ initial transfer=189794 PASS; Quick /vi/quick/ JS (gzip)=137943 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2166471 PASS; Time to playable=5348.39990234375 PASS
+run 3: Welcome /vi/ initial transfer=248734 PASS; Welcome /vi/ JS (gzip)=140811 PASS; Quick /vi/quick/ initial transfer=189794 PASS; Quick /vi/quick/ JS (gzip)=137943 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2166471 PASS; Time to playable=5340.900146484375 PASS
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /vi/ initial transfer | ≤ 1.00 MB | 242.9 KB (248734 B) | 242.9 KB (248734 B) | 242.9 KB (248734 B) | 242.9 KB (248734 B) | **PASS** |
+| Welcome /vi/ JS (gzip) | ≤ 150.0 KB | 137.5 KB (140811 B) | 137.5 KB (140811 B) | 137.5 KB (140811 B) | 137.5 KB (140811 B) | **PASS** |
+| Quick /vi/quick/ initial transfer | ≤ 1.00 MB | 185.3 KB (189794 B) | 185.3 KB (189794 B) | 185.3 KB (189794 B) | 185.3 KB (189794 B) | **PASS** |
+| Quick /vi/quick/ JS (gzip) | ≤ 150.0 KB | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | **PASS** |
+| Welcome /vi/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /vi/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | ≤ 8.00 MB | 2.07 MB (2166471 B) | 2.07 MB (2166471 B) | 2.07 MB (2166471 B) | 2.07 MB (2166471 B) | **PASS** |
+| Time to playable | ≤ 10 s | 5.38 s | 5.35 s | 5.34 s | 5.38 s | **PASS** |
+
+Tổng: **PASS** (gate theo kết quả xấu nhất của 3 lần cold load).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.42","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\tqa-worktrees\FirstLight-R1\test-results\load-budget
+  ok 2 tests\perf\load-budget.perf.ts:222:3 › load budget §8 /vi/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (30.4s)
+
+  2 passed (1.0m)

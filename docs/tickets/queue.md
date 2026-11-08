@@ -6,6 +6,8 @@ Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), 
 
 ## Cập nhật đợt 31 — UX/UI (2026-11-08)
 
+**Mới nhất — FL-01:** Duy chưa duyệt gu đợt 31. Mẫu First Light đã **review**, nhánh `lane/FirstLight-R1`, source `56d29d5`, docs `720e48e`, chưa merge. Xem `docs/showcase/32-first-light-prototype/README.md`. Chờ Duy chấm mẫu; CPU chưa chốt PASS, chưa mở rộng tác nhân sang 7 khu.
+
 | ID | Việc | Trạng thái |
 |---|---|---|
 | U-02 | Ảnh bưu thiếp engine 8 khu, overlay tạp chí, Close sticky mobile | merged `f20147d` |

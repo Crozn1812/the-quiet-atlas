@@ -1,0 +1,20 @@
+{
+  "base": "http://127.0.0.1:4415",
+  "origin": {
+    "x": 7.2158966064453125,
+    "y": 8.234495162963867,
+    "z": 3.453852415084839
+  },
+  "errors": [],
+  "frames": [
+    "low-gameplay.webp",
+    "low-eye.webp",
+    "low-overview.webp",
+    "balanced-gameplay.webp",
+    "balanced-eye.webp",
+    "balanced-overview.webp",
+    "high-gameplay.webp",
+    "high-eye.webp",
+    "high-overview.webp"
+  ]
+}

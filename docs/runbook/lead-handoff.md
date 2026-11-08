@@ -1,5 +1,9 @@
 # Bàn giao UX/UI — 2026-11-08
 
+## Chỉ dẫn mới nhất: mẫu một khu, chờ Duy duyệt
+
+Duy không nghiệm thu hình ảnh đợt 31 và yêu cầu làm lại First Light trước. FL-01 đã ở trạng thái **review** trên `lane/FirstLight-R1`, source `56d29d5`, docs `720e48e`, worktree `D:/tqa-worktrees/FirstLight-R1`. Gallery: `docs/showcase/32-first-light-prototype/README.md`. Mã mẫu chưa merge main; chỉ sao chép ảnh/báo cáo để duyệt. Không tự mở rộng worker hoặc sửa tiếp gu khi chưa có phản hồi Duy. CPU của mẫu vẫn chưa được ghi PASS (giữ kết quả ban đầu và cặp xác nhận trong báo cáo); cần giải quyết trước sản xuất hàng loạt.
+
 Duy giao Codex nhận UX/UI còn lại và báo cáo gộp cuối đợt. Ban đầu chạy subagent tuần tự; cập nhật tiếp theo yêu cầu khoảng 5 tác nhân mỗi đợt. Hệ thống hiện cho tối đa 3 subagent đồng thời với root, nên chia 5 vai và xếp theo giới hạn này. Các phép đo GPU/e2e/perf vẫn chạy riêng để tránh nhiễu. Ủy quyền này áp dụng cho đợt UX/UI; không cần chờ ngưỡng usage 95% để thực hiện các ticket này.
 
 ## Trình tự thực hiện

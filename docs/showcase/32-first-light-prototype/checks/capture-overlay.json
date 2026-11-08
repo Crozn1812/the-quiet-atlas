@@ -1,0 +1,17 @@
+{
+  "base": "http://127.0.0.1:4415",
+  "origin": {
+    "x": 7.2158966064453125,
+    "y": 8.23444938659668,
+    "z": 3.4538631439208984
+  },
+  "errors": [],
+  "frames": [
+    "low-overlay.png",
+    "low-overlay-mobile.png",
+    "balanced-overlay.png",
+    "balanced-overlay-mobile.png",
+    "high-overlay.png",
+    "high-overlay-mobile.png"
+  ]
+}

@@ -1,0 +1,9 @@
+
+ RUN  v5.1.0 D:/tqa-worktrees/FirstLight-R1
+
+B2-181 High quiet-shore composer: 120814 triangles, 67 mesh draws; water=2050 triangles, 2 draws (unchanged)
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  20:10:22
+   Duration  35.86s (tests 99%)

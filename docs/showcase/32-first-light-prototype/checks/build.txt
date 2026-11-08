@@ -1,0 +1,45 @@
+$ next build
+▲ Next.js 16.4.4 (Turbopack)
+✓ Running next.config.ts took 25ms
+- Experiments (use with caution):
+  ✓ globalNotFound
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 359ms
+  Running TypeScript ...
+  Finished TypeScript in 2.7s ...
+  Collecting page data using 12 workers ...
+  Generating static pages using 12 workers (0/22) ...
+  Generating static pages using 12 workers (5/22)
+  Generating static pages using 12 workers (10/22)
+  Generating static pages using 12 workers (16/22)
+✓ Generating static pages using 12 workers (22/22) in 738ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├   /[locale]
+│ ├ ● /en
+│ └ ● /vi
+├   /[locale]/privacy
+│ ├ ● /en/privacy
+│ └ ● /vi/privacy
+├   /[locale]/projects/[slug]
+│ ├ ● /en/projects/cms-devops-platform-aws-eks
+│ ├ ● /en/projects/partner-data-gateway-azure
+│ ├ ● /en/projects/insighthub-rag
+│ └ ● [+5 more paths]
+├   /[locale]/quick
+│ ├ ● /en/quick
+│ └ ● /vi/quick
+├   /[locale]/world-content.json
+│ ├ ● /en/world-content.json
+│ └ ● /vi/world-content.json
+├ ○ /cv
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
