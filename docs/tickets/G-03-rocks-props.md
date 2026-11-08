@@ -26,3 +26,7 @@
 ### Trả lại vòng 1
 
 Xem `docs/tickets/_graphics-r1.md`.
+
+### Trả lại vòng 2 (Lead, render High)
+
+GLB đá nhỏ + khúc gỗ đã tải (`assets-loaded.mjs`), nhưng **mặt đất chuyển trắng toàn bộ** ở 7/8 khu (luma 0,83–0,99; ảnh hàng 3 trong `docs/showcase/30-do-hoa/lead-review/g-r1-crops.webp`). Khả năng: khi nạp GLB, code đổi vật liệu/màu dùng chung (ví dụ `traverse` gán lại `material`/`color`/`vertexColors` hoặc colorSpace) và lan sang vật liệu địa hình; hoặc ground.ts thay mesh bằng GLB có vật liệu trắng. Sửa nguyên nhân; vật liệu GLB không được chia sẻ/ghi đè vật liệu địa hình. Ghế/rào và đá lớn: nối vào khu (được sửa tối thiểu `zones/*` nơi tạo mesh gộp). Rebase lên main mới nhất (G-01/G-02/G-04 đã merge). Tự kiểm: `node tools/review/assets-loaded.mjs http://127.0.0.1:4303` + `TQA_QUALITY=high node tools/review/ingame-shots.mjs <dir> http://127.0.0.1:4303 vi` + `luma.mjs` (luma 8 khu ±0,03 so với main).
