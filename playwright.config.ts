@@ -21,7 +21,8 @@ export default defineConfig({
   // a 30 s default test timeout made world specs flaky (2026-11-06). Assertions keep their own timeouts.
   timeout: 90_000,
   retries: isCI ? 1 : 0,
-  workers: isCI ? 2 : undefined,
+  // Software WebGL (SwiftShader) saturates the CPU: more than 4 local workers time out Enter World (2026-11-09).
+  workers: isCI ? 2 : 4,
   reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
