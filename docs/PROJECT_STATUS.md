@@ -546,6 +546,14 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 | T10, playtest người thật | **DEFERRED** (chờ UX/UI ~90–100 %) |
 | T08/T09 Iris Xe | **NOT RUN** |
 
+### Đợt 30 (2026-11-07/08): mở đợt đồ họa (ADR 0014) + ưu tiên UX/UI
+
+- Merge: B2-241 tán rừng xa (intro đọc là rừng), B2-242 bờ đá ấm Quiet Shore, B2-243 sông chỉ nhường biển ở cửa sông thật (giữ suối Horizon), B2-244 hoàng hôn trên biển lúc chơi + sông ven biển đọc được.
+- ADR 0014: cho phép GLB Blender + texture KTX2 tự sinh. Mẫu vòng duyệt gu đã merge (bản mẫu, Duy duyệt gu sau): **G-01** texture đất (5 KTX2, 385 KB; Lead sửa lỗi shader), **G-02** 6 cây Blender, **G-04** AO màn hình + bóng mềm. **G-03** đá/prop: trả lại (mặt đất chuyển trắng).
+- UX/UI ưu tiên (Duy 2026-11-08): **U-01** thang chữ UI world + Quick, **U-02** overlay khu hướng A (ảnh render từng khu), **U-03** nút Enter World + hero mới (chờ U-01).
+- Lead: `tools/lead/autoresume.sh` (tự chạy lại khi Codex hồi lượt, sửa lỗi vòng chờ cũ làm dừng 3 giờ), `tools/review/{assets-loaded,intro-shots,ux-shots}.mjs`, `TQA_QUALITY=high` cho `ingame-shots`. Runbook Codex-Lead: `docs/runbook/codex-lead.md` (Claude ≥ 95 % tuần → Codex làm Lead).
+- Kiểm tra trên `500e178`: lint/typecheck/unit 1676 **PASS**; e2e/perf/Lighthouse đợt này **NOT RUN** (chạy sau khi merge U-xx).
+
 ### Đợt 29b (2026-11-07): đi xe, camera, ánh sáng lúc chơi, cửa sông
 
 - B2-236 (Codex, 2 vòng): chân trời intro mượt (`setFogColorOverride`), cảnh bưu thiếp hết mảng tối (mặt nạ cửa sông chỉ trong ending).
