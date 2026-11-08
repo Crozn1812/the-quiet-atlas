@@ -17,3 +17,12 @@
 ### Vòng 1 (Lead): tự kiểm tra
 
 `_common-b2.md` đã cho phép mở Edge local. Build, chụp spawn (Balanced + High), góc nhìn về nguồn, intro 10/15 s, 7 khu khác + `luma.mjs`, và `cpu-compare.mjs` 2 cặp với main (4180, Lead đã build main mới). Dán bảng.
+
+### Trả lại vòng 2 (Lead, render)
+
+Ảnh: `docs/showcase/32-first-light-prototype/lead-review/fl02-r1.webp` (spawn Balanced/High, intro 10/15 s). Có nguồn nhưng **chưa đọc là núi đá tự nhiên**:
+1. Vách = 3 khối hộp xám thẳng đứng xếp thành vòm → như cột bê tông. Làm **cụm đá tự nhiên**: 5–9 tảng đa diện kích cỡ khác nhau (1–5 m) chồng lên nhau, mặt nghiêng không vuông, rêu phủ theo mặt hướng lên (dùng ngôn ngữ đá G-03/R1), chân vách hoà vào địa hình (đẩy terrain lên thành mô đất quanh chân), một mép đá nhô ra phía trên khe.
+2. Vũng = đĩa xanh phẳng đặt trên cỏ → **trũng xuống mặt đất** (hạ terrain), viền bằng đá cuội/tảng nhỏ, mặt nước dùng cùng vật liệu nước suối (có phản chiếu), không viền tròn hoàn hảo.
+3. Dòng chảy ra khỏi khe như "tấm ván xanh" → thác nhỏ 1–2 m có độ dày, bọt trắng ở chân, rồi nối mượt vào ribbon suối (không gãy góc).
+4. Intro 10 s có **mảng tam giác tối lớn** trên mặt đất (góc dưới phải) — tìm nguyên nhân (suppression backdrop vùng 48 m hay tile) và sửa.
+5. Thời gian vào chơi xấu nhất 6,9 s (> 6 s nội bộ): đo lại khi máy rảnh; nếu vẫn > 6 s, tìm phần dựng/tải mới trên đường tới playable và chuyển sang deferred.
