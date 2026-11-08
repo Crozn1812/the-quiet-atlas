@@ -36,8 +36,8 @@ function tree(points: readonly Point[], start = 0, end = points.length - 1): Nod
 }
 
 export function distanceToBoundsSquared(x: number, z: number, bounds: Bounds): number {
-  const dx = Math.max(bounds.minX - x, 0, x - bounds.maxX);
-  const dz = Math.max(bounds.minZ - z, 0, z - bounds.maxZ);
+  const dx = x < bounds.minX ? bounds.minX - x : x > bounds.maxX ? x - bounds.maxX : 0;
+  const dz = z < bounds.minZ ? bounds.minZ - z : z > bounds.maxZ ? z - bounds.maxZ : 0;
   return dx * dx + dz * dz;
 }
 
@@ -50,32 +50,45 @@ export function segmentFraction(x: number, z: number, a: Point, b: Point): numbe
 
 function lookup(points: readonly Point[]) {
   const root = tree(points);
+  // Keep the original division/order of arithmetic: terrain remains bit-exact.
+  const segments = points.slice(0, -1).map((a, i) => {
+    const b = points[i + 1]!, dx = b.x - a.x, dz = b.z - a.z;
+    return { dx, dz, lengthSquared: dx * dx + dz * dz };
+  });
+  let cachedX = NaN, cachedZ = NaN, cachedPX = 0, cachedPZ = 0, cachedT = 0, cachedDistance = 0;
   return (x: number, z: number) => {
+    // Height, colour and collision samplers often ask for the same point
+    // consecutively. Keep one exact query, returning an independent object.
+    if (x === cachedX && z === cachedZ) return { x: cachedPX, z: cachedPZ, t: cachedT, distance: cachedDistance };
     let bestSquared = Infinity;
-    let nearest: Point = points[0]!;
-    const visit = (node: Node) => {
-      if (distanceToBoundsSquared(x, z, node) > bestSquared) return;
+    let nearestX = points[0]!.x, nearestZ = points[0]!.z, nearestT = points[0]!.t;
+    const visit = (node: Node, lowerBound: number) => {
+      if (lowerBound > bestSquared) return;
       if (node.left && node.right) {
-        const leftFirst = distanceToBoundsSquared(x, z, node.left) <= distanceToBoundsSquared(x, z, node.right);
-        visit(leftFirst ? node.left : node.right);
-        visit(leftFirst ? node.right : node.left);
+        const left = distanceToBoundsSquared(x, z, node.left), right = distanceToBoundsSquared(x, z, node.right);
+        if (left <= right) { visit(node.left, left); visit(node.right, right); }
+        else { visit(node.right, right); visit(node.left, left); }
         return;
       }
       for (let i = node.start; i < node.end; i++) {
         const a = points[i]!;
         const b = points[i + 1]!;
-        const u = segmentFraction(x, z, a, b);
+        const { dx, dz, lengthSquared } = segments[i]!;
+        const fraction = lengthSquared === 0 ? 0 : ((x - a.x) * dx + (z - a.z) * dz) / lengthSquared;
+        const u = fraction <= 0 ? 0 : fraction >= 1 ? 1 : fraction;
         const px = a.x + (b.x - a.x) * u;
         const pz = a.z + (b.z - a.z) * u;
         const squared = (x - px) ** 2 + (z - pz) ** 2;
         if (squared < bestSquared) {
           bestSquared = squared;
-          nearest = { x: px, z: pz, t: a.t + (b.t - a.t) * u };
+          nearestX = px; nearestZ = pz; nearestT = a.t + (b.t - a.t) * u;
         }
       }
     };
-    visit(root);
-    return { ...nearest, distance: Math.sqrt(bestSquared) };
+    visit(root, 0);
+    cachedX = x; cachedZ = z; cachedPX = nearestX; cachedPZ = nearestZ; cachedT = nearestT;
+    cachedDistance = Math.sqrt(bestSquared);
+    return { x: nearestX, z: nearestZ, t: nearestT, distance: cachedDistance };
   };
 }
 

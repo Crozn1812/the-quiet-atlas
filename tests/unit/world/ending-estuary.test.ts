@@ -1,6 +1,6 @@
 import { Vector3 } from "three";
 import { expect, it } from "vitest";
-import { riverLength, riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
+import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL } from "../../../src/features/world/water/ribbon";
@@ -22,19 +22,11 @@ it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves every upstream vertex at t < 
   const geometry = createRibbonGeometry(segments);
   try {
     const positions = geometry.getAttribute("position");
-    const source = riverPointAt(0);
-    const tangent = riverTangentAt(0);
-    const sourceBed = Math.min(...[-1, 0, 1].map(side => worldHeight(
-      source.x - tangent.z * riverWidthAt(0) / 2 * side,
-      source.z + tangent.x * riverWidthAt(0) / 2 * side,
-    )));
-    const sourceSink = Math.max(0, waterLevelAt(source.z) - sourceBed + 0.06);
     for (let row = 0; row / segments < 0.95; row++) {
       const t = row / segments;
       const centre = riverPointAt(t);
       const tangent = riverTangentAt(t);
-      const emergence = Math.min(1, t * riverLength() / 4);
-      const level = waterLevelAt(centre.z) - sourceSink * (1 - emergence * emergence * (3 - 2 * emergence));
+      const level = waterLevelAt(centre.z);
       for (const side of [-1, 1]) {
         const vertex = row * 2 + (side + 1) / 2;
         expect([positions.getX(vertex), positions.getY(vertex), positions.getZ(vertex)]).toEqual([

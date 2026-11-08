@@ -1,3 +1,4 @@
+import { inFirstLightGrove } from "./first-light-grove";
 import { type Box3, BufferGeometry, Color, DoubleSide, DynamicDrawUsage, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D, Vector2 } from "three";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
@@ -13,6 +14,7 @@ const S = GRASS_FIELD_SPACING;
 
 /** Conservative clearance also covers the bent blade's horizontal footprint. */
 export function grassFieldAllowed(x: number, z: number, zoneBounds: readonly Box3[] = []): boolean {
+  if (inFirstLightGrove(x, z)) return false;
   const biome = foliageBiomeAt(x, z);
   if (biome !== "hill" && biome !== "coast-dusk"
     && biome !== "forest-dawn") return false;

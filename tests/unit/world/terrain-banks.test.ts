@@ -1,4 +1,4 @@
-﻿import { createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { PATH_BRIDGES, pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
@@ -66,6 +66,8 @@ describe("hill stream banks", () => {
   it("preserves forest banks, every half metre of walking strip/bridge approaches and dry zone foundations", () => {
     // Digests captured from the pre-B2-195 heightfield at micrometre precision:
     // stricter than the allowed 0.05 m movement, without bulky height arrays.
+    // FL-02 updates only the forest digest for the source basin and rock-foot shoulders;
+    // walking/zone digests remain the original exact baseline.
     const forest = createHash("sha256"), path = createHash("sha256"), zones = createHash("sha256");
     const record = (hash: ReturnType<typeof createHash>, x: number, z: number) => {
       const base = roadBaseHeight(x, z);
@@ -102,7 +104,7 @@ describe("hill stream banks", () => {
       }
     }
     expect({ forest: forest.digest("hex"), path: path.digest("hex"), zones: zones.digest("hex") }).toEqual({
-      forest: "ad0ed709f75f2a7fb8e7f6a121a68981856702af9585a614a5eb4bc23475dce8",
+      forest: "dbd0c5b3440360a20cf2ea72e1118f1abcfa4481244e147c3aad8b2cd1e93534",
       path: "07a7fe1af33f072b32d24505fd93645b40c447a7fe3b0753047043b5ad901dcc",
       zones: "b6278fcdc31f2cc70a082b39dc0056e64ad14358fef8b4773bc8b39b50a0a82b",
     });

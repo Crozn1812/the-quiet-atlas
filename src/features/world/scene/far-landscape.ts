@@ -147,6 +147,19 @@ export function createFarLandscape({ deferred = false } = {}) {
   const step = size / cells;
   const material = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
   material.color.setRGB(1, 1, 1);
+  const firstLightView = { value: 0 };
+  const previousCompile = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    previousCompile(shader, renderer);
+    shader.uniforms.firstLightView = firstLightView;
+    // Resident playable tiles stay visible. This remote low-detail backdrop is suppressed only
+    // while walking in the authored First Light clearing, never in the other zones or cinematics.
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float firstLightView;")
+      .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
+float firstLightDither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453);
+if (firstLightDither < firstLightView) discard;`);
+  };
+  material.customProgramCacheKey = () => `${previousKey.call(material)}-first-light-far-view-v3`;
   material.polygonOffset = true;
   material.polygonOffsetFactor = 2;
   material.polygonOffsetUnits = 4;
@@ -211,6 +224,7 @@ export function createFarLandscape({ deferred = false } = {}) {
   if (!deferred) while (!build.next().done) { /* Compatibility for standalone callers. */ }
   return {
     mesh, build,
+    setFirstLightView(weight: number) { firstLightView.value = Math.max(0, Math.min(1, weight)); },
     dispose() {
       if (disposed) return;
       disposed = true;

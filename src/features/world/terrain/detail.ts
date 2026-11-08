@@ -46,29 +46,40 @@ float groundDetail(vec3 pigment) {
 `;
 
 /** Composition owns this binding; first render starts local assets even without Lead entry wiring. */
-export function bindTerrainDetail(root: Object3D, material: MeshToonMaterial, initialQuality: Quality, onError: (error: unknown) => void) {
+export function bindTerrainDetail(root: Object3D, material: MeshToonMaterial, initialQuality: Quality, onError: (error: unknown) => void, deferred = false) {
   let quality = initialQuality;
   let controller: ReturnType<typeof createTerrainDetail> | undefined;
   let started = false, disposed = false;
+  let deferredRenderer: WebGLRenderer | undefined;
   const previous = material.onBeforeRender;
   const ready = async (renderer: WebGLRenderer) => {
     if (disposed) return;
+    if (deferred) { deferredRenderer = renderer; return; }
     controller ??= createTerrainDetail(root, renderer);
     started = true;
     await controller.setQuality(quality);
   };
   material.onBeforeRender = function (renderer, ...args) {
     previous.call(this, renderer, ...args);
-    if (!started && quality !== "Low") void ready(renderer).catch(onError);
+    if (!started && !deferred && quality !== "Low") void ready(renderer).catch(onError);
   };
   return {
     ready,
+    /** Optional texture relief follows the first painted, playable ground frame. */
+    resume() {
+      deferred = false;
+      if (deferredRenderer) {
+        const renderer = deferredRenderer; deferredRenderer = undefined;
+        void ready(renderer).catch(onError);
+      }
+    },
     setQuality(next: Quality) {
       quality = next;
       if (controller) void controller.setQuality(next).catch(onError);
     },
     dispose() {
       disposed = true;
+      deferredRenderer = undefined;
       material.onBeforeRender = previous;
       controller?.dispose();
     },

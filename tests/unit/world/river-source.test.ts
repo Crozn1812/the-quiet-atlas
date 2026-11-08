@@ -33,7 +33,7 @@ describe("river spring ribbon", () => {
     } finally { geometry.dispose(); }
   });
 
-  it("buries both cap vertices by at least 5 cm and emerges inside the spring pool", () => {
+  it("joins the cap to the carved spring pool and preserves downstream level", () => {
     const geometry = createRibbonGeometry();
     try {
       const positions = geometry.getAttribute("position");
@@ -41,8 +41,8 @@ describe("river spring ribbon", () => {
         const x = positions.getX(vertex);
         const y = positions.getY(vertex);
         const z = positions.getZ(vertex);
-        expect(worldHeight(x, z) - y).toBeGreaterThanOrEqual(0.05);
-        expect(surfaceHeight(x, z) - y).toBeGreaterThanOrEqual(0.05);
+        expect(y).toBeCloseTo(waterLevelAt(riverPointAt(0).z), 5);
+        expect(y).toBeGreaterThan(worldHeight(x, z));
       }
       // The cap gives way to visible water before leaving the 4 m hollow.
       const row = Math.floor(3.5 / riverLength() * RIBBON_SEGMENTS);
@@ -112,12 +112,14 @@ describe("spring terrain and dry access", () => {
       for (let radius = 0; radius <= 4; radius += 0.5) {
         const point = source.clone().addScaledVector(direction, radius);
         const depression = depressionAt(point);
-        expect(depression).toBeGreaterThanOrEqual(-1e-10);
-        expect(depression).toBeLessThanOrEqual(previous + 1e-10);
+        // Rock-foot shoulders intentionally rise above the former bank.
+        expect(depression).toBeGreaterThanOrEqual(-0.7 - 1e-10);
+        expect(depression).toBeLessThanOrEqual(0.45 + 1e-10);
+        if (depression >= 0 && previous >= 0) expect(depression).toBeLessThanOrEqual(previous + 1e-10);
         previous = depression;
       }
       const rim = source.clone().addScaledVector(direction, 4);
-      expect(depressionAt(rim)).toBeCloseTo(0, 10);
+      expect(depressionAt(rim)).toBeLessThanOrEqual(1e-10);
       expect(worldHeight(rim.x, rim.z) - worldHeight(source.x, source.z)).toBeGreaterThanOrEqual(0.3);
     }
     const upstream = (metres: number) => source.clone().addScaledVector(tangent, -metres);

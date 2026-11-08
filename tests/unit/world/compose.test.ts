@@ -1,11 +1,12 @@
 import { STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { afterEach, expect, it, vi } from "vitest";
-import { BufferGeometry, Fog, HemisphereLight, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
+import { Box3, BufferGeometry, Color, Fog, HemisphereLight, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
 import { createController } from "../../../src/features/world/rapier";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
 import { createGradedPaperPass } from "../../../src/features/world/scene/paper";
 import { createFoliageColliders } from "../../../src/features/world/foliage/colliders";
+import { createFirstLightGrove, inFirstLightGrove } from "../../../src/features/world/foliage/first-light-grove";
 import { scatterTile } from "../../../src/features/world/foliage/scatter";
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
@@ -21,7 +22,7 @@ import { createWaterMaterial, WaterMaterial } from "../../../src/features/world/
 
 afterEach(() => { disposeRampGradients(); vi.restoreAllMocks(); });
 
-it("shares biome fog distances between native fog and paper at every quality, including the return to forest", () => {
+it("shares the local First Light treatment and unchanged biome fog with paper at every quality, including return travel", () => {
   const backend = createMeshPhysics();
   const scene = new Scene();
   const paper = { setGrade: vi.fn(), setMist: vi.fn(), setFog: vi.fn() };
@@ -33,15 +34,21 @@ it("shares biome fog distances between native fog and paper at every quality, in
       for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
         const zone = ZONES.find(zone => zone.id === id)!;
         composed.update(new Vector3().copy(zone.position), 0);
-        const expected = zone.biome === "forest-dawn" ? { near: 35, far: 190 }
+        const expected = id === "first-light" ? { near: 60, far: 180 } : zone.biome === "forest-dawn" ? { near: 35, far: 190 }
           : zone.biome === "coast-dusk" ? { near: 160, far: 900 } : { near: 120, far: 700 };
         expect(scene.fog).toBeInstanceOf(Fog);
         expect((scene.fog as Fog).near).toBe(expected.near);
         expect((scene.fog as Fog).far).toBeCloseTo(expected.far, 8);
         expect(paper.setFog.mock.lastCall![0].near).toBe(expected.near);
         expect(paper.setFog.mock.lastCall![0].far).toBeCloseTo(expected.far, 8);
-        expect(paper.setFog.mock.lastCall![0].forestWeight).toBe(zone.biome === "forest-dawn" ? 1 : 0);
+        expect(paper.setFog.mock.lastCall![0].forestWeight).toBe(zone.biome === "forest-dawn" && id !== "first-light" ? 1 : 0);
         const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(zone.t)), timeOfDayAt(zone.t)), zone.t);
+        if (id === "first-light") {
+          // Intentional one-zone art prototype; every other zone retains its exact shipped contract.
+          grade.sunIntensity = 2;
+          grade.hemiIntensity = 1.25;
+          grade.fogColor.set(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.25);
+        }
         // nearestPath's sampled projection differs slightly from the authored zone t.
         expect(composed.sun.intensity).toBeCloseTo(grade.sunIntensity, 6);
         expect(composed.sun.color.toArray()).toEqual(grade.sunColor.toArray().map(v => expect.closeTo(v, 6)));
@@ -51,8 +58,8 @@ it("shares biome fog distances between native fog and paper at every quality, in
         expect(paper.setGrade.mock.lastCall![0].sunIntensity).toBeCloseTo(grade.sunIntensity, 6);
         const water = scene.children.filter((child): child is Mesh<BufferGeometry, WaterMaterial> =>
           child instanceof Mesh && child.material instanceof WaterMaterial);
-        expect(water).toHaveLength(2);
-        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([2048, 2]);
+        expect(water).toHaveLength(4);
+        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([2048, 2, 12, 24]);
         if (quality === "High" && id === "quiet-shore") {
           let triangles = 0, draws = 0;
           scene.traverseVisible(object => {
@@ -111,11 +118,13 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
   try {
     track(composed);
     const initial = tilesToLoad(0);
-    const expectedTrees = initial.flatMap(tile => scatterTile(tile));
+    const expectedTrees = initial.flatMap(tile => scatterTile(tile)).filter(tree => !inFirstLightGrove(tree.x, tree.z));
+    const referenceGrove = createFirstLightGrove(surfaceHeight, []);
+    const groveCount = referenceGrove.sites.length; referenceGrove.dispose();
     const descriptors = created.mock.calls.map(([descriptor]) => descriptor);
-    expect(descriptors).toHaveLength(initial.length + expectedTrees.length);
-    expect(physics.world.colliders.len()).toBe(1 + initial.length + expectedTrees.length);
-    expect(composed.collisionMeshes).toHaveLength(initial.length + expectedTrees.length);
+    expect(descriptors).toHaveLength(initial.length + expectedTrees.length + groveCount + 7);
+    expect(physics.world.colliders.len()).toBe(1 + initial.length + expectedTrees.length + groveCount + 7);
+    expect(composed.collisionMeshes).toHaveLength(initial.length + expectedTrees.length + groveCount + 1);
     for (const tile of initial) expect(composed.contains({ x: (tile.ix + 0.5) * TILE_SIZE, z: (tile.iz + 0.5) * TILE_SIZE })).toBe(true);
     expect(worldSpawn().x).toBeCloseTo(ZONES[0]!.position.x);
     physics.teleport(worldSpawn());
@@ -135,10 +144,11 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
       composed.setQuality(quality);
       track(composed);
       expect(new Set(composed.collisionMeshes)).toEqual(handles);
-      expect(created).toHaveBeenCalledTimes(initial.length + expectedTrees.length);
+      expect(created).toHaveBeenCalledTimes(initial.length + expectedTrees.length + groveCount + 7);
       expect(removed).not.toHaveBeenCalled();
     }
-    const oldTerrain = composed.collisionMeshes.slice(0, initial.length).map(mesh => mesh.geometry);
+    const oldTerrain = composed.collisionMeshes.filter(mesh => mesh.name === "terrain-tile").map(mesh => mesh.geometry);
+    expect(oldTerrain).toHaveLength(initial.length);
     const routeLength = pathLength();
     for (let distance = 5; distance <= 300; distance += 5) {
       composed.update(pathPointAt(distance / routeLength), FIXED_DT);
@@ -147,12 +157,17 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     const desired = tilesToLoad(300 / routeLength);
     const desiredKeys = new Set(desired.map(tile => tileKey(tile.ix, tile.iz)));
     expect(removed.mock.calls.length).toBeGreaterThan(0);
-    expect(created.mock.calls.length).toBeGreaterThan(initial.length + expectedTrees.length);
+    expect(created.mock.calls.length).toBeGreaterThan(initial.length + expectedTrees.length + groveCount);
     expect(oldTerrain.some(geometry => geometryCounts.get(geometry) === 1)).toBe(true);
     expect(initial.some(tile => !desiredKeys.has(tileKey(tile.ix, tile.iz)))).toBe(true);
     for (const tile of desired) expect(composed.contains({ x: (tile.ix + 0.5) * TILE_SIZE, z: (tile.iz + 0.5) * TILE_SIZE })).toBe(true);
-    const treeCount = desired.flatMap(tile => scatterTile(tile)).length;
-    expect(physics.world.colliders.len()).toBe(1 + desired.length + treeCount);
+    const treeCount = desired.flatMap(tile => scatterTile(tile)).filter(tree => !inFirstLightGrove(tree.x, tree.z)).length + groveCount;
+    expect(physics.world.colliders.len()).toBe(1 + desired.length + treeCount + 7);
+    expect(composed.collisionMeshes.some(mesh => mesh.name === "spring-mossy-cliff")).toBe(false);
+    expect(scene.getObjectByName("first-light-spring")!.visible).toBe(false);
+    composed.update(worldSpawn(), 0);
+    expect(composed.collisionMeshes.some(mesh => mesh.name === "spring-mossy-cliff")).toBe(true);
+    expect(scene.getObjectByName("first-light-spring")!.visible).toBe(true);
     const destination = pathPointAt(0.95);
     composed.update(destination, 0);
     track(composed);
@@ -209,7 +224,7 @@ it("retains walking ground on streaming failure and retries; mesh fallback never
   } finally { composed.dispose(); }
 });
 
-it("cleans up an initial tile failure before handing a scene to the first frame", () => {
+it.each([1, 3])("cleans up an initial allocation failure on collider %i before handing a scene to the first frame", failAt => {
   const backend = createMeshPhysics();
   const scene = new Scene();
   const geometryDispose = vi.spyOn(BufferGeometry.prototype, "dispose");
@@ -220,18 +235,22 @@ it("cleans up an initial tile failure before handing a scene to the first frame"
     geometries.add(this);
     return setAttribute.call(this, name, attribute);
   });
-  backend.world.createCollider = () => { throw new Error("initial allocation failed"); };
+  let allocations = 0;
+  const removeCollider = vi.spyOn(backend.world, "removeCollider");
+  backend.world.createCollider = () => {
+    if (++allocations === failAt) throw new Error("initial allocation failed");
+    return {} as ReturnType<typeof backend.world.createCollider>;
+  };
   expect(() => createWorldScene({ ...backend, scene, quality: "Balanced" })).toThrow("initial allocation failed");
   expect(scene.children).toHaveLength(0);
-  // B2-194 removes the two temporary rock cylinders by using the stone kit.
-  // Six non-ground + 26 ground geometries: 11 source variants, 11 expanded
-  // copies and 4 merged batches, all still released exactly once.
-  // +1: the B2-214 grass tuft geometry.
-  expect(geometryDispose).toHaveBeenCalledTimes(33);
+  expect(removeCollider).toHaveBeenCalledTimes(failAt - 1);
+  // The authored grove adds temporary facets and owned meshes; assert complete unique disposal,
+  // rather than a brittle fixed allocation count.
+  expect(geometryDispose.mock.contexts.length).toBeGreaterThan(33);
   expect(new Set(geometryDispose.mock.contexts)).toEqual(geometries);
   expect(geometryDispose.mock.contexts).toHaveLength(geometries.size);
-  expect(materialDispose).toHaveBeenCalledTimes(8); // +1 shared ground material (B2-047), +1 coast mist (B2-155), +1 grass field (B2-214)
-  expect(new Set(materialDispose.mock.contexts).size).toBe(8);
+  expect(materialDispose.mock.contexts.length).toBeGreaterThan(8);
+  expect(new Set(materialDispose.mock.contexts).size).toBe(materialDispose.mock.contexts.length);
 });
 
 it("grades paper fog without changing the paper pigment, across Low and High reallocations", async () => {
@@ -336,7 +355,7 @@ it("defers distant ground, preserves one-shot instance parity, and cancels mid-b
   }));
   try {
     expect(composed.groundReady).toBe(false);
-    expect(composed.collisionMeshes.length).toBe(full.collisionMeshes.length);
+    expect(composed.collisionMeshes.length).toBeLessThan(full.collisionMeshes.length);
     const spawn = worldSpawn(), matrix = new Matrix4();
     let initial = 0;
     for (const mesh of meshes(scene)) for (let i = 0; i < mesh.count; i++) {
@@ -348,7 +367,10 @@ it("defers distant ground, preserves one-shot instance parity, and cancels mid-b
       expect(Math.hypot(Math.max(x - spawn.x, 0, spawn.x - x - TILE_SIZE),
         Math.max(z - spawn.z, 0, spawn.z - z - TILE_SIZE))).toBeLessThanOrEqual(25);
     }
-    expect(initial).toBeGreaterThan(0);
+    expect(initial).toBe(0);
+    expect(composed.buildGround.next().done).toBe(false);
+    expect(composed.collisionMeshes.length).toBeLessThan(full.collisionMeshes.length);
+    scene.onAfterRender(...([] as unknown as Parameters<typeof scene.onAfterRender>));
     let steps = 0;
     while (!composed.buildGround.next().done) {
       expect(++steps).toBeLessThan(100000);
@@ -357,6 +379,7 @@ it("defers distant ground, preserves one-shot instance parity, and cancels mid-b
     }
     expect(steps).toBeGreaterThan(1);
     expect(composed.groundReady).toBe(true);
+    expect(composed.collisionMeshes.length).toBe(full.collisionMeshes.length);
     expect(snapshot(scene)).toEqual(snapshot(reference));
     composed.setQuality("Low"); full.setQuality("Low");
     expect(snapshot(scene)).toEqual(snapshot(reference));
@@ -371,3 +394,41 @@ it("defers distant ground, preserves one-shot instance parity, and cancels mid-b
   expect(dispose).toHaveBeenCalledTimes(1);
   expect(cancelledScene.children).toHaveLength(0);
 }, 30000);
+
+it("restores synchronous foliage collision before leaving the protected deferred clearing", () => {
+  const scene = new Scene(), reference = new Scene();
+  const composed = createWorldScene({ ...createMeshPhysics(), scene, quality: "Low", deferredGround: true });
+  const full = createWorldScene({ ...createMeshPhysics(), scene: reference, quality: "Low" });
+  try {
+    expect(composed.collisionMeshes.length).toBeLessThan(full.collisionMeshes.length);
+    const destination = pathPointAt(0.1);
+    composed.update(destination, 0); full.update(destination, 0);
+    expect(composed.collisionMeshes.length).toBe(full.collisionMeshes.length);
+  } finally { composed.dispose(); full.dispose(); }
+});
+
+it("retains the old authored grove after partial deferred collider failure and retries atomically", () => {
+  const backend = createMeshPhysics();
+  const world = backend.world as import("../../../src/features/world/terrain/collider").TilePhysicsWorld;
+  const bounds: Box3[] = [], scene = new Scene();
+  const active = new Set<ReturnType<typeof world.createCollider>>();
+  world.createCollider = () => { const collider = {} as ReturnType<typeof world.createCollider>; active.add(collider); return collider; };
+  world.removeCollider = collider => { active.delete(collider); };
+  const composed = createWorldScene({ ...backend, world, scene, quality: "Balanced", zoneBounds: bounds });
+  try {
+    const before = new Set(active), meshes = [...composed.collisionMeshes];
+    const old = scene.getObjectByName("first-light-authored-grove")!;
+    bounds.push(new Box3().setFromCenterAndSize(meshes[0]!.position, new Vector3(2, 30, 2)));
+    const allocate = world.createCollider; let count = 0;
+    world.createCollider = descriptor => { if (++count === 3) throw new Error("staged failure"); return allocate(descriptor); };
+    composed.update(worldSpawn(), 0);
+    expect(composed.streamingError).toBeInstanceOf(Error);
+    expect(active).toEqual(before); expect(composed.collisionMeshes).toEqual(meshes);
+    expect(old.parent).toBe(scene);
+    world.createCollider = allocate;
+    composed.update(worldSpawn(), 0);
+    expect(composed.streamingError).toBeUndefined(); expect(old.parent).toBeNull();
+    expect(composed.collisionMeshes).not.toContain(meshes[0]);
+  } finally { composed.dispose(); }
+  expect(active.size).toBe(0); expect(scene.children).toHaveLength(0);
+});

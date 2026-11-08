@@ -7,6 +7,7 @@ import { SIGNPOSTS, arrivalPoint } from "../navigation/signposts";
 import { createTeleport, MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../navigation/teleport";
 import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
 import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_PITCH, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
+import { firstLightCameraPitch, firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
 import { createWorldScene, nearestSafePath, surfaceHeight, worldSpawn } from "./scene/compose";
@@ -1005,7 +1006,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const target = physics.position.clone();
     // B2-238: riding eases into a closer, lower chase framing (bike + rider ~12–18 % of the frame).
     rideBlend += ((vehicle.mode === "ride" ? 1 : 0) - rideBlend) * (1 - Math.exp(-4 * Math.max(0, Math.min(dt, 0.1))));
-    const pitch = CAMERA_PITCH - rideBlend * RIDE_PITCH_DROP;
+    const pitch = firstLightCameraPitch(target.x, target.z, CAMERA_PITCH) - rideBlend * RIDE_PITCH_DROP;
     const direction = new Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
     raycaster.set(target, direction);
     const distance = zoom * (1 - rideBlend * (1 - RIDE_DISTANCE));
@@ -1173,7 +1174,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // Match the orbit camera at the dry final landing, facing Last Postcard.
     yaw = Math.atan2(landing.x - postcard.position.x, landing.z - postcard.position.z);
     zoom = arm = INITIAL_ZOOM;
-    const endPosition = landing.clone().add(new Vector3(Math.sin(yaw) * Math.cos(CAMERA_PITCH), Math.sin(CAMERA_PITCH), Math.cos(yaw) * Math.cos(CAMERA_PITCH)).multiplyScalar(zoom));
+    const landingPitch = firstLightCameraPitch(landing.x, landing.z, CAMERA_PITCH);
+    const endPosition = landing.clone().add(new Vector3(Math.sin(yaw) * Math.cos(landingPitch), Math.sin(landingPitch), Math.cos(yaw) * Math.cos(landingPitch)).multiplyScalar(zoom));
     endPosition.y = Math.max(endPosition.y, surfaceHeight(endPosition.x, endPosition.z) + CAMERA_CLEARANCE);
     endingOptions = {
       bench: secretTargets.find(target => target.id === "unwritten-page")!.root.position,
@@ -1343,6 +1345,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       camera.position.fromArray(postcard.position);
       camera.lookAt(new Vector3().fromArray(postcard.target));
     }
+    farLandscape?.setFirstLightView?.(cinematicLocked() ? 0 : firstLightGroveWeight(physics.position.x, physics.position.z));
     // Async asset completion must not change the picture behind an open menu/journal.
     // Keep RAF/input/clock ownership alive; resume draws the latest scene normally.
     if (canSimulate(state) || cinematicLocked() || redraw) {

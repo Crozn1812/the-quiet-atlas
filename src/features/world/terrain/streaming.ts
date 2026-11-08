@@ -7,7 +7,9 @@ export function tilesToLoad(playerT: number, aheadM = 120, behindM = 60): TileAd
   const t = clampProgress(playerT);
   if (![aheadM, behindM].every(value => Number.isFinite(value) && value >= 0)) throw new RangeError("Streaming distances must be finite and non-negative");
   const distance = t * pathLength();
-  const tiles = tilesForPathRange(distance - behindM, distance + aheadM);
+  // Elevated intro views expose the lateral edge of the gameplay corridor.
+  // Keep the detailed ground under the flight; normal gameplay retains 32 m.
+  const tiles = tilesForPathRange(distance - behindM, distance + aheadM, aheadM > 120 ? 96 : 32);
   // Explicitly include the true spline point, even with a zero-length window.
   const player = pathPointAt(t);
   const underfoot = { ix: Math.floor(player.x / TILE_SIZE), iz: Math.floor(player.z / TILE_SIZE) };

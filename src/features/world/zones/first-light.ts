@@ -7,9 +7,9 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import type { PaletteKey } from "../art/palette";
 import { createFern } from "../foliage/ground";
-import { createPineCrownV2 } from "../foliage/pine";
+import { createFirstLightTree } from "../foliage/first-light-grove";
 import { pineHeight } from "../foliage/shapes";
-import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createRampMaterial } from "../materials/ramp";
 import { createLogGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
 import { createRockGeometry } from "../props/rocks";
 import { deferBakedBatch, type BakedBatchPart } from "../props/batched";
@@ -444,7 +444,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   for (const [index, [x, z]] of [[-10.5, 1], [-11.8, 11], [9.8, 9]].entries()) {
     const seed = (context.seed + index) >>> 0;
     const box = pineCollisionBox(seed);
-    place([kit(createPineCrownV2(seed).translate(0, 5, 0), "green", new Color(RAMP_PRESETS.crown))],
+    place([kit(createFirstLightTree(index).scale(0.8, 0.88, 0.8), "green")],
       x!, z!, true, box);
   }
 

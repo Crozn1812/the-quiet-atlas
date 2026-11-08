@@ -9,7 +9,8 @@ import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/h
 
 describe("camera grass field", () => {
   it("fills the deep forest incrementally with low forest-colored tufts in the existing batch", () => {
-    const field = createGrassField("High"), p = pathPointAt(0.02);
+    // First Light now owns authored clumps; retain this generic forest contract farther along the route.
+    const field = createGrassField("High"), p = pathPointAt(0.1);
     expect(field.mesh.visible).toBe(false);
     expect(field.mesh.instanceMatrix.array.every((v, i) => v === (i % 16 === 15 ? 1 : 0))).toBe(true);
     let result = field.update(p.x, p.z, 0, true);
@@ -148,7 +149,7 @@ describe("camera grass field", () => {
 
 
 it("resamples retained grass cells when deferred prop bounds arrive", () => {
-  const bounds: Box3[] = [], field = createGrassField("High", bounds), spawn = pathPointAt(0);
+  const bounds: Box3[] = [], field = createGrassField("High", bounds), spawn = pathPointAt(0.1);
   const drain = () => { while (field.update(spawn.x, spawn.z, 0).pending) { /* incremental fill */ } };
   try {
     drain();

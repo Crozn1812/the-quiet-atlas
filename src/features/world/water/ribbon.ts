@@ -56,23 +56,14 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
     ...Array.from({ length: segments + 1 }, (_, i) => i / segments),
     ...(length / segments > 2 ? [blendStart, blendEnd] : []),
   ])].sort((a, b) => a - b);
-  const source = riverPointAt(0);
-  const sourceTangent = riverTangentAt(0);
-  const sourceHalfWidth = riverWidthAt(0) / 2;
-  const sourceBed = Math.min(...[-1, 0, 1].map(side => worldHeight(
-    source.x - sourceTangent.z * sourceHalfWidth * side,
-    source.z + sourceTangent.x * sourceHalfWidth * side,
-  )));
-  // Bury the entire cap with 6 cm clearance, then emerge smoothly inside the 4 m spring pool.
-  const sourceSink = Math.max(0, waterLevelAt(source.z) - sourceBed + 0.06);
   for (let i = 0; i < rows.length; i++) {
     const t = rows[i]!;
     const centre = riverPointAt(t);
     const tangent = riverTangentAt(t);
     const halfWidth = riverWidthAt(t) / 2;
-    const emergence = Math.min(1, t * length / 4);
-    const sink = sourceSink * (1 - emergence * emergence * (3 - 2 * emergence));
-    const originalLevel = waterLevelAt(centre.z) - 0.05 * mouthBlend(t) - sink;
+    // The source cap now meets the carved pool beneath the rock outlet.
+    // Beyond the first four metres this is identical to the former emergence.
+    const originalLevel = waterLevelAt(centre.z) - 0.05 * mouthBlend(t);
     const blend = Math.max(0, Math.min(1, (t - blendStart) / (blendEnd - blendStart)));
     const level = originalLevel + (Math.min(originalLevel, WATER_LEVEL - 0.05) - originalLevel)
       * blend * blend * (3 - 2 * blend);

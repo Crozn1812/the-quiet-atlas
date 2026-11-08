@@ -76,6 +76,31 @@ it("starts assets from the render lifecycle, shares the entry gate and restores 
   geometry.dispose(); material.dispose();
 });
 
+it("defers texture relief until the first drawn frame and honours quality and disposal while waiting", async () => {
+  const root = new Scene(), material = new MeshToonMaterial(), geometry = new BufferGeometry();
+  const mesh = new Mesh(geometry, material); mesh.name = "terrain-tile"; root.add(mesh);
+  const renderer = { capabilities: { getMaxAnisotropy: () => 8 } } as WebGLRenderer;
+  const errors = vi.fn();
+  const binding = bindTerrainDetail(root, material, "High", errors, true);
+  await binding.ready(renderer);
+  material.onBeforeRender(renderer, root, new PerspectiveCamera(), geometry, mesh, new Group());
+  await Promise.resolve();
+  expect(state.requests).toHaveLength(0);
+  binding.setQuality("Low"); binding.resume();
+  expect(state.requests).toHaveLength(0);
+  binding.setQuality("Balanced");
+  await vi.waitFor(() => expect(state.requests).toHaveLength(5));
+  for (const resolve of state.resolve) resolve(new Texture());
+  await vi.waitFor(() => expect(material.customProgramCacheKey()).toContain("ground-ktx2-v1:true"));
+  binding.dispose();
+  const cancelled = bindTerrainDetail(root, material, "High", errors, true);
+  await cancelled.ready(renderer); cancelled.dispose(); cancelled.resume();
+  await Promise.resolve();
+  expect(state.requests).toHaveLength(5);
+  expect(errors).not.toHaveBeenCalled();
+  geometry.dispose(); material.dispose();
+});
+
 it("shares entry loading, honours Low during a pending load, and disposes late assets", async () => {
   const root = new Group(), material = new MeshToonMaterial(), geometry = new BufferGeometry();
   const mesh = new Mesh(geometry, material);

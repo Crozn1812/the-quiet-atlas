@@ -2,6 +2,7 @@ import { Color, CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, 
 import type RAPIER from "@dimforge/rapier3d-compat";
 import { fogAt, paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
+import { bindFirstLightGround, createFirstLightGrove, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
@@ -40,6 +41,10 @@ const FOG_HORIZON = {
 };
 /** Sea mirror of the dusk sky; the bench's coast frame uses 0.35. */
 const SEA_SKY_MIX = 0.35;
+const FIRST_LIGHT_AIR = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.25);
+const FIRST_LIGHT_SKY = new Color(PALETTE.skyHigh).lerp(new Color(PALETTE.cloud), 0.25);
+const FIRST_LIGHT_FILL = new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.12);
+const FIRST_LIGHT_SUN = new Vector3(-0.65, 0.7, 0.3).normalize();
 
 /** Replace the grade's sky/fog colours with the art direction's, blended by time of day (0 dawn → 1 dusk). */
 export function directGrade(grade: LightingGrade, timeOfDay: number, preset = WORLD_DIRECTION): LightingGrade {
@@ -65,6 +70,7 @@ import { nearestPath } from "../terrain/samples";
 import { TILE_SIZE, tileKey } from "../terrain/tiles";
 import { HEIGHT } from "../scene";
 import { waterLevelAt, worldHeight } from "../terrain/height";
+import { createSpring } from "../terrain/spring";
 import { createRiverRibbon } from "../water/ribbon";
 import { createSea } from "../water/sea";
 import { createWaterMaterial } from "../water/material";
@@ -109,10 +115,23 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   // Extra streaming reach (m ahead) while the opening cinematic overlooks the river (Lead, B2-043b review).
   let preloadAhead = 0;
   let previousPosition: Vector3 | undefined;
+  let projectedX = NaN, projectedZ = NaN, projectedT = 0;
+  let deferredGrass = deferredGround;
+  let firstFrameDrawn = !deferredGround;
+  const previousAfterRender = scene.onAfterRender;
+  const afterRender: typeof scene.onAfterRender = (...args) => {
+    previousAfterRender.apply(scene, args);
+    firstFrameDrawn = true;
+  };
+  if (deferredGround) scene.onAfterRender = afterRender;
+  let springInReach = true, groveInReach = true;
+  const spring = createSpring();
+  const springColliders: RAPIER.Collider[] = [];
   const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
   // B2-165: terrain colour now lives in the tile vertex colours (grass/rock/sand); a tinted base would double it.
   terrainMaterial.color.setRGB(1, 1, 1);
-  const terrainDetail = bindTerrainDetail(scene, terrainMaterial, quality, error => { streamingError = error; });
+  bindFirstLightGround(terrainMaterial);
+  const terrainDetail = bindTerrainDetail(scene, terrainMaterial, quality, error => { streamingError = error; }, deferredGround);
   const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
   const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
   const trunkMaterial = new MeshBasicMaterial();
@@ -131,7 +150,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   sun.shadow.bias = -0.001;
   // Three's default PCF uses a five-tap disk; widen it without larger maps or extra passes.
   sun.shadow.radius = 2.5;
-  const water = [createRiverRibbon(quality), createSea(quality)];
+  const water = [createRiverRibbon(quality), createSea(quality), ...spring.surfaces];
   const cells = new Map<string, ReturnType<typeof createCell>>();
   // Stable array identity lets the experimental raycast controller follow streaming.
   const collisionMeshes: Mesh[] = [];
@@ -145,13 +164,13 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let groundCapacity = 4096;
   const clearOfZones = (point: { x: number; z: number }) => !zoneBounds.some(box =>
     point.x >= box.min.x && point.x <= box.max.x && point.z >= box.min.z && point.z <= box.max.z);
+  const clearOfGroveGround = (point: { x: number; z: number }) => clearOfZones(point) && !inFirstLightGrove(point.x, point.z);
   // A leaning trunk collider is centred off its root (colliders.ts): keep both the root and that centre clear.
-  const treeClearOfZones = (tree: FoliageTree) => clearOfZones(tree)
+  const treeClearOfZones = (tree: FoliageTree) => !inFirstLightGrove(tree.x, tree.z) && clearOfZones(tree)
     && clearOfZones({ x: tree.x - Math.sin(tree.lean) * TRUNK_HEIGHT * tree.scale / 2, z: tree.z });
-  const spawn = worldSpawn();
-  const nearSpawn = (ix: number, iz: number) => Math.hypot(
-    Math.max(ix * TILE_SIZE - spawn.x, 0, spawn.x - (ix + 1) * TILE_SIZE),
-    Math.max(iz * TILE_SIZE - spawn.z, 0, spawn.z - (iz + 1) * TILE_SIZE)) <= 25;
+  let grove = createFirstLightGrove(surfaceHeight, zoneBounds, deferredGround);
+  const groveColliders: RAPIER.Collider[] = [];
+  scene.add(grove.group);
   let groundRevision = 0;
   function syncGround() {
     const build = syncGroundChunks();
@@ -160,7 +179,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   function* syncGroundChunks(): Generator<void> {
     const revision = ++groundRevision;
     for (const key of groundCache.keys()) if (!pool.tiles.has(key)) groundCache.delete(key);
-    for (const [key, resident] of pool.tiles) if (!groundCache.has(key) && (!deferredGround || nearSpawn(resident.tile.origin.x / TILE_SIZE, resident.tile.origin.z / TILE_SIZE))) groundCache.set(key, scatterGround(resident.tile).filter(clearOfZones));
+    for (const [key, resident] of pool.tiles) if (!groundCache.has(key) && !deferredGround) groundCache.set(key, scatterGround(resident.tile).filter(clearOfGroveGround));
     const items = [...pool.tiles.keys()].flatMap(key => groundCache.get(key) ?? []);
     if (items.length > groundCapacity) {
       ground.group.removeFromParent();
@@ -253,6 +272,11 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   function syncMeshes() {
     collisionMeshes.length = visibleMeshes.length = foliageMeshes.length = 0;
     collisionMeshes.push(...zoneBoxes);
+    // These authored solids stay in Rapier, but distant camera/vehicle rays
+    // cannot reach them. Avoid ray-testing the entire grove in later zones.
+    if (groveInReach) collisionMeshes.push(...grove.trunks);
+    if (springInReach) collisionMeshes.push(spring.cliff);
+    visibleMeshes.push(...grove.meshes);
     for (const tile of pool.tiles.values()) {
       collisionMeshes.push(tile.mesh);
       visibleMeshes.push(tile.mesh);
@@ -270,12 +294,14 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     if (disposed) return;
     quality = next;
     terrainDetail.setQuality(next);
+    grove.setQuality(next);
     groundRevision++;
     for (const cell of cells.values()) cell.setQuality(next);
     ground.setQuality(next);
     if (!grass || grass.radius !== createGrassFieldRadius(next)) {
       grass?.group.removeFromParent(); grass?.dispose();
       grass = createGrassField(next, zoneBounds);
+      grass.group.visible = !deferredGrass;
       scene.add(grass.group);
     }
     for (const surface of water) {
@@ -306,8 +332,13 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   function dispose() {
     if (disposed) return;
     disposed = true;
+    if (scene.onAfterRender === afterRender) scene.onAfterRender = previousAfterRender;
     for (const cell of cells.values()) cell.dispose();
     cells.clear();
+    grove.dispose();
+    spring.dispose();
+    for (const collider of springColliders) world.removeCollider(collider, true);
+    for (const collider of groveColliders) world.removeCollider(collider, true);
     pool.dispose();
     ground.group.removeFromParent();
     ground.dispose();
@@ -334,22 +365,62 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     // Deferred zones append bounds. Rebuild only foliage cells that now overlap their solids;
     // filtering cached ground preserves the synchronous scatter order and instance selection.
     if (zoneBounds.length !== zoneBoundsCount) {
+      // A deferred solid may also cover an authored trunk. Stage its replacement before
+      // releasing the current grove, so a partial collider failure retains safe ground.
+      if (grove.sites.some(tree => zoneBounds.some(b => tree.x > b.min.x - 1 && tree.x < b.max.x + 1 && tree.z > b.min.z - 1 && tree.z < b.max.z + 1))) {
+        const replacement = createFirstLightGrove(surfaceHeight, zoneBounds);
+        const staged: RAPIER.Collider[] = [];
+        try {
+          for (const tree of replacement.sites) staged.push(world.createCollider(RAPIER.ColliderDesc.cylinder(2.6 * tree.scale, 0.45)
+            .setTranslation(tree.x, tree.y + 2.6 * tree.scale, tree.z)));
+        } catch (error) {
+          for (const collider of staged) world.removeCollider(collider, true);
+          replacement.dispose(); streamingError = error; return;
+        }
+        grove.dispose();
+        for (const collider of groveColliders) world.removeCollider(collider, true);
+        groveColliders.splice(0, groveColliders.length, ...staged);
+        grove = replacement; grove.setQuality(quality); scene.add(grove.group);
+      }
       for (const [key, cell] of cells) if (cell.trees.some(tree => !treeClearOfZones(tree))) {
         cell.dispose(); cells.delete(key);
       }
       // Ground scatter has ratio caps (e.g. flowers per item), so it is scattered without zone boxes and
       // filtered here: a late zone then matches bounds supplied up front exactly (B2-197 parity).
-      for (const [key, items] of groundCache) groundCache.set(key, items.filter(clearOfZones));
+      for (const [key, items] of groundCache) groundCache.set(key, items.filter(clearOfGroveGround));
       // Grass cells sampled before the late zone keep stale blades: resample from scratch (~0.5 ms).
       if (grass) { grass.group.removeFromParent(); grass.dispose(); grass = createGrassField(quality, zoneBounds); scene.add(grass.group); }
       zoneBoundsCount = zoneBounds.length;
       lastT = -Infinity;
     }
-    const { t } = nearestPath(player.x, player.z);
+    // Idle frames (including camera turns) reuse the exact route projection.
+    // No quantization: any horizontal movement still recomputes the grade/streaming position.
+    if (player.x !== projectedX || player.z !== projectedZ) {
+      projectedT = nearestPath(player.x, player.z).t;
+      projectedX = player.x; projectedZ = player.z;
+    }
+    const t = projectedT;
+    // The authored grove already owns every nearby tree/collider inside 48 m.
+    // At its protected 18 m centre, remote legacy foliage can join after input
+    // becomes available. Leaving that centre forces synchronous collision parity.
+    const deferTrees = deferredGround && firstLightGroveWeight(player.x, player.z) === 1;
+    if (!deferTrees && deferredGrass) {
+      deferredGrass = false;
+      if (grass) grass.group.visible = true;
+    }
+    if (deferredGround && !deferTrees && [...pool.tiles.keys()].some(key => !cells.has(key))) lastT = -Infinity;
+    const anchor = ZONES[0]!.position;
+    const nearGrove = (player.x - anchor.x) ** 2 + (player.z - anchor.z) ** 2 < 160 ** 2;
+    const nearSpring = (player.x - spring.origin.x) ** 2 + (player.z - spring.origin.z) ** 2 < 160 ** 2;
+    if (nearGrove !== groveInReach || nearSpring !== springInReach) {
+      groveInReach = nearGrove; springInReach = nearSpring; syncMeshes();
+    }
+    grove.group.visible = (player.x - anchor.x) ** 2 + (player.z - anchor.z) ** 2 < 240 ** 2;
+    spring.group.visible = player.distanceToSquared(spring.origin) < 240 ** 2;
     if (Math.abs(t - lastT) * pathLength() >= 8) {
       try {
         pool.update(t, Math.max(120, preloadAhead));
-        for (const [key, resident] of pool.tiles) if (!cells.has(key)) cells.set(key, createCell(scatterTile(resident.tile).filter(treeClearOfZones)));
+        for (const [key, resident] of pool.tiles) if (!cells.has(key) && !deferTrees) cells.set(key, createCell(scatterTile(resident.tile).filter(treeClearOfZones)));
         for (const [key, cell] of cells) if (!pool.tiles.has(key)) { cell.dispose(); cells.delete(key); }
         syncGround();
         lastT = t;
@@ -370,7 +441,16 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     directed.sunIntensity = followed.sunIntensity;
     directed.hemiIntensity = followed.hemiIntensity;
     const grade = applyCoastAtmosphere(directGrade(directed, tod), t);
-    previousPosition = player.clone();
+    const clearing = firstLightGroveWeight(player.x, player.z);
+    grade.fogColor.lerp(FIRST_LIGHT_AIR, clearing);
+    grade.skyTop.lerp(FIRST_LIGHT_SKY, clearing);
+    grade.skyHorizon.lerp(FIRST_LIGHT_AIR, clearing);
+    grade.hemiSky.lerp(FIRST_LIGHT_FILL, clearing * 0.7);
+    grade.sunDirection.lerp(FIRST_LIGHT_SUN, clearing).normalize();
+    grade.sunIntensity += (2.0 - grade.sunIntensity) * clearing;
+    grade.hemiIntensity += (1.25 - grade.hemiIntensity) * clearing;
+    if (previousPosition) previousPosition.copy(player);
+    else previousPosition = player.clone();
     sun.color.copy(grade.sunColor);
     sun.intensity = grade.sunIntensity;
     sun.target.position.copy(player);
@@ -381,8 +461,12 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     fog.color.copy(grade.fogColor);
     // AD r3: use the same biome distances for native fog and the High/Balanced paper pass.
     const distances = fogAt(t);
-    fog.near = distances.near;
-    fog.far = distances.far;
+    fog.near = distances.near + (60 - distances.near) * clearing;
+    fog.far = distances.far + (180 - distances.far) * clearing;
+    // Preserve the existing forest metadata outside this clearing; only First Light releases its mist.
+    distances.near = fog.near;
+    distances.far = fog.far;
+    if (distances.forestWeight !== undefined) distances.forestWeight *= 1 - clearing;
     paper?.setFog?.(distances);
     // B2-162: clouds drift with dt and stop under reduced motion.
     sky.update(grade, dt, reducedMotion);
@@ -399,13 +483,40 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   }
 
   scene.add(ground.group, pool.group, sky.mesh, coastMist.mesh, sun, sun.target, hemisphere, ...water.map(surface => surface.mesh));
-  try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
+  try {
+    scene.add(spring.group);
+    for (const solid of spring.colliders) springColliders.push(world.createCollider(
+      RAPIER.ColliderDesc.cylinder(solid.halfHeight, solid.radius)
+        .setTranslation(solid.center.x, solid.center.y, solid.center.z)));
+    for (const tree of grove.sites) groveColliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(2.6 * tree.scale, 0.45)
+      .setTranslation(tree.x, tree.y + 2.6 * tree.scale, tree.z)));
+    setQuality(quality); update(worldSpawn(), 0);
+  } catch (error) { dispose(); throw error; }
   return {
     update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,
     loadTerrainDetail: terrainDetail.ready,
     /** Owned and cancelled by the post-control dressing queue. */
     get groundReady() { return !deferredGround; },
     buildGround: (function* (): Generator<void> {
+      // Dressing can be pumped before paper.render in the very first RAF.
+      // Wait for an actual scene draw, rather than merely yielding once.
+      while (!firstFrameDrawn && !disposed) yield;
+      if (disposed) return;
+      terrainDetail.resume();
+      deferredGrass = false;
+      if (grass) grass.group.visible = true;
+      while (!disposed) {
+        const missing = [...pool.tiles].find(([key]) => !cells.has(key));
+        if (!missing) break;
+        yield;
+        if (disposed) return;
+        const [key, resident] = missing;
+        if (pool.tiles.get(key) === resident && !cells.has(key)) {
+          cells.set(key, createCell(scatterTile(resident.tile).filter(treeClearOfZones)));
+          syncMeshes();
+        }
+      }
+      yield* grove.buildGround;
       while (!disposed) {
         const missing = [...pool.tiles].find(([key]) => !groundCache.has(key));
         if (!missing) {
@@ -423,7 +534,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
           if (disposed) { build.return([]); return; }
           step = build.next();
         }
-        if (pool.tiles.get(key) === resident) groundCache.set(key, step.value.filter(clearOfZones));
+        if (pool.tiles.get(key) === resident) groundCache.set(key, step.value.filter(clearOfGroveGround));
         const publish = syncGroundChunks();
         let publication = publish.next();
         while (!publication.done) {

@@ -7,6 +7,7 @@ export const TERRAIN_SEED = 73021;
 export const PATH_WIDTH = 3;
 const routeLength = pathLength();
 const source = riverPointAt(0);
+const sourceForward = riverTangentAt(0);
 const streamLength = riverLength();
 // A fixed coastal frame avoids nearest-segment switches in the broad bay/ridge.
 const coastStart = pathPointAt(0.82);
@@ -280,6 +281,18 @@ export function roadBaseHeight(x: number, z: number): number {
     const dryHeight = Math.max(0.4, waterLevelAt(z) + 0.4);
     height += Math.max(0, dryHeight - height) * protection * smoothstep(0, 0.4, height);
   }
+  // Seat the spring pool below the outlet. The compact rim ends before the
+  // walking strip; downstream terrain and all other zones remain unchanged.
+  const springBasin = 1 - smoothstep(1.8, 3.5, Math.hypot(x - source.x, z - source.z));
+  height -= Math.max(0, height - (waterLevelAt(z) - 0.3)) * springBasin
+    * smoothstep(PATH_WIDTH / 2, 3, path.distance);
+  const sx = x - source.x, sz = z - source.z;
+  const alongSource = sx * sourceForward.x + sz * sourceForward.z;
+  const acrossSource = -sx * sourceForward.z + sz * sourceForward.x;
+  const shoulder = (1 - smoothstep(2, 7, Math.abs(acrossSource)))
+    * (1 - smoothstep(1.5, 6, Math.abs(alongSource + 4)))
+    * smoothstep(0.9, 2, Math.abs(acrossSource)) * smoothstep(2, 5, path.distance);
+  height += 0.7 * shoulder;
   return height;
 }
 

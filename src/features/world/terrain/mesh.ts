@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, Color, Mesh, type Material } from "three";
+import { Box3, BufferAttribute, BufferGeometry, Color, Matrix4, Mesh, Ray, Vector3, type Material } from "three";
 import { forestAtmosphereWeight } from "../art/direction";
 import { hex } from "../art/palette";
 import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
@@ -183,6 +183,34 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     material.needsUpdate = true;
   }
   const mesh = new Mesh(geometry, material);
+  // Preserve Three's exact triangle hits, but reject empty row slabs first.
+  // Camera/ground rays otherwise visit all 2,048 triangles in a 64 m tile.
+  const slabs = Array.from({ length: cells }, (_, x) => {
+    const bounds = new Box3();
+    const point = new Vector3();
+    for (let column = x; column <= x + 1; column++) for (let z = 0; z <= cells; z++) {
+      bounds.expandByPoint(point.fromBufferAttribute(geometry.getAttribute("position"), column * stride + z));
+    }
+    return bounds;
+  });
+  const localRay = new Ray(), inverse = new Matrix4();
+  const raycast = mesh.raycast;
+  mesh.raycast = function (caster, hits) {
+    if (this.geometry !== geometry) { raycast.call(this, caster, hits); return; }
+    localRay.copy(caster.ray).applyMatrix4(inverse.copy(this.matrixWorld).invert());
+    if (!localRay.intersectsBox(geometry.boundingBox!)) return;
+    const { start, count } = geometry.drawRange;
+    try {
+      for (let row = 0; row < cells; row++) {
+        if (!localRay.intersectsBox(slabs[row]!)) continue;
+        const first = Math.max(start, row * cells * 6);
+        const last = Math.min(start + count, (row + 1) * cells * 6);
+        if (last <= first) continue;
+        geometry.setDrawRange(first, last - first);
+        raycast.call(this, caster, hits);
+      }
+    } finally { geometry.setDrawRange(start, count); }
+  };
   mesh.name = "terrain-tile";
   mesh.position.set(origin.x, origin.y, origin.z);
   mesh.receiveShadow = true;
