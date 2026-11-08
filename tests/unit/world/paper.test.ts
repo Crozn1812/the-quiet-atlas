@@ -5,6 +5,7 @@ import {
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
+import { createAOMaterial } from "../../../src/features/world/post/ao";
 import { fogAt as directedFogAt, FOREST_ATMOSPHERE_TRANSITION, paletteColor, STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { createGradedPaperPass } from "../../../src/features/world/scene/paper";
 import { directGrade } from "../../../src/features/world/scene/compose";
@@ -61,6 +62,96 @@ function shaderDepthJump(shader: string) {
 }
 
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); });
+
+describe("G-04 depth AO", () => {
+  it("occludes nearby raised surfaces, rejects coplanar/self/behind surfaces and stops at one metre", () => {
+    const material = createAOMaterial();
+    try {
+      const body = material.fragmentShader.match(/float distanceSquared =([\s\S]*?)\n        \}/)![0]!
+        .replace(/\n        \}$/, "").replaceAll("float ", "let ").replace("obscurance +=", "return");
+      const contribution = new Function("delta", "n", "dot", "max", "sqrt", body);
+      const dot = (a: number[], b: number[]) => a.reduce((sum, v, i) => sum + v * b[i]!, 0);
+      const sample = (delta: number[]) => contribution(delta, [0, 1, 0], dot, Math.max, Math.sqrt) as number;
+      expect(sample([0.2, 0, 0])).toBe(0);
+      expect(sample([0, 0, 0])).toBe(0);
+      expect(sample([0, 0.02, 0])).toBe(0);
+      expect(sample([0, -0.25, 0])).toBe(0);
+      expect(sample([0, 0.25, 0])).toBeGreaterThan(0);
+      expect(sample([0, 1, 0])).toBe(0);
+      expect(sample([0, 2, 0])).toBe(0);
+      // Two nearby blockers among twelve taps must reach the review's contact
+      // contrast range, while a plane stays unchanged and dense crevices are capped.
+      const visibilityBody = material.fragmentShader.match(/float ao = (.*);/)![1]!
+        .replace("float(AO_SAMPLES)", "samples");
+      const visibility = new Function("obscurance", "samples", "fade", "min", `return ${visibilityBody};`);
+      expect(visibility(0, 12, 1, Math.min)).toBe(1);
+      for (const count of [8, 12]) {
+        const contact = visibility(2 * sample([0, 0.25, 0]), count, 1, Math.min) as number;
+        expect(contact).toBeGreaterThanOrEqual(0.6);
+        expect(contact).toBeLessThanOrEqual(0.75);
+        expect(visibility(count, count, 1, Math.min)).toBeCloseTo(0.6);
+      }
+    } finally { material.dispose(); }
+  });
+
+  it("shares scene depth, uses half physical resolution, resizes, changes samples and releases on Low", () => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createGradedPaperPass(gpu, "High");
+    const scene = new Scene(), camera = new PerspectiveCamera(55, 1, 0.2, 900);
+    pass.render(scene, camera);
+    const allocations = vi.mocked(WebGLRenderTarget).mock.results.map(result => result.value as WebGLRenderTarget);
+    const [sceneTarget, aoTarget] = allocations;
+    const aoMaterial = (renderer.render.mock.calls[1]![0].children[0] as Mesh<BufferGeometry, ShaderMaterial>).material;
+    const { triangle, material } = screenMaterial(renderer);
+    expect(allocations).toHaveLength(2);
+    expect([aoTarget!.width, aoTarget!.height]).toEqual([200, 113]);
+    expect(aoTarget!.depthBuffer).toBe(false);
+    expect(aoMaterial.uniforms.tDepth!.value).toBe(sceneTarget!.depthTexture);
+    expect(aoMaterial.uniforms.inverseProjection!.value).toEqual(camera.projectionMatrixInverse);
+    expect(aoMaterial.uniforms.projection!.value).toEqual(camera.projectionMatrix);
+    expect(material.uniforms.tAO!.value).toBe(aoTarget!.texture);
+    expect(aoMaterial.defines.AO_SAMPLES).toBe(12);
+    expect(material.fragmentShader).toContain("float aoVisibility = mix(1.0, ambientVisibility(viewDepth), geometry)");
+    expect(material.fragmentShader.indexOf("gl_FragColor.rgb *= aoVisibility"))
+      .toBeGreaterThan(material.fragmentShader.indexOf("#include <colorspace_fragment>"));
+    expect(material.fragmentShader).toContain("aoVisibility = mix(aoVisibility, 1.0, washed)");
+    expect(material.fragmentShader).toContain("exp(-abs(sampleAO.g - viewDepth) / 0.15)");
+    pass.setSize(801, 401);
+    expect([aoTarget!.width, aoTarget!.height]).toEqual([501, 251]);
+    expect(material.uniforms.aoSize!.value.toArray()).toEqual([501, 251]);
+    pass.setQuality("Balanced");
+    expect(aoMaterial.defines.AO_SAMPLES).toBe(8);
+    expect(WebGLRenderTarget).toHaveBeenCalledTimes(2);
+    const disposals = [sceneTarget!, sceneTarget!.depthTexture!, aoTarget!, aoMaterial, material, triangle.geometry]
+      .map(resource => vi.spyOn(resource, "dispose"));
+    pass.setQuality("Low");
+    for (const dispose of disposals) expect(dispose).toHaveBeenCalledTimes(1);
+    renderer.render.mockClear();
+    pass.render(scene, camera);
+    expect(renderer.render).toHaveBeenCalledExactlyOnceWith(scene, camera);
+    pass.setQuality("Balanced");
+    expect(WebGLRenderTarget).toHaveBeenCalledTimes(4);
+    pass.dispose();
+    pass.dispose();
+    for (const dispose of disposals) expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores destination and fog if the AO draw fails", () => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createGradedPaperPass(gpu, "Balanced");
+    const scene = new Scene();
+    const fog = new Fog(PALETTE.mist, 10, 100);
+    scene.fog = fog;
+    const destination = new WebGLRenderTarget(8, 8);
+    renderer.setRenderTarget(destination);
+    renderer.render.mockImplementationOnce(() => {}).mockImplementationOnce(() => { throw new Error("AO failed"); });
+    try {
+      expect(() => pass.render(scene, new OrthographicCamera())).toThrow("AO failed");
+      expect(renderer.getRenderTarget()).toBe(destination);
+      expect(scene.fog).toBe(fog);
+    } finally { pass.dispose(); destination.dispose(); }
+  });
+});
 
 it("changes and clears cinematic fog on the existing pass without rebuilding GPU resources", () => {
   const { gpu, renderer } = mockRenderer();
@@ -174,11 +265,11 @@ describe("R clear post", () => {
         paper.setQuality(quality);
         renderer.render.mockClear();
         paper.render(new Scene(), new PerspectiveCamera());
-        expect(renderer.render).toHaveBeenCalledTimes(quality === "Low" ? 1 : 2);
+        expect(renderer.render).toHaveBeenCalledTimes(quality === "Low" ? 1 : 3);
         if (quality === "Low") continue;
         const { material, triangle } = screenMaterial(renderer);
         const source = activeShader(material);
-        expect(source.match(/uniform sampler2D \w+;/g)).toEqual(["uniform sampler2D tColor;", "uniform sampler2D tDepth;"]);
+        expect(source.match(/uniform sampler2D \w+;/g)).toEqual(["uniform sampler2D tColor;", "uniform sampler2D tDepth;", "uniform sampler2D tAO;"]);
         expect(source).not.toContain("float grain =");
         expect(source).not.toContain("float vignette =");
         expect(triangle.geometry.getAttribute("position").count).toBe(3);

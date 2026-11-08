@@ -1,11 +1,12 @@
 import {
   BufferGeometry, Color, DepthTexture, Float32BufferAttribute, HalfFloatType,
-  Matrix4, Mesh, NoBlending, OrthographicCamera, Scene, ShaderMaterial, Vector2, Vector3,
+  Matrix4, Mesh, NearestFilter, NoBlending, OrthographicCamera, Scene, ShaderMaterial, Vector2, Vector3,
   WebGLRenderTarget,
   type PerspectiveCamera, type WebGLRenderer,
 } from "three";
 import { PALETTE } from "../art/palette";
 import { STYLE_PRESETS, type StylePreset } from "../art/direction";
+import { aoCompositeShader, createAOMaterial } from "./ao";
 
 type Quality = "Low" | "Balanced" | "High";
 
@@ -78,6 +79,9 @@ const fragmentShader = /* glsl */ `
   uniform vec3 fogColor;
   varying vec2 vUv;
   #include <packing>
+  #ifdef AMBIENT_OCCLUSION
+    ${aoCompositeShader}
+  #endif
 
   float hash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -189,6 +193,9 @@ const fragmentShader = /* glsl */ `
       color.rgb = mix(color.rgb, toneMapping(color.rgb), geometry);
     #endif
     color.rgb = paintEdges(color.rgb, depth, viewDepth, distanceToCamera, fiber);
+    #ifdef AMBIENT_OCCLUSION
+      float aoVisibility = mix(1.0, ambientVisibility(viewDepth), geometry);
+    #endif
     float edgeOffset = 0.0;
     #ifdef MIST_EDGE_NOISE
       // World-locked horizontal variation, at most +/-0.25 m; never animated.
@@ -215,6 +222,9 @@ const fragmentShader = /* glsl */ `
       // Sky pixels go to the same paper too, so the dome never outlines streamed tiles.
       float washed = mix(1.0, smoothstep(corridorRadius * 0.35, corridorRadius * 0.8, edge), geometry);
       color.rgb = mix(color.rgb, paperColor, washed);
+      #ifdef AMBIENT_OCCLUSION
+        aoVisibility = mix(aoVisibility, 1.0, washed);
+      #endif
     }
     // Pixel-locked, time-independent grain. Both noises are in [0, 1],
     // so their weighted sum gives at most +/-2% multiplicative variation.
@@ -230,11 +240,16 @@ const fragmentShader = /* glsl */ `
     #endif
     gl_FragColor = color;
     #include <colorspace_fragment>
+    #ifdef AMBIENT_OCCLUSION
+      // Neutral display-space attenuation: 40% AO means 40% image luma,
+      // rather than being weakened by the nonlinear output transfer function.
+      gl_FragColor.rgb *= aoVisibility;
+    #endif
   }
 `;
 
-/** One merged paper pass on Balanced/High; Low leaves rendering and scene.fog to the caller. */
-export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Quality; preset?: StylePreset }) {
+/** Merged grading, optionally preceded by half-resolution AO. Low renders directly. */
+export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Quality; preset?: StylePreset; ambientOcclusion?: boolean }) {
   // An omitted preset preserves the original bench/API behaviour for A/B/C.
   const clearAir = opts.preset === STYLE_PRESETS.R;
   let quality = opts.quality;
@@ -269,17 +284,34 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     target.depthTexture = depth;
     const geometry = new BufferGeometry();
     geometry.setAttribute("position", new Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
+    const ao = opts.ambientOcclusion ? (() => {
+      const target = new WebGLRenderTarget(Math.max(1, Math.ceil(width / 2)), Math.max(1, Math.ceil(height / 2)), {
+        type: HalfFloatType, minFilter: NearestFilter, magFilter: NearestFilter, depthBuffer: false,
+      });
+      const material = createAOMaterial();
+      material.defines.AO_SAMPLES = quality === "High" ? 12 : 8;
+      material.uniforms.tDepth!.value = depth;
+      material.uniforms.depthTexel!.value.set(1 / width, 1 / height);
+      const screen = new Scene();
+      const triangle = new Mesh(geometry, material);
+      triangle.frustumCulled = false;
+      screen.add(triangle);
+      return { target, material, screen };
+    })() : undefined;
     const material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
       defines: {
         CORRIDOR_POINTS,
+        ...(ao ? { AMBIENT_OCCLUSION: 1 } : {}),
         ...(clearAir ? { CLEAR_AIR: 1 } : {}),
         ...(quality === "High" ? { MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 } : {}),
       },
       uniforms: {
         tColor: { value: target.texture },
         tDepth: { value: depth },
+        tAO: { value: ao?.target.texture ?? null },
+        aoSize: { value: new Vector2(ao?.target.width ?? 1, ao?.target.height ?? 1) },
         paperColor: { value: new Color(PALETTE.paper) },
         inkColor: { value: new Color(PALETTE.ink) },
         texelSize: { value: new Vector2(1 / width, 1 / height) },
@@ -310,12 +342,14 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
     const triangle = new Mesh(geometry, material);
     triangle.frustumCulled = false;
     screen.add(triangle);
-    return { target, depth, geometry, material, screen, camera: new OrthographicCamera() };
+    return { target, depth, geometry, material, screen, ao, camera: new OrthographicCamera() };
   }
 
   function release() {
     if (!resources) return;
     resources.target.dispose();
+    resources.ao?.target.dispose();
+    resources.ao?.material.dispose();
     resources.depth.dispose();
     resources.material.dispose();
     resources.geometry.dispose();
@@ -352,6 +386,13 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         material.uniforms.cameraProjectionMatrixInverse!.value.copy(camera.projectionMatrixInverse);
         material.uniforms.cameraMatrixWorld!.value.copy(camera.matrixWorld);
         scene.fog = sceneFog;
+        if (resources.ao) {
+          const ao = resources.ao;
+          ao.material.uniforms.inverseProjection!.value.copy(camera.projectionMatrixInverse);
+          ao.material.uniforms.projection!.value.copy(camera.projectionMatrix);
+          renderer.setRenderTarget(ao.target);
+          renderer.render(ao.screen, screenCamera);
+        }
         renderer.setRenderTarget(destination);
         renderer.render(screen, screenCamera);
       } finally {
@@ -366,6 +407,11 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         const [width, height] = physicalSize();
         resources.target.setSize(width, height);
         resources.material.uniforms.texelSize!.value.set(1 / width, 1 / height);
+        if (resources.ao) {
+          resources.ao.target.setSize(Math.max(1, Math.ceil(width / 2)), Math.max(1, Math.ceil(height / 2)));
+          resources.ao.material.uniforms.depthTexel!.value.set(1 / width, 1 / height);
+          resources.material.uniforms.aoSize!.value.set(resources.ao.target.width, resources.ao.target.height);
+        }
       }
     },
     setQuality(q: Quality): void {
@@ -383,6 +429,10 @@ export function createPaperPass(renderer: WebGLRenderer, opts: { quality: Qualit
         }
         resources.material.uniforms.inkEnabled!.value = q === "High" && (edges.ink ?? true);
         resources.material.needsUpdate = true;
+        if (resources.ao) {
+          resources.ao.material.defines.AO_SAMPLES = q === "High" ? 12 : 8;
+          resources.ao.material.needsUpdate = true;
+        }
       }
     },
     /** Linear depth fog in metres toward `color` (default paper, e.g. the sky horizon); survives quality changes. */

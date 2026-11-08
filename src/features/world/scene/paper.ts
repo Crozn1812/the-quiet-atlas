@@ -5,10 +5,10 @@ import { createPaperPass } from "../post/paper";
 import type { Quality } from "../terrain";
 import { coastAtmosphereWeight, type LightingGrade } from "../sky/grade";
 
-/** The world's single post pass, set up from the active art direction.
+/** The world's graded post pipeline, set up from the active art direction.
  * The position grade tints distance fog and mist through the pass's own API. */
 export function createGradedPaperPass(renderer: WebGLRenderer, quality: Quality, preset: StylePreset = WORLD_DIRECTION) {
-  const paper = createPaperPass(renderer, { quality, preset });
+  const paper = createPaperPass(renderer, { quality, preset, ambientOcclusion: preset === STYLE_PRESETS.R });
   const { mist, edges, forest } = preset.background;
   let fog = fogAt(0, preset);
   let coastMist = false;

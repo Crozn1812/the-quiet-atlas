@@ -29,6 +29,7 @@ it("shares biome fog distances between native fog and paper at every quality, in
   try {
     for (const quality of ["Low", "Balanced", "High"] as const) {
       composed.setQuality(quality);
+      expect(composed.sun.shadow.radius).toBe(2.5);
       for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
         const zone = ZONES.find(zone => zone.id === id)!;
         composed.update(new Vector3().copy(zone.position), 0);

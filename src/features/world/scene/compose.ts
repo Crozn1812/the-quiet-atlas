@@ -129,6 +129,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   scene.fog = fog;
   Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 0.5, far: 120 });
   sun.shadow.bias = -0.001;
+  // Three's default PCF uses a five-tap disk; widen it without larger maps or extra passes.
+  sun.shadow.radius = 2.5;
   const water = [createRiverRibbon(quality), createSea(quality)];
   const cells = new Map<string, ReturnType<typeof createCell>>();
   // Stable array identity lets the experimental raycast controller follow streaming.
