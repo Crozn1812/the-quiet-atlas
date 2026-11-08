@@ -24,3 +24,7 @@
   - e2e world-content, a11y pass;
   - không có chunk 3D trong trang Welcome/Quick (test hiện có);
   - JS Welcome ≤ 150 KB.
+
+### Trả lại vòng 1 (Lead)
+
+Bố cục **đạt** (ảnh trái, chữ phải, nút rõ). Ảnh khu **chưa đạt** (`docs/showcase/30-do-hoa/lead-review/u02-r0.webp`): là ảnh chụp camera chơi (nhìn từ trên xuống, tối), còn dính **chip HUD "E — …"** và dock. Yêu cầu: ảnh "bưu thiếp" từng khu — ẩn toàn bộ HUD/hint/nhân vật tuỳ chọn (dùng CSS ẩn `.world-hud`, `[data-hud-keys]`, chip tương tác trước khi chụp, hoặc chụp `canvas` riêng), camera thấp hơn nhìn ngang có trời ở 1/4–1/3 trên khung, chọn góc đẹp nhất của khu (landmark rõ), mức High, sau khi `data-world-build="done"`. Xuất lại 8 ảnh webp ≤ 60 KB. Tự mở và xem 8 ảnh trước khi bàn giao.
