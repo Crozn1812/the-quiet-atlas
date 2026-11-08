@@ -19,3 +19,7 @@ Cuối con đường ở Last Postcard, mặt đường **thu hẹp rồi biến
 - Ảnh: cuối đường (gameplay), khung tựa lan can (High), 2–3 góc đường ven biển có lan can; 8 khu luma ±0,03.
 - e2e mới: tới Last Postcard (`__tqaJourney.goTo("last-postcard")`), đi tới lan can, E → trạng thái tựa (`data-world-lean="on"` hoặc tương đương) → E/Esc thoát; bàn phím-only được.
 - Gate, `load-budget` ≤ 6 s, `cpu-compare` ≤ main + 10 ms/s.
+
+### Vòng 1 (Lead): tự nối và tự kiểm tra
+
+`_common-b2.md` đã sửa: ticket này **được sửa `src/features/world/index.ts` và `tests/e2e/`**. Tự nối theo đoạn mẫu trong bàn giao, chỉnh bờ dốc sau lan can, viết e2e lan can, rồi build + chụp ảnh (cuối đường, khung tựa lan can ở High, 2–3 góc đường ven biển) + `ingame-shots` 8 khu + `luma.mjs`, chạy `pnpm exec playwright test <spec lan can>`. Dán kết quả.

@@ -13,3 +13,7 @@
 
 - Ảnh: spawn gameplay (Balanced + High), góc mắt nhìn về nguồn, intro 10/15 s; 7 khu khác luma ±0,03.
 - `assets-loaded.mjs`, gate, `pnpm test:perf load-budget` (≤ 6 s), `cpu-compare` bảng 2 cặp.
+
+### Vòng 1 (Lead): tự kiểm tra
+
+`_common-b2.md` đã cho phép mở Edge local. Build, chụp spawn (Balanced + High), góc nhìn về nguồn, intro 10/15 s, 7 khu khác + `luma.mjs`, và `cpu-compare.mjs` 2 cặp với main (4180, Lead đã build main mới). Dán bảng.
