@@ -60,6 +60,7 @@ import { createGradeFollower } from "../sky/smoothing";
 import { PRESETS, type Quality } from "../terrain";
 import type { TilePhysicsWorld, TileRapier } from "../terrain/collider";
 import { createTilePool } from "../terrain/pool";
+import { bindTerrainDetail } from "../terrain/detail";
 import { nearestPath } from "../terrain/samples";
 import { TILE_SIZE, tileKey } from "../terrain/tiles";
 import { HEIGHT } from "../scene";
@@ -111,6 +112,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   const terrainMaterial = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
   // B2-165: terrain colour now lives in the tile vertex colours (grass/rock/sand); a tinted base would double it.
   terrainMaterial.color.setRGB(1, 1, 1);
+  const terrainDetail = bindTerrainDetail(scene, terrainMaterial, quality, error => { streamingError = error; });
   const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
   const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
   const trunkMaterial = new MeshBasicMaterial();
@@ -265,6 +267,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   function setQuality(next: Quality) {
     if (disposed) return;
     quality = next;
+    terrainDetail.setQuality(next);
     groundRevision++;
     for (const cell of cells.values()) cell.setQuality(next);
     ground.setQuality(next);
@@ -309,6 +312,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     grass?.group.removeFromParent();
     grass?.dispose();
     groundCache.clear();
+    terrainDetail.dispose();
     terrainMaterial.dispose();
     trunkGeometry.dispose();
     trunkMaterial.dispose();
@@ -396,6 +400,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   try { setQuality(quality); update(worldSpawn(), 0); } catch (error) { dispose(); throw error; }
   return {
     update, setQuality, dispose, sun, collisionMeshes, visibleMeshes, foliageMeshes,
+    loadTerrainDetail: terrainDetail.ready,
     /** Owned and cancelled by the post-control dressing queue. */
     get groundReady() { return !deferredGround; },
     buildGround: (function* (): Generator<void> {

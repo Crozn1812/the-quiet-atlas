@@ -183,6 +183,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     material.needsUpdate = true;
   }
   const mesh = new Mesh(geometry, material);
+  mesh.name = "terrain-tile";
   mesh.position.set(origin.x, origin.y, origin.z);
   mesh.receiveShadow = true;
   mesh.updateMatrixWorld(true);
