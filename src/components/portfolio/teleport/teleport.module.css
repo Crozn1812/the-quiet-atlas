@@ -39,6 +39,8 @@
   align-items: center;
   gap: 1rem;
   inline-size: 100%;
+  min-block-size: 2.75rem;
+  font-size: var(--ui-body);
   padding: 1.25rem .25rem;
   border-block-end: 1px solid #2b2a2633;
   text-align: start;
@@ -52,7 +54,7 @@
   border-block-end: 1px solid #2b2a2633;
   cursor: default;
 }
-.current { color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); font-size: .75rem; }
+.current { color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); font-size: var(--ui-secondary); }
 
 @keyframes fade-in {
   from { opacity: 0; }
@@ -66,6 +68,10 @@
   }
 }
 
-.numeral { font-size: .7rem; letter-spacing: .1em; color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
+.numeral { font-size: var(--ui-secondary); letter-spacing: .1em; color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
 .entryCopy { display: grid; gap: .2rem; }
-.topic { font-family: system-ui, sans-serif; font-size: .75rem; color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
+.topic { font-family: system-ui, sans-serif; font-size: var(--ui-secondary); color: color-mix(in srgb, #2B2A26 75%, #EEE8D8); }
+
+@media (max-width: 30rem) {
+  .header { flex-wrap: wrap; gap: .5rem 1rem; }
+}

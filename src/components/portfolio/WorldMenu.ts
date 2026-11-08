@@ -179,9 +179,8 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   destination.append(languages);
 
   const keys = document.createElement("details");
-  destination = document.createElement("div");
+  destination = group(() => language === "vi" ? "Khác" : "Other");
   destination.className = "world-menu-footer";
-  dialog.append(destination);
   const summary = document.createElement("summary");
   translations.push(() => {
     summary.textContent = copy.keys;

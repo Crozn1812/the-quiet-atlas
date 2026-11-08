@@ -3,7 +3,7 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  color: #203e35;
+  color: #2B2A26;
   font-family: "Noto Serif", "Times New Roman", serif;
 }
 
@@ -18,13 +18,13 @@
   margin: 0;
   padding: .45rem .8rem;
   text-align: center;
-  background: rgb(247 243 232 / 94%);
+  background: #EEE8D8;
   border-radius: .25rem;
 }
 
 .keys {
   bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 5rem));
-  font-size: .75rem;
+  font-size: clamp(.8125rem, .775rem + .15vw, .9375rem);
   line-height: 1.6;
   transition: opacity 600ms ease;
 }
@@ -41,12 +41,12 @@
 
 .zone p {
   margin: 0;
-  font-size: .75rem;
+  font-size: clamp(.8125rem, .775rem + .15vw, .9375rem);
   line-height: 1.6;
 }
 
 .zone p:first-child {
-  font-size: .95rem;
+  font-size: clamp(1rem, .95rem + .2vw, 1.125rem);
   font-variant-caps: small-caps;
   letter-spacing: .12em;
 }

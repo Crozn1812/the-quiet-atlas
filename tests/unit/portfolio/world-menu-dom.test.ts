@@ -79,7 +79,7 @@ it.each(["en", "vi"])("renders all eleven menu items in the specified order in %
   await mount(locale);
   const groups = menu().children.slice(1);
   expect(groups.map(node => node.tagName)).toEqual(["DIV", "DIV", "DIV"]);
-  expect(groups.slice(0, 2).map(node => node.querySelector("h3")!.textContent)).toEqual(locale === "vi" ? ["Hành trình", "Cài đặt"] : ["Journey", "Settings"]);
+  expect(groups.map(node => node.querySelector("h3")!.textContent)).toEqual(locale === "vi" ? ["Hành trình", "Cài đặt", "Khác"] : ["Journey", "Settings", "Other"]);
   const items = groups.flatMap(node => node.children.filter(child => child.tagName !== "H3"));
   expect(items.map(node => node.tagName)).toEqual([
     "BUTTON", "BUTTON", "FIELDSET", "BUTTON", "BUTTON", "BUTTON", "FIELDSET", "DETAILS", "A", "BUTTON", "BUTTON",
