@@ -21,3 +21,13 @@ Năm vai kiểm tra cuối đã hoàn tất: tài nguyên/markup, full e2e, đ�
 Kết quả cuối và bằng chứng: `docs/showcase/31-ux-final/checklist.md` và cập nhật mới nhất ở `docs/PROJECT_STATUS.md`.
 
 Giữ nguyên: không push nếu chưa được Duy đồng ý từng lần; không chạm cloud/credential; không ghi PASS khi chưa chạy. T10/playtest do người thật và T08/T09 trên Iris Xe chưa được thay thế bằng QA trên máy dev.
+
+## Cập nhật Claude-Lead 2026-11-09 ~03:30 (main `6af4eda`)
+
+- Duy chọn **giữ hướng R1** cho First Light, kèm 2 yêu cầu:
+  - (1) nguồn suối có núi đá → **FL-02**, đang ở vòng 2 trên `lane/FirstLight-R1`. Phiếu trả lại: `docs/tickets/FL-02-spring-source.md`, gồm đá tự nhiên, vũng trũng có viền, thác nhỏ, sửa mảng tam giác tối ở intro 10 s, thời gian vào chơi ≤ 6 s.
+  - (2) lan can cuối đường + tựa lan can ngắm biển + lan can dọc đường biển → **RD-01 đã merge** (`6740901`, e2e `world-railing.spec.ts`).
+- Khi FL-02 đạt: merge `lane/FirstLight-R1` (R1 + FL-02) vào main bằng `tools/lead/merge.sh FirstLight-R1 <msg>`. Sau đó chạy full e2e, `load-budget` (khi máy rảnh) và Lighthouse; nhân rộng ngôn ngữ R1 ra 7 khu còn lại theo từng ticket.
+- `_common-b2.md` đã nới: ticket nào ghi rõ `index.ts` hay `tests/e2e/` thì được sửa; Codex được mở Edge để tự kiểm tra hình.
+- `tools/lead/autoresume.sh` đã sửa lỗi hiểu giờ reset đã qua thành hôm nay.
+- Thời gian vào chơi: các lần đo khi máy bận cho ra 6,2–6,9 s. **Cần đo lại khi máy rảnh**; spec 10 s vẫn PASS.
