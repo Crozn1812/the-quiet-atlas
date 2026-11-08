@@ -4,7 +4,18 @@ Mỗi ticket 30–90 phút, 1 vùng file. Trạng thái: `todo` / `doing` / `rev
 
 Spec: §2.1 (8 khu, suối là trục), §7 (Atlas Journal), §8 (ngân sách), ADR 0013, `docs/art-bible/taste.md`.
 
-## Đợt 15 — nền tảng (2026-11-05)
+## Cập nhật đợt 31 — UX/UI (2026-11-08)
+
+| ID | Việc | Trạng thái |
+|---|---|---|
+| U-02 | Ảnh bưu thiếp engine 8 khu, overlay tạp chí, Close sticky mobile | merged `f20147d` |
+| U-03 | CTA Welcome, hero hiện tại, VI/EN desktop/390/320 px | merged `f20147d` |
+| UX-QA | Sổ Atlas/Đi tới… accessible name, lifecycle cleanup, focus/reflow audit | merged `f20147d` |
+| UX-pause-fix | Pause queue/render, giữ ảnh tạm dừng, locator visited, benchmark CPU đồng nhất | merged `7774ae8` |
+
+Gate cuối main `7774ae8`: unit 1697/1697, full e2e 151/151, load-budget EN/VI và Lighthouse 15 lượt PASS. Xem `docs/showcase/31-ux-final/qa-final.md`. Tiếp theo: Duy chấm UX/gu và T10; T08/T09 Iris Xe vẫn NOT RUN. Không chạy lại U-02/U-03 cũ.
+
+## Đợt 15 — nền tảng (2026-11-05, lịch sử)
 
 | ID | Việc | Vùng file | Trạng thái |
 |---|---|---|---|

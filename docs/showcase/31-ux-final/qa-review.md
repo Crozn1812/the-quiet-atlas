@@ -19,4 +19,4 @@ Lệnh tái lập audit: `node tools/review/ux-audit.mjs test-results/ux-final-a
 
 Ảnh: [ui-contact.webp](ui-contact.webp). Kết quả chi tiết: [ux-audit.json](ux-audit.json).
 
-Full e2e, load-budget và Lighthouse: **NOT RUN trong bước này**; được chạy sau merge để kết quả gắn với main cuối đợt. T10 / playtest người thật vẫn DEFERRED; T08/T09 trên Iris Xe vẫn NOT RUN.
+Full e2e, load-budget và Lighthouse: **NOT RUN trong bước này**; xem [qa-final.md](qa-final.md) cho kết quả sau merge. Các lệnh/worktree và 1.695 unit ở trên là bằng chứng lịch sử trước merge, không phải trạng thái main cuối. T10 / playtest người thật vẫn DEFERRED; T08/T09 trên Iris Xe vẫn NOT RUN.

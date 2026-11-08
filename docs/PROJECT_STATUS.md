@@ -1,6 +1,28 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-> Cập nhật lần cuối: 2026-11-07 (đợt 28: UX/UI hoàn thiện lượt 1; e2e 151/151, Lighthouse PASS).
+> Cập nhật lần cuối: 2026-11-08 (đợt 31: UX/UI, e2e 151/151, unit 1697/1697, tải lạnh và Lighthouse PASS trên main `7774ae8`).
+
+## Đợt 31 — UX/UI hoàn thiện và kiểm tra cuối (2026-11-08)
+
+Showcase và bản chấm: [docs/showcase/31-ux-final/checklist.md](showcase/31-ux-final/checklist.md). Kết quả chi tiết: [qa-final.md](showcase/31-ux-final/qa-final.md).
+
+- Duy giao Codex tiếp nhận UX/UI. Thi công U-02 → U-03 → QA, sau đó theo yêu cầu mới chia 5 vai kiểm tra; tối đa 3 subagent cùng lúc, phép đo browser/GPU chạy riêng.
+- U-02/U-03 và sửa accessibility merge `f20147d`: Welcome CTA rõ, ảnh biển mới, overlay tạp chí với ảnh engine 8 khu; chữ và nút dễ dùng trên màn hình hẹp, Close bám khi cuộn, nhãn Sổ Atlas/Đi tới… khớp nội dung.
+- Sửa pause merge `7774ae8`: cảnh không tiếp tục thêm chi tiết sau Menu; dừng queue và giữ khung render khi paused, resize/quality vẫn redraw, resume bình thường. Giữ test ảnh giống từng byte. Sửa locator visited chỉ chấp nhận khác khoảng trắng, vẫn kiểm đủ tên/chủ đề/trạng thái.
+
+| Gate trên main `7774ae8` | Kết quả |
+|---|---|
+| Lint 0 warning / typecheck / unit | PASS / PASS / **1697/1697 PASS** |
+| Production build / full e2e | PASS / **151/151 PASS**, 4,2 phút |
+| Audit Menu / Sổ Atlas / Đi tới… / Quick | **12/12 PASS**, 0 axe critical/serious, focus trap, reflow |
+| Load-budget EN/VI, 3 lần mỗi locale | **PASS**, worst playable **5,337 s**; world **2.163.481 B / 8 MiB** |
+| Welcome / Quick initial JS | **PASS**, 140.811 / 137.943 B; 0 request 3D trước Enter World |
+| Lighthouse 15 lượt / 3 URL | **PASS**; LCP đại diện 2375/1803/2203 ms, TBT 70/47/49 ms, CLS ≤0,0446; accessibility 100 |
+| CPU so main, Balanced cố định, 2 lần mỗi bản | **PASS**, chênh script −1/−7/−17 ms/s ở First Light/Roots/Workshop |
+| T10 / playtest người thật | **DEFERRED**, Duy chấm |
+| T08/T09 Iris Xe | **NOT RUN**; số đo dev không thay thế |
+
+Lượt e2e đầu 149 PASS / 2 FAIL và CPU không pin quality bị lệch vẫn được lưu trong showcase, không đổi thành PASS hồi tố. Báo cáo cuối gắn đúng mã và phép đo thật. **Chưa push**, không chạm cloud/credential. Đồ họa hiện là bản mẫu; chờ Duy chấm gu trước sản xuất hàng loạt theo ADR 0014.
 
 ## Milestone hiện tại
 

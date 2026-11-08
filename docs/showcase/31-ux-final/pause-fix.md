@@ -28,4 +28,4 @@ TaskDuration trung bình chênh lần lượt −0,5 / −7 / −17 ms/s. Báo c
 
 Các phép đo ban đầu không pin quality được giữ nguyên trong `cpu-{base,fix}-{1,2}.txt`; Roots chênh +18,5 ms/s nên **không được dùng làm PASS**. Sửa harness là để đo cùng quality và đúng khoảng thời gian, ngưỡng không đổi.
 
-Full e2e / tải / Lighthouse cuối: chờ chạy lại sau merge bản sửa này.
+Bản sửa đã merge main `7774ae8`, qua strict gate 1.697/1.697 unit. Full e2e cuối: **151/151 PASS**. Kết quả tải / Lighthouse và bằng chứng cuối: [qa-final.md](qa-final.md).

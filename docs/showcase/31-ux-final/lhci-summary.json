@@ -1,0 +1,218 @@
+[
+  {
+    "url": "http://127.0.0.1:4175/en/",
+    "runs": 5,
+    "representative": {
+      "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_-2026_11_08_07_37_55.report.json",
+      "representative": true,
+      "lcp": 2375.00655,
+      "tbt": 70,
+      "cls": 0.01828753230833728,
+      "accessibility": 1,
+      "performance": 0.98,
+      "warnings": []
+    },
+    "worst": {
+      "lcp": 2383.1444,
+      "tbt": 78.0,
+      "cls": 0.01828753230833728
+    },
+    "minAccessibility": 1.0,
+    "allRuns": [
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_-2026_11_08_07_37_41.report.json",
+        "representative": false,
+        "lcp": 2374.4252500000002,
+        "tbt": 65,
+        "cls": 0.01828753230833728,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_-2026_11_08_07_38_10.report.json",
+        "representative": false,
+        "lcp": 2347.6464,
+        "tbt": 43,
+        "cls": 0.01828753230833728,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_-2026_11_08_07_38_26.report.json",
+        "representative": false,
+        "lcp": 2382.70565,
+        "tbt": 78,
+        "cls": 0.01828753230833728,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_-2026_11_08_07_38_41.report.json",
+        "representative": false,
+        "lcp": 2383.1444,
+        "tbt": 78,
+        "cls": 0.01828753230833728,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_-2026_11_08_07_37_55.report.json",
+        "representative": true,
+        "lcp": 2375.00655,
+        "tbt": 70,
+        "cls": 0.01828753230833728,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "url": "http://127.0.0.1:4175/en/projects/cms-devops-platform-aws-eks/",
+    "runs": 5,
+    "representative": {
+      "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_projects_cms_devops_platform_aws_eks_-2026_11_08_07_40_28.report.json",
+      "representative": true,
+      "lcp": 2202.6772,
+      "tbt": 49,
+      "cls": 0.009321666356314746,
+      "accessibility": 1,
+      "performance": 0.99,
+      "warnings": []
+    },
+    "worst": {
+      "lcp": 2219.9734000000003,
+      "tbt": 67.0,
+      "cls": 0.009321666356314746
+    },
+    "minAccessibility": 1.0,
+    "allRuns": [
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_projects_cms_devops_platform_aws_eks_-2026_11_08_07_40_12.report.json",
+        "representative": false,
+        "lcp": 2219.9734000000003,
+        "tbt": 67,
+        "cls": 0,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_projects_cms_devops_platform_aws_eks_-2026_11_08_07_40_44.report.json",
+        "representative": false,
+        "lcp": 2193.1149,
+        "tbt": 40,
+        "cls": 0.009321666356314746,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_projects_cms_devops_platform_aws_eks_-2026_11_08_07_40_59.report.json",
+        "representative": false,
+        "lcp": 2205.0161000000003,
+        "tbt": 52,
+        "cls": 0.009321666356314746,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_projects_cms_devops_platform_aws_eks_-2026_11_08_07_41_14.report.json",
+        "representative": false,
+        "lcp": 2198.9680000000003,
+        "tbt": 46,
+        "cls": 0.009321666356314746,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_projects_cms_devops_platform_aws_eks_-2026_11_08_07_40_28.report.json",
+        "representative": true,
+        "lcp": 2202.6772,
+        "tbt": 49,
+        "cls": 0.009321666356314746,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "url": "http://127.0.0.1:4175/en/quick/",
+    "runs": 5,
+    "representative": {
+      "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_quick_-2026_11_08_07_38_57.report.json",
+      "representative": true,
+      "lcp": 1802.9419000000003,
+      "tbt": 47,
+      "cls": 0.04453368161586788,
+      "accessibility": 1,
+      "performance": 0.99,
+      "warnings": []
+    },
+    "worst": {
+      "lcp": 2209.7003,
+      "tbt": 59.0,
+      "cls": 0.04453368161586788
+    },
+    "minAccessibility": 1.0,
+    "allRuns": [
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_quick_-2026_11_08_07_39_11.report.json",
+        "representative": false,
+        "lcp": 1803.0566,
+        "tbt": 59,
+        "cls": 0.04453368161586788,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_quick_-2026_11_08_07_39_27.report.json",
+        "representative": false,
+        "lcp": 2199.203,
+        "tbt": 46,
+        "cls": 0.04453368161586788,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_quick_-2026_11_08_07_39_42.report.json",
+        "representative": false,
+        "lcp": 2199.7736,
+        "tbt": 47,
+        "cls": 0.04453368161586788,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_quick_-2026_11_08_07_39_58.report.json",
+        "representative": false,
+        "lcp": 2209.7003,
+        "tbt": 56,
+        "cls": 0.04453368161586788,
+        "accessibility": 1,
+        "performance": 0.98,
+        "warnings": []
+      },
+      {
+        "file": "D:\\the-quiet-atlas\\test-results\\lhci\\127_0_0_1-en_quick_-2026_11_08_07_38_57.report.json",
+        "representative": true,
+        "lcp": 1802.9419000000003,
+        "tbt": 47,
+        "cls": 0.04453368161586788,
+        "accessibility": 1,
+        "performance": 0.99,
+        "warnings": []
+      }
+    ]
+  }
+]
