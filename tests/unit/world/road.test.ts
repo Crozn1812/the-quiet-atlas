@@ -89,7 +89,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
   });
   afterAll(() => road.dispose());
 
-  it("follows pathPointAt only on t=0.80–1, is 5 m wide and tapers smoothly into dirt at both ends", () => {
+  it("follows pathPointAt only on t=0.80–1, tapers at the start and keeps full width at the final barrier", () => {
     const position = surface.geometry.getAttribute("position");
     const bands = ROAD_BANDS.length - 1;
     const point = (row: number, band: number) => new Vector3().fromBufferAttribute(position, row * bands * 6 + band * 6);
@@ -113,15 +113,16 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     const end = pathPointAt(1);
     for (let band = 0; band < bands; band++) {
       const vertex = new Vector3().fromBufferAttribute(position, (ROAD_SEGMENTS - 1) * bands * 6 + band * 6 + 2);
-      expect(Math.hypot(vertex.x - end.x, vertex.z - end.z)).toBeLessThan(0.0001);
+      expect(Math.hypot(vertex.x - end.x, vertex.z - end.z)).toBeCloseTo(Math.abs(roadBandOffsetAt(ROAD_BANDS[band]!, 1)), 4);
     }
     expect(roadWidthAt(0.79)).toBe(0);
     expect(roadWidthAt(1.01)).toBe(0);
-    for (const t of [ROAD_START, ROAD_END]) expect(roadWidthAt(t)).toBe(0);
+    expect(roadWidthAt(ROAD_START)).toBe(0);
+    expect(roadWidthAt(ROAD_END)).toBe(5);
     for (const distance of [0.01, 0.1, 1, 3, 6, 9, 12]) {
       const start = roadWidthAt(ROAD_START + distance / pathLength());
       const endWidth = roadWidthAt(ROAD_END - distance / pathLength());
-      expect(start).toBeCloseTo(endWidth, 10);
+      expect(endWidth).toBe(5);
       expect(start).toBeGreaterThan(0);
       expect(start).toBeLessThanOrEqual(5);
       if (distance === 0.01) expect(start).toBeLessThan(0.00002);

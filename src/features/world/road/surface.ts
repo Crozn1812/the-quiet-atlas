@@ -24,7 +24,7 @@ function noise(x: number, z: number, scale: number): number {
   return a * (1 - v) + b * v;
 }
 
-/** Full-width shoulders wander between 0.68 and 0.92 m; the end caps taper to dirt. */
+/** Full-width shoulders wander between 0.68 and 0.92 m; only the inland start tapers. */
 export function roadBandOffsetAt(offset: number, t: number): number {
   const taper = roadWidthAt(t) / ROAD_WIDTH;
   const distance = Math.abs(offset);

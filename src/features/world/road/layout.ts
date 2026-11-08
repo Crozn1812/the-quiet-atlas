@@ -47,7 +47,8 @@ export function roadFrameAt(t: number) {
 }
 
 export function roadWidthAt(t: number): number {
-  const distance = Math.min(t - ROAD_START, ROAD_END - t) * pathLength();
+  if (t > ROAD_END) return 0;
+  const distance = (t - ROAD_START) * pathLength();
   const blend = Math.max(0, Math.min(1, distance / ROAD_TAPER_LENGTH));
   return ROAD_WIDTH * blend * blend * (3 - 2 * blend);
 }

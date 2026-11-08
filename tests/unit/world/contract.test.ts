@@ -178,7 +178,7 @@ it.each([
       expect(container.dataset.worldLocale).toBe(next);
       expect(canvas.attributes["aria-label"]).toBe(WORLD_COPY[next].canvas);
       expect(container.children.some(child => child.textContent === WORLD_COPY[next].signpost + " · " + WORLD_COPY[next].desk)).toBe(false);
-      expect(container.children[2]!.textContent).toMatch(/^E — ./); // B2-150: First Light is hinted at the spawn
+      expect(container.children.find(child => "data-world-interaction-hint" in child.attributes)?.textContent).toMatch(/^E — ./); // First Light is hinted at the spawn
       expect(scene.getObjectByName("first-light-clearing")).toBe(sign);
       expect(container.children[0]).toBe(canvas);
       expect(camera.position.distanceTo(position)).toBe(0);

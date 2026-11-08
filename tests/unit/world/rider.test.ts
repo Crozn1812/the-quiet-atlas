@@ -3,6 +3,7 @@ import { AnimationClip, Bone, Box3, Group, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { createCharacter } from "../../../src/features/world/character/runtime";
 import { createRiderPose, RIDE_CONTACTS } from "../../../src/features/world/character/ride";
+import { createLeaningPose } from "../../../src/features/world/character/lean";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { initialVehicle, mount, step, type VehicleCorridor } from "../../../src/features/vehicle/model";
 import { requestDismount, type DismountGround } from "../../../src/features/world/vehicle/dismount";
@@ -29,6 +30,32 @@ function rig() {
   root.add(scene);
   return createCharacter(root, ["Idle", "Walk", "Run"].map(name => new AnimationClip(name, 1, [])));
 }
+
+describe("RD-01 leaning pose", () => {
+  it.each([false, true])("keeps both hands on the rail through breathing (loader names: %s)", sanitized => {
+    const character = rig();
+    if (sanitized) character.root.traverse(node => { node.name = node.name.replaceAll(".", ""); });
+    const pose = createLeaningPose(character);
+    character.root.position.set(3, 2 + HEIGHT, -8);
+    const before = character.root.getObjectByName("spine")!.quaternion.clone();
+    const forward = new Vector3(0, 0, -1);
+    const contacts = [new Vector3(2.73, 3.15, -8.45), new Vector3(3.27, 3.15, -8.45)] as [Vector3, Vector3];
+    expect(pose.supported).toBe(true);
+    for (const reduced of [false, true]) {
+      for (const time of [0, .8, 2, 10]) {
+        pose.update(true, forward, contacts, time, reduced);
+        for (const [i, side] of ["L", "R"].entries()) {
+          const hand = character.root.getObjectByName(sanitized ? `hand${side}` : `hand.${side}`)!.getWorldPosition(new Vector3());
+          expect(hand.distanceTo(contacts[i]!), `hand ${side}`).toBeLessThan(.025);
+        }
+      }
+    }
+    pose.update(false, forward, contacts, 0, true);
+    expect(character.root.getObjectByName("spine")!.quaternion.equals(before)).toBe(true);
+    expect(character.root.rotation.y).toBeCloseTo(0);
+    character.dispose();
+  });
+});
 
 describe("D-23 mounted pose", () => {
   it("keeps a character without rig bones visible and safely restores walking", () => {

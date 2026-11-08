@@ -2,13 +2,14 @@ import { interactionHint, type WorldLocale } from "../world/copy";
 import { isInputTarget, type KeyEventLike } from "./input";
 import type { Position } from "../../state/session";
 import { TELEPORT_CHOOSE_EVENT } from "../navigation/events";
+import { RAILING_COPY } from "../../i18n/railing";
 
 export const INTERACTION_RADIUS = 2.5;
 export const ZONE_IDS = ["first-light", "roots", "workshop", "milestones", "old-trail", "horizon", "quiet-shore", "last-postcard"] as const;
 export type ZoneId = typeof ZONE_IDS[number];
 export interface InteractionTarget {
   id: string;
-  kind?: "content" | "teleport" | "vehicle" | "secret";
+  kind?: "content" | "teleport" | "vehicle" | "secret" | "lookout";
   zoneId: ZoneId;
   position: Position;
   label?: Readonly<Record<WorldLocale, string>>;
@@ -52,12 +53,14 @@ export function createInteraction(options: {
   chooseTeleport?: (from: ZoneId) => boolean;
   ride?: () => boolean;
   discover?: (id: string) => boolean;
+  lookout?: () => boolean;
   hint?: () => string | undefined;
 }) {
   const { container } = options;
   const hint = document.createElement("p");
   hint.setAttribute("aria-live", "polite");
   hint.setAttribute("aria-atomic", "true");
+  hint.setAttribute("data-world-interaction-hint", "");
   container.appendChild(hint);
   function select(targets = options.targets) {
     return options.enabled()
@@ -68,11 +71,14 @@ export function createInteraction(options: {
     const target = select();
     if (target) container.dataset.worldHint = target.zoneId;
     else delete container.dataset.worldHint;
-    const text = options.hint?.() ?? (target ? interactionHint(options.locale?.() ?? "en", target.zoneId, target.kind, target.label?.[options.locale?.() ?? "en"]) : "");
+    const locale = options.locale?.() ?? "en";
+    const text = options.hint?.() ?? (target?.kind === "lookout" ? RAILING_COPY[locale].hint
+      : target ? interactionHint(locale, target.zoneId, target.kind, target.label?.[locale]) : "");
     if (hint.textContent !== text) hint.textContent = text;
   }
   function open(target: InteractionTarget | null) {
     if (!target) return false;
+    if (target.kind === "lookout") return options.lookout?.() ?? false;
     if (target.kind === "secret") return options.discover?.(target.id) ?? false;
     if (target.kind === "vehicle") return options.ride?.() ?? false;
     if (target.kind === "teleport") {

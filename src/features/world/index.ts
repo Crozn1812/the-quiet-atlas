@@ -1,3 +1,5 @@
+import { createCoastRailing } from "./road/railing";
+import { createRailingLookout } from "../interaction/lean";
 import { WORLD_COPY, isWorldLocale, type WorldLocale } from "./copy";
 import { initialAdaptive, sampleQuality, selectManualQuality } from "./adaptive-quality";
 import { createInteraction, ZONE_IDS, type InteractionTarget, type ZoneId } from "../interaction/targets";
@@ -98,6 +100,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const interactionTargets: InteractionTarget[] = [];
   let dressing: ReturnType<typeof placeDressing> | undefined;
   let removeDressingTrimeshes: (() => void) | undefined;
+  let railing: ReturnType<typeof createCoastRailing> | undefined;
   let forestSun: ReturnType<typeof createForestSunShafts> | undefined;
   let farLandscape: ReturnType<typeof createFarLandscape> | undefined;
   try {
@@ -119,6 +122,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if ("step" in physicsBackend) controller = physicsBackend;
     zoneScenes = measure("zones", () => createDeferredZoneScenes(surfaceHeight, zone => {
       scene.add(zone.group);
+      if (zone.zoneId === "last-postcard") railing?.placeLookout([zone.target]);
       addZoneColliders(zone.boxes);
       fixedMeshes.push(...zone.boxes);
       // Both backends retain this array; new obstacles are effective before ensure returns.
@@ -171,7 +175,16 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     composition = measure("composition", () => createWorldScene({ ...physicsBackend, scene, quality, paper: paperPass, zoneBoxes: fixedMeshes, zoneBounds, deferredGround: true }));
     if (!controller) controller = await (await import("./raycast")).createController(composition.collisionMeshes);
     controller.teleport(worldSpawn());
+    // The mailbox can be authored on either bank; use its actual interaction sphere.
+    railing = createCoastRailing(SECRETS.map(secret => ({
+      id: secret.id, zoneId: "quiet-shore" as const, position: secret.position, reach: secret.radius,
+    })));
+    scene.add(railing.group);
+    addZoneColliders(railing.boxes);
+    fixedMeshes.push(...railing.boxes);
+    composition.collisionMeshes.push(...railing.boxes);
   } catch (error) {
+    railing?.dispose();
     dressing?.dispose();
     zoneScenes?.dispose();
     removeDressingTrimeshes?.();
@@ -185,6 +198,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     renderer?.forceContextLoss();
     throw error;
   }
+  const coastRailing = railing!;
   const composed = composition;
   const paper = paperPass;
   const motionPreference = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -263,6 +277,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   });
   const chimes = secretTargets.find(target => target.id === "forgotten-sound")!.root.getObjectByName("chimes")!;
   // Shared swept boxes protect walking and riding with either physics backend.
+  secretSolids.push(...coastRailing.boxes.map(box => new Box3().setFromObject(box)));
   const stepPhysics = physics.step.bind(physics);
   physics.step = (x, z, dt) => {
     const delta = new Vector3(x * dt, 0, z * dt);
@@ -368,9 +383,17 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
   zones.forEach(zone => zone.group.traverse(object => { if ((object as Mesh).isMesh) zoneMeshes.push(object as Mesh); }));
-  const cameraObstacles = () => [...composed.collisionMeshes, ...zoneMeshes, ...props.map(prop => prop.mesh), ...secretMeshes];
+  const cameraObstacles = () => [...composed.collisionMeshes, ...zoneMeshes, ...props.map(prop => prop.mesh), ...secretMeshes, ...coastRailing.cameraObstacles];
   const sightRay = new Raycaster();
   interactionTargets.push(...contentTargets, ...props, ...secretTargets, vehicleTarget);
+  if (coastRailing.target) interactionTargets.push(coastRailing.target);
+  const lookout = createRailingLookout({
+    container, character, camera, target: coastRailing.target, forward: coastRailing.forward,
+    player: () => physics.position,
+    moveTo(position) { physics.teleport(position); state = { ...state, position: { ...position } }; },
+    enabled: () => canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !contextLost && vehicle.mode === "walk",
+    reducedMotion: () => reducedMotion, locale: () => locale, clearInput: () => clear(),
+  });
   const interaction = createInteraction({
     container,
     targets: interactionTargets,
@@ -378,6 +401,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     player: () => physics.position,
     enabled: cameraEnabled,
     discover,
+    lookout: () => lookout.begin(),
     ride() {
       if (!cameraEnabled()) return false;
       const result = mount(vehicle, Math.hypot(physics.position.x - vehicleTarget.position.x, physics.position.z - vehicleTarget.position.z));
@@ -453,6 +477,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const journeyContainer = container as HTMLElement & { __tqaJourney?: {
     position(): { x: number; y: number; z: number };
     cameraYaw(): number;
+    lookoutPosition(): { x: number; y: number; z: number } | undefined;
     zone(): string | null;
     goTo(zoneId: string): Promise<void>;
     visitSecret(id: string): boolean;
@@ -461,6 +486,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
     cameraYaw: () => yaw,
+    lookoutPosition: () => coastRailing.target ? { ...coastRailing.target.position } : undefined,
     zone: () => {
       const zone = nearestZone();
       return Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius ? zone.id : null;
@@ -690,6 +716,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     interaction.update();
   }
   function parkVehicle() {
+    lookout.cancel();
     if (vehicle.mode !== "ride") return;
     // Travel/recovery owns the destination; release the rider before resetting the bike.
     vehicle = dismount({ ...vehicle, speed: 0 }, true).state;
@@ -745,6 +772,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function pause(reason: "hiddenTab" | "windowBlur" | "overlay" | "journal" | "error", paused: boolean) {
     if (paused) {
+      lookout.cancel();
       vehicle = cancelCruise(vehicle, reason === "windowBlur" ? "blur" : "ui-open");
       publishVehicle();
     }
@@ -757,7 +785,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     interaction.update();
   }
   function cameraEnabled() {
-    return canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !isInputTarget(document.activeElement);
+    return canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !lookout.active && !isInputTarget(document.activeElement);
   }
   function keydown(event: KeyboardEvent) {
     if ((intro?.inputLocked || ending?.inputLocked) && (event.code === "Escape" || (event.code === "Enter" && document.activeElement === cinematicUI?.skip))) {
@@ -790,6 +818,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       if (["ArrowLeft", "ArrowRight", "Equal", "Minus", "NumpadAdd", "NumpadSubtract"].includes(event.code)) event.preventDefault();
     }
     keys = inputReducer(keys, { type: "keydown", event, enabled: canSimulate(state) && !cinematicLocked() && !teleport.inputLocked });
+  }
+  function lookoutKeydown(event: KeyboardEvent) {
+    if (lookout.keydown(event)) { event.preventDefault(); event.stopImmediatePropagation(); }
   }
   function keyup(event: KeyboardEvent) {
     keys = inputReducer(keys, { type: "keyup", event });
@@ -1254,7 +1285,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const wasPlaying = intro?.inputLocked;
     startIntro();
     if (cameraEnabled()) yaw = wrapYaw(yaw + (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) * KEY_YAW_SPEED * dt);
-    if (canSimulate(state) && !cinematicLocked() && !teleport.inputLocked) {
+    if (canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !lookout.active) {
       // Idle callbacks can be delayed by a busy tab. Never approach a zone without its colliders.
       const playerT = nearestPath(physics.position.x, physics.position.z).t;
       for (const zone of ZONES) if (Math.abs(zone.t - playerT) * pathLength() <= 60) zoneScenes!.ensure(zone.id);
@@ -1284,6 +1315,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     } else if (ending?.inputLocked) {
       if (canSimulate(state)) applyEnding(ending.tick(dt));
     } else updateCamera(animDt);
+    lookout.update(animDt);
     interaction.update();
     composed.update(physics.position, 0);
     // Compose grades fog/mist every frame, including pauses; the intro owns the final camera air.
@@ -1395,6 +1427,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   gpu.domElement.addEventListener("wheel", wheel, { passive: false });
   const observer = new ResizeObserver(resize);
   observer.observe(container);
+  window.addEventListener("keydown", lookoutKeydown, true);
   window.addEventListener("keydown", keydown);
   window.addEventListener("keyup", keyup);
   window.addEventListener("blur", blur);
@@ -1468,6 +1501,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     delete container.dataset.worldMotion;
     delete container.dataset.worldLocale;
     gpu.domElement.removeEventListener("click", click);
+    lookout.dispose();
+    coastRailing.dispose();
     interaction.dispose();
     bike.dispose();
     delete container.dataset.worldVehicle;
@@ -1481,6 +1516,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     delete container.dataset.worldQuality;
     delete container.dataset.worldCameraBelowTerrainFrames;
     container.removeEventListener("tqa:return-to-path", returnToPath);
+    window.removeEventListener("keydown", lookoutKeydown, true);
     window.removeEventListener("keydown", keydown);
     window.removeEventListener("keyup", keyup);
     window.removeEventListener("blur", blur);
