@@ -4,6 +4,8 @@ import {
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
+import { deferBakedBatch, type BakedBatchPart } from "../props/batched";
+import type { PropAsset } from "../props/deferred";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createBenchGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
@@ -132,10 +134,15 @@ function siteFor(context: ZoneSceneContext, sites: readonly Site[], rx: number, 
 /** One merged mesh per pigment per pivot; the two moving rotors share the tower material. */
 function builder(root: Group, context: ZoneSceneContext) {
   const batches = new Map<Group, Map<Surface, BufferGeometry[]>>();
+  const baked = new Map<BufferGeometry, Omit<BakedBatchPart, "index">>();
   return {
-    add(part: BufferGeometry, surface: Surface, parent = root, grounded = true) {
+    add(part: BufferGeometry, surface: Surface, parent = root, grounded = true, asset?: PropAsset, yaw = 0) {
       const geometry = part.index ? part.toNonIndexed() : part;
       if (geometry !== part) part.dispose();
+      if (asset) {
+        geometry.computeBoundingBox();
+        baked.set(geometry, { asset, yaw, bounds: geometry.boundingBox!.clone() });
+      }
       // All primitives use the same attributes before mergeGeometries.
       geometry.deleteAttribute("normal");
       geometry.deleteAttribute("uv");
@@ -156,10 +163,10 @@ function builder(root: Group, context: ZoneSceneContext) {
     },
     finish() {
       const geometries: BufferGeometry[] = [], materials = new Map<Surface, MeshToonMaterial>();
+      const releaseDetails: (() => void)[] = [];
       for (const [parent, surfaces] of batches) {
         for (const [surface, parts] of surfaces) {
           const geometry = mergeGeometries(parts)!;
-          parts.forEach(part => part.dispose());
           geometry.computeVertexNormals();
           geometry.computeBoundingBox();
           geometry.computeBoundingSphere();
@@ -171,12 +178,18 @@ function builder(root: Group, context: ZoneSceneContext) {
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           parent.add(mesh);
+          releaseDetails.push(deferBakedBatch(mesh, parts, parts.flatMap((part, index) => {
+            const entry = baked.get(part);
+            return entry ? [{ ...entry, index }] : [];
+          }), context.heightAt));
+          parts.forEach(part => part.dispose());
         }
       }
       let disposed = false;
       return () => {
         if (disposed) return;
         disposed = true;
+        releaseDetails.forEach(release => release());
         geometries.forEach(geometry => geometry.dispose());
         materials.forEach(material => material.dispose());
         // The shared ramp texture belongs to the world, not this zone.
@@ -230,10 +243,12 @@ export const createHorizonScene: ZoneSceneFactory = context => {
 
   const [bx, bz] = bench;
   // Kit back is +Z: rotate its open -Z side to seaward +X; sink the feet 4 cm.
-  build.add(createBenchGeometry(context.seed + 31).rotateY(-Math.PI / 2).translate(bx, -0.04, bz), "natural");
+  build.add(createBenchGeometry(context.seed + 31).rotateY(-Math.PI / 2).translate(bx, -0.04, bz),
+    "natural", group, true, "prop-bench", -Math.PI / 2);
   for (const [i, dz] of [-0.87, 0.88].entries()) {
     build.add(createRockGeometry("stone", context.seed + 71 + i).scale(0.45, 0.45, 0.45)
-      .rotateY(i * 1.7).translate(bx + 0.21, -0.04, bz + dz), "natural");
+      .rotateY(i * 1.7).translate(bx + 0.21, -0.04, bz + dz), "natural", group, true,
+    i ? "rock-large-2" : "rock-large-1", i * 1.7);
   }
   for (const [i, dz] of [-0.82, 0.08, 0.86].entries()) {
     build.add(dryGrass(context.seed + 91 + i).translate(bx - 0.32, 0, bz + dz), "natural");
@@ -242,13 +257,16 @@ export const createHorizonScene: ZoneSceneFactory = context => {
   build.add(block([0.18, 0.028, 0.24], [bx + 0.035, 0.452, bz + 0.35]), "white");
   collider(bench, [0.75, 0.6, 2.2]);
   const [rx, rz] = rail;
+  const railParts: BufferGeometry[] = [];
   for (const [i, dz] of [-1.8, 0, 1.8].entries()) {
-    build.add(createPostGeometry(1.12, context.seed + 101 + i).translate(rx, -0.04, rz + dz), "natural");
+    railParts.push(createPostGeometry(1.12, context.seed + 101 + i).translate(rx, -0.04, rz + dz));
   }
   for (const [i, y] of [0.5, 0.98].entries()) {
-    build.add(createPlankGeometry(3.8, context.seed + 111 + i).scale(1, 1, 0.5)
-      .rotateX(Math.PI / 2).rotateY(Math.PI / 2).translate(rx, y, rz), "natural");
+    railParts.push(createPlankGeometry(3.8, context.seed + 111 + i).scale(1, 1, 0.5)
+      .rotateX(Math.PI / 2).rotateY(Math.PI / 2).translate(rx, y, rz));
   }
+  build.add(mergeGeometries(railParts)!, "natural", group, true, "prop-fence", Math.PI / 2);
+  railParts.forEach(part => part.dispose());
   collider(rail, [0.3, 1.12, 4]);
 
   turbines.forEach(([x, z], index) => {

@@ -161,8 +161,8 @@ function positive(value: number, name: string) {
   if (!Number.isFinite(value) || value <= 0) throw new RangeError(`${name} must be finite and positive.`);
 }
 
-/** Ten-sided chamfered cross-section, three length stations, 60 triangles. */
-function plank(length: number, seed: number, width: number, thickness: number): BufferGeometry {
+/** Chamfered cross-section, 60 triangles; bench/fence use 52-triangle compact caps. */
+function plank(length: number, seed: number, width: number, thickness: number, compactCaps = false): BufferGeometry {
   const random = randomFor(seed), mesh = builder();
   const w = width / 2, h = thickness / 2, bevel = Math.min(h * 0.4, w * 0.1);
   const outline = [
@@ -174,8 +174,18 @@ function plank(length: number, seed: number, width: number, thickness: number): 
     x! + Math.sin(t * Math.PI) * bow + z! * twist * (t * 2 - 1), (t - 0.5) * length, z!,
   )));
   sides(mesh, rings, (strip, edge) => wood(edge, strip * 0.5 + random()));
-  cap(mesh, rings[0]!, new Vector3(0, -length / 2, 0), false, wood(2));
-  cap(mesh, rings[2]!, new Vector3(0, length / 2, 0), true, wood(3));
+  if (compactCaps) {
+    // Convex end polygons need six triangles, rather than ten centre-fan triangles.
+    for (const [ring, top] of [[rings[0]!, false], [rings[2]!, true]] as const) {
+      const rim = [0, 1, 2, 3, 4, 5, 6, 9].map(i => ring[i]!);
+      for (let i = 1; i < rim.length - 1; i++) {
+        mesh.triangle(rim[0]!, rim[top ? i + 1 : i]!, rim[top ? i : i + 1]!, wood(top ? 3 : 2));
+      }
+    }
+  } else {
+    cap(mesh, rings[0]!, new Vector3(0, -length / 2, 0), false, wood(2));
+    cap(mesh, rings[2]!, new Vector3(0, length / 2, 0), true, wood(3));
+  }
   return mesh.finish(false).rotateZ(-Math.PI / 2);
 }
 
@@ -239,8 +249,17 @@ function vine(mesh: Builder, span: number, seed: number) {
   }
 }
 
+/** Raised, dull square heads, 32 mm across: two triangles, no extra material/pass. */
+function nail(mesh: Builder, x: number, y: number, z: number, seat = false, front = false) {
+  const r = 0.016, color = pigment.ink.clone().lerp(pigment.rock, 0.2);
+  const points = [[-r, -r], [r, -r], [r, r], [-r, r]].map(([a, b]) =>
+    seat ? new Vector3(x + a!, y, z - b!) : new Vector3(x + a!, y + b!, z));
+  if (front) points.reverse();
+  mesh.quad(points[0]!, points[1]!, points[2]!, points[3]!, color);
+}
+
 /** Grounded 2.1–2.5 m rural span. Optional vines have four tiny orange flowers.
- * At most 504 triangles, one material; the wood is identical in both options. */
+ * At most 504 triangles including nails, one material; identical wood in both options. */
 export function createFenceSpanGeometry(seed: number, { flowers }: { flowers: boolean }): BufferGeometry {
   const random = randomFor(seed), mesh = builder(), span = 2.1 + random() * 0.35;
   for (const side of [-1, 1]) {
@@ -249,16 +268,20 @@ export function createFenceSpanGeometry(seed: number, { flowers }: { flowers: bo
   }
   const rails = 2 + (seed >>> 0) % 2;
   for (let i = 0; i < rails; i++) {
-    mesh.add(plank(span + 0.08, seed + 41 + i, 0.14, 0.055)
+    mesh.add(plank(span + 0.08, seed + 41 + i, 0.14, 0.055, true)
       .rotateX(-Math.PI / 2 + 0.04).rotateZ((random() - 0.5) * 0.035)
       .translate(0, 0.36 + i * 0.52 / (rails - 1), 0.06));
+  }
+  for (let i = 0; i < rails; i++) for (const side of [-1, 1]) {
+    nail(mesh, side * span / 2, 0.36 + i * 0.52 / (rails - 1), 0.103);
+    nail(mesh, side * span / 2, 0.36 + i * 0.52 / (rails - 1), 0.015, false, true);
   }
   if (flowers) vine(mesh, span, seed + 73);
   return mesh.finish();
 }
 
 /** Grounded bench: two seat planks, two back slats, four hewn supports.
- * Back height 0.88–0.94 m, seat 0.45 m, 384–432 triangles. */
+ * Back height 0.88–0.94 m, seat 0.45 m, 368–416 triangles including nails. */
 export function createBenchGeometry(seed: number): BufferGeometry {
   const random = randomFor(seed), mesh = builder();
   const length = 1.55 + random() * 0.2, height = 0.88 + random() * 0.06;
@@ -269,9 +292,13 @@ export function createBenchGeometry(seed: number): BufferGeometry {
     }
   }
   for (let i = 0; i < 2; i++) {
-    mesh.add(plank(length, seed + 31 + i, 0.215, 0.055).translate(0, 0.45, (i - 0.5) * 0.23));
-    mesh.add(plank(length - 0.04, seed + 43 + i, 0.16, 0.05)
+    mesh.add(plank(length, seed + 31 + i, 0.215, 0.055, true).translate(0, 0.45, (i - 0.5) * 0.23));
+    mesh.add(plank(length - 0.04, seed + 43 + i, 0.16, 0.05, true)
       .rotateX(-Math.PI / 2 + 0.1).translate(0, i === 0 ? 0.63 : height - 0.082, 0.22));
+  }
+  for (const x of [-length * 0.38, length * 0.38]) for (let i = 0; i < 2; i++) {
+    nail(mesh, x, 0.495, (i - 0.5) * 0.23, true);
+    nail(mesh, x, i === 0 ? 0.63 : height - 0.082, 0.18, false, true);
   }
   return mesh.finish();
 }

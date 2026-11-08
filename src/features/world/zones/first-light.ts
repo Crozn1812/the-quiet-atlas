@@ -12,6 +12,8 @@ import { pineHeight } from "../foliage/shapes";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { createLogGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
 import { createRockGeometry } from "../props/rocks";
+import { deferBakedBatch, type BakedBatchPart } from "../props/batched";
+import type { PropAsset } from "../props/deferred";
 import { pathPointAt } from "../layout/path";
 import { FOREST_SUN_SHAFT_PROGRESS } from "../layout/sun-shafts";
 import { ZONES } from "../layout/zones";
@@ -21,7 +23,7 @@ import { nearestRiver } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
 
 type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower" | "petal";
-type Part = { geometry: BufferGeometry; surface: Surface; pigment?: Color; name?: string };
+type Part = { geometry: BufferGeometry; surface: Surface; pigment?: Color; name?: string; baked?: PropAsset };
 const part = (geometry: BufferGeometry, surface: Surface, pigment?: Color): Part => ({ geometry, surface, pigment });
 const tint = (base: PaletteKey, mix: PaletteKey, amount: number) =>
   paletteColor({ base, mix, amount, saturation: 1, brightness: 1 });
@@ -246,6 +248,8 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   };
   const colliders: ZoneCollider[] = [];
   const namedParts: { name: string; surface: Surface; start: number; count: number }[] = [];
+  const baked = new Map<BufferGeometry, Omit<BakedBatchPart, "index">>();
+  const releaseDetails: (() => void)[] = [];
 
   /** Check the whole conservative footprint, including overhanging foliage and box corners. */
   function place(parts: Part[], x: number, z: number, solid = false, collisionBox?: Box3): boolean {
@@ -270,8 +274,14 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       }
     }
     const grounded = new Box3();
-    for (const { geometry } of parts) {
+    for (const { geometry, baked: asset } of parts) {
       const positions = geometry.getAttribute("position");
+      if (asset) {
+        geometry.computeBoundingBox();
+        const base = new Color(hues.stone);
+        baked.set(geometry, { asset, bounds: geometry.boundingBox!.clone(),
+          colorScale: new Vector3(1 / base.r, 1 / base.g, 1 / base.b) });
+      }
       for (let i = 0; i < positions.count; i++) {
         const px = positions.getX(i), pz = positions.getZ(i);
         const py = positions.getY(i) + context.heightAt(px, pz);
@@ -418,7 +428,9 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     const rock = createRockGeometry("boulder", 201 + index, true);
     rock.computeBoundingBox();
     const size = rock.boundingBox!.getSize(new Vector3());
-    place([kit(rock.scale(1.8 * scale! / size.x, 1.08 * scale! / size.y, 1.25 * scale! / size.z), "stone")],
+    const rockPart = kit(rock.scale(1.8 * scale! / size.x, 1.08 * scale! / size.y, 1.25 * scale! / size.z), "stone");
+    rockPart.baked = index % 2 ? "rock-large-2" : "rock-large-1";
+    place([rockPart],
       x!, z!, true, rockCollisionBox(context.seed, scale!));
     // Three chips seat each rock without enlarging its collision box.
     for (const [chip, [dx, dz]] of [[0.6, -0.36], [-0.58, 0.26], [0.15, 0.55]].entries()) {
@@ -488,10 +500,14 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     material.vertexColors = true;
     if (!buckets[surface].length) { material.dispose(); continue; }
     const geometry = mergeGeometries(buckets[surface], false)!;
-    buckets[surface].forEach(geometry => geometry.dispose());
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
     const mesh = new Mesh(geometry, material);
+    releaseDetails.push(deferBakedBatch(mesh, buckets[surface], buckets[surface].flatMap((part, index) => {
+      const entry = baked.get(part);
+      return entry ? [{ ...entry, index }] : [];
+    }), context.heightAt));
+    buckets[surface].forEach(geometry => geometry.dispose());
     mesh.name = `first-light-${surface}`;
     geometry.userData.parts = namedParts.filter(p => p.surface === surface);
     mesh.castShadow = false;
@@ -514,6 +530,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      releaseDetails.forEach(release => release());
       for (const child of [...group.children]) {
         const mesh = child as Mesh<BufferGeometry, typeof materials.wood>;
         mesh.geometry.dispose();

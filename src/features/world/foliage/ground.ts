@@ -5,6 +5,8 @@ import { PATH_BRIDGES } from "../layout/path";
 import { ZONES } from "../layout/zones";
 import { createRampMaterial } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
+import { setBakedPropQuality } from "../props/batched";
+import type { PropGeometryLoader } from "../props/deferred";
 import { PRESETS, type Quality } from "../terrain";
 import { TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
 import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
@@ -20,6 +22,17 @@ export const GROUND_RADIUS = 0.8;
 export const GROUND_LOG_RADIUS = 2.4;
 export const GROUND_LEAF_RADIUS = 0.45;
 export const GROUND_TRIANGLE_LIMIT = 40_000;
+const detailLoaders = new WeakMap<Object3D, () => Promise<boolean>>();
+
+/** Lead may invoke this on the world scene after play, including after ground capacity rebuilds. */
+export function loadGroundPropDetails(root: Object3D): Promise<boolean[]> {
+  const pending: Promise<boolean>[] = [];
+  root.traverse(object => {
+    const load = detailLoaders.get(object);
+    if (load) pending.push(load());
+  });
+  return Promise.all(pending);
+}
 export const GROUND_LIMITS = {
   High: { grass: 4200, rock: 40, fern: 100, bush: 160, log: 4, leaf: 160, flower: 16 },
   Balanced: { grass: 2520, rock: 24, fern: 60, bush: 96, log: 2, leaf: 96, flower: 8 },
@@ -421,15 +434,16 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
   let focus: { x: number; z: number } | undefined;
   let submitted: GroundDetail[] = [];
   let disposed = false;
+  const proceduralStone = meshes[2]!.geometry;
+  let detailedStone: BufferGeometry | undefined;
+  let detailPending: Promise<boolean> | undefined;
+  const hasDetail = () => meshes[2]!.geometry === detailedStone;
+  const isLow = () => quality === "Low";
   const transform = new Object3D();
   const white = new Color(0xffffff), grassTint = new Color(PALETTE.grass), dryGrass = new Color(PALETTE.grassDry);
   const dryTint = new Color(PALETTE.grassDry).lerp(new Color(PALETTE.flower), 0.03);
   function assertLive() {
     if (disposed) throw new Error("Ground details have been disposed");
-  }
-  function update() {
-    const build = updateChunks();
-    while (!build.next().done) { /* synchronous compatibility API */ }
   }
   function* updateChunks(): Generator<void> {
     for (const mesh of meshes) mesh.count = 0;
@@ -457,14 +471,15 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
         } else {
           transform.position.set(item.x, item.y, item.z);
           transform.rotation.set(0, item.rotation, 0);
-          transform.scale.set(item.scale * (kind === "log" ? 3.6 : 1), item.scale, item.scale * (kind === "log" ? 0.65 : 1));
+          transform.scale.set(item.scale * (kind === "log" && !hasDetail() ? 3.6 : 1), item.scale,
+            item.scale * (kind === "log" && !hasDetail() ? 0.65 : 1));
           transform.updateMatrix();
         }
         mesh.setMatrixAt(mesh.count, transform.matrix);
         const root = kind === "leaf" ? dryTint : kind === "flower" ? new Color(PALETTE[item.variant ? "paper" : "flower"])
           : kind === "grass" && foliageBiomeAt(item.x, item.z) === "forest-dawn" ? new Color(PALETTE.forestDeep) : kind === "grass" ? grassTint.clone().lerp(dryGrass, foliageBiomeAt(item.x, item.z) === "coast-dusk" ? 0.6 : 0) : white;
         mesh.setColorAt(mesh.count, root);
-        mesh.geometry.getAttribute("groundVariant").setX(mesh.count, kind === "flower" ? 0 : item.variant);
+        mesh.geometry.getAttribute("groundVariant").setX(mesh.count, kind === "log" && hasDetail() ? 2 : kind === "flower" ? 0 : item.variant);
         const tip = kind === "grass" ? (foliageBiomeAt(item.x, item.z) === "forest-dawn" ? grassTint : dryGrass) : root;
         mesh.geometry.getAttribute("groundTip").setXYZ(mesh.count++, tip.r, tip.g, tip.b);
       }
@@ -479,8 +494,29 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
       mesh.computeBoundingSphere();
     }
   }
-  return {
+  const controller = {
     group,
+    /** Explicit post-play hook. Keep all four instance batches and the global 40k cap. */
+    loadDetail(load?: PropGeometryLoader): Promise<boolean> {
+      if (disposed || quality === "Low") return Promise.resolve(false);
+      if (detailedStone) return Promise.resolve(true);
+      if (detailPending) return detailPending;
+      detailPending = (async () => {
+        const loader = load ?? (await import("../props/deferred")).loadPropGeometry;
+        const results = await Promise.allSettled([loader("rock-small-1"), loader("rock-small-2"), loader("prop-log")]);
+        const sources = results.flatMap(result => result.status === "fulfilled" ? [result.value] : []);
+        if (disposed || sources.length !== 3) { sources.forEach(source => source.dispose()); return false; }
+        detailedStone = variantGeometry(sources);
+        detailedStone.setAttribute("groundVariant", proceduralStone.getAttribute("groundVariant"));
+        detailedStone.setAttribute("groundTip", proceduralStone.getAttribute("groundTip"));
+        if (!isLow()) {
+          meshes[2]!.geometry = detailedStone;
+          this.setTiles(submitted);
+        }
+        return true;
+      })().catch(() => false).finally(() => { detailPending = undefined; });
+      return detailPending;
+    },
     setTiles(items: readonly GroundDetail[]) {
       const build = this.setTilesChunks(items);
       while (!build.next().done) { /* synchronous compatibility API */ }
@@ -544,20 +580,35 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
     setQuality(next: Quality) {
       assertLive();
       if (!Object.hasOwn(GROUND_LIMITS, next)) throw new RangeError("Invalid ground quality");
+      setBakedPropQuality(group.parent ?? group, next);
       if (quality === next) return;
       quality = next;
-      update();
+      meshes[2]!.geometry = next === "Low" ? proceduralStone : detailedStone ?? proceduralStone;
+      this.setTiles(submitted);
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      detailLoaders.delete(group);
       buckets = [];
       submitted = [];
       group.removeFromParent();
       group.clear();
       for (const mesh of meshes) { mesh.count = 0; mesh.dispose(); mesh.geometry.dispose(); }
+      if (meshes[2]!.geometry !== proceduralStone) proceduralStone.dispose();
+      if (detailedStone && meshes[2]!.geometry !== detailedStone) detailedStone.dispose();
       material.dispose();
       // Cached ramp gradients belong to the world; disposeRampGradients owns them.
     },
   };
+  detailLoaders.set(group, () => controller.loadDetail());
+  // A visible ground batch means play has begun. Start once, after its first render,
+  // so scene/compose and the Lead-owned world entry point need no changes.
+  const detailMesh = meshes[2]!;
+  detailMesh.onAfterRender = () => {
+    if (disposed || isLow()) return;
+    detailMesh.onAfterRender = () => {};
+    void controller.loadDetail();
+  };
+  return controller;
 }

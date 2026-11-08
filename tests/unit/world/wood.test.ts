@@ -43,6 +43,7 @@ function isWood(color: Vector3): boolean {
 const isCut = (color: Vector3) => onMix(color, palette("sand"), palette("dusk"), 0.1);
 const isGreen = (color: Vector3) => onMix(color, palette("forestDeep"), palette("forestLight"));
 const isFlower = (color: Vector3) => color.distanceTo(palette("flower")) < 1e-6;
+const isNail = (color: Vector3) => color.distanceTo(palette("ink").lerp(palette("rock"), 0.2)) < 1e-6;
 
 function colorsOf(geometry: BufferGeometry): Vector3[] {
   const colors = geometry.getAttribute("color");
@@ -105,7 +106,7 @@ describe("B2-187 procedural wood kit", () => {
           const colors = colorsOf(geometry), shades = new Set<string>();
           for (const color of colors) {
             if (isWood(color)) shades.add(color.toArray().map(value => value.toFixed(5)).join(","));
-            expect(isWood(color) || isCut(color) || isGreen(color) || isFlower(color)).toBe(true);
+            expect(isWood(color) || isCut(color) || isGreen(color) || isFlower(color) || isNail(color)).toBe(true);
             expect(color.toArray().every(value => Number.isFinite(value) && value >= 0 && value <= 1)).toBe(true);
             expect(color.dot(new Vector3(0.2126, 0.7152, 0.0722))).toBeGreaterThanOrEqual(0.06);
           }

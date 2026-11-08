@@ -111,7 +111,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
     expect(Math.max(...points(scene).map(point => point.length()))).toBeLessThanOrEqual(ZONE_BUDGET.radius);
     // This exact count makes the handoff measurable and catches accidental detail growth.
     // Kit bench/rail, twisted airfoils, rounded housings and grounded dressing replace R3 blocks.
-    expect(triangles).toBe(1278);
+    expect(triangles).toBe(1262); // G-03: six-triangle bench caps fund the nail heads.
     console.info(`horizon: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 

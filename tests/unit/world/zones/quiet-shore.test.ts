@@ -455,6 +455,7 @@ describe("quiet-shore procedural place", () => {
     };
     const woodEnds = [PALETTE.rock, PALETTE.rockDark].map(color => new Color(color).lerp(new Color(PALETTE.dusk), 0.08));
     const pairs = [
+      [new Color(PALETTE.ink), new Color(PALETTE.rock)], // G-03 dull nail heads.
       woodEnds,
       woodEnds.map(color => color.clone().lerp(new Color(PALETTE.cloud), 0.32)),
       woodEnds.map(color => color.clone().lerp(new Color(PALETTE.rockDark), 0.72)),
