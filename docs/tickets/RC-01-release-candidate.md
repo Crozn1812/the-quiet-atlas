@@ -42,7 +42,7 @@ Dùng sẵn `tools/review/*.mjs`, hook `window.__tqaJourney` (`goTo`, `visitSecr
   - bảng đánh giá: mỗi khu và mỗi tính năng chấm 1–5, kèm ô ghi chú;
   - cách đo T08/T09 trên laptop Iris Xe theo `docs/runbook/`.
 - **Cập nhật** `docs/PROJECT_STATUS.md` và `docs/runbook/lead-handoff.md`.
-- Kết thúc bằng dòng **`RC-01 DONE <hash>`** trong `docs/runbook/lead-handoff.md`.
+- Kết thúc bằng một dòng riêng ở đầu dòng trong `docs/runbook/lead-handoff.md`: `RC-01 DONE` + dấu cách + hash commit RC (ví dụ dạng `RC-01 DONE 1a2b3c4`).
 
 ### 4. Khi hết lượt
 

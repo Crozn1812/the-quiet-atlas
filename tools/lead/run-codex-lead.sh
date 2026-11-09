@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Usage: run-codex-lead.sh <card.md> [effort]
 # Runs Codex as Lead on the main checkout (sandbox workspace-write; writable: repo + D:/tqa-worktrees).
-# Loops until docs/runbook/lead-handoff.md contains "<CARD-ID> DONE". On a usage limit it waits until the
+# Loops until docs/runbook/lead-handoff.md has a line starting "<CARD-ID> DONE <commit-hash>". On a usage limit it waits until the
 # reported reset time (+2 min; a past clock time means tomorrow) and continues. Max 30 runs.
 set -uo pipefail
 CARD="$1"; EFFORT="${2:-medium}"
@@ -9,7 +9,7 @@ REPO=D:/the-quiet-atlas
 ID=$(basename "$CARD" .md | cut -d- -f1-2)
 LOG=D:/tqa-worktrees/LEAD-$ID.log
 for run in $(seq 1 30); do
-  grep -q "$ID DONE" "$REPO/docs/runbook/lead-handoff.md" && { echo "$(date '+%F %T') $ID DONE"; exit 0; }
+  grep -qE "^$ID DONE [0-9a-f]{7,}" "$REPO/docs/runbook/lead-handoff.md" && { echo "$(date '+%F %T') $ID DONE"; exit 0; }
   echo "$(date '+%F %T') run $run"
   { cat "$REPO/docs/tickets/$CARD"; printf '\n\nLần chạy %s. Đọc docs/runbook/lead-handoff.md (mục %s đang làm) để tiếp tục, không làm lại việc đã xong.\n' "$run" "$ID"; } \
     | codex exec -m gpt-6.1-sol -c model_reasoning_effort="$EFFORT" -s workspace-write -C "$REPO" \
