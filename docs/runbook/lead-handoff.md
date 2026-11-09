@@ -31,3 +31,7 @@ Giữ nguyên: không push nếu chưa được Duy đồng ý từng lần; kh�
 - `_common-b2.md` đã nới: ticket nào ghi rõ `index.ts` hay `tests/e2e/` thì được sửa; Codex được mở Edge để tự kiểm tra hình.
 - `tools/lead/autoresume.sh` đã sửa lỗi hiểu giờ reset đã qua thành hôm nay.
 - Thời gian vào chơi: các lần đo khi máy bận cho ra 6,2–6,9 s. **Cần đo lại khi máy rảnh**; spec 10 s vẫn PASS.
+
+## Nhân rộng R1 (Duy 2026-11-09: "Nhân rộng R1")
+
+Làm tuần tự theo `docs/tickets/R1-rollout.md`: **R1-A** (rừng) → merge → **R1-B** (đồi) → merge → **R1-C** (biển) → merge. Lead duyệt từng bước bằng ảnh High đủ 8 khu, intro, ending; chạy `cpu-compare` và `load-budget`. Sau R1-C: full e2e (4 worker), Lighthouse, showcase `docs/showcase/34-r1-toan-world/` + checklist để Duy chấm.
