@@ -1,7 +1,7 @@
 ## RC-14 — Bỏ cạnh tam giác giả trên biển cảnh kết
 
 - Trạng thái: review; source chưa commit/merge. Lead còn cần render bản build cuối và gate toàn bộ.
-- Vùng file: src/features/world/water/material.ts; tests/unit/world/sea-sunset.test.ts.
+- Vùng file: src/features/world/water/material.ts; tests/unit/world/sea-sunset.test.ts, water-streaks.test.ts.
 - Lỗi P2: cảnh kết ~26–31s có dải tam giác tối lớn trên mặt biển. Mở rộng quad RC-12 bảo đảm coverage nhưng không sửa được dải này.
 - Chẩn đoán Edge High 1600×900: dải vẫn có khi chỉ giữ sea+sky và tắt depthTest; shader solid hết dải; grazing/normal mượt. Ép offshore=1000 hết dải. Vì thế nguyên nhân là shoreValid nhảy nhị phân giữa khoảng cách thật và1000m ở sample invalid, làm reflection đổi đột ngột theo cột x; không phải địa hình chìm, clipping hay normal camera.
 - Sửa: giải mã validity từng đầu sample; không nội suy sentinel100000 vào coast. Tính khoảng cách tới đoạn shoreXZ hữu hạn bằng projection clamp. Confidence nội suy trực tiếp trọng số reflection, sea detail, sunset pigment thay vì trộn khoảng cách với1000. Gate phía nước từ0 đến0.04m; toàn bộ inland không có ảnh hưởng shore. Shallows và foam vẫn yêu cầu cả hai endpoint valid, không nối foam hoặc turquoise qua inlet không đáng tin cậy.
@@ -12,3 +12,4 @@
 - Unit cũ về khoảng cách synthetic có slope được chỉnh có chủ đích: khoảng cách tới đoạn hữu hạn nằm giữa khoảng cách vuông góc và khoảng cách theo z. Không đổi trần luma, foam, ray hoặc sampling fingerprint.
 - Đã chạy: pnpm --config.verifyDepsBeforeRun=false exec vitest run tests/unit/world/water.test.ts tests/unit/world/sea-sunset.test.ts --maxWorkers=2 — PASS99/99; coverage/rc14-unit.txt. Existing azimuth regression mỗi quality72,090samples, display luma0.1307–0.2915, swing0.1249, giữ trần0.12–0.30/0.15. Shore fingerprint RC12 giữ nguyên PASS.
 - NOT RUN tại worker: final built ending/render8khu+luma, CPU/GPU, fullgate/e2e/load/LHCI. Lead chạy trên commit RC.
+- Gate Lead trên `6cb4b91`: FAIL, 1749/1750 unit; evaluator sea ripple của water-streaks còn truyền tên biến cũ `uHasShore` nên ReferenceError với `shoreInfluence`. Cập nhật tên input harness, giữ mọi ngưỡng noise/advection/distance; thêm kiểm confidence0 giữ nền offshore5%. Không đổi runtime sau hash này. Lượt FAIL được lưu, chạy lại gate trên commit test đã sửa.
