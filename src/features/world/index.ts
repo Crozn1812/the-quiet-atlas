@@ -454,9 +454,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   mascotHint.setAttribute("aria-live", "polite");
   mascotHint.setAttribute("aria-atomic", "true");
   Object.assign(mascotHint.style, {
-    position: "fixed", left: "50%", bottom: "8.5rem", transform: "translateX(-50%)",
-    width: "max-content", maxWidth: "calc(100% - 2rem)", textAlign: "center",
-    fontSize: ".875rem", color: PALETTE.ink, pointerEvents: "none", zIndex: "1",
+    position: "fixed", left: "50%", bottom: "13rem", transform: "translateX(-50%)",
+    width: "max-content", maxWidth: "calc(100% - 2rem)", textAlign: "center", boxSizing: "border-box",
+    fontSize: ".875rem", color: PALETTE.ink, background: PALETTE.paper,
+    padding: ".35rem .65rem", borderRadius: ".25rem", pointerEvents: "none", zIndex: "1",
   });
   container.appendChild(mascotHint);
   function clearMascotHint() {
