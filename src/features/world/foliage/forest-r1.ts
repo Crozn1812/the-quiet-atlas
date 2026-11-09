@@ -1,4 +1,4 @@
-import { Color, Group, InstancedMesh, Matrix4, Vector3 } from "three";
+import { Color, Group, InstancedMesh, Matrix4, Vector3, type BufferGeometry } from "three";
 import { PALETTE } from "../art/palette";
 import { hillR1Weight } from "./hill-r1";
 import { forestAtmosphereWeight } from "../art/direction";
@@ -21,7 +21,11 @@ export function isForestR1Tree(tree: Pick<FoliageTree, "x" | "z">) {
 }
 
 /** Streamed companions to the authored grove: three silhouettes, three draws, no wind pass. */
-export function createForestR1Trees(trees: readonly FoliageTree[]) {
+export function createForestR1Trees(trees: readonly FoliageTree[], options?: {
+  geometry: (variant: number) => BufferGeometry;
+  name: string;
+  scale: (tree: FoliageTree) => readonly [number, number, number];
+}) {
   // Warm hill crowns reuse the same three batches and branched silhouettes.
   // Bake once at tile construction; quality changes never resample the route.
   const hillTint = new Color(PALETTE.grass).lerp(new Color(PALETTE.grassDry), 0.28);
@@ -29,12 +33,12 @@ export function createForestR1Trees(trees: readonly FoliageTree[]) {
   hillTint.setRGB(hillTint.r / dawnTint.r, hillTint.g / dawnTint.g, hillTint.b / dawnTint.b);
   const pigments = trees.map(tree => new Color(1, 1, 1).lerp(hillTint, hillR1Weight(nearestPath(tree.x, tree.z).t)));
   const group = new Group();
-  group.name = "forest-r1-trees";
+  group.name = options?.name ?? "forest-r1-trees";
   const meshes = [0, 1, 2].map(variant => {
     const material = createRampMaterial(0xffffff, { steps: 4, soft: false });
     material.vertexColors = true;
-    const mesh = new InstancedMesh(createFirstLightTree(variant), material, trees.length);
-    mesh.name = `forest-r1-trees-${variant}`;
+    const mesh = new InstancedMesh((options?.geometry ?? createFirstLightTree)(variant), material, trees.length);
+    mesh.name = `${group.name}-${variant}`;
     mesh.castShadow = false;
     mesh.receiveShadow = true;
     group.add(mesh);
@@ -52,7 +56,8 @@ export function createForestR1Trees(trees: readonly FoliageTree[]) {
       const scale = tree.scale * (tree.trailCanopy ? 3 : 1);
       matrix.makeRotationY(foliageVariantAt(tree.z, tree.x, 1000) / 1000 * Math.PI * 2);
       rotation.makeRotationZ(tree.lean);
-      matrix.premultiply(rotation).scale(new Vector3(scale, scale, scale));
+      const axes = options?.scale(tree) ?? [1, 1, 1];
+      matrix.premultiply(rotation).scale(new Vector3(scale * axes[0]!, scale * axes[1]!, scale * axes[2]!));
       matrix.setPosition(tree.x, tree.y, tree.z);
       mesh.setColorAt(mesh.count, pigments[index]!);
       mesh.setMatrixAt(mesh.count++, matrix);

@@ -32,8 +32,8 @@ describe("far landscape individual dawn crowns", () => {
       const expected = {
         position: "b360eaef8fc90cb92404ee7d87a9ea60bc56570a14fd57935844e987655d3283",
         normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
-        // Lead: ground albedo baseline after B2-242 warm banks.
-        color: "ba84691150b75be9c827fde5a0cebf3c02007ff15882b48527b1c21d6436e895",
+        // R1-C: coastal grass pigments also feed the distant ground; geometry stays unchanged.
+        color: "70efbfba824b8c2417fbb2ba687b32586c196dbeb23cc3a93f20d28b4fc89542",
       };
       for (const [name, value] of Object.entries(expected)) {
         expect(hash(far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))).toBe(value);

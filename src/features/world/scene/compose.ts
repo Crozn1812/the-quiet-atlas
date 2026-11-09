@@ -5,6 +5,7 @@ import { PALETTE } from "../art/palette";
 import { bindFirstLightGround, createFirstLightGrove, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createForestR1Trees, forestR1Weight } from "../foliage/forest-r1";
+import { bindCoastR1Ground, createCoastR1Trees, isCoastR1Tree } from "../foliage/coast-r1";
 import { hillR1Weight } from "../foliage/hill-r1";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
@@ -133,6 +134,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   // B2-165: terrain colour now lives in the tile vertex colours (grass/rock/sand); a tinted base would double it.
   terrainMaterial.color.setRGB(1, 1, 1);
   bindFirstLightGround(terrainMaterial);
+  bindCoastR1Ground(terrainMaterial);
   const terrainDetail = bindTerrainDetail(scene, terrainMaterial, quality, error => { streamingError = error; }, deferredGround);
   const pool = createTilePool({ RAPIER, world, material: terrainMaterial });
   const trunkGeometry = new CylinderGeometry(1, 1, 2, 6);
@@ -201,14 +203,16 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   }
 
   function createCell(allTrees: FoliageTree[]) {
-    const forestTrees: FoliageTree[] = [], trees: FoliageTree[] = [];
+    const forestTrees: FoliageTree[] = [], coastTrees: FoliageTree[] = [], trees: FoliageTree[] = [];
     for (const tree of allTrees) {
+      if (isCoastR1Tree(tree)) { coastTrees.push(tree); continue; }
       const t = nearestPath(tree.x, tree.z).t;
       const weight = forestR1Weight(tree.x, tree.z, t) + hillR1Weight(t);
       const r1 = foliageVariantAt(tree.x + 17.3, tree.z - 9.1, 1000) / 1000 < weight;
       (r1 ? forestTrees : trees).push(tree);
     }
     const forest = createForestR1Trees(forestTrees);
+    const coast = coastTrees.length ? createCoastR1Trees(coastTrees) : undefined;
     const foliage = trees.length ? createFoliage(trees.length) : undefined;
     // B2-039a: every crown variant shares one material. Each fade hook wraps its material, so give each
     // variant after the first its own clone carrying the pristine ramp hook (never a hook already faded).
@@ -236,6 +240,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
     function setCellQuality(next: Quality) {
       forest.setQuality(next);
+      coast?.setQuality(next);
       foliage?.setQuality(next);
       const count = Math.round(trees.length * PRESETS[next].density);
       const selected = Array.from({ length: count }, (_, i) => trees[Math.floor((i + 0.5) * trees.length / count)]!);
@@ -256,17 +261,20 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       setCellQuality(quality);
       if (foliage) scene.add(foliage.group);
       scene.add(forest.group);
+      if (coast) scene.add(coast.group);
     } catch (error) {
       for (const collider of colliders) world.removeCollider(collider, true);
       foliage?.dispose();
       forest.dispose();
+      coast?.dispose();
       for (const material of clones) material.dispose();
       throw error;
     }
     return {
-      trees: allTrees, trunks, foliage, forest, setQuality: setCellQuality,
+      trees: allTrees, trunks, foliage, forest, coast, setQuality: setCellQuality,
       fade(camera: Vector3, player: Vector3, dt: number) {
         forest.fade(camera, player, dt);
+        coast?.fade(camera, player, dt);
         for (const [index, visible] of visibleTrees.entries()) {
           // The spring arm is <=16 m. Only nearby crowns can cover its sight lines.
           const nearby = visible.map((tree, id) => ({ tree, id }))
@@ -279,6 +287,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
         for (const collider of colliders) world.removeCollider(collider, true);
         foliage?.dispose();
         forest.dispose();
+        coast?.dispose();
         for (const material of clones) material.dispose();
       },
     };
@@ -299,6 +308,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     for (const cell of cells.values()) {
       collisionMeshes.push(...cell.trunks);
       foliageMeshes.push(...cell.forest.meshes);
+      if (cell.coast) foliageMeshes.push(...cell.coast.meshes);
       for (const species of Object.values(cell.foliage?.species ?? {})) {
         for (const variant of species.variants) foliageMeshes.push(variant.trunks, variant.crowns);
       }

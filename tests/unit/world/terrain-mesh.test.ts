@@ -174,7 +174,7 @@ describe("terrain tile mesh", () => {
       const position = mesh.geometry.getAttribute("position");
       const normal = mesh.geometry.getAttribute("normal");
       const indices = mesh.geometry.getIndex()!;
-      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["color", "forestSurface", "hillSurface", "normal", "position"]);
+      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["coastSurface", "color", "forestSurface", "hillSurface", "normal", "position"]);
       const forestSurface = mesh.geometry.getAttribute("forestSurface");
       expect(forestSurface.count).toBe(position.count);
       expect(Array.from(forestSurface.array).every(value => value >= 0 && value <= 1)).toBe(true);

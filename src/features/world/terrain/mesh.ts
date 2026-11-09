@@ -1,5 +1,6 @@
 import { Box3, BufferAttribute, BufferGeometry, Color, Matrix4, Mesh, Ray, Vector3, type Material } from "three";
 import { forestAtmosphereWeight } from "../art/direction";
+import { coastR1Weight } from "../foliage/coast-r1";
 import { hillR1Weight } from "../foliage/hill-r1";
 import { hex } from "../art/palette";
 import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
@@ -57,6 +58,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   const normals = new Float32Array(positions.length);
   const colors = new Float32Array(positions.length);
   const forestSurface = new Float32Array(stride ** 2 * 2);
+  const coastSurface = new Float32Array(stride ** 2);
   const hillSurface = new Float32Array(stride ** 2);
   const indices = new Uint16Array(cells ** 2 * 6);
   const tint = new Color();
@@ -125,6 +127,13 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const detail = pigmentNoise(wx, wz, 6);
     const cliffEnd = Math.tan((41 + detail * 4) * Math.PI / 180);
     const cliff = smoothstep(cliffStart, cliffEnd, slope);
+    const coast = coastR1Weight(path.t);
+    // Broad green cushions run down to the existing narrow mineral shore. Keep the asphalt,
+    // underwater bed and stream masks below; no height/normal/collision change is involved.
+    const coastGrass = coast * groundDetail * smoothstep(0.6, 1.5, aboveWater) * (1 - cliff);
+    tint.copy(grass).lerp(grassDry, 0.18 + patch * 0.22);
+    color.lerp(tint, coastGrass * 0.82);
+    coastSurface[vertex] = coast * groundDetail * smoothstep(0, 0.6, aboveWater);
     forestSurface.set([forest * smoothstep(0.15, 0.6, aboveWater) * (1 - cliff), smoothstep(2.4, 3.1, path.distance)], vertex * 2);
     // Keep water, rocky slopes and the paved Horizon approach in their own materials.
     hillSurface[vertex] = hill * smoothstep(1.2, 2.2, aboveWater) * (1 - cliff) * groundDetail;
@@ -183,6 +192,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   geometry.setAttribute("normal", new BufferAttribute(normals, 3));
   geometry.setAttribute("color", new BufferAttribute(colors, 3));
   geometry.setAttribute("forestSurface", new BufferAttribute(forestSurface, 2));
+  geometry.setAttribute("coastSurface", new BufferAttribute(coastSurface, 1));
   geometry.setAttribute("hillSurface", new BufferAttribute(hillSurface, 1));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingBox();
