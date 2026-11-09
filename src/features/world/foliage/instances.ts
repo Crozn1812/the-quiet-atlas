@@ -255,6 +255,47 @@ transformed += inverse(mat3(modelMatrix) * mat3(instanceMatrix)) * vec3(forestSw
   material.customProgramCacheKey = () => previousKey() + "|forest-shapes-v2|affine-normals-v1|forest-wind-v1|trail-canopy-shape-v2";
 }
 
+type CrownInverseCache = {
+  attribute: InstancedBufferAttribute;
+  version: number;
+  count: number;
+  world: Matrix4;
+  source: Float64Array;
+  inverses: Matrix4[];
+};
+const crownInverseCaches = new WeakMap<InstancedMesh, CrownInverseCache>();
+
+/** Matrices are static between streaming/quality changes; camera motion needs no new inverse. */
+function crownInverses(crowns: InstancedMesh): Matrix4[] {
+  const attribute = crowns.instanceMatrix;
+  let cache = crownInverseCaches.get(crowns);
+  const rebuild = !cache || cache.attribute !== attribute || cache.version !== attribute.version
+    || cache.count !== crowns.count || !cache.world.equals(crowns.matrixWorld);
+  if (!cache) {
+    cache = { attribute, version: attribute.version, count: crowns.count, world: new Matrix4(),
+      source: new Float64Array(crowns.count * 16), inverses: [] };
+    crownInverseCaches.set(crowns, cache);
+  }
+  if (cache.source.length < crowns.count * 16) cache.source = new Float64Array(crowns.count * 16);
+  for (let i = 0; i < crowns.count; i++) {
+    const offset = i * 16;
+    let changed = rebuild;
+    // setMatrixAt() and direct CPU writes need not set needsUpdate until a later render.
+    // Preserve the selector's immediate CPU semantics without inverting unchanged poses.
+    if (!changed) for (let j = 0; j < 16; j++) {
+      if (cache.source[offset + j] !== attribute.array[offset + j]) { changed = true; break; }
+    }
+    if (!changed) continue;
+    const inverse = cache.inverses[i] ??= new Matrix4();
+    crowns.getMatrixAt(i, inverse);
+    inverse.premultiply(crowns.matrixWorld).invert();
+    for (let j = 0; j < 16; j++) cache.source[offset + j] = attribute.array[offset + j]!;
+  }
+  cache.attribute = attribute; cache.version = attribute.version; cache.count = crowns.count;
+  cache.world.copy(crowns.matrixWorld);
+  return cache.inverses;
+}
+
 /**
  * The legacy camera selector uses a fixed sphere at the collider top (5 m).
  * Test the three sight segments against each actual crown's local bounding box
@@ -265,13 +306,12 @@ export function selectFoliageOccludingCrowns(crowns: InstancedMesh, camera: Vect
   if (!crowns.geometry.boundingBox) crowns.geometry.computeBoundingBox();
   const bounds = crowns.geometry.boundingBox!;
   crowns.updateWorldMatrix(true, false);
-  const inverse = new Matrix4();
+  const inverses = crownInverses(crowns);
   const start = new Vector3(), end = new Vector3(), hit = new Vector3();
   const ray = new Ray();
   const selected: number[] = [];
   for (let i = 0; i < crowns.count; i++) {
-    crowns.getMatrixAt(i, inverse);
-    inverse.premultiply(crowns.matrixWorld).invert();
+    const inverse = inverses[i]!;
     start.copy(camera).applyMatrix4(inverse);
     for (const offset of [-0.65, 0, 0.65]) {
       end.copy(player);

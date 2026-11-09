@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Box3, type BufferGeometry, InstancedMesh, Matrix4, Mesh, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
+import { Box3, BoxGeometry, type BufferGeometry, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliageColliders, TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
@@ -522,4 +522,50 @@ it("never roots a tree on the sea floor or wet sand around the river mouth (B2-0
     }
   }
   expect(checked).toBeGreaterThanOrEqual(0);
+});
+
+it("reuses crown inverses but immediately respects changed instances, quality slots and parents", () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+  const crowns = new InstancedMesh(geometry, material, 2), parent = new Group();
+  parent.add(crowns);
+  const matrix = new Matrix4();
+  crowns.setMatrixAt(0, matrix.identity());
+  crowns.setMatrixAt(1, matrix.makeTranslation(6, 0, 0));
+  const invert = vi.spyOn(Matrix4.prototype, "invert");
+  function select(x: number, expected: number[], inversions: number) {
+    invert.mockClear();
+    expect(selectFoliageOccludingCrowns(crowns, new Vector3(x, 0, 4), new Vector3(x, 0, -4))).toEqual(expected);
+    expect(invert).toHaveBeenCalledTimes(inversions);
+  }
+  try {
+    select(0, [0], 2);
+    select(0, [0], 0); // Repeated frame: exact same hit, no inverse work.
+    select(6, [1], 0); // Camera/player motion does not invalidate static transforms.
+    crowns.setMatrixAt(0, matrix.makeTranslation(12, 0, 0)); // Deliberately no needsUpdate.
+    select(0, [], 1);
+    crowns.instanceMatrix.array[16 + 12] = 0; // Direct CPU edit must also be visible immediately.
+    select(0, [1], 1);
+    crowns.instanceMatrix.needsUpdate = true;
+    select(0, [1], 2);
+    crowns.count = 1;
+    select(0, [], 1);
+    crowns.count = 2;
+    crowns.setMatrixAt(0, matrix.identity()); // Quality compaction puts a new tree in slot zero.
+    crowns.setMatrixAt(1, matrix.makeTranslation(6, 0, 0));
+    crowns.instanceMatrix.needsUpdate = true;
+    select(0, [0], 2);
+    parent.position.x = 6;
+    parent.rotation.y = 0.35;
+    select(0, [], 2);
+    select(6, [0], 0);
+    crowns.instanceMatrix = new InstancedBufferAttribute(new Float32Array(crowns.instanceMatrix.array), 16);
+    select(6, [0], 2); // A replacement attribute can have the same version and values.
+    crowns.count = 0;
+    select(6, [], 0);
+    crowns.count = 2;
+    select(6, [0], 2);
+    select(6, [0], 0);
+  } finally {
+    invert.mockRestore(); crowns.dispose(); geometry.dispose(); material.dispose();
+  }
 });
