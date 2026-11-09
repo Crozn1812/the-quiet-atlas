@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Vector3, type Mesh } from "three";
 import type { Trees } from "./terrain";
 
 export const MIN_ZOOM = 4;
@@ -12,6 +12,13 @@ export const POINTER_YAW_SPEED = 0.005;
 export const WHEEL_ZOOM_SPEED = 0.01;
 export const wrapYaw = (yaw: number) => ((yaw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 export const clampZoom = (distance: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, distance));
+
+/** Static camera/LoS colliders only: let Three reject empty local bounds before triangle traversal.
+ * Existing authored bounds and custom raycast functions stay untouched. Object transforms
+ * may animate; a geometry whose vertex positions change must refresh its own bounds. */
+export function ensureCameraBounds(obstacles: readonly Mesh[]): void {
+  for (const mesh of obstacles) if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+}
 
 /** Retract immediately for safety; damp only extension so interpolation cannot cross a wall. */
 export function springArm(previous: number, desired: number, hit: number | undefined, dt: number) {

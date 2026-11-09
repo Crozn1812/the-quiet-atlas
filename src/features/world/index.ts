@@ -6,7 +6,7 @@ import { createInteraction, ZONE_IDS, type InteractionTarget, type ZoneId } from
 import { SIGNPOSTS, arrivalPoint } from "../navigation/signposts";
 import { createTeleport, MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../navigation/teleport";
 import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
-import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
+import { clampZoom, wrapYaw, springArm, ensureCameraBounds, INITIAL_ZOOM, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
@@ -1026,7 +1026,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // A narrow sign just behind an arrival point must not collapse the arm into the
     // character. Signs retain interaction/line-of-sight ownership; walls, rocks,
     // trunks and railings still retract the camera normally.
-    const hit = raycaster.intersectObjects(cameraObstacles(false))[0];
+    const obstacles = cameraObstacles(false);
+    ensureCameraBounds(obstacles);
+    const hit = raycaster.intersectObjects(obstacles)[0];
     raycaster.near = 0;
     arm = springArm(arm, distance, hit?.distance, dt);
     camera.position.copy(target).addScaledVector(direction, arm);
