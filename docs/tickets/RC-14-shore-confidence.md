@@ -1,0 +1,14 @@
+## RC-14 — Bỏ cạnh tam giác giả trên biển cảnh kết
+
+- Trạng thái: review; source chưa commit/merge. Lead còn cần render bản build cuối và gate toàn bộ.
+- Vùng file: src/features/world/water/material.ts; tests/unit/world/sea-sunset.test.ts.
+- Lỗi P2: cảnh kết ~26–31s có dải tam giác tối lớn trên mặt biển. Mở rộng quad RC-12 bảo đảm coverage nhưng không sửa được dải này.
+- Chẩn đoán Edge High 1600×900: dải vẫn có khi chỉ giữ sea+sky và tắt depthTest; shader solid hết dải; grazing/normal mượt. Ép offshore=1000 hết dải. Vì thế nguyên nhân là shoreValid nhảy nhị phân giữa khoảng cách thật và1000m ở sample invalid, làm reflection đổi đột ngột theo cột x; không phải địa hình chìm, clipping hay normal camera.
+- Sửa: giải mã validity từng đầu sample; không nội suy sentinel100000 vào coast. Tính khoảng cách tới đoạn shoreXZ hữu hạn bằng projection clamp. Confidence nội suy trực tiếp trọng số reflection, sea detail, sunset pigment thay vì trộn khoảng cách với1000. Gate phía nước từ0 đến0.04m; toàn bộ inland không có ảnh hưởng shore. Shallows và foam vẫn yêu cầu cả hai endpoint valid, không nối foam hoặc turquoise qua inlet không đáng tin cậy.
+- Không đổi palette,109sample/uniforms, topology2tri/4vertex, clock hay CPU update. Không thêm texture hoặc loop fragment.
+- Bằng chứng chính: docs/showcase/35-rc/sea-diagnostic-2/all.png trước; sea-diagnostic-8/confidence-direct.png live patch (Lead đã xem, đồng ý hướng); sea-diagnostic-8/all-offshore.png control. Log sea-diagnostic-8-patches.txt xác nhận10replacement trúng đúng1lần. Các variant thất bại được giữ trong coverage/rc-scratch, không coi là sửa xong.
+- Khác live8: bản source còn siết shallows bằng shoreValid để không tô qua inlet; foam nhân cả shoreInfluence và shoreValid; gate inland không cho vùng âm0.5m.
+- Unit mới: reflection liên tục qua ranh sample invalid ở Low/Balanced/High; không có foam/turquoise trên unsafe secant; điểm inland không foam; secant dốc vô hạn cách24.88m nhưng đoạn hữu hạn >180m phải là deep water. Chạy GLSL scalar thật qua evaluator hiện có, không dùng bản sao công thức shader.
+- Unit cũ về khoảng cách synthetic có slope được chỉnh có chủ đích: khoảng cách tới đoạn hữu hạn nằm giữa khoảng cách vuông góc và khoảng cách theo z. Không đổi trần luma, foam, ray hoặc sampling fingerprint.
+- Đã chạy: pnpm --config.verifyDepsBeforeRun=false exec vitest run tests/unit/world/water.test.ts tests/unit/world/sea-sunset.test.ts --maxWorkers=2 — PASS99/99; coverage/rc14-unit.txt. Existing azimuth regression mỗi quality72,090samples, display luma0.1307–0.2915, swing0.1249, giữ trần0.12–0.30/0.15. Shore fingerprint RC12 giữ nguyên PASS.
+- NOT RUN tại worker: final built ending/render8khu+luma, CPU/GPU, fullgate/e2e/load/LHCI. Lead chạy trên commit RC.
