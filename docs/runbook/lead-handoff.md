@@ -35,3 +35,10 @@ Giữ nguyên: không push nếu chưa được Duy đồng ý từng lần; kh�
 ## Nhân rộng R1 (Duy 2026-11-09: "Nhân rộng R1")
 
 Theo `docs/tickets/R1-rollout.md`: **R1-A** (rừng, tổng quát hoá cơ chế R1 từ vùng 48 m thành cấu hình theo biome) → merge → **R1-B** (đồi) và **R1-C** (biển) **chạy song song** (mỗi ticket chỉ sửa preset biome và dressing khu của mình; file dùng chung chỉ Lead sửa khi merge). Lead duyệt từng bước bằng ảnh High đủ 8 khu, intro, ending; chạy `cpu-compare` và `load-budget`. Sau R1-C: full e2e (4 worker), Lighthouse, showcase `docs/showcase/34-r1-toan-world/` + checklist để Duy chấm.
+
+## RC-01 (Duy 2026-11-09): Codex hoàn thiện bản RC để Duy test thật
+
+Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/tickets/RC-01-release-candidate.md`, được khởi động bằng `bash tools/lead/run-codex-lead.sh RC-01-release-candidate.md`. Script tự chạy lại sau giờ reset và dừng khi file này có dòng `RC-01 DONE <hash>`.
+
+### RC-01 đang làm
+(Codex ghi tiến độ ở đây.)

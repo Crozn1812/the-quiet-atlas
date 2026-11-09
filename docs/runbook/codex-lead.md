@@ -1,6 +1,6 @@
 # Runbook: Codex làm Lead (khi Claude hết lượt tuần)
 
-Quyết định của Duy (2026-11-07): khi thanh **weekly usage của Claude đạt 95 %**, Claude dừng và **Codex nhận toàn quyền**: vừa làm Lead vừa thi công. File này là tất cả những gì Codex-Lead cần. Nếu khác `CLAUDE.md` thì file này chỉ thay mục "Codex không được merge vào main"; mọi luật cứng ở `CLAUDE.md` §6 vẫn giữ nguyên.
+Quyết định của Duy (2026-11-07): khi thanh **weekly usage của Claude đạt 97 %**, Claude dừng và **Codex nhận toàn quyền**: vừa làm Lead vừa thi công. File này là tất cả những gì Codex-Lead cần. Nếu khác `CLAUDE.md` thì file này chỉ thay mục "Codex không được merge vào main"; mọi luật cứng ở `CLAUDE.md` §6 vẫn giữ nguyên.
 
 ## 1. Luật cứng (không đổi)
 
