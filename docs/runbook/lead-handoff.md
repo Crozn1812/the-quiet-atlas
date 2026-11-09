@@ -41,4 +41,50 @@ Theo `docs/tickets/R1-rollout.md`: **R1-A** (rừng, tổng quát hoá cơ chế
 Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/tickets/RC-01-release-candidate.md`, được khởi động bằng `bash tools/lead/run-codex-lead.sh RC-01-release-candidate.md`. Script tự chạy lại sau giờ reset và dừng khi file này có dòng `RC-01 DONE <hash>`.
 
 ### RC-01 đang làm
-(Codex ghi tiến độ ở đây.)
+
+- Lần 1, 2026-11-09: base main 3bb0752. KHÔNG làm lại RC-02 capture và lượt journey đã hoàn thành.
+- Môi trường từ chối ghi .git repo chính (git worktree add lỗi RC-01.lock Permission denied). Đã tạo clone độc lập D:/tqa-worktrees/RC-01, lane/RC-01, không phải worktree được đăng ký. Code/asset/bằng chứng ở clone; chưa merge main, chưa push.
+- Dependency: pnpm offline bị chặn khóa store ngoài workspace; đã sao chép node_modules vật lý từ main vào clone, không đổi dependency/lockfile. Dùng pnpm.cmd --config.verifyDepsBeforeRun=false <script> hoặc Node CLI trực tiếp. Build Turbopack chuẩn đã chạy được.
+- Đã làm: RC-02 chụp 8 postcards High + 3 hero ứng viên, chọn hero-0; license cập nhật, Lead đã xem ảnh. 8 ảnh High trước tại docs/showcase/35-rc/before. RC-03 sửa harness T08/T09 radio+RAM; RC-04 tạo script audit. RC-06 sửa build Next→CV→OG và checker fetch PDF thật.
+- Journey Edge W+camera thật: PASS tuyến 367,91s, 1098,12m, 0 kẹt; đủ 8 khu, không teleport/Shift. Bằng chứng clone docs/showcase/35-rc/journey. Viewport hiện test 1366x800; audit UI 1600x900 đang chạy.
+- Đang chạy: RC04 audit VI/EN và gate. Cần đọc ui-audit/results.json + steps.md, sửa lỗi thật hoặc script sai, kiểm camera thấp/intro/ending, High after+luma, chốt commit nguồn rồi full e2e4workers/load≤6s/8MB/LHCI/unit/checkCV trên hash đó.
+- Hướng dẫn Duy đã có clone docs/playtest/rc-guide.md. Audit/checklist/status chưa hoàn chỉnh. T08/T09 Iris Xe NOT RUN, Duy chấm/T10 DEFERRED. Không ghi RC-01 DONE khi chưa merge/gate đủ.
+
+#### Cập nhật lần 1 lúc 23:04 — ĐỌC MỤC NÀY TRƯỚC
+
+- Clone nguồn hiện commit 522b6dd (sau 144a02c → 77700fc → d761a62). Main vẫn 3bb0752, .git read-only, KHÔNG MERGE/PUSH.
+- RC02 ảnh mới hoàn tất; RC03 harness; RC06 build đủ CV/OG; RC07 ẩn placeholder giữ qualification; RC08 CV2trang VI/EN đã mở xem4trang; RC09 camera loại biển mảnh khỏi ray camera (không đổi collision/LoS), thêm cameraDistance scalar QA; RC10 skip alpha upload khi Float32 không đổi; RC11 cache inverse crown đúng invalidation. Commit522 đã có RC11 nhưng CHƯA BUILD/ĐO nó.
+- AuditUI lượt2 trên export d761a62: PASS, 140/140 bước; đủ VI/EN desktop1600x900, mobile390/320, introfull+skipthật, overlay8khu E thật, menu/xe/secrets/ending/lan can, CV PDF HTTP+signature, 8 casepages. Kết quả docs/showcase/35-rc/ui-audit; lượt1 FAIL harness giữ ui-audit-first.
+- Camera64ảnh trước/sau: camera-before/camera-after (sau source777); đã mở đủ8contact sau, không còn phóng sát thân. Một số góc nhìn biển chỉđường đứng trước người che một phần torso, không phải camera chui vào người. Hình cây R1 trong mẫu không che kín actor. Luma High8 after còn CHƯA CHẠY.
+- CPU2lượt mỗi bản: baseline144(world nhưmain3bb) Workshop246/267 Script/Task ms/s; camera777 tăng lên297/321.5 FAIL; RC10d761 mean277/298.5 vẫn FAIL+31. Giữ đủ6log trong showcase35/perf. RC11 cache chưa đo, không ghi PASS. Cần build522+mọi sửa mới rồi2lượt CPU cô lập.
+- Đã thấy lỗi ảnh ending: (a) actor xuyên ghế do hook visitSecret đặt tâmghế — root đang sửa RC13 index.ts+intro-wiring.test.ts, đứngx+1.8 ngoài bench, 17unit intro PASS; sourceCHƯACOMMIT. (b) mảng tamgiác biển do seaquad800m không phủ frustum endingfar2000 (suy luận cần render xác nhận). Agent rc_static_review đang sửa RC12sea.ts+tests+ticket để geometry rộng6000 nhưngshoreline109sample vẫn800, chưa review/commit/render.
+- Gate sau144 FAIL 1expectEvidenceTBD→đãsửa777. Gate d761 FAIL lint vì .tmp/baseline-out chứacompiledJS→đãchuyển coverage/rc-baseline-out (ignored), lint full sau đó exit0. Gate522 FAIL 1whitelistQA cameraDistance→rootđãsửa intro-wiring,test17PASS. Chưa có strictgate cuối. Đây là FAIL thật được giữ, không đổi hồi tố.
+- Bước tiếp: review RC12; commitRC12/RC13 + runbook t08-iris-xe mới; buildsourcecuối; CPU2/camera ảnhending đốichiếu; fullgate, full e2e4worker, load-budget≤6s/8MB, LHCI trênsourcehashcuối; 8Highafter+luma; cậpnhật audit/checklist/PROJECT_STATUS, commitbằngchứng. Không ghi DONE vì chưa đủ và chưamerge. Guide đã có.
+
+#### Lần 2 — checkpoint 2026-11-10
+
+- Tiếp tục đúng clone `D:/tqa-worktrees/RC-01`, không làm lại 140 bước audit hoặc journey đã xong. Main vẫn `3bb0752`; `.git` repo chính chỉ đọc, chưa merge/push.
+- Nguồn đã có RC12 `c5a16f9`, RC13 `b0b1fa8`, RC15 broadphase tán `09b30e0`. RC16 bounding box collider tĩnh đang tích hợp; 6 unit camera và 24 unit foliage đã chạy ở worker, chưa thay strict gate cuối.
+- Đã đo lại CPU ABBA sau RC11: First Light baseline trung bình Script/Task 225,5/247 ms/s, RC11 279,5/304: FAIL. Roots và Workshop không tăng trên cặp này. Giữ log `perf/cpu-confirm-*.txt`; RC15/16 chưa đo. Không ghi CPU PASS.
+- RC12 mở rộng quad không đủ sửa tam giác biển. Đã cô lập vào shader shoreline (constant offshore loại dải), đang thử sửa có bằng chứng trước/sau; chưa duyệt ending. Debug `__rcDebug` trong index.ts là tạm, phải bỏ trước chốt nguồn/build/gate cuối.
+- Audit/checklist/README và guide đã cập nhật trong clone; toàn bộ gate RC cuối, High after/luma, render ending, e2e4, load ≤6s/8MB và Lighthouse vẫn chờ chốt nguồn. Đọc bản clone để tiếp tục nếu phiên này dừng giữa chừng.
+
+##### Checkpoint mới nhất lần 2: nguồn `6cb4b91`
+
+- RC14 shader đã sửa và unit nước/biển 99/99 PASS; RC15 `09b30e0`, RC16 `9eba0e1`. Debug `__rcDebug` đã bỏ. Runtime/tests/tools/public sạch theo git diff trên `6cb4b918edd7131af9699958a3ad5e8f97b6f4b1`.
+- Build cuối trên hash này exit0 (`coverage/rc-build-final.log`). Strict gate đang chạy; đọc `coverage/rc-gate-final.log` và `coverage/rc-gate-tmp/` trước khi quyết định chạy lại. Clone có hai server4185(candidate),4186(baseline world main trong coverage/rc-baseline-out).
+- Sau gate: CPU ABBA2 từng bản, High8 after+luma/ground-hue, intro+ending High từ source cuối, full e2e4, load-budget, LHCI. Đừng làm lại UI140/journey.
+- 370 PNG UI/Welcome đã nén WebP90 nguyên kích thước (199,1MB→32,7MB); raw+SHA256 ở coverage/rc-raw-screenshots. before/camera/ending giữ nguyên. Scratch .tmp đã chuyển coverage/rc-run1-scratch và coverage/rc-scratch để không lint nhầm. Báo cáo cuối chưa chốt, chưa merge, không ghi DONE.
+
+##### Checkpoint tiếp theo lần 2: ứng viên `d2067a2` (ưu tiên đọc)
+
+- Nguồn `d2067a234af698b2b542f435e02762f57f323ccb` tại clone RC-01. RC14 sửa tiếp `3bdbd0c` (bỏ guard pigment nhị phân gây wedge, khoảng cách tới endpoint thật); Lead đã mở ending-source-final/e-26000.png, e-00500.png, e-after.png: biển không còn cạnh tam giác rõ, actor ngoài ghế. Runtime world source3bdb; RC20 `aea54d1` sửa gợi ý mascot chồng chip E, chưa browser probe.
+- RC17 `9a20e57` skip alpha đúng1 khi batch không che; RC18 `fb00637` tránh object tạm cho legacy crowns. CPU trên30e90 trước17/18 FAIL Workshop +20/+21ms/s, giữ perf/cpu-final-*.txt. Đang đo ABBA2 trên d206 (perf/cpu-d2067a2-*.txt), chưa kết luận.
+- RC19 d206: chỉ chụp lại Quiet Shore/Last Postcard và hero0 vì shader biển đổi, không làm lại6postcard còn lại. Đã mở2postcard+hero1920; license PASS. Final coast manifest/coast-final; hero/welcome-final-candidates.
+- **Build cuối và strict gate d206 PASS**: lint0warning/typecheck/unit1753/1753,154files. coverage/rc-build-final.log, rc-gate-final.log, rc-gate-tmp. checks/ trong showcase đã sao log hiện tại. Lượt6cb FAIL1749/1750 do water-streak evaluator biếncũ được giữ perf/gate-6cb4b91-fail.txt; sửa test30e90 gate1750PASS cũng được giữ checks/*30e90bd.txt. Không sửa hồi tố FAIL.
+- Còn: kết luận CPU d206; TQA_QUALITY=high ingame-shots8 after+luma/ground-hue; intro cuối; coverage/rc-scratch/hint-layout.mjs (4caseVI/EN1600/1366, text thật, geometry+contrast). Sau đó full e2e4workers, load-budget≤6s/8MB, LHCI, checkCV/bundle/licenses/assets trên d206. Các full suite này CHƯA CHẠY ở lần2.
+- Chưa cập nhật audit/checklist/PROJECT_STATUS cuối, chưa commit toàn bộ showcase. `.git` main vẫn chỉ đọc nên merge BLOCKED, không ghi DONE/push. Không làm lại UI140 và journey đã xong. Trước khi chạy lại phép đo hãy đọc log/current clone và kiểm tra process đang chạy.
+
+##### Lead (Claude) 2026-11-10 06:50 — cách merge khi `.git` main chỉ đọc
+
+Codex **không cần** tự merge. Khi RC đủ gate trong clone `D:/tqa-worktrees/RC-01`, commit trong clone rồi ghi một dòng riêng `RC-01 DONE <hash-trong-clone>`. Claude-Lead sẽ `git fetch D:/tqa-worktrees/RC-01 lane/RC-01`, duyệt và merge vào main. **Ưu tiên còn lại:** CPU First Light vẫn FAIL (+54 ms/s ở RC11, Workshop +20/+21 ở 30e90). Phải đưa về ≤ main + 10 ms/s (2 lượt ABBA, máy rảnh) trước khi ghi DONE, hoặc ghi rõ lý do kèm số đo cho Duy quyết.
