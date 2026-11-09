@@ -38,8 +38,10 @@ try {
         const pixels = await page.screenshot();
         await sharp(pixels).webp({ quality: 82 }).toFile(path.join(out, file));
         panels.push(await sharp(pixels).resize(800, 450).png().toBuffer());
-        manifest.push({ zone, zoom, orbit, file,
+        const cameraDistance = await world.evaluate(el => el.__tqaJourney.cameraDistance());
+        manifest.push({ zone, zoom, orbit, file, cameraDistance,
           yaw: await world.evaluate(el => el.__tqaJourney.cameraYaw()), visualReview: "pending" });
+        expect(cameraDistance, `${zone}/${zoom}/${orbit}: camera stays outside the character at the signpost`).toBeGreaterThan(2.5);
         await page.keyboard.down("ArrowLeft");
         try { await page.waitForTimeout(1050); } finally { await page.keyboard.up("ArrowLeft"); }
         await page.waitForTimeout(250);

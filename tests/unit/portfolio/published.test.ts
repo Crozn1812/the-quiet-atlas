@@ -34,7 +34,7 @@ describe.each(["en", "vi"] as const)("public portfolio %s", locale => {
     }
   });
 
-  it("omits absent source/evidence without making a URL or weakening Lab qualifications", () => {
+  it("omits unknown evidence and source links while retaining supplied Lab qualifications", () => {
     expect(renderToStaticMarkup(createElement(SourceLinkView, { repoUrl: "TBD", locale }))).toBe("");
     expect(renderToStaticMarkup(createElement(EvidenceView, { evidence: [], locale }))).toBe("");
     expect(renderToStaticMarkup(createElement(EvidenceView, { evidence: [{ level: "TBD", publicUrl: "TBD" }], locale }))).toBe("");
@@ -44,5 +44,12 @@ describe.each(["en", "vi"] as const)("public portfolio %s", locale => {
     expect(html).toContain(`href="${lab.publicUrl}"`);
     const scope = locale === "en" ? lab.scopeEn : lab.scope;
     expect(html).toContain(scope);
+    const unlinked = renderToStaticMarkup(createElement(EvidenceView, {
+      evidence: [{ ...lab, publicUrl: "TBD" }], locale,
+    }));
+    expect(unlinked).toContain("Lab · demo");
+    expect(unlinked).toContain(scope);
+    expect(unlinked).toContain(locale === "en" ? lab.claimEn : lab.claim);
+    expect(unlinked).not.toMatch(/\bTBD\b|<a\b/);
   });
 });

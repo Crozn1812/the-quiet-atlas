@@ -53,6 +53,7 @@ it("selects evidence translations per field and falls back when translations are
       expect(html).toContain(`href="${base.publicUrl}"`);
       if (locale === "vi") expect(html).not.toContain("English");
     }
-    expect(renderToStaticMarkup(createElement(EvidenceView, { evidence: [], locale }))).toContain("Evidence: TBD");
+    // Missing draft evidence has no public label or invented URL.
+    expect(renderToStaticMarkup(createElement(EvidenceView, { evidence: [], locale }))).toBe("");
   }
 });

@@ -23,7 +23,8 @@ export function EvidenceView({ evidence, locale }: {
   evidence: Evidence[];
   locale: Locale;
 }) {
-  const visible = evidence.filter(item => publishedUrl(item.level) && publishedUrl(item.publicUrl));
+  // An unavailable URL removes the link, not an otherwise supplied evidence qualification.
+  const visible = evidence.filter(item => publishedUrl(item.level));
   if (!visible.length) return null;
   return (
     <div>
@@ -34,7 +35,7 @@ export function EvidenceView({ evidence, locale }: {
         return (
           <p key={index}>
             <small>
-              <a href={e.publicUrl}>{label}</a>
+              {publishedUrl(e.publicUrl) ? <a href={e.publicUrl}>{label}</a> : label}
               {claim && <> — {claim}.</>}
               {scope && <> {scope}</>}
             </small>

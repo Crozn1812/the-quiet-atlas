@@ -384,7 +384,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
   zones.forEach(zone => zone.group.traverse(object => { if ((object as Mesh).isMesh) zoneMeshes.push(object as Mesh); }));
-  const cameraObstacles = () => [...composed.collisionMeshes, ...zoneMeshes, ...props.map(prop => prop.mesh), ...secretMeshes, ...coastRailing.cameraObstacles];
+  const cameraObstacles = (includeSignposts = true) => [...composed.collisionMeshes, ...zoneMeshes,
+    ...(includeSignposts ? props.map(prop => prop.mesh) : []), ...secretMeshes, ...coastRailing.cameraObstacles];
   const sightRay = new Raycaster();
   interactionTargets.push(...contentTargets, ...props, ...secretTargets, vehicleTarget);
   if (coastRailing.target) interactionTargets.push(coastRailing.target);
@@ -478,6 +479,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const journeyContainer = container as HTMLElement & { __tqaJourney?: {
     position(): { x: number; y: number; z: number };
     cameraYaw(): number;
+    cameraDistance(): number;
     lookoutPosition(): { x: number; y: number; z: number } | undefined;
     zone(): string | null;
     goTo(zoneId: string): Promise<void>;
@@ -487,6 +489,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
     cameraYaw: () => yaw,
+    cameraDistance: () => camera.position.distanceTo(physics.position),
     lookoutPosition: () => coastRailing.target ? { ...coastRailing.target.position } : undefined,
     zone: () => {
       const zone = nearestZone();
@@ -1014,7 +1017,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // B2-238: geometry the character stands inside (a landmark arch or mirror) starts within this
     // range; counting it collapsed the arm to zero and put the near plane inside the mesh (black frame).
     raycaster.near = CAMERA_IGNORE_INSIDE;
-    const hit = raycaster.intersectObjects(cameraObstacles())[0];
+    // A narrow sign just behind an arrival point must not collapse the arm into the
+    // character. Signs retain interaction/line-of-sight ownership; walls, rocks,
+    // trunks and railings still retract the camera normally.
+    const hit = raycaster.intersectObjects(cameraObstacles(false))[0];
     raycaster.near = 0;
     arm = springArm(arm, distance, hit?.distance, dt);
     camera.position.copy(target).addScaledVector(direction, arm);
