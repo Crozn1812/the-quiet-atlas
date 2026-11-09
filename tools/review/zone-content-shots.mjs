@@ -104,7 +104,7 @@ try {
   }
   await writeFile(path.join(reviewDir, "zone-renders.json"), JSON.stringify(manifest, null, 2));
   let licenses = await readFile("assets/LICENSES.csv", "utf8");
-  for (const zone of zones) {
+  for (const { zone } of manifest) {
     const prefix = `public/zones/${zone}.webp,`;
     licenses = licenses.split("\n").map(line => line.startsWith(prefix)
       ? `${prefix}The Quiet Atlas (project-original),Project-owned,yes,yes,yes,none,"In-engine capture of current build via tools/review/zone-content-shots.mjs; Edge High; ${new Date().toISOString()}; no third-party pixels",960x640,-,-,-`
