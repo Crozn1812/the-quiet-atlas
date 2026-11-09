@@ -335,6 +335,10 @@ try {
           node.addEventListener("tqa:secret-found", event => node.__rcSecrets.push(event.detail));
         });
         expect(await hook("visitSecret", "unwritten-page")).toBe(true);
+        // The hook now arrives beside the solid bench. Repeat the interaction
+        // with real E to verify this approach is reachable by the visitor UI.
+        await canvas().focus();
+        await page.keyboard.press("e");
         await expect(world()).toHaveAttribute("data-world-ending", "idle");
         await expect(world().locator("[data-world-story-feedback]")).toBeVisible();
         expect(await world().evaluate(node => node.__rcSecrets)).toEqual([]);

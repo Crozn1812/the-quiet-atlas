@@ -521,12 +521,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         container.removeEventListener("tqa:teleport-end", ended);
       }
     },
-    /** QA only: stand on a secret and interact with it, as walking there and pressing E would. */
+    /** QA only: stand at a secret and interact; solid landmarks need a reachable approach. */
     visitSecret: (id: string) => {
       const secret = SECRETS.find(entry => entry.id === id);
       if (!secret) throw new Error(`Invalid journey secret: ${id}`);
       if (disposed || cinematicLocked() || contextLost || teleport.inputLocked) throw new Error("Journey secret unavailable");
       const position = new Vector3(secret.position.x, secret.position.y + HEIGHT, secret.position.z);
+      // The bench centre is solid. A real walker stops beside it, so QA must not
+      // put the actor through its seat when recording the ending's close shot.
+      if (secret.landmark === "bench") {
+        position.x += 1.8;
+        position.y = surfaceHeight(position.x, position.z) + HEIGHT;
+      }
       composed.update(position, 0);
       physics.teleport(position);
       state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
