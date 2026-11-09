@@ -1,5 +1,5 @@
 import { BoxGeometry, Color, InstancedMesh, Matrix3, Matrix4, MeshBasicMaterial, ShaderLib, SRGBColorSpace, Vector2, Vector3, type InstancedBufferAttribute, type Material, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliage, updateFoliageWind } from "../../../src/features/world/foliage/instances";
 import { createPineCrownV2 } from "../../../src/features/world/foliage/pine";
@@ -301,8 +301,68 @@ describe("crown alpha uploads", () => {
       expect(alpha.version).toBe(resetVersion);
       frame(new Set([0, 1]), 1 / 60); // A later occlusion still starts a fresh upload.
       expect(alpha.version).toBe(resetVersion + 1);
+      for (let i = 0; i < 120; i++) frame(new Set(), 0.1);
+      frame(new Set([1]), 0.1);
+      crowns.count = 1;
+      frame(new Set(), 0.1); // Active prefix is clear while hidden slot one remains faded.
+      frame(new Set(), 0.1);
+      const hidden = alpha.getX(1);
+      crowns.count = 2;
+      frame(new Set(), 0.1); // Growing the count must recover that hidden slot.
+      expect(alpha.getX(1)).toBeGreaterThan(hidden);
+      for (let i = 0; i < 120; i++) frame(new Set(), 0.1);
     } finally {
       crowns.dispose(); geometry.dispose(); material.dispose();
+    }
+  });
+
+  it("skips all slot reads and writes only for an exact clear prefix with stable count", () => {
+    const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+    const crowns = new InstancedMesh(geometry, material, 3), fade = createCrownFade(crowns, 3);
+    const alpha = geometry.getAttribute("crownAlpha") as InstancedBufferAttribute;
+    const get = vi.spyOn(alpha, "getX"), set = vi.spyOn(alpha, "setX");
+    try {
+      for (let i = 0; i < 20; i++) fade(new Set(), 1 / 60);
+      expect(get).not.toHaveBeenCalled(); expect(set).not.toHaveBeenCalled();
+      expect(alpha.version).toBe(0);
+      fade(new Set([1]), 0.1);
+      expect(set).toHaveBeenCalledTimes(3);
+      expect(alpha.array[1]).toBeLessThan(1);
+      // Hiding the faded slot can make the remaining prefix clear, but cannot
+      // make its old opacity safe to ignore when quality restores the slot.
+      crowns.count = 1;
+      fade(new Set(), 0.1);
+      get.mockClear(); set.mockClear();
+      for (let i = 0; i < 20; i++) fade(new Set(), 1 / 60);
+      expect(get).not.toHaveBeenCalled(); expect(set).not.toHaveBeenCalled();
+      const hidden = alpha.array[1]!;
+      crowns.count = 3;
+      fade(new Set(), 0.1);
+      expect(set).toHaveBeenCalledTimes(3);
+      expect(alpha.array[1]).toBeGreaterThan(hidden);
+      for (let i = 0; i < 120; i++) fade(new Set(), 0.1);
+      expect(Array.from(alpha.array)).toEqual([1, 1, 1]);
+      get.mockClear(); set.mockClear();
+      fade(new Set(), 1 / 60);
+      expect(get).not.toHaveBeenCalled(); expect(set).not.toHaveBeenCalled();
+    } finally {
+      get.mockRestore(); set.mockRestore(); crowns.dispose(); geometry.dispose(); material.dispose();
+    }
+  });
+
+  it("preserves the original nonfinite and negative-overflow timestep samples instead of taking the clear fast path", () => {
+    for (const dt of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, -100]) {
+      const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+      const crowns = new InstancedMesh(geometry, material, 2), fade = createCrownFade(crowns, 2);
+      const alpha = geometry.getAttribute("crownAlpha") as InstancedBufferAttribute;
+      const set = vi.spyOn(alpha, "setX");
+      try {
+        const expected = new Float32Array([1, 1]);
+        for (let i = 0; i < expected.length; i++) expected[i] = expected[i]! + (1 - expected[i]!) * (1 - Math.exp(-10 * dt));
+        fade(new Set(), dt);
+        expect(Array.from(alpha.array)).toEqual(Array.from(expected));
+        expect(set).toHaveBeenCalledTimes(2);
+      } finally { set.mockRestore(); crowns.dispose(); geometry.dispose(); material.dispose(); }
     }
   });
 });
