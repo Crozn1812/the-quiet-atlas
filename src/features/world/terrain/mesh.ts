@@ -55,6 +55,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   const positions = new Float32Array(stride ** 2 * 3);
   const normals = new Float32Array(positions.length);
   const colors = new Float32Array(positions.length);
+  const forestSurface = new Float32Array(stride ** 2 * 2);
   const indices = new Uint16Array(cells ** 2 * 6);
   const tint = new Color();
   const color = new Color();
@@ -121,6 +122,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const detail = pigmentNoise(wx, wz, 6);
     const cliffEnd = Math.tan((41 + detail * 4) * Math.PI / 180);
     const cliff = smoothstep(cliffStart, cliffEnd, slope);
+    forestSurface.set([forest * smoothstep(0.15, 0.6, aboveWater) * (1 - cliff), smoothstep(2.4, 3.1, path.distance)], vertex * 2);
     tint.copy(rock).lerp(rockDark, 0.08 + 0.2 * detail);
     color.lerp(tint, cliff);
 
@@ -175,6 +177,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   geometry.setAttribute("position", new BufferAttribute(positions, 3));
   geometry.setAttribute("normal", new BufferAttribute(normals, 3));
   geometry.setAttribute("color", new BufferAttribute(colors, 3));
+  geometry.setAttribute("forestSurface", new BufferAttribute(forestSurface, 2));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

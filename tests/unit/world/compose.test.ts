@@ -22,7 +22,7 @@ import { createWaterMaterial, WaterMaterial } from "../../../src/features/world/
 
 afterEach(() => { disposeRampGradients(); vi.restoreAllMocks(); });
 
-it("shares the local First Light treatment and unchanged biome fog with paper at every quality, including return travel", () => {
+it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper at every quality, including return travel", () => {
   const backend = createMeshPhysics();
   const scene = new Scene();
   const paper = { setGrade: vi.fn(), setMist: vi.fn(), setFog: vi.fn() };
@@ -34,17 +34,17 @@ it("shares the local First Light treatment and unchanged biome fog with paper at
       for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
         const zone = ZONES.find(zone => zone.id === id)!;
         composed.update(new Vector3().copy(zone.position), 0);
-        const expected = id === "first-light" ? { near: 60, far: 180 } : zone.biome === "forest-dawn" ? { near: 35, far: 190 }
+        const expected = zone.biome === "forest-dawn" ? { near: 60, far: 180 }
           : zone.biome === "coast-dusk" ? { near: 160, far: 900 } : { near: 120, far: 700 };
         expect(scene.fog).toBeInstanceOf(Fog);
         expect((scene.fog as Fog).near).toBe(expected.near);
         expect((scene.fog as Fog).far).toBeCloseTo(expected.far, 8);
         expect(paper.setFog.mock.lastCall![0].near).toBe(expected.near);
         expect(paper.setFog.mock.lastCall![0].far).toBeCloseTo(expected.far, 8);
-        expect(paper.setFog.mock.lastCall![0].forestWeight).toBe(zone.biome === "forest-dawn" && id !== "first-light" ? 1 : 0);
+        expect(paper.setFog.mock.lastCall![0].forestWeight).toBe(0);
         const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(zone.t)), timeOfDayAt(zone.t)), zone.t);
-        if (id === "first-light") {
-          // Intentional one-zone art prototype; every other zone retains its exact shipped contract.
+        if (zone.biome === "forest-dawn") {
+          // R1 dawn biome; hill and coast retain their shipped contract.
           grade.sunIntensity = 2;
           grade.hemiIntensity = 1.25;
           grade.fogColor.set(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.25);

@@ -1,7 +1,7 @@
 // Lead (batch 25): the gameplay camera used to clip at 100 m, so Duy's coast (sea horizon, the B2-173 peak, far
 // ridges) never reached the screen. This is one coarse, shadowless mesh of the whole landscape, coloured by the same
 // tile colouring. Ground stays below streamed detail; B2-241 adds individual distant dawn crowns.
-import { BufferAttribute, BufferGeometry, Color, Mesh, type Material } from "three";
+import { BufferAttribute, BufferGeometry, Color, IcosahedronGeometry, Mesh, Vector3, type Material } from "three";
 import { hex } from "../art/palette";
 import { foliageBiomeAt } from "../foliage/scatter";
 import { farCanopyAt, farCrownSeed } from "../foliage/far-canopy";
@@ -94,17 +94,27 @@ function* addFarCrowns(geometry: BufferGeometry) {
       }
     }
   }
-  const capacity = Math.floor((cells * cells * 6 - indices.length) / 36);
+  const capacity = Math.floor((cells * cells * 6 - indices.length) / 180);
+  const crownSites: { x: number; z: number }[] = [];
+  const shape = new IcosahedronGeometry(1, 0);
+  const shapePositions = shape.getAttribute("position");
+  const unique: Vector3[] = [], faces: number[] = [], slots = new Map<string, number>();
+  for (let i = 0; i < shapePositions.count; i++) {
+    const point = new Vector3().fromBufferAttribute(shapePositions, i);
+    const key = point.toArray().join(":");
+    if (!slots.has(key)) { slots.set(key, unique.length); unique.push(point); }
+    faces.push(slots.get(key)!);
+  }
+  shape.dispose();
   let count = 0;
   const color = new Color();
-  // World-space lattice, unrelated to tile edges. The crown's alternating rim
-  // radii make distinct 6–12 m lobes rather than a connected raised heightfield.
-  for (let gx = -32; gx <= 32; gx++) {
+  // World-space lattice, unrelated to tile edges; each site owns three closed clumps.
+  for (let gx = -14; gx <= 14; gx++) {
     yield;
-    for (let gz = -26; gz <= 16; gz++) {
+    for (let gz = -12; gz <= 7; gz++) {
       if (count >= capacity) continue;
       const a = farCrownSeed(gx, gz), b = farCrownSeed(gz + 19, gx - 7);
-      const x = gx * 12 + (a - 0.5) * 6, z = gz * 12 + (b - 0.5) * 6;
+      const x = gx * 26 + (a - 0.5) * 6, z = gz * 26 + (b - 0.5) * 6;
       if (foliageBiomeAt(x, z) !== "forest-dawn") continue;
       const y = worldHeight(x, z);
       const slope = Math.hypot(worldHeight(x + 2, z) - worldHeight(x - 2, z), worldHeight(x, z + 2) - worldHeight(x, z - 2)) / 4;
@@ -114,20 +124,35 @@ function* addFarCrowns(geometry: BufferGeometry) {
       mask.weight *= fade;
       mask.lift *= fade;
       if (mask.weight < 0.01 || y < waterLevelAt(z) + 1) continue;
-      const base = positions.length / 3;
-      color.copy(canopyLight).lerp(canopyMoss, 0.3).lerp(canopyMist, 0.12 + a * 0.48);
-      positions.push(x - originX, y + mask.lift, z - originZ);
-      normals.push(0, 1, 0); colors.push(color.r, color.g, color.b);
-      for (let i = 0; i < 12; i++) {
-        const angle = i * Math.PI / 6 + b * Math.PI;
-        const radius = (i % 2 ? 5.5 : 7 + a * 2) * mask.weight;
-        const px = x + Math.cos(angle) * radius, pz = z + Math.sin(angle) * radius;
-        positions.push(px - originX, worldHeight(px, pz) + mask.lift * (0.6 + 0.12 * (i % 2)), pz - originZ);
-        normals.push(Math.cos(angle) * 0.28, 0.96, Math.sin(angle) * 0.28);
-        const rim = color.clone().lerp(canopyDeep, 0.1 + (i % 2) * 0.1);
-        colors.push(rim.r, rim.g, rim.b);
+      color.copy(canopyLight).lerp(canopyMoss, 0.3).lerp(canopyMist, 0.12 + a * 0.24);
+      // Closed, three-lobed faceted masses reuse the grove's icosahedral language.
+      // A coarser world lattice trades crown count for volume within the same draw/triangle cap.
+      for (let lobe = 0; lobe < 3; lobe++) {
+        const angle = b * Math.PI * 2 + lobe * Math.PI * 2 / 3;
+        const radius = (5.2 + a * 1.2) * mask.weight;
+        const cx = x + Math.cos(angle) * radius * 0.65;
+        const cz = z + Math.sin(angle) * radius * 0.65;
+        // Sample each shared corner once, even though faces have independent normals.
+        const corners = unique.map(point => {
+          const px = cx + (point.x * Math.cos(angle) - point.z * Math.sin(angle)) * radius;
+          const pz = cz + (point.x * Math.sin(angle) + point.z * Math.cos(angle)) * radius;
+          return new Vector3(px, worldHeight(px, pz) + mask.lift * (0.56 + lobe * 0.07)
+            + point.y * (3.2 + a * 0.4) * mask.weight, pz);
+        });
+        for (let face = 0; face < faces.length; face += 3) {
+          const triangle = [corners[faces[face]!]!, corners[faces[face + 1]!]!, corners[faces[face + 2]!]!];
+          const normal = triangle[1]!.clone().sub(triangle[0]!).cross(triangle[2]!.clone().sub(triangle[0]!)).normalize();
+          const base = positions.length / 3;
+          const pigment = color.clone().multiplyScalar(0.94 + (face % 4) * 0.025 + lobe * 0.015);
+          for (const point of triangle) {
+            positions.push(point.x - originX, point.y, point.z - originZ);
+            normals.push(normal.x, normal.y, normal.z);
+            colors.push(pigment.r, pigment.g, pigment.b);
+          }
+          indices.push(base, base + 1, base + 2);
+        }
       }
-      for (let i = 0; i < 12; i++) indices.push(base, base + 1 + (i + 1) % 12, base + 1 + i);
+      crownSites.push({ x, z });
       count++;
     }
   }
@@ -136,6 +161,7 @@ function* addFarCrowns(geometry: BufferGeometry) {
   geometry.setAttribute("color", new BufferAttribute(new Float32Array(colors), 3));
   geometry.setIndex(indices);
   geometry.userData.farCrowns = count;
+  geometry.userData.farCrownSites = crownSites;
 }
 
 /** Same single draw and vertex data as the synchronous terrain factory. Only construction is sliced.

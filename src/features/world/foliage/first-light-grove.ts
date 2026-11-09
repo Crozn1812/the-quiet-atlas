@@ -24,11 +24,14 @@ export function firstLightCameraPitch(x: number, z: number, fallback: number) {
   return fallback - (fallback - Math.PI / 10) * weight;
 }
 
-/** Palette-only surface treatment, spatially bounded; all other zone pigments remain exact. */
+/** R1 dawn surface, preserving the authored First Light path/seat and terrain water/cliff masks. */
 export function bindFirstLightGround(material: MeshToonMaterial) {
   const before = material.onBeforeCompile, key = material.customProgramCacheKey;
   material.onBeforeCompile = (shader, renderer) => {
     before(shader, renderer);
+    shader.vertexShader = "attribute vec2 forestSurface;\nvarying vec2 vForestSurface;\n" + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvForestSurface = forestSurface;");
+    shader.fragmentShader = "varying vec2 vForestSurface;\n" + shader.fragmentShader;
     shader.uniforms.firstLightOrigin = { value: anchor.position.clone() };
     shader.uniforms.firstLightAxis = { value: new Vector3(anchor.lookDirection.z, 0, -anchor.lookDirection.x) };
     shader.uniforms.firstLightForward = { value: new Vector3(anchor.lookDirection.x, 0, anchor.lookDirection.z) };
@@ -36,13 +39,15 @@ export function bindFirstLightGround(material: MeshToonMaterial) {
     shader.uniforms.firstLightPath = { value: new Color(PALETTE.sand).lerp(new Color(PALETTE.rock), 0.25) };
     shader.fragmentShader = shader.fragmentShader.replace("void main() {", "uniform vec3 firstLightOrigin;\nuniform vec3 firstLightAxis;\nuniform vec3 firstLightForward;\nuniform vec3 firstLightMoss;\nuniform vec3 firstLightPath;\nvoid main() {")
       .replace("#include <color_fragment>", `#include <color_fragment>
-float firstLightMask = 1.0 - smoothstep(18.0, 48.0, distance(terrainWorld.xz, firstLightOrigin.xz));
+float firstLightLocal = 1.0 - smoothstep(18.0, 48.0, distance(terrainWorld.xz, firstLightOrigin.xz));
+float firstLightMask = max(firstLightLocal, vForestSurface.x);
 vec2 firstLightDelta = terrainWorld.xz - firstLightOrigin.xz;
 float firstLightAcross = dot(firstLightDelta, firstLightAxis.xz);
 float firstLightAlong = dot(firstLightDelta, firstLightForward.xz);
 float firstLightGrass = smoothstep(2.4, 3.1, abs(firstLightAcross));
 float firstLightSeat = 1.0 - smoothstep(2.5, 5.0, length(vec2(firstLightAcross - 5.0, firstLightAlong + 4.5)));
 firstLightGrass *= 1.0 - firstLightSeat * 0.8;
+firstLightGrass = mix(vForestSurface.y, firstLightGrass, firstLightLocal);
 vec3 firstLightPigment = mix(firstLightPath, firstLightMoss, firstLightGrass);
 diffuseColor.rgb = mix(diffuseColor.rgb, firstLightPigment, firstLightMask * 0.92);`);
     shader.fragmentShader = shader.fragmentShader.replace("outgoingLight *= terrainDetail(diffuseColor.rgb);", "outgoingLight *= mix(terrainDetail(diffuseColor.rgb), vec3(1.0), firstLightMask * 0.8);");
@@ -52,7 +57,7 @@ diffuseColor.rgb = mix(diffuseColor.rgb, firstLightPigment, firstLightMask * 0.9
       .replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\nnormal = mix(normal, normalize(vNormal), firstLightMask * 0.9);")
       .replace("#include <opaque_fragment>", "vec3 firstLightClean = outgoingLight;\n#include <opaque_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, firstLightClean, firstLightMask * 0.92);");
   };
-  material.customProgramCacheKey = () => `${key.call(material)}-first-light-surface-v1`;
+  material.customProgramCacheKey = () => `${key.call(material)}-forest-r1-surface-v2`;
 }
 
 function colored(geometry: BufferGeometry, pigment: Color) {

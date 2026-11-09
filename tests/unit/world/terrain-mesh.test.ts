@@ -174,7 +174,10 @@ describe("terrain tile mesh", () => {
       const position = mesh.geometry.getAttribute("position");
       const normal = mesh.geometry.getAttribute("normal");
       const indices = mesh.geometry.getIndex()!;
-      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["color", "normal", "position"]);
+      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["color", "forestSurface", "normal", "position"]);
+      const forestSurface = mesh.geometry.getAttribute("forestSurface");
+      expect(forestSurface.count).toBe(position.count);
+      expect(Array.from(forestSurface.array).every(value => value >= 0 && value <= 1)).toBe(true);
       expect(mesh.geometry.groups).toHaveLength(0); // One material / draw call per tile.
       expect(position.count).toBe(33 * 33);
       expect(normal.count).toBe(position.count);

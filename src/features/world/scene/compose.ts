@@ -4,6 +4,7 @@ import { fogAt, paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { bindFirstLightGround, createFirstLightGrove, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
+import { createForestR1Trees, forestR1Weight, isForestR1Tree } from "../foliage/forest-r1";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
 import { createGroundDetails, scatterGround, scatterGroundChunks, type GroundDetail } from "../foliage/ground";
@@ -198,19 +199,22 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
   }
 
-  function createCell(trees: FoliageTree[]) {
-    const foliage = createFoliage(trees.length);
+  function createCell(allTrees: FoliageTree[]) {
+    const forestTrees: FoliageTree[] = [], trees: FoliageTree[] = [];
+    for (const tree of allTrees) (isForestR1Tree(tree) ? forestTrees : trees).push(tree);
+    const forest = createForestR1Trees(forestTrees);
+    const foliage = trees.length ? createFoliage(trees.length) : undefined;
     // B2-039a: every crown variant shares one material. Each fade hook wraps its material, so give each
     // variant after the first its own clone carrying the pristine ramp hook (never a hook already faded).
     const kinds = ["pine", "broadleaf"] as const;
-    const crowns = kinds.flatMap(kind => foliage.species[kind].variants.map((variant, index) => ({ kind, index, mesh: variant.crowns })));
-    const shared = crowns[0]!.mesh.material as MeshToonMaterial;
-    const pristine = { onBeforeCompile: shared.onBeforeCompile, key: shared.customProgramCacheKey };
+    const crowns = kinds.flatMap(kind => (foliage?.species[kind].variants ?? []).map((variant, index) => ({ kind, index, mesh: variant.crowns })));
+    const shared = crowns[0]?.mesh.material as MeshToonMaterial | undefined;
+    const pristine = shared && { onBeforeCompile: shared.onBeforeCompile, key: shared.customProgramCacheKey };
     const clones: MeshToonMaterial[] = [];
     for (const { mesh } of crowns.slice(1)) {
-      const material = shared.clone();
-      material.onBeforeCompile = pristine.onBeforeCompile;
-      material.customProgramCacheKey = pristine.key;
+      const material = shared!.clone();
+      material.onBeforeCompile = pristine!.onBeforeCompile;
+      material.customProgramCacheKey = pristine!.key;
       mesh.material = material;
       clones.push(material);
     }
@@ -220,18 +224,19 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     let visibleTrees: ReturnType<typeof crownTrees>[] = [];
     // Same order as instances.ts: stratified selection, then per kind and variant.
     function crownTrees(kind: FoliageTree["kind"], variant: number, selected: FoliageTree[]) {
-      const count = foliage.species[kind].variants.length;
+      const count = foliage!.species[kind].variants.length;
       return selected.filter(tree => tree.kind === kind && foliageVariantAt(tree.x, tree.z, count) === variant)
         .map(tree => ({ ...tree, height: TRUNK_HEIGHT * tree.scale, radius: 0.28 }));
     }
     function setCellQuality(next: Quality) {
-      foliage.setQuality(next);
+      forest.setQuality(next);
+      foliage?.setQuality(next);
       const count = Math.round(trees.length * PRESETS[next].density);
       const selected = Array.from({ length: count }, (_, i) => trees[Math.floor((i + 0.5) * trees.length / count)]!);
       visibleTrees = crowns.map(({ kind, index }) => crownTrees(kind, index, selected));
     }
     try {
-      for (const trunk of createFoliageColliders(trees)) {
+      for (const trunk of createFoliageColliders(allTrees)) {
         colliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(trunk.halfHeight, trunk.radius)
           .setTranslation(trunk.x, trunk.y, trunk.z).setRotation(trunk.rotation)));
         const mesh = new Mesh(trunkGeometry, trunkMaterial);
@@ -241,18 +246,21 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
         mesh.updateMatrixWorld(true);
         trunks.push(mesh);
       }
-      foliage.setTiles(trees);
+      foliage?.setTiles(trees);
       setCellQuality(quality);
-      scene.add(foliage.group);
+      if (foliage) scene.add(foliage.group);
+      scene.add(forest.group);
     } catch (error) {
       for (const collider of colliders) world.removeCollider(collider, true);
-      foliage.dispose();
+      foliage?.dispose();
+      forest.dispose();
       for (const material of clones) material.dispose();
       throw error;
     }
     return {
-      trees, trunks, foliage, setQuality: setCellQuality,
+      trees: allTrees, trunks, foliage, forest, setQuality: setCellQuality,
       fade(camera: Vector3, player: Vector3, dt: number) {
+        forest.fade(camera, player, dt);
         for (const [index, visible] of visibleTrees.entries()) {
           // The spring arm is <=16 m. Only nearby crowns can cover its sight lines.
           const nearby = visible.map((tree, id) => ({ tree, id }))
@@ -263,7 +271,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
       },
       dispose() {
         for (const collider of colliders) world.removeCollider(collider, true);
-        foliage.dispose();
+        foliage?.dispose();
+        forest.dispose();
         for (const material of clones) material.dispose();
       },
     };
@@ -283,7 +292,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     }
     for (const cell of cells.values()) {
       collisionMeshes.push(...cell.trunks);
-      for (const species of Object.values(cell.foliage.species)) {
+      foliageMeshes.push(...cell.forest.meshes);
+      for (const species of Object.values(cell.foliage?.species ?? {})) {
         for (const variant of species.variants) foliageMeshes.push(variant.trunks, variant.crowns);
       }
     }
@@ -441,7 +451,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     directed.sunIntensity = followed.sunIntensity;
     directed.hemiIntensity = followed.hemiIntensity;
     const grade = applyCoastAtmosphere(directGrade(directed, tod), t);
-    const clearing = firstLightGroveWeight(player.x, player.z);
+    const clearing = forestR1Weight(player.x, player.z, t);
     grade.fogColor.lerp(FIRST_LIGHT_AIR, clearing);
     grade.skyTop.lerp(FIRST_LIGHT_SKY, clearing);
     grade.skyHorizon.lerp(FIRST_LIGHT_AIR, clearing);
@@ -463,7 +473,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     const distances = fogAt(t);
     fog.near = distances.near + (60 - distances.near) * clearing;
     fog.far = distances.far + (180 - distances.far) * clearing;
-    // Preserve the existing forest metadata outside this clearing; only First Light releases its mist.
+    // The whole dawn biome shares the prototype's clear air; fade over the biome boundary.
     distances.near = fog.near;
     distances.far = fog.far;
     if (distances.forestWeight !== undefined) distances.forestWeight *= 1 - clearing;

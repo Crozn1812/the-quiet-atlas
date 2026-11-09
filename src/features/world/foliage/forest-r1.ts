@@ -1,0 +1,72 @@
+import { Group, InstancedMesh, Matrix4, Vector3 } from "three";
+import { forestAtmosphereWeight } from "../art/direction";
+import { createRampMaterial } from "../materials/ramp";
+import { PRESETS, type Quality } from "../terrain";
+import { nearestPath } from "../terrain/samples";
+import { createFirstLightTree, firstLightGroveWeight } from "./first-light-grove";
+import { foliageVariantAt, selectFoliageOccludingCrowns } from "./instances";
+import { createCrownFade } from "../crown-fade";
+import type { FoliageTree } from "./scatter";
+
+/** Route-distance biome blend, independent of travel direction and zone centres. */
+export function forestR1Weight(x: number, z: number, pathT = nearestPath(x, z).t) {
+  return Math.max(firstLightGroveWeight(x, z), forestAtmosphereWeight(pathT));
+}
+
+/** Stable interleaving at the 40 m biome feather, rather than a row of changing silhouettes. */
+export function isForestR1Tree(tree: Pick<FoliageTree, "x" | "z">) {
+  return foliageVariantAt(tree.x + 17.3, tree.z - 9.1, 1000) / 1000 < forestR1Weight(tree.x, tree.z);
+}
+
+/** Streamed companions to the authored grove: three silhouettes, three draws, no wind pass. */
+export function createForestR1Trees(trees: readonly FoliageTree[]) {
+  const group = new Group();
+  group.name = "forest-r1-trees";
+  const meshes = [0, 1, 2].map(variant => {
+    const material = createRampMaterial(0xffffff, { steps: 4, soft: false });
+    material.vertexColors = true;
+    const mesh = new InstancedMesh(createFirstLightTree(variant), material, trees.length);
+    mesh.name = `forest-r1-trees-${variant}`;
+    mesh.castShadow = false;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    return mesh;
+  });
+  const fades = meshes.map(mesh => createCrownFade(mesh, trees.length));
+  const matrix = new Matrix4(), rotation = new Matrix4();
+  function setQuality(quality: Quality) {
+    meshes.forEach(mesh => { mesh.count = 0; });
+    const count = Math.round(trees.length * PRESETS[quality].density);
+    for (let i = 0; i < count; i++) {
+      const tree = trees[Math.floor((i + 0.5) * trees.length / count)]!;
+      const mesh = meshes[foliageVariantAt(tree.x, tree.z, 3)]!;
+      const scale = tree.scale * (tree.trailCanopy ? 3 : 1);
+      matrix.makeRotationY(foliageVariantAt(tree.z, tree.x, 1000) / 1000 * Math.PI * 2);
+      rotation.makeRotationZ(tree.lean);
+      matrix.premultiply(rotation).scale(new Vector3(scale, scale, scale));
+      matrix.setPosition(tree.x, tree.y, tree.z);
+      mesh.setMatrixAt(mesh.count++, matrix);
+    }
+    for (const mesh of meshes) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingBox(); mesh.computeBoundingSphere();
+    }
+  }
+  setQuality("High");
+  let disposed = false;
+  return { group, meshes, setQuality,
+    fade(camera: Vector3, player: Vector3, dt: number) {
+      meshes.forEach((mesh, i) => {
+        // The spring arm cannot reach a remote tile. Avoid its instance transforms entirely.
+        const nearby = mesh.boundingBox?.distanceToPoint(camera) ?? Infinity;
+        fades[i]!(new Set(nearby < 24 ? selectFoliageOccludingCrowns(mesh, camera, player) : []), dt);
+      });
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      group.removeFromParent(); group.clear();
+      for (const mesh of meshes) { mesh.dispose(); mesh.geometry.dispose(); mesh.material.dispose(); }
+    },
+  };
+}

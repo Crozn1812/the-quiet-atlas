@@ -320,13 +320,20 @@ describe("procedural foliage variants", () => {
           after += submitted / 3 * (node instanceof InstancedMesh ? node.count : 1);
         });
         for (const mesh of composition.foliageMeshes) {
+          if (mesh instanceof InstancedMesh && mesh.name.startsWith("forest-r1-trees-")) {
+            // R1 replaces the historic 349-triangle broadleaf with a complete,
+            // branched 280-triangle tree. Count the saving in the same world gate.
+            extra += mesh.count * (mesh.geometry.getAttribute("position").count / 3 - 349);
+            continue;
+          }
           if (!(mesh instanceof InstancedMesh) || !mesh.geometry.getAttribute("treeStyle")) continue;
           const surface = mesh.geometry.getAttribute("surface");
           if (!Array.from(surface.array).includes(2)) continue; // Hanging ribbons identify broadleaf; V2 pine also contains wood.
           extra += mesh.count * (mesh.geometry.index!.count / 3 - 349);
         }
         const before = after - extra;
-        expect(extra).toBeGreaterThan(0);
+        if (t === 0.15) expect(extra).toBeLessThan(0);
+        else expect(extra).toBeGreaterThan(0);
         expect(after).toBeLessThanOrEqual(before * 1.25);
         // Eager props/character/post are unchanged; adding them only reduces this ratio.
         process.stdout.write(`B2-182b resident world / High / t=${t}: triangles=${before} -> ${after}; increase=${((after / before - 1) * 100).toFixed(3)}%\n`);

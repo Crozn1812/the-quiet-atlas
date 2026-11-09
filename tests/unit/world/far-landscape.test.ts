@@ -13,8 +13,8 @@ describe("far landscape individual dawn crowns", () => {
     try {
       const g = far.mesh.geometry;
       expect(g.index!.count / 3).toBeLessThanOrEqual(51_200);
-      expect(g.userData.farCrowns).toBeGreaterThan(1500);
-      expect(g.getAttribute("position").count).toBe(groundCount + g.userData.farCrowns * 13);
+      expect(g.userData.farCrowns).toBeGreaterThan(300);
+      expect(g.getAttribute("position").count).toBe(groundCount + g.userData.farCrowns * 180);
       expect(far.mesh.children).toHaveLength(0);
       expect(g.groups).toHaveLength(0);
       expect(Array.isArray(far.mesh.material)).toBe(false);
@@ -40,17 +40,17 @@ describe("far landscape individual dawn crowns", () => {
       }
     } finally { far.dispose(); }
   });
-  it("builds distinct scalloped crowns below 12m, clear of stream trees and pads", () => {
+  it("builds clustered planar crowns below 12m, clear of stream trees and pads", () => {
     const far = createFarLandscape();
     try {
       const g = far.mesh.geometry, p = g.getAttribute("position"), n = g.getAttribute("normal");
-      for (let base = groundCount; base < p.count; base += 13) {
-        const x = p.getX(base) + FAR_LANDSCAPE.originX, z = p.getZ(base) + FAR_LANDSCAPE.originZ;
+      for (let base = groundCount; base < p.count; base += 180) {
+        const { x, z } = g.userData.farCrownSites[(base - groundCount) / 180] as { x: number; z: number };
         expect(foliageBiomeAt(x, z)).toBe("forest-dawn");
-        expect(nearestPath(x, z).distance).toBeGreaterThan(48);
-        expect(nearestRiver(x, z).distance).toBeGreaterThan(44);
+        expect(nearestPath(x, z).distance).toBeGreaterThan(44);
+        expect(nearestRiver(x, z).distance).toBeGreaterThan(40);
         const radii: number[] = [];
-        for (let j = 0; j < 13; j++) {
+        for (let j = 0; j < 180; j++) {
           const px = p.getX(base + j) + FAR_LANDSCAPE.originX, pz = p.getZ(base + j) + FAR_LANDSCAPE.originZ;
           const lift = p.getY(base + j) - worldHeight(px, pz);
           expect(lift).toBeGreaterThanOrEqual(-0.0001);
@@ -60,10 +60,11 @@ describe("far landscape individual dawn crowns", () => {
         }
         expect(Math.max(...radii)).toBeGreaterThan(Math.min(...radii) * 1.2);
       }
-      // All front faces must wind upward, including the remote ground fans.
+      // Ground stays upward; closed crowns also have outward side/underside faces.
       const index = g.index!;
       for (let i = 0; i < index.count; i += 3) {
         const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2);
+        if (a >= groundCount) continue;
         expect((p.getZ(b) - p.getZ(a)) * (p.getX(c) - p.getX(a)) - (p.getX(b) - p.getX(a)) * (p.getZ(c) - p.getZ(a))).toBeGreaterThan(0);
       }
     } finally { far.dispose(); }
