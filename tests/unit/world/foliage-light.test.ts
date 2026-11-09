@@ -1,4 +1,4 @@
-import { Color, Matrix3, Matrix4, ShaderLib, SRGBColorSpace, Vector2, Vector3, type Material, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
+import { BoxGeometry, Color, InstancedMesh, Matrix3, Matrix4, MeshBasicMaterial, ShaderLib, SRGBColorSpace, Vector2, Vector3, type InstancedBufferAttribute, type Material, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { describe, expect, it } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliage, updateFoliageWind } from "../../../src/features/world/foliage/instances";
@@ -255,5 +255,54 @@ describe("foliage graded lighting (B2-183)", () => {
       updateFoliageWind(meshes, 1, false);
       for (const shader of shaders) expect(shader.uniforms.forestWind!.value).toEqual(new Vector2(0.75, 0));
     } finally { tiles.forEach(tile => tile.dispose()); }
+  });
+});
+
+describe("crown alpha uploads", () => {
+  it("keeps opacity samples exact while uploading only changed Float32 values, including reused slots", () => {
+    const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+    const crowns = new InstancedMesh(geometry, material, 2);
+    const fade = createCrownFade(crowns, 2);
+    const alpha = geometry.getAttribute("crownAlpha") as InstancedBufferAttribute;
+    const reference = new Float32Array([1, 1]);
+    function frame(blocked: ReadonlySet<number>, dt: number) {
+      const previous = reference.slice();
+      const version = alpha.version;
+      // Original fade rule remains the reference, including Float32 rounding.
+      for (let i = 0; i < crowns.count; i++) {
+        const target = blocked.has(i) ? 0.12 : 1;
+        reference[i] = reference[i]! + (target - reference[i]!) * (1 - Math.exp(-10 * dt));
+      }
+      fade(blocked, dt);
+      expect(Array.from(alpha.array)).toEqual(Array.from(reference));
+      const changed = reference.some((value, index) => value !== previous[index]);
+      expect(alpha.version).toBe(version + Number(changed));
+    }
+    try {
+      for (let i = 0; i < 10; i++) frame(new Set(), 1 / 60);
+      expect(alpha.version).toBe(0); // Entirely clear batches never upload unchanged alphas.
+      frame(new Set([0]), 0); // A paused frame cannot dirty a newly blocked crown.
+      expect(alpha.version).toBe(0);
+      for (let i = 0; i < 120; i++) frame(new Set([0]), 0.1);
+      expect(alpha.getX(0)).toBeCloseTo(0.12);
+      const settledVersion = alpha.version;
+      for (let i = 0; i < 10; i++) frame(new Set([0]), 0.1);
+      expect(alpha.version).toBe(settledVersion);
+      crowns.count = 0;
+      frame(new Set(), 0.1); // Quality/streaming can temporarily leave no active slots.
+      expect(alpha.version).toBe(settledVersion);
+      crowns.count = 2;
+      frame(new Set([1]), 1 / 60); // Reused slot zero recovers while slot one begins fading.
+      expect(alpha.version).toBeGreaterThan(settledVersion);
+      for (let i = 0; i < 120; i++) frame(new Set(), 0.1);
+      expect(Array.from(alpha.array)).toEqual([1, 1]);
+      const resetVersion = alpha.version;
+      frame(new Set(), 0.1);
+      expect(alpha.version).toBe(resetVersion);
+      frame(new Set([0, 1]), 1 / 60); // A later occlusion still starts a fresh upload.
+      expect(alpha.version).toBe(resetVersion + 1);
+    } finally {
+      crowns.dispose(); geometry.dispose(); material.dispose();
+    }
   });
 });

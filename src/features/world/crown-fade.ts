@@ -18,10 +18,15 @@ export function createCrownFade(crowns: InstancedMesh, capacity: number) {
   };
   material.customProgramCacheKey = () => previousKey() + "|crown-fade-v1";
   return (blocked: ReadonlySet<number>, dt: number) => {
+    let changed = false;
     for (let i = 0; i < crowns.count; i++) {
       const target = blocked.has(i) ? 0.12 : 1;
-      alpha.setX(i, alpha.getX(i) + (target - alpha.getX(i)) * (1 - Math.exp(-10 * dt)));
+      const previous = alpha.getX(i);
+      alpha.setX(i, previous + (target - previous) * (1 - Math.exp(-10 * dt)));
+      // Compare the stored Float32, not its intermediate double. Settled crowns
+      // and paused frames need no GPU upload; active fades keep identical samples.
+      if (alpha.getX(i) !== previous) changed = true;
     }
-    alpha.needsUpdate = true;
+    if (changed) alpha.needsUpdate = true;
   };
 }
