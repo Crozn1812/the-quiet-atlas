@@ -11,7 +11,7 @@ import {
   createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, type WaterMaterial,
 } from "../../../src/features/world/water/material";
 import { WATER_LEVEL } from "../../../src/features/world/water/ribbon";
-import { createSea, SEA_SIZE } from "../../../src/features/world/water/sea";
+import { createSea, SEA_RENDER_SIZE } from "../../../src/features/world/water/sea";
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -584,7 +584,7 @@ describe("road-view sunset sea", () => {
       expect(floatCount).toBeLessThanOrEqual(140);
       expect(sea.mesh.material.fragmentShader).not.toMatch(/sampler|texture\s*\(/);
       expect(sea.mesh.geometry.index!.count / 3).toBe(2);
-      expect(sea.mesh.geometry.boundingBox!.getSize(new Vector3()).x).toBe(SEA_SIZE);
+      expect(sea.mesh.geometry.boundingBox!.getSize(new Vector3()).x).toBe(SEA_RENDER_SIZE);
     } finally { sea.dispose(); }
   });
 });

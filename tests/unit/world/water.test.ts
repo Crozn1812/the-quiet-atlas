@@ -1,7 +1,8 @@
-import { Color, Scene, ShaderMaterial, Vector3 } from "three";
+import { createHash } from "node:crypto";
+import { Color, PerspectiveCamera, Plane, Raycaster, Scene, ShaderMaterial, Vector2, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
-import { PATH_BRIDGES, pathLength } from "../../../src/features/world/layout/path";
+import { PATH_BRIDGES, pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { riverLength, riverPointAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { worldHeight } from "../../../src/features/world/terrain/height";
@@ -11,7 +12,9 @@ import { createWaterMaterial, SEA_WAVE_PERIOD, WATER_FLOW_SPEED } from "../../..
 import {
   createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
 } from "../../../src/features/world/water/ribbon";
-import { createSea, SEA_INLAND_OVERLAP, SEA_SIZE } from "../../../src/features/world/water/sea";
+import { createSea, SEA_INLAND_OVERLAP, SEA_RENDER_SIZE, SEA_SIZE } from "../../../src/features/world/water/sea";
+import { createEnding } from "../../../src/features/world/cinematic/ending";
+import { SECRETS } from "../../../src/features/story/secrets";
 
 describe("river ribbon", () => {
   it.each(["milestones", "horizon"])("keeps the triangulated %s channel open inside the ribbon", id => {
@@ -354,20 +357,26 @@ describe("sea and water lifecycle", () => {
     } finally { sea.dispose(); }
   });
 
-  it("overlaps 80 m inland at sea level, covers 800 m offshore and keeps one quad", () => {
+  it("retains the inland overlap and shore sampling while covering the cinematic sea with one quad", () => {
     const sea = createSea("Balanced");
     const mouth = riverPointAt(1);
     const bounds = sea.mesh.geometry.boundingBox!;
     expect(bounds.min.y).toBe(WATER_LEVEL);
     expect(bounds.max.y).toBe(WATER_LEVEL);
     expect(bounds.max.z).toBe(mouth.z + SEA_INLAND_OVERLAP);
-    expect(bounds.min.z).toBe(mouth.z - SEA_SIZE);
-    expect(bounds.min.x).toBe(mouth.x - SEA_SIZE / 2);
-    expect(bounds.max.x).toBe(mouth.x + SEA_SIZE / 2);
+    expect(bounds.min.z).toBe(mouth.z - SEA_RENDER_SIZE);
+    expect(bounds.min.x).toBe(mouth.x - SEA_RENDER_SIZE / 2);
+    expect(bounds.max.x).toBe(mouth.x + SEA_RENDER_SIZE / 2);
     expect(sea.mesh.geometry.getAttribute("position").count).toBe(4);
     expect(sea.mesh.geometry.index!.count).toBe(6);
     expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength() - SEA_INLAND_OVERLAP, 3);
     const material = sea.mesh.material;
+    expect(material.uniforms.uShoreBounds!.value.toArray()).toEqual([mouth.x - SEA_SIZE / 2, SEA_SIZE]);
+    // Captured before RC-12: changing render coverage must not resample any of the 109 shore uniforms.
+    const shoreline = { bounds: material.uniforms.uShoreBounds!.value.toArray(), samples: material.uniforms.uShoreZ!.value };
+    expect(shoreline.samples).toHaveLength(109);
+    expect(createHash("sha256").update(JSON.stringify(shoreline)).digest("hex"))
+      .toBe("fe664ac28b02b01c1055b02a57b351ea925165d1194ec046cbf2883d22608f39");
     // B2-174: turquoise pigment follows the sampled coast; B2-160's wash stays separate.
     const grade = lightingAt(1);
     const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))
@@ -429,4 +438,54 @@ describe("water level follows the river bed (Lead fix)", () => {
   it("reaches sea level at the mouth", () => {
     expect(Math.abs(waterLevelAt(riverPointAt(1).z))).toBeLessThan(0.05);
   });
+});
+
+it("covers seaward 2 km coastal footprints and the actual ending frustum beyond the old sea edges", () => {
+  const sea = createSea("High"), mouth = riverPointAt(1);
+  const geometry = sea.mesh.geometry, bounds = geometry.boundingBox!;
+  const bench = SECRETS.find(secret => secret.id === "unwritten-page")!.position;
+  const player = pathPointAt(0.997);
+  player.y = worldHeight(player.x, player.z);
+  const ending = createEnding({
+    bench: new Vector3(bench.x, bench.y, bench.z),
+    gameplayPose: { position: player.clone().add(new Vector3(0, 7, 10)),
+      target: player.clone().add(new Vector3(0, 1.3, 0)), fov: 55 },
+  });
+  const camera = new PerspectiveCamera(55, 1600 / 900, 0.1, 2000);
+  const raycaster = new Raycaster();
+  const plane = new Plane(new Vector3(0, 1, 0), -WATER_LEVEL);
+  let footprintPoints = 0, frustumPoints = 0, beyondOriginal = 0;
+  const outsideOriginal = (point: Vector3) => Math.abs(point.x - mouth.x) > SEA_SIZE / 2 || point.z < mouth.z - SEA_SIZE;
+  try {
+    for (const t of [0.82, 0.9, 1]) {
+      const origin = pathPointAt(t);
+      for (const radius of [0, 100, 500, 2000]) for (let angle = 0; angle < 360; angle += 10) {
+        const point = origin.clone().add(new Vector3(Math.sin(angle * Math.PI / 180) * radius, 0,
+          Math.cos(angle * Math.PI / 180) * radius));
+        point.y = WATER_LEVEL;
+        if (point.z > mouth.z + SEA_INLAND_OVERLAP) continue; // Inland is still owned by terrain.
+        expect(bounds.containsPoint(point), `coast=${t}, radius=${radius}, angle=${angle}`).toBe(true);
+        footprintPoints++;
+      }
+    }
+    for (const time of [17, 23, 29, 31]) {
+      const pose = ending.sample(time);
+      camera.position.copy(pose.position); camera.fov = pose.fov;
+      camera.lookAt(pose.target); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+      for (const x of [-0.95, -0.5, 0, 0.5, 0.95]) for (const y of [-0.8, -0.3, 0, 0.1, 0.14, 0.18, 0.2]) {
+        raycaster.setFromCamera(new Vector2(x, y), camera);
+        const point = raycaster.ray.intersectPlane(plane, new Vector3());
+        if (!point || point.distanceTo(camera.position) > 2000 || point.z > mouth.z + SEA_INLAND_OVERLAP) continue;
+        raycaster.far = 2000;
+        expect(raycaster.intersectObject(sea.mesh).length, `ending=${time}s, ndc=${x},${y}`).toBeGreaterThan(0);
+        frustumPoints++;
+        if (outsideOriginal(point)) beyondOriginal++;
+      }
+    }
+    expect(footprintPoints).toBeGreaterThan(100);
+    expect(frustumPoints).toBeGreaterThan(30);
+    expect(beyondOriginal).toBeGreaterThan(0); // The regression actually reaches formerly uncovered water.
+    expect(geometry.getAttribute("position").count).toBe(4);
+    expect(geometry.index!.count / 3).toBe(2);
+  } finally { sea.dispose(); }
 });
