@@ -13,7 +13,7 @@ import { createGroundDetails, scatterGround, scatterGroundChunks, type GroundDet
 import { createGrassField, GRASS_FIELD_RADII } from "../foliage/grass-field";
 const createGrassFieldRadius = (quality: keyof typeof GRASS_FIELD_RADII) => GRASS_FIELD_RADII[quality];
 import { createCrownFade } from "../crown-fade";
-import { selectOccludingCrowns } from "../camera";
+import { selectNearbyOccludingCrowns } from "../camera";
 import { timeOfDayAt } from "../layout/lighting";
 import { pathLength, pathPointAt } from "../layout/path";
 import { ZONES } from "../layout/zones";
@@ -277,10 +277,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
         coast?.fade(camera, player, dt);
         for (const [index, visible] of visibleTrees.entries()) {
           // The spring arm is <=16 m. Only nearby crowns can cover its sight lines.
-          const nearby = visible.map((tree, id) => ({ tree, id }))
-            .filter(({ tree }) => Math.hypot(tree.x - camera.x, tree.z - camera.z) <= 24);
-          const blocked = selectOccludingCrowns(nearby.map(({ tree }) => tree), camera, player);
-          fades[index]!(new Set(blocked.map(id => nearby[id]!.id)), dt);
+          fades[index]!(new Set(selectNearbyOccludingCrowns(visible, camera, player)), dt);
         }
       },
       dispose() {

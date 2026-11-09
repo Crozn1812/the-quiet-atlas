@@ -41,3 +41,17 @@ export function selectOccludingCrowns(trees: Trees, camera: Vector3, player: Vec
   });
   return selected;
 }
+
+/** Preserve the legacy 24 m filter and slot mapping without a temporary object per tree. */
+export function selectNearbyOccludingCrowns(trees: Trees, camera: Vector3, player: Vector3): number[] {
+  const nearby: Trees = [];
+  const slots: number[] = [];
+  for (let i = 0; i < trees.length; i++) {
+    const tree = trees[i]!;
+    if (Math.hypot(tree.x - camera.x, tree.z - camera.z) <= 24) {
+      nearby.push(tree);
+      slots.push(i);
+    }
+  }
+  return selectOccludingCrowns(nearby, camera, player).map(index => slots[index]!);
+}
