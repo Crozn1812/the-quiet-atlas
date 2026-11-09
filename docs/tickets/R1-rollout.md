@@ -30,9 +30,9 @@ Mẫu chuẩn là First Light R1 + FL-02 (`docs/showcase/32-first-light-prototyp
 - Ngôn ngữ R1 phủ toàn biome `forest-dawn`. Landmark của từng khu (gốc cây Roots, nhà Workshop, cột mốc Milestones) đọc rõ giữa cây R1.
 - Tán xa (B2-241) cùng ngôn ngữ R1, không còn khối mờ.
 
-### R1-B: đồi (Old Trail, Horizon) (sau khi R1-A merge)
+### R1-B: đồi (Old Trail, Horizon) (sau khi R1-A merge; chạy song song với R1-C)
 - Đồi nắng muộn: cỏ sáng, cây R1 thưa hơn, có vài cây đơn lẻ làm điểm nhấn; sông đọc rõ.
 
-### R1-C: biển (Quiet Shore, Last Postcard) (sau R1-B)
+### R1-C: biển (Quiet Shore, Last Postcard) (sau khi R1-A merge; chạy song song với R1-B)
 - Bờ biển hoàng hôn: thảm cỏ ven biển, cây/bụi R1 chịu gió; vách, cát, đá theo ngôn ngữ khối của FL-02 (đá) và G-03.
 - Giữ lan can RD-01, hộp thư, băng ghế bí mật, cảnh kết.
