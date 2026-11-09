@@ -9,6 +9,7 @@ import type { Locale } from "@/i18n/locales";
 import { messages } from "@/i18n/messages";
 import { ProfileJsonLd } from "./ProfileJsonLd";
 import { ProfileHistory } from "./ProfileHistory";
+import { published, publishedUrl } from "./published";
 
 export function QuickPortfolio({ locale }: { locale: Locale }) {
   const p = content.profiles.find(p => p.locale === locale)!;
@@ -60,9 +61,10 @@ export function QuickPortfolio({ locale }: { locale: Locale }) {
       </section>
       <section aria-labelledby="contact">
         <h2 id="contact">{t.contact}</h2>
-        <a href={`mailto:${p.email}`}>{p.email}</a>
-        <p>{t.phone}: {p.phone}</p>
-        <p>GitHub: {p.githubUrl !== "TBD" ? <a href={p.githubUrl}>GitHub</a> : "TBD"} · LinkedIn: {p.linkedinUrl !== "TBD" ? <a href={p.linkedinUrl}>LinkedIn</a> : "TBD"}</p>
+        {publishedUrl(p.email) && <a href={`mailto:${p.email}`}>{p.email}</a>}
+        {published(p.phone) && <p>{t.phone}: {published(p.phone)}</p>}
+        {publishedUrl(p.githubUrl) && <p><a href={p.githubUrl}>GitHub</a></p>}
+        {publishedUrl(p.linkedinUrl) && <p><a href={p.linkedinUrl}>LinkedIn</a></p>}
       </section>
     </main>
   );

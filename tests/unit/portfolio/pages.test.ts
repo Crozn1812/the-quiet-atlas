@@ -35,8 +35,9 @@ it("renders every slug in both locales and lists each URL in the sitemap", async
     const html = renderToStaticMarkup(await Page({ params: Promise.resolve(p) }));
     expect(html).toContain(p.title);
     expect(html).not.toContain("Draft");
-    expect(html).toContain("TBD");
-    expect(html.match(/<h2/g)).toHaveLength(11);
+    expect(html).not.toContain("TBD");
+    // Unfinished-only sections and an unavailable source are omitted from public pages.
+    expect(html.match(/<h2/g)!.length).toBeGreaterThanOrEqual(9);
     expect(publicPaths()).toContain(`/${p.locale}/projects/${p.slug}/`);
   }
 });

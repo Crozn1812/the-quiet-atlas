@@ -1,5 +1,11 @@
 import { escapeHtml as e, documentHtml } from "./content.mjs";
 
+// Keep incomplete source sentences in drafts, while preserving confirmed copy verbatim.
+function published(value) {
+  return String(value ?? "").split(/(?<=[.!?])\s+/u).filter(sentence => !/\bTBD\b/i.test(sentence)).join(" ");
+}
+const publicCopy = value => e(published(value));
+
 export function cvHtml(content, locale) {
   const profile = content.profiles.find(p => p.locale === locale);
   if (!profile) throw new Error("Missing profile");
@@ -36,13 +42,21 @@ export function cvHtml(content, locale) {
     <h2>${labels.projects}</h2>
     ${projects.map(p => `<article>
       <h3>${e(p.title)}${p.reviewStatus !== "approved" ? " · Draft" : ""}</h3>
-      <p>${e(p.summary)}</p>
+      <p>${publicCopy(p.summary)}</p>
       <p>${labels.status}: ${e(p.status)}</p>
-      <p>${labels.role}: ${e(p.myRole)}</p>
-      <p>${labels.contributions}: ${e(p.contributions)}</p>
-      <p>${labels.results}: ${e(p.results)}</p>
-      <p>Repository: ${e(p.repoUrl)}${p.evidence.some(id => content.evidence.some(item => item.id === id && item.level === "Lab")) ? " · demo" : ""}</p>
+      <p>${labels.role}: ${publicCopy(p.myRole)}</p>
+      <p>${labels.contributions}: ${publicCopy(p.contributions)}</p>
+      <p>${labels.results}: ${publicCopy(p.results)}</p>
+      ${published(p.repoUrl) ? `<p>Repository: ${e(p.repoUrl)}${p.evidence.some(id => content.evidence.some(item => item.id === id && item.level === "Lab")) ? " · demo" : ""}</p>` : ""}
     </article>`).join("")}
+  `, `
+    body { padding: 0; font-size: 10.5pt; line-height: 1.4; }
+    h1 { font-size: 22pt; margin: 0 0 8pt; }
+    h2 { font-size: 14pt; margin: 14pt 0 6pt; }
+    h3 { font-size: 11pt; margin: 10pt 0 5pt; }
+    h1, h2, h3 { break-after: avoid; }
+    p { margin: 5pt 0; orphans: 3; widows: 3; overflow-wrap: anywhere; }
+    article { break-inside: auto; }
   `);
 }
 

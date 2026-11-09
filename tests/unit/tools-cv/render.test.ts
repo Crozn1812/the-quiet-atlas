@@ -8,13 +8,25 @@ it("renders the approved bilingual CV without Draft labels, escapes text, and om
   for (const locale of ["en", "vi"]) {
     const html = cvHtml(content, locale);
     expect(html).not.toContain("Draft");
-    expect(html).toContain("TBD");
+    expect(html).not.toMatch(/\bTBD\b/);
     expect(html).not.toContain("<p>TBD</p>\n    <p>GitHub");
     expect(html).toContain(content.profiles.find(p => p.locale === locale)!.name);
   }
   const data = structuredClone(content);
   data.profiles[0]!.phone = "<phone>";
   expect(cvHtml(data, "en")).toContain("&lt;phone&gt;");
+});
+
+it("keeps confirmed sentences and omits incomplete sentences and unknown repository URLs", () => {
+  const data = structuredClone(content);
+  const project = data.projects.find(p => p.locale === "en")!;
+  project.contributions = "Built the deployment pipeline. Team split: TBD. Validated rollback.";
+  project.repoUrl = "TBD";
+  data.projects = [project];
+  const html = cvHtml(data, "en");
+  expect(html).toContain("Built the deployment pipeline. Validated rollback.");
+  expect(html).not.toContain("Team split");
+  expect(html).not.toContain("Repository:");
 });
 
 it("renders the CV phone and Fresher level from public content in both locales", () => {
@@ -63,6 +75,7 @@ it("marks only projects referencing Lab evidence as demo in both CV locales", ()
   for (const locale of ["en", "vi"]) {
     const data = structuredClone(content);
     const project = data.projects.find(p => p.locale === locale)!;
+    project.repoUrl = "https://example.org/demo";
     const evidence = data.evidence[0]!;
     evidence.level = "Lab";
     project.evidence = [evidence.id];
