@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
-import { createPineCrownV2 } from "../../../../src/features/world/foliage/pine";
-import { disposeRampGradients, RAMP_PRESETS } from "../../../../src/features/world/materials/ramp";
+import { createFirstLightTree } from "../../../../src/features/world/foliage/first-light-grove";
+import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
 import { createRockGeometry } from "../../../../src/features/world/props/rocks";
 import { createOldTrailScene } from "../../../../src/features/world/zones/old-trail";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext } from "../../../../src/features/world/zones/types";
@@ -82,8 +82,8 @@ describe("old-trail scene", () => {
     const triangles = all.reduce((total, mesh) => total + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = all.reduce((total, mesh) => total + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
     expect(triangles).toBeLessThanOrEqual(3108 * 1.5);
-    // B2-191b: fuller needles add 156 triangles to seed 105's 2,874-triangle zone.
-    expect(triangles).toBe(3030);
+    // R1-B replaces the authored pine with the shared 280-triangle R1 tree.
+    expect(triangles).toBe(2758);
     expect(triangles).toBeLessThanOrEqual(2874 * 1.25);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
     expect(drawCalls).toBe(7);
@@ -96,7 +96,7 @@ describe("old-trail scene", () => {
     // Every material batch is already below the per-cluster cap, including all
     // ten markers together; no smaller prop cluster can exceed that upper bound.
     all.forEach(mesh => expect(mesh.geometry.getAttribute("position").count / 3).toBeLessThanOrEqual(2000));
-    console.info(`B2-191b Old Trail budget: 2874 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
+    console.info(`R1-B Old Trail budget: 3030 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
   });
 
   it("keeps all ten markers plain and capped, and enlarges the broken gate uniformly by 1.5", () => {
@@ -115,27 +115,24 @@ describe("old-trail scene", () => {
     expect(gate.center.x).toBeLessThan(-6);
   });
 
-  it("uses the complete V2 pine with its bark/needle surface and palette pigments intact", () => {
+  it("uses the R1 branched tree, with a broad crown and a trunk-only collider", () => {
     const scene = create();
-    const crowns = meshes(scene).filter(mesh => mesh.name === "leaning-pine-jade-crown");
-    expect(crowns).toHaveLength(1);
-    const bounds = new Box3().setFromObject(crowns[0]!);
-    expect(bounds.max.x).toBeLessThan(-7);
+    const tree = scene.group.getObjectByName("old-trail-r1-tree") as Mesh;
+    expect(tree).toBeDefined();
+    const bounds = new Box3().setFromObject(tree);
+    expect(bounds.max.x).toBeLessThan(-PATH_CLEARANCE);
     expect(bounds.max.y).toBeGreaterThan(5);
-    const positions = crowns[0]!.geometry.getAttribute("position");
-    const band = (top: boolean) => Array.from({ length: positions.count }, (_, i) => new Vector3().fromBufferAttribute(positions, i))
-      .filter(point => top ? point.y > bounds.max.y - 0.5 : point.y < bounds.min.y + 0.5);
-    const meanX = (points: Vector3[]) => points.reduce((sum, point) => sum + point.x, 0) / points.length;
-    expect(meanX(band(true))).toBeLessThan(meanX(band(false)) - 0.3);
-    const kit = createPineCrownV2(context.seed), flat = kit.toNonIndexed();
-    expect(Array.from(crowns[0]!.geometry.getAttribute("surface").array)).toEqual(Array.from(flat.getAttribute("surface").array));
-    expect(Array.from(crowns[0]!.geometry.getAttribute("color").array)).toEqual(Array.from(flat.getAttribute("color").array));
-    flat.dispose();
+    expect(bounds.max.y).toBeLessThan(10);
+    expect(bounds.getSize(new Vector3()).x).toBeGreaterThan(5);
+    const kit = createFirstLightTree(context.seed % 3);
+    expect(Array.from(tree.geometry.getAttribute("color").array)).toEqual(Array.from(kit.getAttribute("color").array));
     kit.dispose();
-    expect(bounds.min.y).toBeCloseTo(-0.05, 5);
-    expect(new Box3().setFromObject(create({ underWater: x => x < -7 }).group.getObjectByName("leaning-pine-jade-crown")!)
-      .min.x).toBeGreaterThan(7);
-    expect(create({ underWater: x => Math.abs(x) > 7 }).group.getObjectByName("leaning-pine-jade-crown")).toBeUndefined();
+    const trunk = scene.colliders[11]!;
+    expect(trunk.size.toArray()).toEqual([1, 4, 1]);
+    expect(trunk.center.x).toBe(-10.5);
+    expect(new Box3().setFromObject(create({ underWater: x => x < -7 }).group.getObjectByName("old-trail-r1-tree")!)
+      .min.x).toBeGreaterThan(PATH_CLEARANCE);
+    expect(create({ underWater: x => Math.abs(x) > 7 }).group.getObjectByName("old-trail-r1-tree")).toBeUndefined();
   });
 
   it("keeps weathered grain visible and a single restrained 0.12 m flower accent", () => {
@@ -270,7 +267,7 @@ describe("old-trail scene", () => {
     const expectedColors = [
       0xffffff,
       new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6).getHex(),
-      RAMP_PRESETS.crown,
+      0xffffff,
       0xffffff,
       new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3).getHex(),
       new Color(PALETTE.sunGold).lerp(new Color(PALETTE.dusk), 0.25).getHex(),
@@ -311,10 +308,9 @@ describe("old-trail scene", () => {
           expect(rockPigments.some(color => new Vector3(...color.toArray()).distanceTo(new Vector3(...pigment.toArray())) < 1e-6)).toBe(true);
           continue;
         }
-        if (mesh.name === "leaning-pine-jade-crown") {
-          const bark = mesh.geometry.getAttribute("surface").getX(i) === 1;
-          expect(onSegment(pigment, new Color(bark ? PALETTE.rockDark : PALETTE.forestDeep),
-            new Color(bark ? PALETTE.dusk : PALETTE.forestLight))).toBe(true);
+        if (mesh.name === "old-trail-r1-tree") {
+          // Pigments are checked byte-for-byte against the R1 kit above.
+          expect(pigment.toArray().every(value => value >= 0 && value <= 1)).toBe(true);
           continue;
         }
         expect(colors.getX(i)).toBeGreaterThanOrEqual(0.88 - 1e-6);
@@ -402,7 +398,7 @@ describe("old-trail scene", () => {
   });
 
   it("keeps the original collider centres and box sizes within the R4 0.1 m tolerance", () => {
-    // Measured before R4, seed 105, flat terrain: ten markers, gate, pine, lantern.
+    // R4 hard props remain fixed; R1-B replaces only the tree collider.
     const baseline = [
       [4.829753, 1.215, 0, 0.349506, 2.43, 0.31],
       [-4.799226, 0.500885, -8, 0.3, 1.00177, 0.31],
@@ -415,7 +411,7 @@ describe("old-trail scene", () => {
       [4.781878, 0.479289, 4, 0.3, 0.958578, 0.31],
       [4.789184, 0.487639, 8, 0.3, 0.975278, 0.31],
       [-6.349161, 0.84, 1.8, 0.621392, 1.68, 5.145],
-      [-10.837125, 7.061911, 6.995662, 3.019961, 14.123821, 2.092257],
+      [-10.5, 1.95, 7, 1, 4, 1],
       [4.5, 1.96, 0, 0.52, 0.86, 0.48],
     ];
     const scene = create();
@@ -426,7 +422,7 @@ describe("old-trail scene", () => {
     });
   });
 
-  it("locks the R4 geometry, colliders and interaction", () => {
+  it("locks the hard props, R1 tree dressing, colliders and interaction", () => {
     const scene = create();
     scene.group.updateMatrixWorld(true);
     const triangles: string[] = [];
@@ -442,9 +438,8 @@ describe("old-trail scene", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // B2-191b changes the shared pine's needle masses and bark geometry;
-    // retain the fingerprint over all hard props, colliders and the interaction.
-    expect(fingerprint).toBe("1e271c5f7e46cf87887432518e6985a2a3383e590c51a944358bd2ce2bb27c42");
+    // R1-B replaces only the isolated tree and its root stones/collider.
+    expect(fingerprint).toBe("b6b86450a854ac0cbfc657643894be050d103c2260f265487f30ba77963e841b");
   });
 
 });

@@ -6,8 +6,8 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createFern } from "../foliage/ground";
-import { createPineCrownV2 } from "../foliage/pine";
-import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
+import { createFirstLightTree } from "../foliage/first-light-grove";
+import { createRampMaterial } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
@@ -57,50 +57,6 @@ function wash(part: BufferGeometry, phase: number): BufferGeometry {
   flat.setAttribute("color", new Float32BufferAttribute(colors, 3));
   flat.computeVertexNormals();
   return flat;
-}
-
-/** Collision-only support samples of the pre-R4 canopy. No retired geometry is
- * built or rendered: the seed-dependent box stays stable when switching to V2. */
-function pineEnvelope(seed: number, x: number, z: number, heightAt: (x: number, z: number) => number): Box3 {
-  let state = seed >>> 0;
-  const random = () => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-  const tiers = 3 + (seed >>> 0) % 3;
-  const lean = (random() < 0.5 ? -1 : 1) * (0.2 + random() * 0.12);
-  const phase = random() * Math.PI * 2, points: Vector3[] = [];
-  for (let tier = 0; tier < tiers; tier++) {
-    const t = tier / (tiers - 1), radius = (1.82 - t * 1.18) * (0.96 + random() * 0.04);
-    const base = t * (2.9 + (tiers - 3) * 0.2), height = 1.65 + random() * 0.15;
-    const cx = lean * t, cz = Math.sin(phase + t * 2) * 0.07;
-    const rim = Array.from({ length: 11 }, () => 0.88 + random() * 0.24);
-    for (let ring = 0; ring < 2; ring++) for (let j = 0; j < 11; j++) {
-      const angle = phase + tier * 0.37 + j * Math.PI * 2 / 11;
-      const r = radius * rim[j]! * (ring === 0 ? 1 : 0.52);
-      const y = ring === 0 ? base - (0.1 + random() * 0.1) * (1 - t * 0.25)
-        : base + height * (0.27 + random() * 0.05);
-      points.push(new Vector3(cx + Math.cos(angle) * r + ring * lean * 0.12, y, cz + Math.sin(angle) * r));
-    }
-    points.push(new Vector3(cx + lean * 0.4, base + height, cz + 0.04), new Vector3(cx, base - height * 0.22, cz));
-  }
-  const raw = new Box3().setFromPoints(points), extent = raw.getSize(new Vector3());
-  const width = Math.min(1, 2.7 / Math.max(extent.x, extent.z));
-  const height = 15 + (seed >>> 0) % 3, box = new Box3();
-  for (const point of points) {
-    point.set(point.x * width * 0.85, height * 2 / 3 - 0.6 + (point.y - raw.min.y) / extent.y * height / 3,
-      point.z * width * 0.85).applyAxisAngle(new Vector3(0, 0, 1), -Math.sign(x) * 0.18);
-    point.x += x;
-    point.z += z;
-    point.y += heightAt(point.x, point.z);
-    box.expandByPoint(point);
-  }
-  // The former trunk controls only the inward edge and ground contact. These
-  // conservative foot corners differ by under 1 cm from its chamfered outline.
-  for (const dx of [-0.18, 0.18]) for (const dz of [-0.16, 0.16]) {
-    box.expandByPoint(new Vector3(x + dx, heightAt(x + dx, z + dz), z + dz));
-  }
-  return box;
 }
 
 export const createOldTrailScene: ZoneSceneFactory = (context) => {
@@ -252,27 +208,20 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   const metal = createRampMaterial(paletteColor({ base: "rockDark", mix: "indigo", amount: 0.3,
     saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
   metal.vertexColors = true;
-  // A single outward-leaning pine frames the edge without screening the interactable.
-  const pine = [-9.5, 9.5].flatMap(x => [7, -7].map(z => ({ x, z })))
-    .find(({ x, z }) => safe(x, z, 2.5, 2));
-  if (pine) {
-    const direction = Math.sign(pine.x);
-    const envelope = pineEnvelope(context.seed, pine.x, pine.z, () => 0);
-    const size = envelope.getSize(new Vector3());
-    const crown = createPineCrownV2(context.seed).translate(0, 5, 0)
-      .scale(0.85, 1, 0.85).rotateZ(-direction * 0.18);
-    crown.computeBoundingBox();
-    const bounds = crown.boundingBox!, visualSize = bounds.getSize(new Vector3());
-    crown.translate(-bounds.min.x, -bounds.min.y, -bounds.min.z)
-      .scale(size.x / visualSize.x, size.y / visualSize.y, size.z / visualSize.z)
-      .translate(envelope.min.x, -0.05, envelope.min.z);
+  // One isolated, branched R1 tree frames the marker without screening the river.
+  // Check its whole broad crown, while collision follows only the rooted trunk.
+  const tree = [-10.5, 10.5].flatMap(x => [7, -7].map(z => ({ x, z })))
+    .find(({ x, z }) => safe(x, z, 5, 4));
+  if (tree) {
+    const crown = createFirstLightTree((context.seed >>> 0) % 3)
+      .scale(0.72, 0.8, 0.72).translate(tree.x, -0.05, tree.z);
     ground(crown);
-    const collision = pineEnvelope(context.seed, pine.x, pine.z, context.heightAt);
-    colliders.push({ center: collision.getCenter(new Vector3()), size: collision.getSize(new Vector3()) });
-    const jade = createRampMaterial(RAMP_PRESETS.crown, WORLD_DIRECTION.foliage.ramp);
+    const low = context.heightAt(tree.x, tree.z);
+    colliders.push({ center: new Vector3(tree.x, low + 1.95, tree.z), size: new Vector3(1, 4, 1) });
+    const jade = createRampMaterial(0xffffff, { steps: 4, soft: false });
     jade.vertexColors = true;
-    mesh([wash(crown, phase)], jade, "leaning-pine-jade-crown");
-    rubble(pine.x, pine.z, context.seed + 130, 0.3);
+    mesh([wash(crown, phase)], jade, "old-trail-r1-tree");
+    rubble(tree.x, tree.z, context.seed + 130, 0.3);
   }
   if (stones.length) mesh(stones, timberMaterial, "trail-edge-stones");
 

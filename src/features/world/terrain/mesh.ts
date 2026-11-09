@@ -1,5 +1,6 @@
 import { Box3, BufferAttribute, BufferGeometry, Color, Matrix4, Mesh, Ray, Vector3, type Material } from "three";
 import { forestAtmosphereWeight } from "../art/direction";
+import { hillR1Weight } from "../foliage/hill-r1";
 import { hex } from "../art/palette";
 import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
 import { nearestPath, nearestRiver } from "./samples";
@@ -56,6 +57,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   const normals = new Float32Array(positions.length);
   const colors = new Float32Array(positions.length);
   const forestSurface = new Float32Array(stride ** 2 * 2);
+  const hillSurface = new Float32Array(stride ** 2);
   const indices = new Uint16Array(cells ** 2 * 6);
   const tint = new Color();
   const color = new Color();
@@ -95,6 +97,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     // Share the biome edge with forest air: a 40 m fade in walking distance.
     // 8 m moss islands and 1.5 m leaf/soil flecks stay continuous across tiles.
     const forest = forestAtmosphereWeight(path.t);
+    const hill = hillR1Weight(path.t);
     const bankDistance = river.distance - riverWidthAt(river.t) / 2;
     if (forest > 0) {
       const moss = smoothstep(0.2, 0.8, 0.65 * patch + 0.35 * fleck);
@@ -123,6 +126,8 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const cliffEnd = Math.tan((41 + detail * 4) * Math.PI / 180);
     const cliff = smoothstep(cliffStart, cliffEnd, slope);
     forestSurface.set([forest * smoothstep(0.15, 0.6, aboveWater) * (1 - cliff), smoothstep(2.4, 3.1, path.distance)], vertex * 2);
+    // Keep water, rocky slopes and the paved Horizon approach in their own materials.
+    hillSurface[vertex] = hill * smoothstep(1.2, 2.2, aboveWater) * (1 - cliff) * groundDetail;
     tint.copy(rock).lerp(rockDark, 0.08 + 0.2 * detail);
     color.lerp(tint, cliff);
 
@@ -178,6 +183,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   geometry.setAttribute("normal", new BufferAttribute(normals, 3));
   geometry.setAttribute("color", new BufferAttribute(colors, 3));
   geometry.setAttribute("forestSurface", new BufferAttribute(forestSurface, 2));
+  geometry.setAttribute("hillSurface", new BufferAttribute(hillSurface, 1));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

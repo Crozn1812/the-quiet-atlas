@@ -4,7 +4,8 @@ import { fogAt, paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { bindFirstLightGround, createFirstLightGrove, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
-import { createForestR1Trees, forestR1Weight, isForestR1Tree } from "../foliage/forest-r1";
+import { createForestR1Trees, forestR1Weight } from "../foliage/forest-r1";
+import { hillR1Weight } from "../foliage/hill-r1";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
 import { scatterTile, type FoliageTree } from "../foliage/scatter";
 import { createGroundDetails, scatterGround, scatterGroundChunks, type GroundDetail } from "../foliage/ground";
@@ -201,7 +202,12 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
 
   function createCell(allTrees: FoliageTree[]) {
     const forestTrees: FoliageTree[] = [], trees: FoliageTree[] = [];
-    for (const tree of allTrees) (isForestR1Tree(tree) ? forestTrees : trees).push(tree);
+    for (const tree of allTrees) {
+      const t = nearestPath(tree.x, tree.z).t;
+      const weight = forestR1Weight(tree.x, tree.z, t) + hillR1Weight(t);
+      const r1 = foliageVariantAt(tree.x + 17.3, tree.z - 9.1, 1000) / 1000 < weight;
+      (r1 ? forestTrees : trees).push(tree);
+    }
     const forest = createForestR1Trees(forestTrees);
     const foliage = trees.length ? createFoliage(trees.length) : undefined;
     // B2-039a: every crown variant shares one material. Each fade hook wraps its material, so give each

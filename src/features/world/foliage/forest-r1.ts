@@ -1,4 +1,6 @@
-import { Group, InstancedMesh, Matrix4, Vector3 } from "three";
+import { Color, Group, InstancedMesh, Matrix4, Vector3 } from "three";
+import { PALETTE } from "../art/palette";
+import { hillR1Weight } from "./hill-r1";
 import { forestAtmosphereWeight } from "../art/direction";
 import { createRampMaterial } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
@@ -20,6 +22,12 @@ export function isForestR1Tree(tree: Pick<FoliageTree, "x" | "z">) {
 
 /** Streamed companions to the authored grove: three silhouettes, three draws, no wind pass. */
 export function createForestR1Trees(trees: readonly FoliageTree[]) {
+  // Warm hill crowns reuse the same three batches and branched silhouettes.
+  // Bake once at tile construction; quality changes never resample the route.
+  const hillTint = new Color(PALETTE.grass).lerp(new Color(PALETTE.grassDry), 0.28);
+  const dawnTint = new Color(PALETTE.forestLight).lerp(new Color(PALETTE.grass), 0.22).lerp(new Color(PALETTE.mist), 0.12);
+  hillTint.setRGB(hillTint.r / dawnTint.r, hillTint.g / dawnTint.g, hillTint.b / dawnTint.b);
+  const pigments = trees.map(tree => new Color(1, 1, 1).lerp(hillTint, hillR1Weight(nearestPath(tree.x, tree.z).t)));
   const group = new Group();
   group.name = "forest-r1-trees";
   const meshes = [0, 1, 2].map(variant => {
@@ -38,17 +46,20 @@ export function createForestR1Trees(trees: readonly FoliageTree[]) {
     meshes.forEach(mesh => { mesh.count = 0; });
     const count = Math.round(trees.length * PRESETS[quality].density);
     for (let i = 0; i < count; i++) {
-      const tree = trees[Math.floor((i + 0.5) * trees.length / count)]!;
+      const index = Math.floor((i + 0.5) * trees.length / count);
+      const tree = trees[index]!;
       const mesh = meshes[foliageVariantAt(tree.x, tree.z, 3)]!;
       const scale = tree.scale * (tree.trailCanopy ? 3 : 1);
       matrix.makeRotationY(foliageVariantAt(tree.z, tree.x, 1000) / 1000 * Math.PI * 2);
       rotation.makeRotationZ(tree.lean);
       matrix.premultiply(rotation).scale(new Vector3(scale, scale, scale));
       matrix.setPosition(tree.x, tree.y, tree.z);
+      mesh.setColorAt(mesh.count, pigments[index]!);
       mesh.setMatrixAt(mesh.count++, matrix);
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingBox(); mesh.computeBoundingSphere();
     }
   }
