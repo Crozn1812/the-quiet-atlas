@@ -574,6 +574,20 @@ Showcase: `docs/showcase/26-asset-ky/checklist.md`. Chưa push.
 | T10, playtest người thật | **DEFERRED** (chờ UX/UI ~90–100 %) |
 | T08/T09 Iris Xe | **NOT RUN** |
 
+### Đợt 34 (2026-11-09): R1 toàn world
+
+- **R1-A** rừng (`db39bed`), **R1-B** đồi (`e755681`), **R1-C** biển (`3c91eec`; Lead dựng sẵn bản merge vì sandbox Codex không ghi được `.git`, Codex giải xung đột). Cơ chế R1 chuyển từ "vùng 48 m" thành cấu hình theo biome, chuyển tiếp 40 m; camera chơi thấp 18° toàn world.
+- Showcase + checklist: `docs/showcase/34-r1-toan-world/`.
+
+| Kiểm tra (trên `3c91eec`) | Kết quả |
+|---|---|
+| lint, typecheck, unit 1733 | **PASS** |
+| e2e | **153/153 PASS** |
+| perf: tới playable EN/VI | **4,45 s / 4,41 s PASS** |
+| perf: 3D bytes | **PASS**, 2,03 MB / 8 MB |
+| Lighthouse | **PASS** |
+| T10, playtest, Iris Xe | **DEFERRED / NOT RUN** |
+
 ### Đợt 32–33 (2026-11-09): First Light R1 + nguồn suối + lan can (Claude-Lead)
 
 - Duy giữ hướng **R1** (First Light). **FL-02**: nguồn suối là cụm 7 tảng đá rêu, thác nhỏ có bọt, vũng trũng viền đá; sửa mảng tối intro 10 s. R1 + FL-02 merge `f7f8c27`.
