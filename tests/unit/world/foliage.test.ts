@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Box3, BoxGeometry, type BufferGeometry, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
+import { Box3, BoxGeometry, type BufferGeometry, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Ray, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createCrownFade } from "../../../src/features/world/crown-fade";
 import { createFoliageColliders, TRUNK_HEIGHT, TRUNK_RADIUS } from "../../../src/features/world/foliage/colliders";
@@ -568,4 +568,69 @@ it("reuses crown inverses but immediately respects changed instances, quality sl
   } finally {
     invert.mockRestore(); crowns.dispose(); geometry.dispose(); material.dispose();
   }
+});
+
+it("rejects remote crown bounds before ray tests and matches the original selector after affine and bounds changes", () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+  const crowns = new InstancedMesh(geometry, material, 12), parent = new Group();
+  parent.add(crowns);
+  geometry.computeBoundingBox();
+  const matrix = new Matrix4();
+  for (let i = 0; i < crowns.count; i++) {
+    matrix.makeRotationY(i * 0.27).scale(new Vector3(0.7 + i * 0.1, 2, 1.2));
+    matrix.elements[4]! += 0.35; // Reaching limbs use nonorthogonal instance axes.
+    matrix.setPosition(i * 6, i * 0.1, -i * 2);
+    crowns.setMatrixAt(i, matrix);
+  }
+  // Reference is the exact local-box selector before RC15, without the world broadphase.
+  function original(camera: Vector3, player: Vector3) {
+    crowns.updateWorldMatrix(true, false);
+    const selected: number[] = [], bounds = geometry.boundingBox!;
+    const inverse = new Matrix4(), start = new Vector3(), end = new Vector3(), hit = new Vector3(), ray = new Ray();
+    for (let i = 0; i < crowns.count; i++) {
+      crowns.getMatrixAt(i, inverse);
+      inverse.premultiply(crowns.matrixWorld).invert();
+      start.copy(camera).applyMatrix4(inverse);
+      for (const offset of [-0.65, 0, 0.65]) {
+        end.copy(player); end.y += offset; end.applyMatrix4(inverse);
+        const length = end.distanceTo(start);
+        if (length === 0) continue;
+        ray.set(start, end.sub(start).divideScalar(length));
+        if (bounds.containsPoint(start) || (ray.intersectBox(bounds, hit) && start.distanceTo(hit) < length)) {
+          selected.push(i); break;
+        }
+      }
+    }
+    return selected;
+  }
+  function compare() {
+    crowns.updateWorldMatrix(true, false);
+    for (let i = 0; i < crowns.count; i++) {
+      crowns.getMatrixAt(i, matrix); matrix.premultiply(crowns.matrixWorld);
+      // Includes box-face/endpoint, zero camera-player distance and start-inside cases.
+      for (const x of [-1, -0.5, 0, 0.5, 1]) for (const z of [-4, 0, 0.5, 4]) {
+        const camera = new Vector3(x, 0, z).applyMatrix4(matrix);
+        const player = new Vector3(x, 0, -z).applyMatrix4(matrix);
+        expect(selectFoliageOccludingCrowns(crowns, camera, player)).toEqual(original(camera, player));
+      }
+    }
+  }
+  try {
+    compare();
+    parent.position.set(120, -3, -800); parent.rotation.set(0.2, 0.4, -0.1); parent.scale.set(1.25, 0.8, 1.1);
+    compare();
+    geometry.boundingBox!.expandByScalar(2); // Authored/deformed bounds can grow without matrix versions.
+    compare();
+    geometry.boundingBox = new Box3(new Vector3(-0.2, -0.2, -0.2), new Vector3(0.2, 0.2, 0.2));
+    compare();
+    crowns.instanceMatrix.array[12] = 90; // Immediate CPU edits remain visible without needsUpdate.
+    compare();
+    crowns.count = 1;
+    compare();
+    const intersect = vi.spyOn(Ray.prototype, "intersectBox");
+    try {
+      expect(selectFoliageOccludingCrowns(crowns, new Vector3(-1000, 0, 0), new Vector3(-1000, 0, 8))).toEqual([]);
+      expect(intersect).not.toHaveBeenCalled();
+    } finally { intersect.mockRestore(); }
+  } finally { crowns.dispose(); geometry.dispose(); material.dispose(); }
 });

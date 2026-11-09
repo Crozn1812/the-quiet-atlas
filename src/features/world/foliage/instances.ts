@@ -1,4 +1,4 @@
-import { Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, type Mesh, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
+import { Box3, Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, type Material, Matrix4, type Mesh, MeshDepthMaterial, MeshDistanceMaterial, Object3D, Ray, RGBADepthPacking, Vector2, Vector3 } from "three";
 import { PALETTE } from "../art/palette";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
@@ -262,20 +262,25 @@ type CrownInverseCache = {
   world: Matrix4;
   source: Float64Array;
   inverses: Matrix4[];
+  bounds: Box3;
+  worldBounds: Box3[];
+  transform: Matrix4;
 };
 const crownInverseCaches = new WeakMap<InstancedMesh, CrownInverseCache>();
 
 /** Matrices are static between streaming/quality changes; camera motion needs no new inverse. */
-function crownInverses(crowns: InstancedMesh): Matrix4[] {
+function crownTransforms(crowns: InstancedMesh, bounds: Box3): CrownInverseCache {
   const attribute = crowns.instanceMatrix;
   let cache = crownInverseCaches.get(crowns);
   const rebuild = !cache || cache.attribute !== attribute || cache.version !== attribute.version
     || cache.count !== crowns.count || !cache.world.equals(crowns.matrixWorld);
   if (!cache) {
     cache = { attribute, version: attribute.version, count: crowns.count, world: new Matrix4(),
-      source: new Float64Array(crowns.count * 16), inverses: [] };
+      source: new Float64Array(crowns.count * 16), inverses: [], bounds: bounds.clone(),
+      worldBounds: [], transform: new Matrix4() };
     crownInverseCaches.set(crowns, cache);
   }
+  const boundsChanged = !cache.bounds.equals(bounds);
   if (cache.source.length < crowns.count * 16) cache.source = new Float64Array(crowns.count * 16);
   for (let i = 0; i < crowns.count; i++) {
     const offset = i * 16;
@@ -285,15 +290,25 @@ function crownInverses(crowns: InstancedMesh): Matrix4[] {
     if (!changed) for (let j = 0; j < 16; j++) {
       if (cache.source[offset + j] !== attribute.array[offset + j]) { changed = true; break; }
     }
-    if (!changed) continue;
-    const inverse = cache.inverses[i] ??= new Matrix4();
-    crowns.getMatrixAt(i, inverse);
-    inverse.premultiply(crowns.matrixWorld).invert();
-    for (let j = 0; j < 16; j++) cache.source[offset + j] = attribute.array[offset + j]!;
+    if (!changed && !boundsChanged) continue;
+    const transform = cache.transform;
+    crowns.getMatrixAt(i, transform);
+    transform.premultiply(crowns.matrixWorld);
+    const box = cache.worldBounds[i] ??= new Box3();
+    box.copy(bounds).applyMatrix4(transform);
+    // Reject only definite misses. A small outward margin absorbs affine/inverse
+    // round-off at shared box/segment faces; the original local ray confirms hits.
+    box.expandByScalar(1e-7 * Math.max(1, Math.abs(box.min.x), Math.abs(box.min.y), Math.abs(box.min.z),
+      Math.abs(box.max.x), Math.abs(box.max.y), Math.abs(box.max.z)));
+    if (changed) {
+      (cache.inverses[i] ??= new Matrix4()).copy(transform).invert();
+      for (let j = 0; j < 16; j++) cache.source[offset + j] = attribute.array[offset + j]!;
+    }
   }
   cache.attribute = attribute; cache.version = attribute.version; cache.count = crowns.count;
   cache.world.copy(crowns.matrixWorld);
-  return cache.inverses;
+  cache.bounds.copy(bounds);
+  return cache;
 }
 
 /**
@@ -306,11 +321,17 @@ export function selectFoliageOccludingCrowns(crowns: InstancedMesh, camera: Vect
   if (!crowns.geometry.boundingBox) crowns.geometry.computeBoundingBox();
   const bounds = crowns.geometry.boundingBox!;
   crowns.updateWorldMatrix(true, false);
-  const inverses = crownInverses(crowns);
+  const { inverses, worldBounds } = crownTransforms(crowns, bounds);
+  // Every point on all three sight segments lies inside this envelope. Most
+  // instances in a nearby streamed batch still lie well outside the short arm.
+  const sightBounds = new Box3().setFromPoints([camera, player]);
+  sightBounds.min.y = Math.min(camera.y, player.y - 0.65);
+  sightBounds.max.y = Math.max(camera.y, player.y + 0.65);
   const start = new Vector3(), end = new Vector3(), hit = new Vector3();
   const ray = new Ray();
   const selected: number[] = [];
   for (let i = 0; i < crowns.count; i++) {
+    if (!worldBounds[i]!.intersectsBox(sightBounds)) continue;
     const inverse = inverses[i]!;
     start.copy(camera).applyMatrix4(inverse);
     for (const offset of [-0.65, 0, 0.65]) {
