@@ -117,6 +117,7 @@ const fragmentShader = /* glsl */ `
       float validA = 1.0 - smoothstep(9999.0, 10000.0, shoreA);
       float validB = 1.0 - smoothstep(9999.0, 10000.0, shoreB);
       float weight = shoreSample - float(shoreIndex);
+      float shoreValid = min(validA, validB);
       // Unsafe samples encode a break in the coast, not a distant shoreline.
       // Use the real endpoint beside a break; never interpolate the sentinel Z.
       float safeA = mix(shoreB, shoreA, validA);
@@ -124,21 +125,24 @@ const fragmentShader = /* glsl */ `
       float shoreZ = mix(safeA, safeB, weight);
       float shoreWidth = uShoreBounds.y / ${(SEA_SHORE_SAMPLES - 1).toFixed(1)};
       float shoreDeltaZ = safeB - safeA;
-      float shoreDx = vWaterWorld.x - (uShoreBounds.x + float(shoreIndex) * shoreWidth);
+      // Beside a break the only known coast is the valid endpoint, not a new
+      // horizontal segment extending across the rejected inlet.
+      float segmentWidth = shoreWidth * shoreValid;
+      float shoreDx = vWaterWorld.x - (uShoreBounds.x
+        + (float(shoreIndex) + (1.0 - validA) * validB) * shoreWidth);
       float shoreDz = vWaterWorld.z - safeA;
       // A finite segment cannot paint shallows along an infinite inland secant.
-      float projection = clamp((shoreDx * shoreWidth + shoreDz * shoreDeltaZ)
-        / (shoreWidth * shoreWidth + shoreDeltaZ * shoreDeltaZ), 0.0, 1.0);
-      float nearestDx = shoreDx - projection * shoreWidth;
+      float projection = clamp((shoreDx * segmentWidth + shoreDz * shoreDeltaZ)
+        / max(segmentWidth * segmentWidth + shoreDeltaZ * shoreDeltaZ, 0.000001), 0.0, 1.0);
+      float nearestDx = shoreDx - projection * segmentWidth;
       float nearestDz = shoreDz - projection * shoreDeltaZ;
       float offshore = sqrt(nearestDx * nearestDx + nearestDz * nearestDz);
       float slope = shoreDeltaZ / shoreWidth;
-      float shoreValid = min(validA, validB);
       // Blend influence itself at a break. Mixing the distance with 1000 m
       // squeezed its colour/reflection transition into a visible diagonal wedge.
       float shoreInfluence = mix(validA, validB, smoothstep(0.0, 1.0, weight))
         * smoothstep(0.0, 0.04, shoreZ - vWaterWorld.z) * uHasShore;
-      float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * shoreInfluence * shoreValid;
+      float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * shoreInfluence;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
     float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));

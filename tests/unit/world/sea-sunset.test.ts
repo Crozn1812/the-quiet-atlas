@@ -693,14 +693,26 @@ describe("B2-229b dusk sea without fan bands", () => {
                 const angle = degrees * Math.PI / 180;
                 const point = camera.clone().add(new Vector3(Math.sin(angle) * distance, -8, -Math.cos(angle) * distance));
                 if (!sea.mesh.geometry.boundingBox!.containsPoint(point) || worldHeight(point.x, point.z) >= WATER_LEVEL) continue;
-                // Select far water independently of the shader's slope correction:
-                // otherwise the old erroneous shallows would be excluded from the test.
+                // Select far water independently using finite shoreline geometry.
+                // Sentinel values denote a missing endpoint, not a shore 100 km away.
                 const bounds = material.uniforms.uShoreBounds!.value as Vector2;
                 const coast = material.uniforms.uShoreZ!.value as number[];
                 const sample = Math.max(0, Math.min(1, (point.x - bounds.x) / bounds.y)) * (SEA_SHORE_SAMPLES - 1);
                 const index = Math.min(Math.floor(sample), SEA_SHORE_SAMPLES - 2);
-                const shoreZ = mix(coast[index]!, coast[index + 1]!, sample - index);
-                if (shoreZ - point.z < 60) continue;
+                const step = bounds.y / (SEA_SHORE_SAMPLES - 1);
+                const knownA = coast[index]! < 9999;
+                const knownB = coast[index + 1]! < 9999;
+                const endpoints = [
+                  ...(knownA ? [new Vector3(bounds.x + index * step, WATER_LEVEL, coast[index]!)] : []),
+                  ...(knownB ? [new Vector3(bounds.x + (index + 1) * step, WATER_LEVEL, coast[index + 1]!)] : []),
+                ];
+                if (endpoints.length) {
+                  const a = endpoints[0]!, b = endpoints.at(-1)!;
+                  const direction = b.clone().sub(a);
+                  const closest = a.clone().addScaledVector(direction, Math.max(0, Math.min(1,
+                    point.clone().sub(a).dot(direction) / Math.max(direction.lengthSq(), 1e-12))));
+                  if (closest.distanceTo(point) < 60) continue;
+                }
                 const pigment = seaPigment(material, point);
                 // Glints stay within +/-12 degrees; the broad reflected sunset remains.
                 const delta = Math.atan2(Math.sin(angle - sunAngle), Math.cos(angle - sunAngle));
@@ -787,7 +799,7 @@ describe("B2-229b dusk sea without fan bands", () => {
 
 // RC-14: test the shader scalars at a real coast break, not an injected distance.
 describe("RC-14 finite shore influence", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s reflection continuous at an unsafe sample without painting an inlet", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s reflection and pigment continuous at a coast break without inventing an inlet edge", quality => {
     const valid = Array<number>(SEA_SHORE_SAMPLES).fill(1);
     valid[50] = 0;
     const material = createWaterMaterial(quality, { surface: "sea", shoreline: {
@@ -802,17 +814,33 @@ describe("RC-14 finite shore influence", () => {
     };
     try {
       const spacing = 800 / (SEA_SHORE_SAMPLES - 1);
+      for (const index of [49.1, 49.5, 49.9, 50.1, 50.5, 50.9]) {
+        const x = index * spacing;
+        const endpointX = (index < 50 ? 49 : 51) * spacing;
+        for (const dz of [5, 40, 60, 300]) {
+          const point = new Vector3(x, 0, -800 - dz);
+          const pigment = seaPigment(material, point);
+          expect(pigment.offshore).toBeCloseTo(Math.hypot(x - endpointX, dz), 7);
+          if (pigment.offshore >= 40) expect(pigment.shallows).toBe(0);
+        }
+      }
       // The old validity guard jumped from a physical distance to 1000 m here.
       for (const index of [49, 50, 51]) {
         const x = index * spacing;
         const a = reflect(new Vector3(x - 1e-4, 0, -860));
         const b = reflect(new Vector3(x + 1e-4, 0, -860));
         expect(Math.abs(a - b)).toBeLessThan(1e-4);
+        const nearA = seaPigment(material, new Vector3(x - 1e-4, 0, -805));
+        const nearB = seaPigment(material, new Vector3(x + 1e-4, 0, -805));
+        expect(Math.abs(nearA.shallows - nearB.shallows)).toBeLessThan(1e-4);
       }
       for (const x of [49.1, 49.5, 49.9, 50.1, 50.5, 50.9].map(i => i * spacing)) {
         const point = new Vector3(x, 0, -800.26);
         const pigment = seaPigment(material, point);
-        expect(pigment.shallows).toBe(0); // No turquoise across an unsafe secant.
+        // Beside a break, colour may fade around the real endpoint within40m;
+        // the unknown secant still cannot draw foam.
+        expect(pigment.shallows).toBeGreaterThanOrEqual(0);
+        expect(pigment.shallows).toBeLessThanOrEqual(pigment.shoreInfluence);
         const shore = scalars(material, "float shoreSample =", "color = mix(uDeepColor", {
           vWaterWorld: point, uShoreBounds: material.uniforms.uShoreBounds!.value,
           uShoreZ: material.uniforms.uShoreZ!.value, uHasShore: 1,
