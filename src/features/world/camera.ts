@@ -1,4 +1,4 @@
-import { Vector3, type Mesh } from "three";
+import { Matrix4, Mesh, Ray, Sphere, Vector3, type BufferGeometry, type Raycaster } from "three";
 import type { Trees } from "./terrain";
 
 export const MIN_ZOOM = 4;
@@ -18,6 +18,53 @@ export const clampZoom = (distance: number) => Math.max(MIN_ZOOM, Math.min(MAX_Z
  * may animate; a geometry whose vertex positions change must refresh its own bounds. */
 export function ensureCameraBounds(obstacles: readonly Mesh[]): void {
   for (const mesh of obstacles) if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+}
+
+type CameraSphereCache = {
+  geometry: BufferGeometry;
+  local: Sphere;
+  matrix: Matrix4;
+  world: Sphere;
+};
+const cameraSphereCaches = new WeakMap<Mesh, CameraSphereCache>();
+
+/** Cache only the world-sphere rejection already performed by default leaf Mesh.raycast.
+ * Custom/recursive/instanced/skinned picking keeps full ownership of its bounds.
+ * Like Mesh.raycast, this reads current matrixWorld and authored geometry bounds;
+ * position-buffer edits must update their geometry bounds before either path. */
+export function filterCameraCandidates(obstacles: readonly Mesh[], raycaster: Raycaster): Mesh[] {
+  const candidates: Mesh[] = [];
+  const ray = new Ray().copy(raycaster.ray).recast(raycaster.near);
+  const hit = new Vector3();
+  const reachSquared = (raycaster.far - raycaster.near) ** 2;
+  for (const mesh of obstacles) {
+    const special = mesh as Mesh & { isInstancedMesh?: boolean; isSkinnedMesh?: boolean };
+    if (mesh.raycast !== Mesh.prototype.raycast || mesh.children.length > 0
+      || special.isInstancedMesh || special.isSkinnedMesh || mesh.material === undefined) {
+      candidates.push(mesh);
+      continue;
+    }
+    const geometry = mesh.geometry;
+    if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
+    const local = geometry.boundingSphere!;
+    let cache = cameraSphereCaches.get(mesh);
+    if (!cache) {
+      cache = { geometry, local: local.clone(), matrix: mesh.matrixWorld.clone(),
+        world: local.clone().applyMatrix4(mesh.matrixWorld) };
+      cameraSphereCaches.set(mesh, cache);
+    } else if (cache.geometry !== geometry || !cache.local.equals(local) || !cache.matrix.equals(mesh.matrixWorld)) {
+      cache.geometry = geometry;
+      cache.local.copy(local);
+      cache.matrix.copy(mesh.matrixWorld);
+      cache.world.copy(local).applyMatrix4(mesh.matrixWorld);
+    }
+    if (!cache.world.containsPoint(ray.origin)) {
+      if (ray.intersectSphere(cache.world, hit) === null) continue;
+      if (ray.origin.distanceToSquared(hit) > reachSquared) continue;
+    }
+    candidates.push(mesh);
+  }
+  return candidates;
 }
 
 /** Retract immediately for safety; damp only extension so interpolation cannot cross a wall. */
