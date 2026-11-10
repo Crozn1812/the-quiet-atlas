@@ -1,0 +1,11 @@
+check-bundle — budgets: JS ≤ 150.0 KB gzip, total ≤ 1024.0 KB; marker __TQA_WORLD_CHUNK__
+| Page                | HTML gz | JS files | JS gzip  | Total    | Status |
+|---------------------|---------|----------|----------|----------|--------|
+| index.html          | 2.1 KB  | 8        | 135.7 KB | 141.7 KB | PASS   |
+| en/index.html       | 3.7 KB  | 8        | 135.0 KB | 194.9 KB | PASS   |
+| vi/index.html       | 3.9 KB  | 8        | 135.0 KB | 195.1 KB | PASS   |
+| en/quick/index.html | 4.7 KB  | 7        | 132.5 KB | 155.1 KB | PASS   |
+| vi/quick/index.html | 4.9 KB  | 7        | 132.5 KB | 155.4 KB | PASS   |
+| 404.html            | 1.6 KB  | 7        | 135.3 KB | 140.7 KB | PASS   |
+
+RESULT: PASS

@@ -1,0 +1,88 @@
+{
+  "sourceCommit": "bbd85a7c336aa025f11f42d40a07ea8bdbea83f1",
+  "browser": "157.0.4341.42",
+  "viewport": {
+    "width": 1600,
+    "height": 900
+  },
+  "quality": "high",
+  "errors": [],
+  "shots": [
+    {
+      "file": "intro-01500.png",
+      "elapsedMs": 1641,
+      "quality": "high"
+    },
+    {
+      "file": "intro-04000.png",
+      "elapsedMs": 4138,
+      "quality": "high"
+    },
+    {
+      "file": "intro-07000.png",
+      "elapsedMs": 7121,
+      "quality": "high"
+    },
+    {
+      "file": "intro-10000.png",
+      "elapsedMs": 10114,
+      "quality": "high"
+    },
+    {
+      "file": "intro-18000.png",
+      "elapsedMs": 18108,
+      "quality": "high"
+    },
+    {
+      "file": "intro-after.png",
+      "elapsedMs": 23446,
+      "quality": "high"
+    },
+    {
+      "file": "ending-00500.png",
+      "elapsedMs": 1109,
+      "quality": "high"
+    },
+    {
+      "file": "ending-04000.png",
+      "elapsedMs": 4260,
+      "quality": "high"
+    },
+    {
+      "file": "ending-09000.png",
+      "elapsedMs": 9265,
+      "quality": "high"
+    },
+    {
+      "file": "ending-14000.png",
+      "elapsedMs": 14164,
+      "quality": "high"
+    },
+    {
+      "file": "ending-20000.png",
+      "elapsedMs": 20166,
+      "quality": "high"
+    },
+    {
+      "file": "ending-26000.png",
+      "elapsedMs": 26100,
+      "quality": "high"
+    },
+    {
+      "file": "ending-31000.png",
+      "elapsedMs": 31094,
+      "quality": "high"
+    },
+    {
+      "file": "ending-34500.png",
+      "elapsedMs": 34658,
+      "quality": "high"
+    },
+    {
+      "file": "ending-after.png",
+      "elapsedMs": 38288,
+      "quality": "high"
+    }
+  ],
+  "status": "PASS"
+}

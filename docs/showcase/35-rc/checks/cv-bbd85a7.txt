@@ -1,0 +1,10 @@
+pnpm.cmd : $ node tools/cv/verify.mjs && node tools/cv/check-output.mjs
+At line:2 char:1
++ pnpm.cmd --config.verifyDepsBeforeRun=false check:cv *> coverage/rc-c ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ node tools/cv...heck-output.mjs:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+en: extracted Nguyen Huu Bao Duy; metadata verified; 38487 bytes
+vi: extracted Nguyễn Hữu Bảo Duy; metadata verified; 44805 bytes
+Welcome/Quick CV links, CV bilingual downloads, no-JS fallback, OG dimensions: verified

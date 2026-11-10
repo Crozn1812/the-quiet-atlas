@@ -1,0 +1,97 @@
+{
+  "source": "http://127.0.0.1:4185/",
+  "quality": "high",
+  "captured": "2026-11-09T15:20:05.032Z",
+  "candidates": [
+    {
+      "file": "hero-0-1920.webp",
+      "bytes": 40052,
+      "width": 1920,
+      "height": 1080,
+      "quality": 85,
+      "view": [
+        -20,
+        4,
+        4,
+        0,
+        4,
+        -28
+      ]
+    },
+    {
+      "file": "hero-0-960.webp",
+      "bytes": 15086,
+      "width": 960,
+      "height": 540,
+      "quality": 85,
+      "view": [
+        -20,
+        4,
+        4,
+        0,
+        4,
+        -28
+      ]
+    },
+    {
+      "file": "hero-1-1920.webp",
+      "bytes": 50910,
+      "width": 1920,
+      "height": 1080,
+      "quality": 85,
+      "view": [
+        -8,
+        3,
+        6,
+        7,
+        3,
+        -23
+      ]
+    },
+    {
+      "file": "hero-1-960.webp",
+      "bytes": 19434,
+      "width": 960,
+      "height": 540,
+      "quality": 85,
+      "view": [
+        -8,
+        3,
+        6,
+        7,
+        3,
+        -23
+      ]
+    },
+    {
+      "file": "hero-2-1920.webp",
+      "bytes": 31180,
+      "width": 1920,
+      "height": 1080,
+      "quality": 85,
+      "view": [
+        -28,
+        5,
+        0,
+        -5,
+        5,
+        -35
+      ]
+    },
+    {
+      "file": "hero-2-960.webp",
+      "bytes": 12508,
+      "width": 960,
+      "height": 540,
+      "quality": 85,
+      "view": [
+        -28,
+        5,
+        0,
+        -5,
+        5,
+        -35
+      ]
+    }
+  ]
+}

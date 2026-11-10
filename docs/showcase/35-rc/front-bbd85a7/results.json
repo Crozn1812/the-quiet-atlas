@@ -1,0 +1,129 @@
+{
+  "sourceCommit": "bbd85a7c336aa025f11f42d40a07ea8bdbea83f1",
+  "browser": "157.0.4341.42",
+  "rows": [
+    {
+      "locale": "vi",
+      "width": 1600,
+      "route": "welcome",
+      "file": "vi-desktop-welcome.png",
+      "geometry": {
+        "width": 1600,
+        "scroll": 1600
+      }
+    },
+    {
+      "locale": "vi",
+      "width": 1600,
+      "route": "quick",
+      "file": "vi-desktop-quick.png",
+      "geometry": {
+        "width": 1600,
+        "scroll": 1600
+      }
+    },
+    {
+      "locale": "vi",
+      "width": 390,
+      "route": "welcome",
+      "file": "vi-mobile-390-welcome.png",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      }
+    },
+    {
+      "locale": "vi",
+      "width": 390,
+      "route": "quick",
+      "file": "vi-mobile-390-quick.png",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      }
+    },
+    {
+      "locale": "vi",
+      "width": 320,
+      "route": "welcome",
+      "file": "vi-mobile-320-welcome.png",
+      "geometry": {
+        "width": 320,
+        "scroll": 320
+      }
+    },
+    {
+      "locale": "vi",
+      "width": 320,
+      "route": "quick",
+      "file": "vi-mobile-320-quick.png",
+      "geometry": {
+        "width": 320,
+        "scroll": 320
+      }
+    },
+    {
+      "locale": "en",
+      "width": 1600,
+      "route": "welcome",
+      "file": "en-desktop-welcome.png",
+      "geometry": {
+        "width": 1600,
+        "scroll": 1600
+      }
+    },
+    {
+      "locale": "en",
+      "width": 1600,
+      "route": "quick",
+      "file": "en-desktop-quick.png",
+      "geometry": {
+        "width": 1600,
+        "scroll": 1600
+      }
+    },
+    {
+      "locale": "en",
+      "width": 390,
+      "route": "welcome",
+      "file": "en-mobile-390-welcome.png",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      }
+    },
+    {
+      "locale": "en",
+      "width": 390,
+      "route": "quick",
+      "file": "en-mobile-390-quick.png",
+      "geometry": {
+        "width": 390,
+        "scroll": 390
+      }
+    },
+    {
+      "locale": "en",
+      "width": 320,
+      "route": "welcome",
+      "file": "en-mobile-320-welcome.png",
+      "geometry": {
+        "width": 320,
+        "scroll": 320
+      }
+    },
+    {
+      "locale": "en",
+      "width": 320,
+      "route": "quick",
+      "file": "en-mobile-320-quick.png",
+      "geometry": {
+        "width": 320,
+        "scroll": 320
+      }
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "scope": "Final screenshots and overflow check only; full functional audit has separate results"
+}

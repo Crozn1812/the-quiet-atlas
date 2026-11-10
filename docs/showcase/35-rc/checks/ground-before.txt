@@ -1,0 +1,8 @@
+ingame-first-light.png	hue 100	sat 0.24	val 0.40
+ingame-horizon.png	hue 118	sat 0.26	val 0.50
+ingame-last-postcard.png	hue 61	sat 0.07	val 0.34
+ingame-milestones.png	hue 86	sat 0.30	val 0.41
+ingame-old-trail.png	hue 87	sat 0.32	val 0.47
+ingame-quiet-shore.png	hue 81	sat 0.16	val 0.33
+ingame-roots.png	hue 86	sat 0.26	val 0.43
+ingame-workshop.png	hue 83	sat 0.26	val 0.44

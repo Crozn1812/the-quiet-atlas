@@ -1,0 +1,442 @@
+{
+  "sourceCommit": "bbd85a7c336aa025f11f42d40a07ea8bdbea83f1",
+  "status": "PASS",
+  "thresholdMs": 6000,
+  "thresholdBytes": 8388608,
+  "loads": [
+    {
+      "locale": "en",
+      "samples": [
+        {
+          "playableMs": 4574.900146484375,
+          "worldBytes": 2128915,
+          "gates": [
+            {
+              "id": "Welcome /en/:initial-total",
+              "label": "Welcome /en/ initial transfer",
+              "measured": 224595,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /en/:initial-js",
+              "label": "Welcome /en/ JS (gzip)",
+              "measured": 140808,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:initial-total",
+              "label": "Quick /en/quick/ initial transfer",
+              "measured": 183376,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:initial-js",
+              "label": "Quick /en/quick/ JS (gzip)",
+              "measured": 137943,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /en/:no-3d-before-enter",
+              "label": "Welcome /en/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:no-3d-before-enter",
+              "label": "Quick /en/quick/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "world-bytes",
+              "label": "3D bytes Enter World → playable",
+              "measured": 2128915,
+              "limit": 8388608,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "time-to-playable",
+              "label": "Time to playable",
+              "measured": 4574.900146484375,
+              "limit": 10000,
+              "unit": "ms",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "playableMs": 4601.400146484375,
+          "worldBytes": 2128915,
+          "gates": [
+            {
+              "id": "Welcome /en/:initial-total",
+              "label": "Welcome /en/ initial transfer",
+              "measured": 224595,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /en/:initial-js",
+              "label": "Welcome /en/ JS (gzip)",
+              "measured": 140808,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:initial-total",
+              "label": "Quick /en/quick/ initial transfer",
+              "measured": 183376,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:initial-js",
+              "label": "Quick /en/quick/ JS (gzip)",
+              "measured": 137943,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /en/:no-3d-before-enter",
+              "label": "Welcome /en/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:no-3d-before-enter",
+              "label": "Quick /en/quick/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "world-bytes",
+              "label": "3D bytes Enter World → playable",
+              "measured": 2128915,
+              "limit": 8388608,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "time-to-playable",
+              "label": "Time to playable",
+              "measured": 4601.400146484375,
+              "limit": 10000,
+              "unit": "ms",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "playableMs": 4620.699951171875,
+          "worldBytes": 2128915,
+          "gates": [
+            {
+              "id": "Welcome /en/:initial-total",
+              "label": "Welcome /en/ initial transfer",
+              "measured": 224595,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /en/:initial-js",
+              "label": "Welcome /en/ JS (gzip)",
+              "measured": 140808,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:initial-total",
+              "label": "Quick /en/quick/ initial transfer",
+              "measured": 183376,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:initial-js",
+              "label": "Quick /en/quick/ JS (gzip)",
+              "measured": 137943,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /en/:no-3d-before-enter",
+              "label": "Welcome /en/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /en/quick/:no-3d-before-enter",
+              "label": "Quick /en/quick/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "world-bytes",
+              "label": "3D bytes Enter World → playable",
+              "measured": 2128915,
+              "limit": 8388608,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "time-to-playable",
+              "label": "Time to playable",
+              "measured": 4620.699951171875,
+              "limit": 10000,
+              "unit": "ms",
+              "status": "PASS"
+            }
+          ]
+        }
+      ],
+      "worstPlayableMs": 4620.699951171875,
+      "worstWorldBytes": 2128915
+    },
+    {
+      "locale": "vi",
+      "samples": [
+        {
+          "playableMs": 4554.7998046875,
+          "worldBytes": 2128915,
+          "gates": [
+            {
+              "id": "Welcome /vi/:initial-total",
+              "label": "Welcome /vi/ initial transfer",
+              "measured": 230816,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /vi/:initial-js",
+              "label": "Welcome /vi/ JS (gzip)",
+              "measured": 140808,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:initial-total",
+              "label": "Quick /vi/quick/ initial transfer",
+              "measured": 189683,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:initial-js",
+              "label": "Quick /vi/quick/ JS (gzip)",
+              "measured": 137943,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /vi/:no-3d-before-enter",
+              "label": "Welcome /vi/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:no-3d-before-enter",
+              "label": "Quick /vi/quick/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "world-bytes",
+              "label": "3D bytes Enter World → playable",
+              "measured": 2128915,
+              "limit": 8388608,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "time-to-playable",
+              "label": "Time to playable",
+              "measured": 4554.7998046875,
+              "limit": 10000,
+              "unit": "ms",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "playableMs": 4653.099853515625,
+          "worldBytes": 2128915,
+          "gates": [
+            {
+              "id": "Welcome /vi/:initial-total",
+              "label": "Welcome /vi/ initial transfer",
+              "measured": 230816,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /vi/:initial-js",
+              "label": "Welcome /vi/ JS (gzip)",
+              "measured": 140808,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:initial-total",
+              "label": "Quick /vi/quick/ initial transfer",
+              "measured": 189683,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:initial-js",
+              "label": "Quick /vi/quick/ JS (gzip)",
+              "measured": 137943,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /vi/:no-3d-before-enter",
+              "label": "Welcome /vi/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:no-3d-before-enter",
+              "label": "Quick /vi/quick/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "world-bytes",
+              "label": "3D bytes Enter World → playable",
+              "measured": 2128915,
+              "limit": 8388608,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "time-to-playable",
+              "label": "Time to playable",
+              "measured": 4653.099853515625,
+              "limit": 10000,
+              "unit": "ms",
+              "status": "PASS"
+            }
+          ]
+        },
+        {
+          "playableMs": 4556.39990234375,
+          "worldBytes": 2128915,
+          "gates": [
+            {
+              "id": "Welcome /vi/:initial-total",
+              "label": "Welcome /vi/ initial transfer",
+              "measured": 230816,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /vi/:initial-js",
+              "label": "Welcome /vi/ JS (gzip)",
+              "measured": 140808,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:initial-total",
+              "label": "Quick /vi/quick/ initial transfer",
+              "measured": 189683,
+              "limit": 1048576,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:initial-js",
+              "label": "Quick /vi/quick/ JS (gzip)",
+              "measured": 137943,
+              "limit": 153600,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "Welcome /vi/:no-3d-before-enter",
+              "label": "Welcome /vi/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "Quick /vi/quick/:no-3d-before-enter",
+              "label": "Quick /vi/quick/ 3D requests before Enter World",
+              "measured": 0,
+              "limit": 0,
+              "unit": "requests",
+              "status": "PASS"
+            },
+            {
+              "id": "world-bytes",
+              "label": "3D bytes Enter World → playable",
+              "measured": 2128915,
+              "limit": 8388608,
+              "unit": "bytes",
+              "status": "PASS"
+            },
+            {
+              "id": "time-to-playable",
+              "label": "Time to playable",
+              "measured": 4556.39990234375,
+              "limit": 10000,
+              "unit": "ms",
+              "status": "PASS"
+            }
+          ]
+        }
+      ],
+      "worstPlayableMs": 4653.099853515625,
+      "worstWorldBytes": 2128915
+    }
+  ]
+}

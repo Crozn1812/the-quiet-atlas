@@ -4,6 +4,8 @@ Duy (2026-11-09): "kêu Codex hoàn thiện tiếp sản phẩm, để mình có
 
 **Vai trò:** Codex làm **Lead + thi công** theo `docs/runbook/codex-lead.md` và `docs/runbook/lead-handoff.md`. Được tạo worktree trong `D:/tqa-worktrees/`, được chia subagent (tối đa 3 cùng lúc), được merge vào `main` sau khi gate + duyệt render đạt. Luật cứng của `CLAUDE.md` §6 giữ nguyên: không push, không chạm cloud/credential, không bịa nội dung, không ghi PASS khi chưa chạy.
 
+**Bàn giao 2026-11-10:** nguồn RC `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1` đủ gate máy dev. [Audit + log](../showcase/35-rc/audit.md), [hướng dẫn Duy](../playtest/rc-guide.md). Build/strict gate1759, full e2e153/153 (4 worker), sáu tải lạnh worst4,653s/2.128.915B, Lighthouse15 lượt, CV và CPU ABBA đều PASS. Đã duyệt8 khuHigh/15ảnhcinematic/12Welcome–Quick; video45s là slideshow ảnh QA. Iris Xe NOT RUN, T10/Duy DEFERRED. Main chưa merge do `.git` chỉ đọc; Claude-Lead fetch/duyệt/merge clone theo chỉ dẫn06:50. Không push.
+
 ### 1. Audit toàn hành trình (chơi thật bằng Edge, VI và EN, desktop 1600×900 + mobile)
 
 Đi trọn các bước sau, chụp ảnh và ghi mọi lỗi hoặc chỗ thô vào `docs/showcase/35-rc/audit.md` (mỗi dòng: mức nghiêm trọng, bước, mô tả, ảnh):

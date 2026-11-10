@@ -1,0 +1,38 @@
+[
+  {
+    "zone": "quiet-shore",
+    "bytes": 37830,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      6,
+      2,
+      6,
+      -3,
+      0,
+      -12
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "Lead reviewed both postcards at full size, 2026-11-10",
+    "worldCommit": "3bdbd0c0d1e7e70c237779edaed7b675b88cdccd"
+  },
+  {
+    "zone": "last-postcard",
+    "bytes": 21808,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      -7,
+      2,
+      6,
+      2,
+      0,
+      -9
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "Lead reviewed both postcards at full size, 2026-11-10",
+    "worldCommit": "3bdbd0c0d1e7e70c237779edaed7b675b88cdccd"
+  }
+]

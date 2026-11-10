@@ -1,0 +1,9 @@
+{
+  "source": "journey.json",
+  "samples": 3680,
+  "maxStepMetres": 0.6499334966597897,
+  "maxVerticalStepMetres": 0.04440104961395264,
+  "maxSampleGapMs": 531.5,
+  "jumpsOver2mWithin200ms": [],
+  "limitation": "Position samples only; does not prove no visual pop-in or collision on side paths."
+}

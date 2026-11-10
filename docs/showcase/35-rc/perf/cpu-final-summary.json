@@ -1,0 +1,160 @@
+{
+  "sourceCommit": "bbd85a7c336aa025f11f42d40a07ea8bdbea83f1",
+  "baselineWorldCommit": "3bb0752",
+  "baselineExportCommit": "144a02c",
+  "baselineWorldDiff": "",
+  "method": "Unchanged tools/review/cpu-compare.mjs; Edge, Balanced,1366x800; build done + networkidle +1500ms warm-up,4s real W; actual CDP interval. ABBA,2 each; rounded ms/s from original stdout. Other GPU/browser tests stopped.",
+  "rows": [
+    {
+      "role": "base",
+      "run": 1,
+      "file": "cpu-bbd85a7-base-1.txt",
+      "samples": [
+        {
+          "zone": "first-light",
+          "seconds": 4.01,
+          "script": 245,
+          "task": 267
+        },
+        {
+          "zone": "roots",
+          "seconds": 4.01,
+          "script": 239,
+          "task": 261
+        },
+        {
+          "zone": "workshop",
+          "seconds": 4.02,
+          "script": 257,
+          "task": 278
+        }
+      ]
+    },
+    {
+      "role": "base",
+      "run": 2,
+      "file": "cpu-bbd85a7-base-2.txt",
+      "samples": [
+        {
+          "zone": "first-light",
+          "seconds": 4.01,
+          "script": 239,
+          "task": 260
+        },
+        {
+          "zone": "roots",
+          "seconds": 4.02,
+          "script": 220,
+          "task": 241
+        },
+        {
+          "zone": "workshop",
+          "seconds": 4.01,
+          "script": 261,
+          "task": 282
+        }
+      ]
+    },
+    {
+      "role": "rc",
+      "run": 1,
+      "file": "cpu-bbd85a7-rc-1.txt",
+      "samples": [
+        {
+          "zone": "first-light",
+          "seconds": 4.02,
+          "script": 243,
+          "task": 266
+        },
+        {
+          "zone": "roots",
+          "seconds": 4.01,
+          "script": 197,
+          "task": 215
+        },
+        {
+          "zone": "workshop",
+          "seconds": 4.02,
+          "script": 259,
+          "task": 280
+        }
+      ]
+    },
+    {
+      "role": "rc",
+      "run": 2,
+      "file": "cpu-bbd85a7-rc-2.txt",
+      "samples": [
+        {
+          "zone": "first-light",
+          "seconds": 4.01,
+          "script": 248,
+          "task": 271
+        },
+        {
+          "zone": "roots",
+          "seconds": 4.01,
+          "script": 232,
+          "task": 253
+        },
+        {
+          "zone": "workshop",
+          "seconds": 4.01,
+          "script": 237,
+          "task": 256
+        }
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "zone": "first-light",
+      "base": {
+        "script": 242,
+        "task": 263.5
+      },
+      "rc": {
+        "script": 245.5,
+        "task": 268.5
+      },
+      "delta": {
+        "script": 3.5,
+        "task": 5
+      },
+      "status": "PASS"
+    },
+    {
+      "zone": "roots",
+      "base": {
+        "script": 229.5,
+        "task": 251
+      },
+      "rc": {
+        "script": 214.5,
+        "task": 234
+      },
+      "delta": {
+        "script": -15,
+        "task": -17
+      },
+      "status": "PASS"
+    },
+    {
+      "zone": "workshop",
+      "base": {
+        "script": 259,
+        "task": 280
+      },
+      "rc": {
+        "script": 248,
+        "task": 268
+      },
+      "delta": {
+        "script": -11,
+        "task": -12
+      },
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}

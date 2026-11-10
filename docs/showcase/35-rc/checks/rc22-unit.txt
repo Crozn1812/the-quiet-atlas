@@ -1,0 +1,9 @@
+
+ RUN  v5.1.0 D:/tqa-worktrees/RC-01
+
+
+ Test Files  4 passed (4)
+      Tests  26 passed (26)
+   Start at  08:40:14
+   Duration  5.52s (tests 95%, import 3%, transform 1%)
+

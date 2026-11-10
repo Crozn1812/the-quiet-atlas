@@ -1,0 +1,10 @@
+visits [ true, true, true, true ]
+quality high
+shader-source-patches [
+  { count: 1, sea: false },
+  { count: 1, sea: true },
+  { count: 1, sea: false },
+  { count: 1, sea: true },
+  { count: 1, sea: false },
+  { count: 1, sea: true }
+]

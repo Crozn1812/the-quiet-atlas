@@ -1,0 +1,578 @@
+[
+  {
+    "zone": "first-light",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "first-light-near-0.webp",
+    "cameraDistance": 4,
+    "yaw": 2.680038338045886,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "first-light-near-1.webp",
+    "cameraDistance": 3.9999999999999996,
+    "yaw": 4.270038338045897,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "first-light-near-2.webp",
+    "cameraDistance": 4,
+    "yaw": 5.84518833804589,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "first-light-near-3.webp",
+    "cameraDistance": 3.9999999999999996,
+    "yaw": 1.152153030866291,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "first-light-far-0.webp",
+    "cameraDistance": 15.999729460745044,
+    "yaw": 2.7271530308663188,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "first-light-far-1.webp",
+    "cameraDistance": 15.999999999984876,
+    "yaw": 4.317303030866373,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "first-light-far-2.webp",
+    "cameraDistance": 15.999638645255347,
+    "yaw": 5.907453030866407,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "first-light",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "first-light-far-3.webp",
+    "cameraDistance": 15.996524624010355,
+    "yaw": 1.2142677236868096,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "workshop-near-0.webp",
+    "cameraDistance": 4.000000000000001,
+    "yaw": 0.5071273574327861,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "workshop-near-1.webp",
+    "cameraDistance": 4.000000000000008,
+    "yaw": 2.097277357432782,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "workshop-near-2.webp",
+    "cameraDistance": 3.999999970652776,
+    "yaw": 3.6874273574328456,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "workshop-near-3.webp",
+    "cameraDistance": 3.9999999999999964,
+    "yaw": 5.277427357432906,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "workshop-far-0.webp",
+    "cameraDistance": 15.999900573646153,
+    "yaw": 0.5842420502533452,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "workshop-far-1.webp",
+    "cameraDistance": 15.999999999996943,
+    "yaw": 2.1590920502533493,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "workshop-far-2.webp",
+    "cameraDistance": 15.99965307847299,
+    "yaw": 3.7492420502534074,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "workshop",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "workshop-far-3.webp",
+    "cameraDistance": 15.999999999991292,
+    "yaw": 5.339242050253468,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "roots-near-0.webp",
+    "cameraDistance": 4.000000000000006,
+    "yaw": 0.8590546482264418,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "roots-near-1.webp",
+    "cameraDistance": 3.9999999999999973,
+    "yaw": 2.4340546482264553,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "roots-near-2.webp",
+    "cameraDistance": 3.9999999999999942,
+    "yaw": 4.0389046482265165,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "roots-near-3.webp",
+    "cameraDistance": 4.0000000000000036,
+    "yaw": 5.629054648226575,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "roots-far-0.webp",
+    "cameraDistance": 15.99990037459446,
+    "yaw": 0.9358693410469954,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "roots-far-1.webp",
+    "cameraDistance": 15.999999999997494,
+    "yaw": 2.525869341047013,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "roots-far-2.webp",
+    "cameraDistance": 15.999999999999998,
+    "yaw": 4.131019341047072,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "roots",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "roots-far-3.webp",
+    "cameraDistance": 16,
+    "yaw": 5.720869341047134,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "milestones-near-0.webp",
+    "cameraDistance": 3.999999999999995,
+    "yaw": 0.8259782558740385,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "milestones-near-1.webp",
+    "cameraDistance": 3.999999999999995,
+    "yaw": 2.4309782558740416,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "milestones-near-2.webp",
+    "cameraDistance": 4.000000000000004,
+    "yaw": 4.021278255874098,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "milestones-near-3.webp",
+    "cameraDistance": 3.999999999999993,
+    "yaw": 5.626278255874158,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "milestones-far-0.webp",
+    "cameraDistance": 15.999900474170074,
+    "yaw": 0.9480929486945904,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "milestones-far-1.webp",
+    "cameraDistance": 15.999999999998161,
+    "yaw": 2.5532429486945993,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "milestones-far-2.webp",
+    "cameraDistance": 15.999999999999986,
+    "yaw": 4.15824294869466,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "milestones",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "milestones-far-3.webp",
+    "cameraDistance": 15.999999999999991,
+    "yaw": 5.74824294869472,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "old-trail-near-0.webp",
+    "cameraDistance": 3.9999999999999973,
+    "yaw": 0.833664274596897,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "old-trail-near-1.webp",
+    "cameraDistance": 4.000000000000015,
+    "yaw": 2.4086642745969193,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "old-trail-near-2.webp",
+    "cameraDistance": 4.000000000000012,
+    "yaw": 3.9986642745969796,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "old-trail-near-3.webp",
+    "cameraDistance": 4.000000000000012,
+    "yaw": 5.588814274597027,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "old-trail-far-0.webp",
+    "cameraDistance": 15.999918596586438,
+    "yaw": 0.8804789674174778,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "old-trail-far-1.webp",
+    "cameraDistance": 15.999999999997954,
+    "yaw": 2.470478967417499,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "old-trail-far-2.webp",
+    "cameraDistance": 16.000000000000007,
+    "yaw": 4.045328967417571,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "old-trail-far-3.webp",
+    "cameraDistance": 15.99999230387101,
+    "yaw": 5.635478967417619,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "horizon-near-0.webp",
+    "cameraDistance": 3.999999999999987,
+    "yaw": 5.651718996687773,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "horizon-near-1.webp",
+    "cameraDistance": 4,
+    "yaw": 0.943533689508202,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "horizon-near-2.webp",
+    "cameraDistance": 4.000000000000014,
+    "yaw": 2.3533836895082345,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "horizon-near-3.webp",
+    "cameraDistance": 4.000000000000008,
+    "yaw": 3.9433836895082948,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "horizon-far-0.webp",
+    "cameraDistance": 15.999945379066475,
+    "yaw": 5.533083689508359,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "horizon-far-1.webp",
+    "cameraDistance": 15.999999999999273,
+    "yaw": 0.8248983823287936,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "horizon-far-2.webp",
+    "cameraDistance": 16.00000000000002,
+    "yaw": 2.4148983823288113,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "horizon",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "horizon-far-3.webp",
+    "cameraDistance": 15.999999999999964,
+    "yaw": 4.0048983823288715,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "quiet-shore-near-0.webp",
+    "cameraDistance": 3.999999999999999,
+    "yaw": 0.5120882354132501,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "quiet-shore-near-1.webp",
+    "cameraDistance": 4.000000000000015,
+    "yaw": 2.1020882354132517,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "quiet-shore-near-2.webp",
+    "cameraDistance": 4.0000000000000275,
+    "yaw": 3.706938235413304,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "quiet-shore-near-3.webp",
+    "cameraDistance": 3.999999999999977,
+    "yaw": 5.311788235413378,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "quiet-shore-far-0.webp",
+    "cameraDistance": 15.999851524908825,
+    "yaw": 0.6337529282338314,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "quiet-shore-far-1.webp",
+    "cameraDistance": 15.99999999999797,
+    "yaw": 2.223602928233827,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "quiet-shore-far-2.webp",
+    "cameraDistance": 15.99999999999999,
+    "yaw": 3.798602928233887,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "quiet-shore-far-3.webp",
+    "cameraDistance": 15.999999999999984,
+    "yaw": 5.404052928233952,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "near",
+    "orbit": 0,
+    "file": "last-postcard-near-0.webp",
+    "cameraDistance": 3.9999999999999742,
+    "yaw": 6.27340791462834,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "near",
+    "orbit": 1,
+    "file": "last-postcard-near-1.webp",
+    "cameraDistance": 3.999999999999999,
+    "yaw": 1.565072607448771,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "near",
+    "orbit": 2,
+    "file": "last-postcard-near-2.webp",
+    "cameraDistance": 3.9999999999999836,
+    "yaw": 3.1400726074488077,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "near",
+    "orbit": 3,
+    "file": "last-postcard-near-3.webp",
+    "cameraDistance": 4.000000000000001,
+    "yaw": 4.730372607448857,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "far",
+    "orbit": 0,
+    "file": "last-postcard-far-0.webp",
+    "cameraDistance": 15.999397301417966,
+    "yaw": 0.03718730026931372,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "far",
+    "orbit": 1,
+    "file": "last-postcard-far-1.webp",
+    "cameraDistance": 15.999999999979549,
+    "yaw": 1.627487300269264,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "far",
+    "orbit": 2,
+    "file": "last-postcard-far-2.webp",
+    "cameraDistance": 15.999999999999986,
+    "yaw": 3.217487300269301,
+    "visualReview": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "zoom": "far",
+    "orbit": 3,
+    "file": "last-postcard-far-3.webp",
+    "cameraDistance": 15.999999999999993,
+    "yaw": 4.792337300269374,
+    "visualReview": "pending"
+  }
+]

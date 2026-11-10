@@ -1,0 +1,54 @@
+pnpm.cmd : $ playwright test -c tests/perf/playwright.perf.config.ts load-budget
+At line:2 char:894
++ ... TEXITCODE}; pnpm.cmd --config.verifyDepsBeforeRun=false test:perf loa ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ playwright te....ts load-budget:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Running 2 tests using 1 worker
+
+(node:43492) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+run 1: Welcome /en/ initial transfer=224595 PASS; Welcome /en/ JS (gzip)=140808 PASS; Quick /en/quick/ initial transfer=183376 PASS; Quick /en/quick/ JS (gzip)=137943 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2128915 PASS; Time to playable=4574.900146484375 PASS
+run 2: Welcome /en/ initial transfer=224595 PASS; Welcome /en/ JS (gzip)=140808 PASS; Quick /en/quick/ initial transfer=183376 PASS; Quick /en/quick/ JS (gzip)=137943 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2128915 PASS; Time to playable=4601.400146484375 PASS
+run 3: Welcome /en/ initial transfer=224595 PASS; Welcome /en/ JS (gzip)=140808 PASS; Quick /en/quick/ initial transfer=183376 PASS; Quick /en/quick/ JS (gzip)=137943 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2128915 PASS; Time to playable=4620.699951171875 PASS
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /en/ initial transfer | ≤ 1.00 MB | 219.3 KB (224595 B) | 219.3 KB (224595 B) | 219.3 KB (224595 B) | 219.3 KB (224595 B) | **PASS** |
+| Welcome /en/ JS (gzip) | ≤ 150.0 KB | 137.5 KB (140808 B) | 137.5 KB (140808 B) | 137.5 KB (140808 B) | 137.5 KB (140808 B) | **PASS** |
+| Quick /en/quick/ initial transfer | ≤ 1.00 MB | 179.1 KB (183376 B) | 179.1 KB (183376 B) | 179.1 KB (183376 B) | 179.1 KB (183376 B) | **PASS** |
+| Quick /en/quick/ JS (gzip) | ≤ 150.0 KB | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | **PASS** |
+| Welcome /en/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /en/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | ≤ 8.00 MB | 2.03 MB (2128915 B) | 2.03 MB (2128915 B) | 2.03 MB (2128915 B) | 2.03 MB (2128915 B) | **PASS** |
+| Time to playable | ≤ 10 s | 4.57 s | 4.60 s | 4.62 s | 4.62 s | **PASS** |
+
+Tổng: **PASS** (gate theo kết quả xấu nhất của 3 lần cold load).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.42","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\tqa-worktrees\RC-01\test-results\load-budget
+  ok 1 tests\perf\load-budget.perf.ts:222:3 › load budget §8 /en/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (27.5s)
+run 1: Welcome /vi/ initial transfer=230816 PASS; Welcome /vi/ JS (gzip)=140808 PASS; Quick /vi/quick/ initial transfer=189683 PASS; Quick /vi/quick/ JS (gzip)=137943 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2128915 PASS; Time to playable=4554.7998046875 PASS
+run 2: Welcome /vi/ initial transfer=230816 PASS; Welcome /vi/ JS (gzip)=140808 PASS; Quick /vi/quick/ initial transfer=189683 PASS; Quick /vi/quick/ JS (gzip)=137943 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2128915 PASS; Time to playable=4653.099853515625 PASS
+run 3: Welcome /vi/ initial transfer=230816 PASS; Welcome /vi/ JS (gzip)=140808 PASS; Quick /vi/quick/ initial transfer=189683 PASS; Quick /vi/quick/ JS (gzip)=137943 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2128915 PASS; Time to playable=4556.39990234375 PASS
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /vi/ initial transfer | ≤ 1.00 MB | 225.4 KB (230816 B) | 225.4 KB (230816 B) | 225.4 KB (230816 B) | 225.4 KB (230816 B) | **PASS** |
+| Welcome /vi/ JS (gzip) | ≤ 150.0 KB | 137.5 KB (140808 B) | 137.5 KB (140808 B) | 137.5 KB (140808 B) | 137.5 KB (140808 B) | **PASS** |
+| Quick /vi/quick/ initial transfer | ≤ 1.00 MB | 185.2 KB (189683 B) | 185.2 KB (189683 B) | 185.2 KB (189683 B) | 185.2 KB (189683 B) | **PASS** |
+| Quick /vi/quick/ JS (gzip) | ≤ 150.0 KB | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | 134.7 KB (137943 B) | **PASS** |
+| Welcome /vi/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /vi/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | ≤ 8.00 MB | 2.03 MB (2128915 B) | 2.03 MB (2128915 B) | 2.03 MB (2128915 B) | 2.03 MB (2128915 B) | **PASS** |
+| Time to playable | ≤ 10 s | 4.55 s | 4.65 s | 4.56 s | 4.65 s | **PASS** |
+
+Tổng: **PASS** (gate theo kết quả xấu nhất của 3 lần cold load).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.42","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\tqa-worktrees\RC-01\test-results\load-budget
+  ok 2 tests\perf\load-budget.perf.ts:222:3 › load budget §8 /vi/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (27.5s)
+
+  2 passed (55.4s)

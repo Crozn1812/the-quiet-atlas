@@ -1,0 +1,3707 @@
+{
+  "format": "WebP lossy",
+  "quality": 90,
+  "effort": 4,
+  "screenshots": [
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-bike-brake.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-bike-brake.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-bike-brake.webp",
+      "sha256": "1cb4fd8deebc17efbf3d768263d5e03dec1b01ebf556192570e3422717c1641b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 515494,
+      "webpBytes": 111144
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-bike-cruise.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-bike-cruise.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-bike-cruise.webp",
+      "sha256": "fb551742fd126042f1fde470a9c2395cc7bfda659a6a35f8911a58b92f2589b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 515540,
+      "webpBytes": 110612
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-bike-dismount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-bike-dismount.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-bike-dismount.webp",
+      "sha256": "ae442037d16b4813ad53611070a0d46643f2ec06a9d339cbb251c2631f185a5c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 527792,
+      "webpBytes": 111182
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-bike-manual-movement.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-bike-manual-movement.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-bike-manual-movement.webp",
+      "sha256": "165239df403710c952643365328b23894dbc50a63e46aaa03e95e3f190540031",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 374633,
+      "webpBytes": 77506
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-bike-mount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-bike-mount.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-bike-mount.webp",
+      "sha256": "57505355c86b2eca5137bb963e94fd3a4e1e569318e3602d6a2a6d52ee7f020e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 460328,
+      "webpBytes": 86284
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-case-links-present.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-case-links-present.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-case-links-present.webp",
+      "sha256": "d932b68add3b140237b3f717c15c8594b37b2825bf94167b6ea3faf6d75e9977",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 20306,
+      "webpBytes": 10036
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-case-study-1.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-case-study-1.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-case-study-1.webp",
+      "sha256": "686d2fb1180d2e334b0977d2abda38c1a3904d780fdf2c0ecdd76cf84589b34e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 140330,
+      "webpBytes": 103652
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-case-study-2.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-case-study-2.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-case-study-2.webp",
+      "sha256": "5f055609aad7122c60a1302024bc4d5519430870da43c0ad18d952f58c6b218d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 165640,
+      "webpBytes": 132672
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-case-study-3.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-case-study-3.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-case-study-3.webp",
+      "sha256": "d0b8d9fb6679579c463ad7d12cf04a6d97953bbe124ee21de20287601039d100",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 138572,
+      "webpBytes": 107648
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-case-study-4.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-case-study-4.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-case-study-4.webp",
+      "sha256": "eca8a8f8694aa983a2c88b7bc6305ae5a96a2b19a15e0dfd8b079766a5b9ab6b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 142188,
+      "webpBytes": 103718
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-chooser-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-chooser-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-chooser-key-e.webp",
+      "sha256": "934b146b5b4397895b56bc6c41752e51641b7051b25c1033ed153aafc227b2bc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 809617,
+      "webpBytes": 122004
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-chooser-open.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-chooser-open.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-chooser-open.webp",
+      "sha256": "d6349b983909fea3170f95966f23b9159af970e369c0e7ae02835fc29ef0669a",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 518168,
+      "webpBytes": 70924
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-cv-links.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-cv-links.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-cv-links.webp",
+      "sha256": "d932b68add3b140237b3f717c15c8594b37b2825bf94167b6ea3faf6d75e9977",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 20306,
+      "webpBytes": 10036
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-desktop-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-desktop-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-desktop-quick.webp",
+      "sha256": "02bc8970dc44e05fca5bd1f5379f4697bf5584c498dd378dd0b700db357c4a80",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81398,
+      "webpBytes": 50936
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-desktop-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-desktop-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-desktop-welcome.webp",
+      "sha256": "87af0d65b1f024efa3ddbd7100b8eb7a1a4ed049f9b96ff4c9e38fb9465d6698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835530,
+      "webpBytes": 61968
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-ending-1794239909510.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-ending-1794239909510.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-ending-1794239909510.webp",
+      "sha256": "98cb29d49dd0ca21dddc74d87732846dd11eec75cb8568330b48d4bfc96f3de5",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 554875,
+      "webpBytes": 98346
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-ending-1794239915711.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-ending-1794239915711.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-ending-1794239915711.webp",
+      "sha256": "05844c548b718595fa25eb5af616c95fc224421d3deda07efbfdc2f07053d2fe",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 611060,
+      "webpBytes": 98582
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-ending-1794239923923.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-ending-1794239923923.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-ending-1794239923923.webp",
+      "sha256": "a3b0307fee5d690514bc805db7c92e3cc410aad6569633a1280316ec0cac5175",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 439239,
+      "webpBytes": 81696
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-ending-1794239932059.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-ending-1794239932059.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-ending-1794239932059.webp",
+      "sha256": "49228f11d811039707d6b3892393c039a7fabb940588ee0cbc09bac1455e433a",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 197377,
+      "webpBytes": 29898
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-ending-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-ending-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-ending-full.webp",
+      "sha256": "a0b9c9be35dc791aa618e5d3efef38672dd10103291ab19f6cbf4936d400e7bc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 269619,
+      "webpBytes": 39036
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-exit-after-full-intro.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-exit-after-full-intro.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-exit-after-full-intro.webp",
+      "sha256": "dec2b4fc4d7b0600c3473241b496dfb389fdab99608c4e0db91208e54528541e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835499,
+      "webpBytes": 61842
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-exit-world.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-exit-world.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-exit-world.webp",
+      "sha256": "dec2b4fc4d7b0600c3473241b496dfb389fdab99608c4e0db91208e54528541e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835499,
+      "webpBytes": 61842
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239782946.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-full-1794239782946.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239782946.webp",
+      "sha256": "433bfa5f0d968e7189448d5a6db0814295a2fdf42ca02b43c2c6712bb8bee8d7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 423220,
+      "webpBytes": 76708
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239785567.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-full-1794239785567.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239785567.webp",
+      "sha256": "3cd98742e98dd47ff5640a5bc98c986c5d6b5488c020ca74fdd54cf1d2524c0c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 381799,
+      "webpBytes": 71164
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239788697.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-full-1794239788697.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239788697.webp",
+      "sha256": "e5fd50d79d6c1cc6d0eb21b0698bf22e42c72a245ff09f5aacea56317ccea7f3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 329787,
+      "webpBytes": 47534
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239791826.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-full-1794239791826.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-full-1794239791826.webp",
+      "sha256": "ae237782549d9472d7108859d00126e86baf678fd31b5f1aaf48aa6b59e8279b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 327514,
+      "webpBytes": 50596
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-full-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-full-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-full-start.webp",
+      "sha256": "50df93358dbf894bf4eaf7e549bfa954849303d01e3441d38be32498d9df1f86",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429196,
+      "webpBytes": 77740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-full.webp",
+      "sha256": "984280c52a396e0401de0bf6ed5c05435ea2e9ee489561438e710ab14306beca",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 697298,
+      "webpBytes": 84784
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-skip-real.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-skip-real.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-skip-real.webp",
+      "sha256": "7b20c206f3d508bc17eef028e49f6abdfdd9f735a338cc7bc02db5b97526bc30",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 697538,
+      "webpBytes": 84748
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-intro-skip-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-intro-skip-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-intro-skip-start.webp",
+      "sha256": "50df93358dbf894bf4eaf7e549bfa954849303d01e3441d38be32498d9df1f86",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429196,
+      "webpBytes": 77740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-journal.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-journal.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-journal.webp",
+      "sha256": "d38eedc242b56fbdec004b068973f5c3069273c8bb20c8c03cea8302d9e1b18a",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 629214,
+      "webpBytes": 65212
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-loading-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-loading-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-loading-full.webp",
+      "sha256": "948b205cfa2f75ac5f152637f97782d3ef53092726aec4a6d123d2873daec083",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429249,
+      "webpBytes": 78394
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-loading-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-loading-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-loading-skip.webp",
+      "sha256": "79810ad0ad7207f393b09d216c369f785973a7db1c99682dc0be7a18ceac248f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429287,
+      "webpBytes": 78404
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-language.webp",
+      "sha256": "938651e05e3dfb485f74d02104982889f667f37f1663586a18e89188effff1a7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215411,
+      "webpBytes": 66298
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-motion-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-motion-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-motion-on.webp",
+      "sha256": "9218516cf884fa7dcc25fdedf6b41d7cafa3d30c1e8a968ed6ff4adbf30c72de",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215329,
+      "webpBytes": 66418
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-other-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-other-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-other-language.webp",
+      "sha256": "7dd800c8bdf42b146a3e300f840040e329e46c1ca99d892c7f01ea83ea7e2862",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218257,
+      "webpBytes": 61744
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-quality-balanced.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-quality-balanced.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-quality-balanced.webp",
+      "sha256": "75bcfe9d3ce8905dcd33fd8caa9e64288020988449f322dfb723b877ccae1465",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 428888,
+      "webpBytes": 78724
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-quality-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-quality-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-quality-high.webp",
+      "sha256": "dc5e65764858a0fb2aba3d37c43bef6eaf321a75ae925c1d98f0af0f60fa9f27",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215408,
+      "webpBytes": 65788
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-quality-low.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-quality-low.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-quality-low.webp",
+      "sha256": "883357368ef033ffb6c1bd33d434141a67456b16ebf1133c413254b09d61544c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 206856,
+      "webpBytes": 68268
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-reduced-motion.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-reduced-motion.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-reduced-motion.webp",
+      "sha256": "c47fcce15c35dfb98f714176c2f3cd31d18f86a685411d3f8aaf670658e41cab",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215350,
+      "webpBytes": 66230
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-sound-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-sound-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-sound-on.webp",
+      "sha256": "dce932c763a3d8057f3cb6a8504917264b40ba33638cf935433f8562c3e42707",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215290,
+      "webpBytes": 66492
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-menu-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-menu-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-menu-sound.webp",
+      "sha256": "9fb5ef706c8711435cbdea7cb3d9da7c70fc28b544974dadc5cd673d2c29abac",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215364,
+      "webpBytes": 66042
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-mobile-320-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-mobile-320-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-mobile-320-quick.webp",
+      "sha256": "8a335c2d95ad5f07f74eff305a92d877efcb8ef030399da2c7b7ca52aa5a0a2a",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 58642,
+      "webpBytes": 41848
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-mobile-320-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-mobile-320-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-mobile-320-welcome.webp",
+      "sha256": "3d395a67c6ece91e53e22ecb6e0668e59a2f944f2c9e59873ee98782999582a5",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 103806,
+      "webpBytes": 26126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-mobile-390-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-mobile-390-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-mobile-390-quick.webp",
+      "sha256": "e9091ef92741774e9051ebe7af05a9084abcb24ff9abf6a14e2a92dc733c18fd",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 63530,
+      "webpBytes": 42506
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-mobile-390-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-mobile-390-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-mobile-390-welcome.webp",
+      "sha256": "95527fb58aed40137ef8ea0f8cb78eab4090c46406affad1de9c7846b923ba6e",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 123847,
+      "webpBytes": 28228
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-first-light-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-first-light-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-first-light-close.webp",
+      "sha256": "fa76a9ac716c3ed2b40241c5f0ca565bdafd60e085f7a25d24fa42730731023c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 714735,
+      "webpBytes": 73788
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-first-light-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-first-light-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-first-light-key-e.webp",
+      "sha256": "9ff33fdc048cf1b21c0845465f0841d69859845c720f565ac23e2d2d90f8385d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 341962,
+      "webpBytes": 65384
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-horizon-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-horizon-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-horizon-close.webp",
+      "sha256": "1ce8e46f88b6bc06b45b9f1b5c36f720b59327cfbf9c5e5f8d6e05b19187cf8b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1158708,
+      "webpBytes": 158078
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-horizon-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-horizon-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-horizon-key-e.webp",
+      "sha256": "add8c13ae723f31948cb22f57292ada363405ecb3dc88c41467f15da1dea2e1d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 222445,
+      "webpBytes": 61134
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-last-postcard-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-last-postcard-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-last-postcard-close.webp",
+      "sha256": "c44cdd26b0aecb5bdc5e0ddbca8dc76b875cdbd1e93424597788d3f111e0d602",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 584536,
+      "webpBytes": 65882
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-last-postcard-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-last-postcard-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-last-postcard-key-e.webp",
+      "sha256": "fa05aa507b598d799dc6110de6c4b921375b26ad0b76058c19bb88df7a6aa024",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 121728,
+      "webpBytes": 33394
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-milestones-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-milestones-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-milestones-close.webp",
+      "sha256": "0ac0a82512bb7d42d679ece4cd0fa178bfb79b72ddb34473ebeae0c22e9d77ce",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 987498,
+      "webpBytes": 133274
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-milestones-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-milestones-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-milestones-key-e.webp",
+      "sha256": "3a3f2ffbe5409e451dc1e5126ae8f459b6ddcd1d6e91ab0433572b9c02868939",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 187480,
+      "webpBytes": 60760
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-old-trail-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-old-trail-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-old-trail-close.webp",
+      "sha256": "6658b998e9aa60aeee48ca714baccdea5cd065d98b60c022e96b76d158f66738",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1312751,
+      "webpBytes": 190390
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-old-trail-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-old-trail-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-old-trail-key-e.webp",
+      "sha256": "6b1785d79e6ee4e8c91b1629dbd2eb92fe7c7697a05430d530bdb10c854ea85b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 244922,
+      "webpBytes": 61050
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-quiet-shore-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-quiet-shore-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-quiet-shore-close.webp",
+      "sha256": "10e6766c398e049e098fa13dcc2dbbb94c978bdff482b4c604f82d2dcf814873",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 820510,
+      "webpBytes": 112460
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-quiet-shore-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-quiet-shore-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-quiet-shore-key-e.webp",
+      "sha256": "f67df2d3c73e951215179643dff8341665ed705e23efc8dda9ef3582e01d6e45",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 170812,
+      "webpBytes": 51866
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-roots-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-roots-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-roots-close.webp",
+      "sha256": "52108d733123b79e4fc2efcbcbbf280346b2350962bdc5bbcc62a27f80d0660e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1054810,
+      "webpBytes": 143824
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-roots-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-roots-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-roots-key-e.webp",
+      "sha256": "c96f8fae977997a1b5c44c7a3b3e54fc3fe0c984db81151ef2de6cbe15fd92c8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 457951,
+      "webpBytes": 85762
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-workshop-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-workshop-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-workshop-close.webp",
+      "sha256": "52ed562cf36052d68a0635c44e4162d56e768f45d8263ef876a26d413d0b988f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1028902,
+      "webpBytes": 137806
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-overlay-workshop-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-overlay-workshop-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-overlay-workshop-key-e.webp",
+      "sha256": "45f0acc246717eccb4419d57fe0e9e6c7c2ccef8c49e3359ffe79131629b1cd0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 221407,
+      "webpBytes": 79920
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-railing-exit.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-railing-exit.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-railing-exit.webp",
+      "sha256": "e659462a32ddb1ac14a15f98c7f27cb6d043579211f73a13c4ecf5aa2fdc84fc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 289869,
+      "webpBytes": 48402
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-railing-real-key-approach.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-railing-real-key-approach.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-railing-real-key-approach.webp",
+      "sha256": "956b0873ab8ee3983ab7d4955d2c447074b442b4eacb6bcbb6ff8f6157969a3e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 276474,
+      "webpBytes": 44734
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-secret-forgotten-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-secret-forgotten-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-secret-forgotten-sound.webp",
+      "sha256": "c5c1b860bb488f3dc21bc30f7adfba8f91df86ff10ff5673a416edb704b432bb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 707716,
+      "webpBytes": 130132
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-secret-page-not-yet.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-secret-page-not-yet.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-secret-page-not-yet.webp",
+      "sha256": "481c7658ee6a725fd500c315bdbca91f03ead66bafc701a9283f046b70f762aa",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 610371,
+      "webpBytes": 112320
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-secret-reflection.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-secret-reflection.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-secret-reflection.webp",
+      "sha256": "7317e99ea49ae95ff0abf3f582cb2ef3422574663109d1690fbb09a0e60fb432",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 778425,
+      "webpBytes": 147668
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-secret-unmarked-road.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-secret-unmarked-road.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-secret-unmarked-road.webp",
+      "sha256": "13ab9c181a6dc1ca92dd122241c458362643130676228d2fcb2c30c9d781861d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 985546,
+      "webpBytes": 160120
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-secret-unwritten-page.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-secret-unwritten-page.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-secret-unwritten-page.webp",
+      "sha256": "d73fd0e12c9164cfb9a3ce402f1dcc2c55f516ba9d59bc7687df302a306e61f8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 416519,
+      "webpBytes": 73794
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-uncaught-errors.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-uncaught-errors.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-uncaught-errors.webp",
+      "sha256": "eca8a8f8694aa983a2c88b7bc6305ae5a96a2b19a15e0dfd8b079766a5b9ab6b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 142188,
+      "webpBytes": 103718
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-welcome-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-welcome-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-welcome-full.webp",
+      "sha256": "87af0d65b1f024efa3ddbd7100b8eb7a1a4ed049f9b96ff4c9e38fb9465d6698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835530,
+      "webpBytes": 61968
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-welcome-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-welcome-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-welcome-skip.webp",
+      "sha256": "87af0d65b1f024efa3ddbd7100b8eb7a1a4ed049f9b96ff4c9e38fb9465d6698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835530,
+      "webpBytes": 61968
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-first-light-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-first-light-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-first-light-close-camera-review.webp",
+      "sha256": "c274c80d193841b1e7b4180e4e75ff5b311cd75d6e75cb5f0aff03becad0f13d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 600494,
+      "webpBytes": 71046
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-first-light-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-first-light-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-first-light-close-camera.webp",
+      "sha256": "74bb77b378b6c936692f874ed494d55ae1ff1a51d4ba8a477ec89a73cb99ec3b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 694218,
+      "webpBytes": 69218
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-first-light-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-first-light-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-first-light-high.webp",
+      "sha256": "14e7fb318e82852dc0addc3a4c99d8ebe08f6bff1ae0e06cc14beb88af820683",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 693971,
+      "webpBytes": 74528
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-horizon-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-horizon-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-horizon-close-camera-review.webp",
+      "sha256": "b415628ea12d3d52cccc72afffa3845e53f49a6e51a738391043bca3294ffb2f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1081082,
+      "webpBytes": 137346
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-horizon-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-horizon-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-horizon-close-camera.webp",
+      "sha256": "fede785ce57cec8d6d2a9d60fa69edf624addf540b262b271d7e956928a20f07",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1194502,
+      "webpBytes": 167008
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-horizon-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-horizon-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-horizon-high.webp",
+      "sha256": "018d6eef626047bd23af7ddae3a40e285c3aa2bd93efd53697eb4d8cf7968996",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1195651,
+      "webpBytes": 167278
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-last-postcard-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-last-postcard-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-last-postcard-close-camera-review.webp",
+      "sha256": "6e65ca4474ea378ce933155cac76eb0ef15c1b8c1cbcf629e46c87798cc3302b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 503074,
+      "webpBytes": 66162
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-last-postcard-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-last-postcard-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-last-postcard-close-camera.webp",
+      "sha256": "7fe9cbf7c85b328c35a5b959c22e2fa5aa888c50f6288c411ad0a68af40bb1a3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 576184,
+      "webpBytes": 64396
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-last-postcard-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-last-postcard-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-last-postcard-high.webp",
+      "sha256": "f61648e3f65b605d7e02470a813dbfd44699ea236e1bcd559de77e9285d1bdfe",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 579967,
+      "webpBytes": 67364
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-milestones-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-milestones-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-milestones-close-camera-review.webp",
+      "sha256": "0b544049b06dba42b9d52c77c16cc52d277c8a6f9f9b13f4b2c2564f799cdf98",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1018770,
+      "webpBytes": 144020
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-milestones-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-milestones-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-milestones-close-camera.webp",
+      "sha256": "d6f2b6bdd68a78e7a518bb2296cc28250980d11c1e9484008e859c7038a25d57",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1068640,
+      "webpBytes": 152756
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-milestones-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-milestones-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-milestones-high.webp",
+      "sha256": "18d6cb581ab26d7ffa1ee893872a3adfae8bf9fdc2f8878b4edd0ca5d75989c9",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1073536,
+      "webpBytes": 153090
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-old-trail-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-old-trail-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-old-trail-close-camera-review.webp",
+      "sha256": "9b78ec785e2936a37068d388cce37a9665c2aaf2b8022deaeffa3a33fa7317ac",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1200040,
+      "webpBytes": 164992
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-old-trail-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-old-trail-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-old-trail-close-camera.webp",
+      "sha256": "b83796611e88c6c926c4b58fba0c2adcc8f01d6b924ed278791e09708f727d5a",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1313769,
+      "webpBytes": 191360
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-old-trail-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-old-trail-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-old-trail-high.webp",
+      "sha256": "647f4917133b16654995ede542005275582b6ec7b6c5352899404ecc39cbdab2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1315217,
+      "webpBytes": 192204
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-quiet-shore-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-quiet-shore-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-quiet-shore-close-camera-review.webp",
+      "sha256": "e1beb8a147e118760e8569b49a398f28cc84baa6c8d996cd7496e71e65e013ce",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 666716,
+      "webpBytes": 108326
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-quiet-shore-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-quiet-shore-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-quiet-shore-close-camera.webp",
+      "sha256": "ccfbbb3d441fa97337512683a74828a5c2b1bc17b6183397294e03c164ee844f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 868873,
+      "webpBytes": 121342
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-quiet-shore-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-quiet-shore-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-quiet-shore-high.webp",
+      "sha256": "aacf5e5c8eb16cba514ce2f6cc7549a74a543b759a94a666b8dd0c47129bcbf4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 880086,
+      "webpBytes": 125118
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-roots-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-roots-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-roots-close-camera-review.webp",
+      "sha256": "57146682c364719d5e9d41c44293c6905a8424eeb40fe2576f2e4b031e529d93",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 996558,
+      "webpBytes": 132060
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-roots-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-roots-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-roots-close-camera.webp",
+      "sha256": "1c8f6f479dc7602459a396ae88385bd098d237813e2a43e0ea30159d2f9fe685",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1076164,
+      "webpBytes": 148720
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-roots-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-roots-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-roots-high.webp",
+      "sha256": "513c83014e101cd6932b0c3fb4f5045a746d5a713de73e84fa07027d92cabe4f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1082353,
+      "webpBytes": 148554
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-workshop-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-workshop-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-workshop-close-camera-review.webp",
+      "sha256": "85d0f60c11d2616ae7609a6ae7276475a9379716f2c22cc3ab58db17c9af564e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 982913,
+      "webpBytes": 123070
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-workshop-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-workshop-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-workshop-close-camera.webp",
+      "sha256": "fa17a724893f63465b1871f1fc8e9dc61dedce385a63cc745a9130d8c37938aa",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1087435,
+      "webpBytes": 145906
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/en-zone-workshop-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/en-zone-workshop-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/en-zone-workshop-high.webp",
+      "sha256": "80b2849e80582f1d0d85e56d0cd3c2b7a4b78a2a930ab25fc86daa597700bfce",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1096660,
+      "webpBytes": 149364
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-bike-brake.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-bike-brake.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-bike-brake.webp",
+      "sha256": "17acac86c47a751406baa4bc81b1d1209b5bf62e20754be91ab1ebcccc30bed0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 516380,
+      "webpBytes": 111432
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-bike-cruise.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-bike-cruise.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-bike-cruise.webp",
+      "sha256": "ce06a7d9944853329092db37afb0cc7ec1ee5d1cef981b62c75c748bade47456",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 515537,
+      "webpBytes": 111150
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-bike-dismount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-bike-dismount.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-bike-dismount.webp",
+      "sha256": "9af55fc7468df25a76e85c6b7ba24956a73a00b59d4b498e553427be679bf507",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 529350,
+      "webpBytes": 111144
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-bike-manual-movement.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-bike-manual-movement.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-bike-manual-movement.webp",
+      "sha256": "c853186e71c5ba9636870d513ada4b806b39acdf40e6b04e97139b70b1dcf98e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 374852,
+      "webpBytes": 78162
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-bike-mount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-bike-mount.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-bike-mount.webp",
+      "sha256": "e3b226cf2bd4cfca02c3683cd316c3aa04fdbef8e5e1ce372d8a210a62184fb8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 458783,
+      "webpBytes": 86012
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-case-links-present.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-case-links-present.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-case-links-present.webp",
+      "sha256": "d932b68add3b140237b3f717c15c8594b37b2825bf94167b6ea3faf6d75e9977",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 20306,
+      "webpBytes": 10036
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-case-study-1.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-case-study-1.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-case-study-1.webp",
+      "sha256": "ea021e882e9ec29ad7fd617a0b89c672671b4c675912d69a23448317ec4c2e63",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 141323,
+      "webpBytes": 98946
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-case-study-2.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-case-study-2.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-case-study-2.webp",
+      "sha256": "fc0645139d73d20678e72674eba23f93c702eecf9d005e8cad5fcba69d192e3f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 165889,
+      "webpBytes": 130446
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-case-study-3.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-case-study-3.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-case-study-3.webp",
+      "sha256": "1552f8e364bf490ce5732b21bd9fd5a4754dde21699a2ad2244dbad2ac77f8e2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 150851,
+      "webpBytes": 111696
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-case-study-4.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-case-study-4.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-case-study-4.webp",
+      "sha256": "9a7942d4035a4205ad2a3c9345e42d2bc30b74da1ec9923523fe03358c473c39",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 148787,
+      "webpBytes": 107116
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-chooser-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-chooser-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-chooser-key-e.webp",
+      "sha256": "92953741f5b8c0d0ca330c486e677a89a55d9350bcedd4da962eb3a7f7fc11ee",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 813858,
+      "webpBytes": 122808
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-chooser-open.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-chooser-open.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-chooser-open.webp",
+      "sha256": "1bf3360e74bd534a32da52a9be7ae3a3d0aa8a39cde5635a3acca40c5c0faf37",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 517894,
+      "webpBytes": 71584
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-cv-links.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-cv-links.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-cv-links.webp",
+      "sha256": "d932b68add3b140237b3f717c15c8594b37b2825bf94167b6ea3faf6d75e9977",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 20306,
+      "webpBytes": 10036
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-desktop-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-desktop-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-desktop-quick.webp",
+      "sha256": "e0da24c1edf92c0727b91d52d9324d37ad7b5969d33ee23ade1fdd50bd073b5b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81480,
+      "webpBytes": 49134
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-desktop-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-desktop-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-desktop-welcome.webp",
+      "sha256": "8b81f6383abf188720e5bb788d5759c5afec224821242fc39a38bebcf8a9f0b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836445,
+      "webpBytes": 60466
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-ending-1794239736680.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-ending-1794239736680.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-ending-1794239736680.webp",
+      "sha256": "0e9150d49c642666bcd788d5552c78a31c8a7bdf30bf2a31dd7e9b1bdd8e4b15",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 550506,
+      "webpBytes": 97534
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-ending-1794239742839.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-ending-1794239742839.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-ending-1794239742839.webp",
+      "sha256": "0bb59058c1c3f92259b22c83bb955f2082c55cb4e2d5db6a11c1f1521d9e3736",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 610283,
+      "webpBytes": 97650
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-ending-1794239751028.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-ending-1794239751028.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-ending-1794239751028.webp",
+      "sha256": "2d8e06ca69699d57a6a6cee9bb8c654fc06480a3d66903e3b88081234ae1afb3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 439409,
+      "webpBytes": 80860
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-ending-1794239759160.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-ending-1794239759160.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-ending-1794239759160.webp",
+      "sha256": "a9d7d413d7ae86731fbaa5aec197cd83e47ca00448d6f396847d526b34f3bf25",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 195158,
+      "webpBytes": 29014
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-ending-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-ending-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-ending-full.webp",
+      "sha256": "48303f5adef99967e11aa77efde8d4c8c23ccaae4fa79df952c30ced79d6ce4d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 269791,
+      "webpBytes": 38758
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-exit-after-full-intro.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-exit-after-full-intro.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-exit-after-full-intro.webp",
+      "sha256": "1ddd05a680475bd020d9e1df6955a9d2d3533f338ddc27f778c6678ff72bc7a7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836424,
+      "webpBytes": 60302
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-exit-world.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-exit-world.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-exit-world.webp",
+      "sha256": "4ad43a17823c53e108d497cc0fbf8b2bf33c343a21bddf6ad7165e09f9afc595",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836421,
+      "webpBytes": 60302
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239613584.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-full-1794239613584.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239613584.webp",
+      "sha256": "553e11f8263aaaf6818a7efd7920fcc6ea61d766d5cf2a81e3965389426324ec",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 423328,
+      "webpBytes": 76848
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239616235.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-full-1794239616235.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239616235.webp",
+      "sha256": "ee6d94b1b0dcae1a37fe611e3722005f64a0c3dc6970b98520cf977f6a507de0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 381606,
+      "webpBytes": 68294
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239619367.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-full-1794239619367.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239619367.webp",
+      "sha256": "cd3f4230795101ac37c48ae7966585ba17b3d8f42cba261ac4226ea2b57ee10e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 329939,
+      "webpBytes": 45124
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239622504.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-full-1794239622504.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-full-1794239622504.webp",
+      "sha256": "38562fa1131ad8e7e8056273f6bafb4c009521fc42f2f0edeab6812a7d537d1d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 328855,
+      "webpBytes": 47838
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-full-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-full-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-full-start.webp",
+      "sha256": "d6a2e7bcf0d30483502638f5e1b6aec64dc11581d83492095faea380b2d51c1c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429404,
+      "webpBytes": 77740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-full.webp",
+      "sha256": "fde762e665c767771ac36cce520ce640bca8f12996d3dd0e506161809a31f38d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 699045,
+      "webpBytes": 84376
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-skip-real.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-skip-real.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-skip-real.webp",
+      "sha256": "c08ca3eace50b84ad93d8d6d38bd3bf997c7eeaa5b871e030cdbd6a28381c0a0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 699005,
+      "webpBytes": 84212
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-intro-skip-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-intro-skip-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-intro-skip-start.webp",
+      "sha256": "5356d634f1badccbc4dde3ba6ffbda1d701bf2da7e2901d5658f3285ca017ca2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429390,
+      "webpBytes": 77594
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-journal.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-journal.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-journal.webp",
+      "sha256": "1f5f71371035d1af4209b4470dca74fd2d85657b3d789b855ed5617c3ed980e5",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 630208,
+      "webpBytes": 65260
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-loading-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-loading-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-loading-full.webp",
+      "sha256": "cb94e4d443a317d33cbfc03291a3662e3742a891b191ade3fc5e4dc70f9366a4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429498,
+      "webpBytes": 78286
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-loading-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-loading-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-loading-skip.webp",
+      "sha256": "f41c1978245763f487182db60282d2be9bbb17efe92ccf93c5bd14c4d26c0da3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429598,
+      "webpBytes": 78566
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-language.webp",
+      "sha256": "76a7b40d257c1296adcd8e715b5bbbc81a0cf6917dbae67554d5dc652023b5f7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 217984,
+      "webpBytes": 62792
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-motion-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-motion-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-motion-on.webp",
+      "sha256": "66557f0126c4649c83cd4f7e65c63627b05ccaece45cbefaa3e4a7d89e2b7875",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218177,
+      "webpBytes": 62390
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-other-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-other-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-other-language.webp",
+      "sha256": "0ada8c9770e454475e0ebef078a5e24c7b6c37c39be0fe14b337d0a4e3c59ccc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215276,
+      "webpBytes": 65546
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-quality-balanced.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-quality-balanced.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-quality-balanced.webp",
+      "sha256": "0b44b70349c1c5c14262c26eb62634ab8a222fc2cc578d4f82c48f0476b8d37d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 430903,
+      "webpBytes": 79202
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-quality-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-quality-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-quality-high.webp",
+      "sha256": "aeecdcc64a79b0b183398d268a18cfca74e40c0e3336015fc84df91bb259392f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218007,
+      "webpBytes": 62584
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-quality-low.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-quality-low.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-quality-low.webp",
+      "sha256": "b9b0e1c487d83f106414fe3d14e716f17a2201be80d2b70d10f913e7db678e09",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 209222,
+      "webpBytes": 66442
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-reduced-motion.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-reduced-motion.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-reduced-motion.webp",
+      "sha256": "0efc5226667a00d2e07163cd650d141ccd327c9b254726e70df8f14574dbf7b7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 217973,
+      "webpBytes": 62350
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-sound-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-sound-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-sound-on.webp",
+      "sha256": "a0a9b0ba5286fbfcfeab7a5f1ffdbcbe4599c15d8c4eb86cc545f2292c029b20",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 217600,
+      "webpBytes": 66732
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-menu-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-menu-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-menu-sound.webp",
+      "sha256": "06ecb57896fec067d581a211878214837a55accf1b5fad6580e89527f87fce6b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 217948,
+      "webpBytes": 62420
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-mobile-320-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-mobile-320-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-mobile-320-quick.webp",
+      "sha256": "622a7fa9f625f63334160d4a21a99dd04b8768ec3dc53345232a6f22e2ce41bb",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 55376,
+      "webpBytes": 39030
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-mobile-320-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-mobile-320-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-mobile-320-welcome.webp",
+      "sha256": "3ee9663478c39bfcf9b47dbb5266234ba7a8a9cb10f1c6847c47c72c50995c7e",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 106355,
+      "webpBytes": 24028
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-mobile-390-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-mobile-390-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-mobile-390-quick.webp",
+      "sha256": "f462434854ebb72eca115f9b0d923bab294c19f4d3b8fb530ef6af0173949960",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 61720,
+      "webpBytes": 41740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-mobile-390-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-mobile-390-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-mobile-390-welcome.webp",
+      "sha256": "8f8dfc4480ff8a1639702087c564763091c73e8ef90bbc3dc9795db11a108b21",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 128362,
+      "webpBytes": 26776
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-first-light-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-first-light-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-first-light-close.webp",
+      "sha256": "92c502c6ad6346b1a74ecf28d05695fe82aa915046cf6f6ceed9c70529bc4805",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 714600,
+      "webpBytes": 73578
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-first-light-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-first-light-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-first-light-key-e.webp",
+      "sha256": "b707a28db3d3686b60f73909c6e6606bd23a14f4028ea173711b5910d00a4286",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 340383,
+      "webpBytes": 61760
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-horizon-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-horizon-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-horizon-close.webp",
+      "sha256": "b4b2504a69eff6847d3987ef2d0dfa6d4376d29e57577239790481293b23e292",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1154107,
+      "webpBytes": 158184
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-horizon-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-horizon-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-horizon-key-e.webp",
+      "sha256": "a7678465cf50e576ebd507cf63587b66ea7cc5edd63790a05e54e028cd7bd5eb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 484762,
+      "webpBytes": 93096
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-last-postcard-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-last-postcard-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-last-postcard-close.webp",
+      "sha256": "5e5d664b75a8431b9c1812ebfb4213f68208885a316cf14e557af1acb418cab3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 582649,
+      "webpBytes": 67338
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-last-postcard-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-last-postcard-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-last-postcard-key-e.webp",
+      "sha256": "a5e87db1749781cd8ea9fd77b232ef3aa64dd2e9d4cc35315060271e71380c08",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 120006,
+      "webpBytes": 32808
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-milestones-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-milestones-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-milestones-close.webp",
+      "sha256": "5c45d83a57ad50cc47fed4290e50f9a177ad517aa3b2187bf4eff3a5e35dd451",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 988181,
+      "webpBytes": 134616
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-milestones-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-milestones-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-milestones-key-e.webp",
+      "sha256": "6ad2443cb87482981a510fda69938ca9eee77997ba000543fb2d49c78e2aa273",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 186654,
+      "webpBytes": 59126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-old-trail-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-old-trail-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-old-trail-close.webp",
+      "sha256": "afb7529a88da43c63bc209ed74aefc18ee013b58b2ec21a2e5a5720df16e92e4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1314969,
+      "webpBytes": 190616
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-old-trail-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-old-trail-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-old-trail-key-e.webp",
+      "sha256": "debfa22f35a5666ff97d56bde8a90f09e4fb6f8a61bbe820e3ce2bed02f4e756",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 512610,
+      "webpBytes": 95064
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-quiet-shore-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-quiet-shore-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-quiet-shore-close.webp",
+      "sha256": "d8f373d1e4e7841f58c65000421f828b10949687de859a6974c63a436d37f875",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 821941,
+      "webpBytes": 113824
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-quiet-shore-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-quiet-shore-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-quiet-shore-key-e.webp",
+      "sha256": "7e0565a2f9bb89460d5c545de84896cd6b0d88e66dcc64db15ea6190731ef9ce",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 406462,
+      "webpBytes": 78348
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-roots-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-roots-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-roots-close.webp",
+      "sha256": "0237e8939a3e1d071b058400c896cc338abe8a09fa2bf78c0d61db6b5c9ca3ab",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1055811,
+      "webpBytes": 143232
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-roots-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-roots-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-roots-key-e.webp",
+      "sha256": "1ae825dfc7676b4291dffa43b1ee533e526156207b2c7090c49d2e0b121eaa38",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 458631,
+      "webpBytes": 84302
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-workshop-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-workshop-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-workshop-close.webp",
+      "sha256": "620456110f0d86302252bd792289060c00a862e3fb9f0eb33f3392ceee1c56b9",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1030167,
+      "webpBytes": 137170
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-overlay-workshop-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-overlay-workshop-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-overlay-workshop-key-e.webp",
+      "sha256": "eb29e61fced4991aba18ff67d4e8562f7be9ad4cf02a4ba0b417b1f585f67aa0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 219757,
+      "webpBytes": 77442
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-railing-exit.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-railing-exit.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-railing-exit.webp",
+      "sha256": "0a423504eba1d96d530077696557410e55602134ea7e7cf8ba95b0ea625b6697",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 284496,
+      "webpBytes": 47644
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-railing-real-key-approach.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-railing-real-key-approach.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-railing-real-key-approach.webp",
+      "sha256": "1a99377c74e31bbf7d177a37d4ab61cef8ddc5a8c1ab8d9486372c75fed5f1b7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 276716,
+      "webpBytes": 44720
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-secret-forgotten-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-secret-forgotten-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-secret-forgotten-sound.webp",
+      "sha256": "c2b02e20ac67af2cdec4903035949aa8511886d203c1ad26072d447acea914e4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 695772,
+      "webpBytes": 128698
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-secret-page-not-yet.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-secret-page-not-yet.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-secret-page-not-yet.webp",
+      "sha256": "392f933de055a24d791c4121719c39e96370a43a50cfff36514455064053c9d8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 613985,
+      "webpBytes": 111584
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-secret-reflection.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-secret-reflection.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-secret-reflection.webp",
+      "sha256": "353cd91076f8131ca3cafb4bc5a6b25f0ca22b740e8dfe88204fa6d1fd4dad7d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 749541,
+      "webpBytes": 141452
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-secret-unmarked-road.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-secret-unmarked-road.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-secret-unmarked-road.webp",
+      "sha256": "e99bd4fe888e31dd69f4e40d733438895dcb97add1afae38369e950cf8a59f47",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1022783,
+      "webpBytes": 166464
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-secret-unwritten-page.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-secret-unwritten-page.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-secret-unwritten-page.webp",
+      "sha256": "2c769c567d9a9d072fe22986cd3f05fe426b3668715d9c02aa3fa07c0fc46881",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 391084,
+      "webpBytes": 69880
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-uncaught-errors.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-uncaught-errors.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-uncaught-errors.webp",
+      "sha256": "9a7942d4035a4205ad2a3c9345e42d2bc30b74da1ec9923523fe03358c473c39",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 148787,
+      "webpBytes": 107116
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-welcome-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-welcome-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-welcome-full.webp",
+      "sha256": "8b81f6383abf188720e5bb788d5759c5afec224821242fc39a38bebcf8a9f0b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836445,
+      "webpBytes": 60466
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-welcome-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-welcome-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-welcome-skip.webp",
+      "sha256": "8b81f6383abf188720e5bb788d5759c5afec224821242fc39a38bebcf8a9f0b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836445,
+      "webpBytes": 60466
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-first-light-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-first-light-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-first-light-close-camera-review.webp",
+      "sha256": "e36671b3ee6e17591d632e11476607e1ca6f5be1d67eea5e05bf870cb806249f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 604528,
+      "webpBytes": 70846
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-first-light-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-first-light-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-first-light-close-camera.webp",
+      "sha256": "e34bbfc8cfd711cf55d1e61c2e53bfbd23c7d8809a7aec4b2af547ddbfe20c0f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 693962,
+      "webpBytes": 69270
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-first-light-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-first-light-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-first-light-high.webp",
+      "sha256": "c3f24c70f4b1bbcbf8da4c13e6fe65969d65d4c707a9c96f72666019b615535f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 696037,
+      "webpBytes": 73950
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-horizon-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-horizon-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-horizon-close-camera-review.webp",
+      "sha256": "d9b50a25d3d351f8d1133685d5e21c05a83497298dba576c8a17272b86e6410d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1081827,
+      "webpBytes": 137076
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-horizon-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-horizon-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-horizon-close-camera.webp",
+      "sha256": "b65c5aaadce80bbb2f12bbd1622e27d0893ef63cee6dd1acf5374ff71b0a23c7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1191669,
+      "webpBytes": 167228
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-horizon-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-horizon-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-horizon-high.webp",
+      "sha256": "2cd240ddc3bf65b5c7d88dfd4e39e39cd622828043c3668d79ab1b802cd62064",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1195185,
+      "webpBytes": 166868
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-last-postcard-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-last-postcard-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-last-postcard-close-camera-review.webp",
+      "sha256": "52eaf1354d951ba46c4c3bf0172e1159d9be67226772d0dd8ea778508c41e678",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 503456,
+      "webpBytes": 65762
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-last-postcard-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-last-postcard-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-last-postcard-close-camera.webp",
+      "sha256": "7620093eac3440eff7a7d935b8736713fbeda7b24453716347a0fe557b04199c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 576138,
+      "webpBytes": 63236
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-last-postcard-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-last-postcard-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-last-postcard-high.webp",
+      "sha256": "6c1711080be605d59801dee3117d4c3c9912f49cf877a91c0fe1beaad8a54d05",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 579422,
+      "webpBytes": 67038
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-milestones-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-milestones-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-milestones-close-camera-review.webp",
+      "sha256": "e6566a79eea659c14bac32d8dbc03ef15a28583c38c5e2addf4ac8bdd4ad1608",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1018713,
+      "webpBytes": 143912
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-milestones-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-milestones-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-milestones-close-camera.webp",
+      "sha256": "edbbc12f671ab8ae6796292fbad8a0035a6e2cefac6e5fff9d433066c158c38d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1068632,
+      "webpBytes": 152402
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-milestones-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-milestones-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-milestones-high.webp",
+      "sha256": "7cdd26809b70adbafcbb4b0f112d4f39cb99572a7d3398601096c6f1ecf4e619",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1073517,
+      "webpBytes": 152552
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-old-trail-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-old-trail-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-old-trail-close-camera-review.webp",
+      "sha256": "6dc70289cb8298375f426e925326f55e1402372cb05fc7a7959a01823101662f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1200540,
+      "webpBytes": 164882
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-old-trail-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-old-trail-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-old-trail-close-camera.webp",
+      "sha256": "834800a355061868868c181034ce5e2750b2503645fedbb7efb3f621c1aba5cf",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1313848,
+      "webpBytes": 191232
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-old-trail-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-old-trail-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-old-trail-high.webp",
+      "sha256": "fb72d57b98defbb0ea1029fc605ca06bb6787577a7f0fd47b3299051cefa0674",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1316409,
+      "webpBytes": 193074
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-quiet-shore-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-quiet-shore-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-quiet-shore-close-camera-review.webp",
+      "sha256": "eb7e632aec8ede47e15a8822e9150f4cccca0c93537b03d5ea72081aad01152c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 664905,
+      "webpBytes": 107090
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-quiet-shore-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-quiet-shore-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-quiet-shore-close-camera.webp",
+      "sha256": "a0ef180370aa22beb541fdb6c0523e6b1f0e3abb79496c6cc218eb1cba207be7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 868097,
+      "webpBytes": 121166
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-quiet-shore-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-quiet-shore-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-quiet-shore-high.webp",
+      "sha256": "3229195e2e86d7b1fff289da20061cf7d638e3b9455455b8a3ae8056c200faa7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 876392,
+      "webpBytes": 123522
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-roots-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-roots-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-roots-close-camera-review.webp",
+      "sha256": "f1d9e3e524c59cb01f8f3cb76fdd4231f69f534b9fdc7c63bb89b4ffc78e6a13",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 997414,
+      "webpBytes": 131896
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-roots-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-roots-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-roots-close-camera.webp",
+      "sha256": "c7a6ad7f27cad378594837c616f0c2cfad1d887623e25d153318c8feaace9742",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1076781,
+      "webpBytes": 148724
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-roots-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-roots-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-roots-high.webp",
+      "sha256": "b374c205c1f2205c2da97ecdef97c19f88754f4dabc627b5ce09d57efc01aec4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1083115,
+      "webpBytes": 149126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-workshop-close-camera-review.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-workshop-close-camera-review.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-workshop-close-camera-review.webp",
+      "sha256": "400ee3e0bc16c6885688c424caf058a8f4e0f476a52c519047aac579b3e53d5e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 984160,
+      "webpBytes": 123090
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-workshop-close-camera.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-workshop-close-camera.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-workshop-close-camera.webp",
+      "sha256": "33ee4a4a6c2ce5d11b5ffd4680fafc16448fdccdab5ffe4f3db530fef9c8f759",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1087409,
+      "webpBytes": 146200
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit/vi-zone-workshop-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit/vi-zone-workshop-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit/vi-zone-workshop-high.webp",
+      "sha256": "c360ca5e30516ee130763bf5d31b295a10a368c19ab5218a41a994f2a22ccd36",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1095903,
+      "webpBytes": 149138
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-bike-brake.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-bike-brake.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-bike-brake.webp",
+      "sha256": "509fdf7519149f7728e82b964c9bd88daa3c478599d341f32c1dafbc88bd9cfe",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 515543,
+      "webpBytes": 110804
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-bike-cruise.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-bike-cruise.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-bike-cruise.webp",
+      "sha256": "95627b43bae2705e0bdde825d56cf2451420e09e4bc2bf71becb9a7102f1f4a0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 513461,
+      "webpBytes": 110700
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-bike-dismount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-bike-dismount.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-bike-dismount.webp",
+      "sha256": "5f9431706f12f1f09cf4fc1a29ebcbbf9a7e3c690605c8339c58cca2efa6157c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 530692,
+      "webpBytes": 111028
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-bike-manual-movement.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-bike-manual-movement.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-bike-manual-movement.webp",
+      "sha256": "fc11204443616057640245c8ed4938ea0dca62e79b3b7d35244338e49b25049e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 373161,
+      "webpBytes": 78170
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-bike-mount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-bike-mount.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-bike-mount.webp",
+      "sha256": "e6383b4a77c16d22d3cb8b7da047c82520ca827bbfd0f2833651d0386ca6a921",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 458322,
+      "webpBytes": 85560
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-case-links-present.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-case-links-present.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-case-links-present.webp",
+      "sha256": "6e928fe44cddc8e40d6e0399c4da3107cfcf61a8b1fb5a4746459b1a0b9f2936",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81398,
+      "webpBytes": 50952
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-case-study-1.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-case-study-1.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-case-study-1.webp",
+      "sha256": "6b992eefb61cbcefab8b0999768950b9a57a95b770bcb4281182708078c1cc31",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 147047,
+      "webpBytes": 110622
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-case-study-2.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-case-study-2.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-case-study-2.webp",
+      "sha256": "237a9ce38f49816f2bbace1b4d57c38975591c00103226b693f4c0350c62d8cc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 168821,
+      "webpBytes": 135596
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-case-study-3.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-case-study-3.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-case-study-3.webp",
+      "sha256": "d0b8d9fb6679579c463ad7d12cf04a6d97953bbe124ee21de20287601039d100",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 138572,
+      "webpBytes": 107648
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-case-study-4.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-case-study-4.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-case-study-4.webp",
+      "sha256": "eca8a8f8694aa983a2c88b7bc6305ae5a96a2b19a15e0dfd8b079766a5b9ab6b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 142188,
+      "webpBytes": 103718
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-chooser-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-chooser-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-chooser-key-e.webp",
+      "sha256": "22a81e5b275e77a964b0a7594438662e24f68a30a889105ab1c9074900ec26bc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 807174,
+      "webpBytes": 121428
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-chooser-open.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-chooser-open.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-chooser-open.webp",
+      "sha256": "3e0ffa37dec65e6f7ca7d806d95f68a70fa4589c0b5b5695a3a47d7d3d0621d3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 518281,
+      "webpBytes": 70790
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-cv-links.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-cv-links.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-cv-links.webp",
+      "sha256": "6e928fe44cddc8e40d6e0399c4da3107cfcf61a8b1fb5a4746459b1a0b9f2936",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81398,
+      "webpBytes": 50952
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-desktop-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-desktop-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-desktop-quick.webp",
+      "sha256": "6e928fe44cddc8e40d6e0399c4da3107cfcf61a8b1fb5a4746459b1a0b9f2936",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81398,
+      "webpBytes": 50952
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-desktop-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-desktop-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-desktop-welcome.webp",
+      "sha256": "87af0d65b1f024efa3ddbd7100b8eb7a1a4ed049f9b96ff4c9e38fb9465d6698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835530,
+      "webpBytes": 61968
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238383586.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-ending-1794238383586.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238383586.webp",
+      "sha256": "0ac0e327ddf8a59b34813d5178203a9e58e3514d6edecf238560292cb62ca8d8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 554585,
+      "webpBytes": 98236
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238389748.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-ending-1794238389748.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238389748.webp",
+      "sha256": "3a4fc1e058211f009714cbcb305dc942453bb8b3bd37793c6a46570bafecf1a3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 614384,
+      "webpBytes": 99278
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238397940.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-ending-1794238397940.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238397940.webp",
+      "sha256": "9821f406b8ccabc16379c89eaf67bf6a8bb9275c444ed98dac7fad169fe27423",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 438615,
+      "webpBytes": 81856
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238406071.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-ending-1794238406071.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-ending-1794238406071.webp",
+      "sha256": "9ea39e2933543d544dc844ae2b6ef48e71f9a4ca5cb640f5f8185d81ca74aec4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 196492,
+      "webpBytes": 29474
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-ending-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-ending-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-ending-full.webp",
+      "sha256": "e68dcc971f8d25ac025332480f233fb1ff1efd2c487ec9be841e9fb13e46a168",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 270153,
+      "webpBytes": 38558
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-exit-after-full-intro.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-exit-after-full-intro.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-exit-after-full-intro.webp",
+      "sha256": "dec2b4fc4d7b0600c3473241b496dfb389fdab99608c4e0db91208e54528541e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835499,
+      "webpBytes": 61842
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-exit-world.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-exit-world.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-exit-world.webp",
+      "sha256": "e548f28ae7494bf2183745a1933332e36d6eeca185a8fb83ddea89024498cbc5",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835495,
+      "webpBytes": 61842
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238245951.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-full-1794238245951.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238245951.webp",
+      "sha256": "cf039ce164753283cf2eb7ff4df941889833fefc82c11e81eeae26de679a63d4",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 423663,
+      "webpBytes": 76484
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238248586.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-full-1794238248586.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238248586.webp",
+      "sha256": "e78ea585a3c94a63ccd83753c1628d7cb5620c2b422536d92975c7d76ebaca82",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 383058,
+      "webpBytes": 70656
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238251715.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-full-1794238251715.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238251715.webp",
+      "sha256": "9a4224a73083c3ea5c274667303918e69381be47ed99276821eb8c84d3a303ef",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 329573,
+      "webpBytes": 47456
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238254842.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-full-1794238254842.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-full-1794238254842.webp",
+      "sha256": "98bcce926aeeb6dd41fb0ee0a008fcf3521c9f9477f83527e87bc31df774a44d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 327939,
+      "webpBytes": 50640
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-full-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-full-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-full-start.webp",
+      "sha256": "50df93358dbf894bf4eaf7e549bfa954849303d01e3441d38be32498d9df1f86",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429196,
+      "webpBytes": 77740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-full.webp",
+      "sha256": "5433b7de2382f59e59172d858d5176fbb07f1bf7ae7df2ea453fa39b2251c999",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 693099,
+      "webpBytes": 83230
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-skip-real.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-skip-real.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-skip-real.webp",
+      "sha256": "b6c124703c0db4c9a733d69c10de7fda0e9309ba7f6cdd4bba81a1aaeada134e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 698134,
+      "webpBytes": 84866
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-intro-skip-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-intro-skip-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-intro-skip-start.webp",
+      "sha256": "833bfba115ef720b3fd6b35cdfe07ef51efea11e9b2891bbba46b3e90565bbe8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429219,
+      "webpBytes": 77838
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-journal.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-journal.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-journal.webp",
+      "sha256": "c353c18198e74060a774c316df07b0514c81f200139cc6e27b462088288510ca",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 655511,
+      "webpBytes": 68408
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-loading-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-loading-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-loading-full.webp",
+      "sha256": "79810ad0ad7207f393b09d216c369f785973a7db1c99682dc0be7a18ceac248f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429287,
+      "webpBytes": 78404
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-loading-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-loading-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-loading-skip.webp",
+      "sha256": "79810ad0ad7207f393b09d216c369f785973a7db1c99682dc0be7a18ceac248f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429287,
+      "webpBytes": 78404
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-language.webp",
+      "sha256": "a1f5d679bac5c5af99b76e83d88869b926a7dc163e84b85ac35811550373a751",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 199657,
+      "webpBytes": 65706
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-motion-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-motion-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-motion-on.webp",
+      "sha256": "5f753af24245e6daffaa4d16e8e2a50bf400a31ceeb7c822bb593eac1fa869d7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 199671,
+      "webpBytes": 65536
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-other-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-other-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-other-language.webp",
+      "sha256": "0b75b6a55632112c7709b5ed3849518ca63f020d88a21a9b545420d84839a30e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 202282,
+      "webpBytes": 61392
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-quality-balanced.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-quality-balanced.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-quality-balanced.webp",
+      "sha256": "69974819025fb28e7de90e02b9e71aa8970138468dbc338a117b5c60a4dd52b6",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 434679,
+      "webpBytes": 78358
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-quality-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-quality-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-quality-high.webp",
+      "sha256": "694a66a9ff57727b317d6b71b877ccecbc7811bc77f86422e666c8b389dc14b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 199527,
+      "webpBytes": 66152
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-quality-low.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-quality-low.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-quality-low.webp",
+      "sha256": "3b3d79147ce42c4ca3364a3c6e297791bdb9b7d07c09aef0cceb1d9a9e8388eb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 198063,
+      "webpBytes": 66920
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-reduced-motion.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-reduced-motion.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-reduced-motion.webp",
+      "sha256": "f2a393eca91cba7bb4494a199af3a1dc5113afa6cf9b69b15f6e69b53f310449",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 199693,
+      "webpBytes": 65354
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-sound-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-sound-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-sound-on.webp",
+      "sha256": "85dc8a3e5849a10d4a1d592b181b75e0ce1ecc47cbc684cbb907eb312e4d87db",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 199490,
+      "webpBytes": 65842
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-menu-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-menu-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-menu-sound.webp",
+      "sha256": "18d422b2b8ef41671c2780e2fee0ee61b45ab5f8a24f64cee036bbb7abf8f68e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 199673,
+      "webpBytes": 66066
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-mobile-320-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-mobile-320-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-mobile-320-quick.webp",
+      "sha256": "8a335c2d95ad5f07f74eff305a92d877efcb8ef030399da2c7b7ca52aa5a0a2a",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 58642,
+      "webpBytes": 41848
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-mobile-320-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-mobile-320-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-mobile-320-welcome.webp",
+      "sha256": "3d395a67c6ece91e53e22ecb6e0668e59a2f944f2c9e59873ee98782999582a5",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 103806,
+      "webpBytes": 26126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-mobile-390-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-mobile-390-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-mobile-390-quick.webp",
+      "sha256": "e9091ef92741774e9051ebe7af05a9084abcb24ff9abf6a14e2a92dc733c18fd",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 63530,
+      "webpBytes": 42506
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-mobile-390-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-mobile-390-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-mobile-390-welcome.webp",
+      "sha256": "95527fb58aed40137ef8ea0f8cb78eab4090c46406affad1de9c7846b923ba6e",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 123847,
+      "webpBytes": 28228
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-first-light-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-first-light-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-first-light-close.webp",
+      "sha256": "4ad24e41b8fd7fac86972bbe45625028e6da8d830a6e17060f5d5d1013091d72",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 714485,
+      "webpBytes": 76762
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-first-light-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-first-light-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-first-light-key-e.webp",
+      "sha256": "03f0663fd4665bf477744754fc81ed0e86bffdb4e43f6638445d34c729d55698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 344562,
+      "webpBytes": 65552
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-horizon-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-horizon-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-horizon-close.webp",
+      "sha256": "b22e9eb1615fa41004227dbc92e6a9df9c218afc23bd0b2e0dce76f899f04b39",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1160603,
+      "webpBytes": 158886
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-horizon-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-horizon-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-horizon-key-e.webp",
+      "sha256": "2d1e43d2a85049217d0fbac2a29fc3c471afbf1206a888646e78e221de5db30a",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 484938,
+      "webpBytes": 93410
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-last-postcard-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-last-postcard-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-last-postcard-close.webp",
+      "sha256": "1cbdd8fbb64fd712bf96c674b89638355cb86f107073afb3ebd48ff3356e5f72",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 618168,
+      "webpBytes": 71100
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-last-postcard-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-last-postcard-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-last-postcard-key-e.webp",
+      "sha256": "41c683f19ec501df1061a5b00fa97923fe0b4dce9e1328ec2c210f347ce17e09",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 124294,
+      "webpBytes": 33796
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-milestones-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-milestones-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-milestones-close.webp",
+      "sha256": "f93ffc419d8cb6210d8dd75351ba4e5cd719275dd40356c0aebbe6365ceeefc3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1024603,
+      "webpBytes": 137228
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-milestones-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-milestones-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-milestones-key-e.webp",
+      "sha256": "99436281ac8bef683d7034d35c82deaac76e2fd4555906018f8a1dc3d360b8dd",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1024849,
+      "webpBytes": 140340
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-old-trail-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-old-trail-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-old-trail-close.webp",
+      "sha256": "61d860d4734be182f31bb1d9a343379fbb627a93056a71aadd70ea347198169c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1284252,
+      "webpBytes": 185618
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-old-trail-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-old-trail-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-old-trail-key-e.webp",
+      "sha256": "caa7860ad76de84c5dc91fa6e9fe42afc619a618ce9359f7e00c797e03cc8776",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 242135,
+      "webpBytes": 61238
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-quiet-shore-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-quiet-shore-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-quiet-shore-close.webp",
+      "sha256": "5ec21d2d720f919f59011a0d85fe56ca31404c0a4aabf80b62483488f4de14d6",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 805796,
+      "webpBytes": 108930
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-quiet-shore-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-quiet-shore-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-quiet-shore-key-e.webp",
+      "sha256": "9ae52443b720b745dd18f477809e4c26a5102fe9e84ace32e4c7c2c523c659d0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 806407,
+      "webpBytes": 107926
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-roots-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-roots-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-roots-close.webp",
+      "sha256": "b1693f0867db2db81eaa6d08575772b29111e590f6dd6c5877af65031b232cf7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1050887,
+      "webpBytes": 144458
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-roots-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-roots-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-roots-key-e.webp",
+      "sha256": "b8810cdbe80488939970a21c8d0a533d672e646f50bfe4b472b301e299e3b6f3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 457620,
+      "webpBytes": 86766
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-workshop-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-workshop-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-workshop-close.webp",
+      "sha256": "1fd031116fde626800f560e21157186f3d606ec513db5f85a2546abf1528fee8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1024294,
+      "webpBytes": 138416
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-overlay-workshop-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-overlay-workshop-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-overlay-workshop-key-e.webp",
+      "sha256": "787cade9218a74e7feea16ee1d6070b55d140b38490f5424ad0bc5418f503ad9",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 415464,
+      "webpBytes": 104004
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-railing-exit.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-railing-exit.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-railing-exit.webp",
+      "sha256": "1bac010a481723d819ccbe125aa3fe19d2bf457bce15da2e8727d32873ffcb9f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 290609,
+      "webpBytes": 48258
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-railing-real-key-approach.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-railing-real-key-approach.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-railing-real-key-approach.webp",
+      "sha256": "a92df0eadf033b0380ca91ee257785ed5786944868eef4b2cd08b24ceb82bca9",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 276410,
+      "webpBytes": 43826
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-secret-forgotten-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-secret-forgotten-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-secret-forgotten-sound.webp",
+      "sha256": "331e5fdbcfe25bc6cbc96994b01540b77f39c6d553cfb1188ea61879b73b57b8",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 674576,
+      "webpBytes": 127816
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-secret-page-not-yet.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-secret-page-not-yet.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-secret-page-not-yet.webp",
+      "sha256": "f43429685f91092adf40d52587117574c0134ae6559bc2f9ac33ff721462abf1",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 609785,
+      "webpBytes": 111592
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-secret-reflection.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-secret-reflection.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-secret-reflection.webp",
+      "sha256": "38cf11ef66b43edcb11fdddf619550c13e5745126f707a8f7b1d734dfa09e4ba",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 772150,
+      "webpBytes": 146196
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-secret-unmarked-road.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-secret-unmarked-road.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-secret-unmarked-road.webp",
+      "sha256": "7108eaa68a78b5c8a6eff9492db210931d99c64e0562a1485444fa32ef5b7afb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1274169,
+      "webpBytes": 221510
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-secret-unwritten-page.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-secret-unwritten-page.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-secret-unwritten-page.webp",
+      "sha256": "f03a9a6e100e53faa7a9a8a5cc2f792f1837289bf4eac016a436a597cdb89a39",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 389856,
+      "webpBytes": 70526
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-uncaught-errors.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-uncaught-errors.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-uncaught-errors.webp",
+      "sha256": "eca8a8f8694aa983a2c88b7bc6305ae5a96a2b19a15e0dfd8b079766a5b9ab6b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 142188,
+      "webpBytes": 103718
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-welcome-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-welcome-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-welcome-full.webp",
+      "sha256": "87af0d65b1f024efa3ddbd7100b8eb7a1a4ed049f9b96ff4c9e38fb9465d6698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835530,
+      "webpBytes": 61968
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-welcome-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-welcome-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-welcome-skip.webp",
+      "sha256": "87af0d65b1f024efa3ddbd7100b8eb7a1a4ed049f9b96ff4c9e38fb9465d6698",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 835530,
+      "webpBytes": 61968
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-first-light-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-first-light-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-first-light-high.webp",
+      "sha256": "dfea32d9ed9dbb3049faaa3f76287a7f2caa112abf1cbade7c1f53a3b8eeb69f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 694075,
+      "webpBytes": 74504
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-horizon-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-horizon-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-horizon-high.webp",
+      "sha256": "ef32c157f2878922c46d58ee4668ee894e6d4dfbc59bb8d093dc9e8c0389f5d5",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1195611,
+      "webpBytes": 166502
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-last-postcard-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-last-postcard-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-last-postcard-high.webp",
+      "sha256": "ff7285021f3242fcab918f13b1c7c4888703cf2b0d2c66f2af492d8612b72eb9",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 580562,
+      "webpBytes": 67498
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-milestones-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-milestones-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-milestones-high.webp",
+      "sha256": "18d4604ba6e7b75b5a8ce77de2ff49cad14e71890d4f7039ae7bfaf62b87f5bb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1072505,
+      "webpBytes": 153056
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-old-trail-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-old-trail-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-old-trail-high.webp",
+      "sha256": "f76f25e2c5e54109c73e3fec4ed31af12b2238f7ef19b398228fd93b33e4bb43",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1315653,
+      "webpBytes": 192152
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-quiet-shore-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-quiet-shore-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-quiet-shore-high.webp",
+      "sha256": "891b7d5e6bc36c038ff7bb86f4ea937946a35cd993c7670e6fef61278a5faa5d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 875293,
+      "webpBytes": 124488
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-roots-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-roots-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-roots-high.webp",
+      "sha256": "91e136df8d8e41bb95c4c9185161e9fa30bb7e2f2e2e80db879642bc1280cbf3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1079428,
+      "webpBytes": 149978
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/en-zone-workshop-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/en-zone-workshop-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/en-zone-workshop-high.webp",
+      "sha256": "2a8f64f6f69ff281c7233c2c53391ea0cb7d0702683a0811f8ac1016e01eaae6",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1091160,
+      "webpBytes": 147874
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-bike-brake.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-bike-brake.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-bike-brake.webp",
+      "sha256": "454c7916f85408e293ffb751ce019038ff56dc61a5a4ff1e3344932a3a6ab0d1",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 516447,
+      "webpBytes": 111322
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-bike-cruise.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-bike-cruise.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-bike-cruise.webp",
+      "sha256": "dfa510d0c7c12a75285efc8ec9873f7ff3c918ced8abbb65aaa8eb5419a5a941",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 515915,
+      "webpBytes": 111118
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-bike-dismount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-bike-dismount.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-bike-dismount.webp",
+      "sha256": "216cb281f539959a31b887204b43acfc963773969153d5c8742cac7016d345c6",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 530531,
+      "webpBytes": 111220
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-bike-manual-movement.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-bike-manual-movement.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-bike-manual-movement.webp",
+      "sha256": "ae2b098642a4d938e3c02b47af3815759adb69aba526d9fa565b5a9e894fd509",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 375292,
+      "webpBytes": 78140
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-bike-mount.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-bike-mount.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-bike-mount.webp",
+      "sha256": "c5001b0c87487983cc0be2bbb1b765d0682b3025bfed573b275e92dd7260e7a1",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 458826,
+      "webpBytes": 86096
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-case-links-present.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-case-links-present.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-case-links-present.webp",
+      "sha256": "35383a5538d782bd2622a31b786575e92e8ec92956f90d9938cf23235e85eb5c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81474,
+      "webpBytes": 49126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-case-study-1.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-case-study-1.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-case-study-1.webp",
+      "sha256": "ae5761cd9760577eb0c224362f3962631aec54538bdd50a61399265c344ffb0b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 148370,
+      "webpBytes": 105798
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-case-study-2.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-case-study-2.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-case-study-2.webp",
+      "sha256": "5707863cdd2d4a57c2f5d90771521ea6176c5f9b33f81d1a9a037b5bf96aa98f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 168993,
+      "webpBytes": 134264
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-case-study-3.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-case-study-3.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-case-study-3.webp",
+      "sha256": "1552f8e364bf490ce5732b21bd9fd5a4754dde21699a2ad2244dbad2ac77f8e2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 150851,
+      "webpBytes": 111696
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-case-study-4.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-case-study-4.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-case-study-4.webp",
+      "sha256": "a86cb21954f6f939b234ba64a2f1d2e0c04c6ec9ed256e5598ffa4128b641f47",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 148806,
+      "webpBytes": 107106
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-chooser-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-chooser-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-chooser-key-e.webp",
+      "sha256": "eed169ef788597ce90cff340215422c39e0e3157c87daab68603aaee5c7afa6e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 812671,
+      "webpBytes": 122534
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-chooser-open.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-chooser-open.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-chooser-open.webp",
+      "sha256": "a012af347a531f35a22f74c1b0cf08dc92a361be17da9012f5589407abbeb12e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 517734,
+      "webpBytes": 71520
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-cv-links.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-cv-links.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-cv-links.webp",
+      "sha256": "35383a5538d782bd2622a31b786575e92e8ec92956f90d9938cf23235e85eb5c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81474,
+      "webpBytes": 49126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-desktop-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-desktop-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-desktop-quick.webp",
+      "sha256": "35383a5538d782bd2622a31b786575e92e8ec92956f90d9938cf23235e85eb5c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 81474,
+      "webpBytes": 49126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-desktop-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-desktop-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-desktop-welcome.webp",
+      "sha256": "8b81f6383abf188720e5bb788d5759c5afec224821242fc39a38bebcf8a9f0b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836445,
+      "webpBytes": 60466
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238199809.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-ending-1794238199809.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238199809.webp",
+      "sha256": "a3d8b2ee9f8bb2742db5562191642c757869c76c6a9b76761771c29163be1afd",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 551146,
+      "webpBytes": 96718
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238205973.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-ending-1794238205973.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238205973.webp",
+      "sha256": "be815ce096e66d649fb4b9033a3a265a453481d6c86daccd803ade39c0f3eb37",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 612537,
+      "webpBytes": 99062
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238214144.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-ending-1794238214144.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238214144.webp",
+      "sha256": "b08259292cc03dcbf40c05477c7b2df23ab30113bb177068fe4784b8e60e70d2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 440051,
+      "webpBytes": 81440
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238222269.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-ending-1794238222269.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-ending-1794238222269.webp",
+      "sha256": "51f4d2b94b82f377bfa912de7366274bad8ada83524cfaeba4fbefc685c39712",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 196174,
+      "webpBytes": 29248
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-ending-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-ending-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-ending-full.webp",
+      "sha256": "dd419406119b5ec20ee6dca2549e9fb294d46456eccd221ccc8a521fc25df635",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 269594,
+      "webpBytes": 38736
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-exit-after-full-intro.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-exit-after-full-intro.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-exit-after-full-intro.webp",
+      "sha256": "1ddd05a680475bd020d9e1df6955a9d2d3533f338ddc27f778c6678ff72bc7a7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836424,
+      "webpBytes": 60302
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-exit-world.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-exit-world.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-exit-world.webp",
+      "sha256": "4ad43a17823c53e108d497cc0fbf8b2bf33c343a21bddf6ad7165e09f9afc595",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836421,
+      "webpBytes": 60302
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238071045.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-full-1794238071045.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238071045.webp",
+      "sha256": "11e4ec281f7a3e6cccdd2ef7972dd0facf1c5037a69a7b3bece1472de36c7beb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 423437,
+      "webpBytes": 76892
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238073683.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-full-1794238073683.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238073683.webp",
+      "sha256": "a6011ba5cfaf4d6a4868871d2d52a64cd7b50f038f520d4e86c3490fc106e056",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 382659,
+      "webpBytes": 68548
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238076805.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-full-1794238076805.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238076805.webp",
+      "sha256": "68684173b3f8a9200f670384c7ea077ec2a883d2d4bb000342d8ebc68c25f9a9",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 330202,
+      "webpBytes": 45278
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238079925.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-full-1794238079925.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-1794238079925.webp",
+      "sha256": "54281202650e7a538de2c1124861270cd90a5c06771188790749f0bbf2e594bc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 328644,
+      "webpBytes": 49152
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-full-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-full-start.webp",
+      "sha256": "5356d634f1badccbc4dde3ba6ffbda1d701bf2da7e2901d5658f3285ca017ca2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429390,
+      "webpBytes": 77594
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-full.webp",
+      "sha256": "2046cd70aa9b4815b84e6a33b538f1043495dae8df7126f8eda9a13de6531c56",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 694699,
+      "webpBytes": 82776
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-skip-real.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-skip-real.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-skip-real.webp",
+      "sha256": "91f43da6bc170e85edc44dc4df25b9d5cfd5bde5fbda2c94dc519ef62a73c349",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 694861,
+      "webpBytes": 82932
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-intro-skip-start.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-intro-skip-start.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-intro-skip-start.webp",
+      "sha256": "5faef0df0e751f972b2c314119f1a19a9fd859333e7920e6c181e01e1acd2fd7",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429405,
+      "webpBytes": 77728
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-journal.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-journal.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-journal.webp",
+      "sha256": "c8eb81899f9a0e6cdbb2ab99ff125bfb83b0c39cd1b61ca19902a7d6a0f65a15",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 630339,
+      "webpBytes": 66556
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-loading-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-loading-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-loading-full.webp",
+      "sha256": "f41c1978245763f487182db60282d2be9bbb17efe92ccf93c5bd14c4d26c0da3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429598,
+      "webpBytes": 78566
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-loading-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-loading-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-loading-skip.webp",
+      "sha256": "f41c1978245763f487182db60282d2be9bbb17efe92ccf93c5bd14c4d26c0da3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 429598,
+      "webpBytes": 78566
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-language.webp",
+      "sha256": "5280b1cd43d8ede00d41fad4ec65aef58a686fab18090ffc3d4a30d98f833b1d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218029,
+      "webpBytes": 61894
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-motion-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-motion-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-motion-on.webp",
+      "sha256": "34ef28ffbb9bb9fdd5ef1983ba332ad60a902391e564ac4af670846358bd2fcf",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218393,
+      "webpBytes": 67570
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-other-language.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-other-language.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-other-language.webp",
+      "sha256": "9991bb304f8cedb5326aeaca42dcd774a858802572d8754f9823b24d1e98f3aa",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 215376,
+      "webpBytes": 66532
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-quality-balanced.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-quality-balanced.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-quality-balanced.webp",
+      "sha256": "b5f5bfd3b2d583fe3151b9ba658a594b893744e6e86c295eb26f852748a624eb",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 430576,
+      "webpBytes": 75836
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-quality-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-quality-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-quality-high.webp",
+      "sha256": "bd7afef2d9b933b26eb7153eae96ec001fc1e0b17d753e617d62a2b7ccc9fc21",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218281,
+      "webpBytes": 62156
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-quality-low.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-quality-low.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-quality-low.webp",
+      "sha256": "6802bf09df3026365cdfdcb6801d567ccc1d44cede77c571ab700c7ec7064857",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 209734,
+      "webpBytes": 69022
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-reduced-motion.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-reduced-motion.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-reduced-motion.webp",
+      "sha256": "dcf9d71babae24a1b81b3cb78af479645b637fd4c9bb2b0d94eee4f210cf849d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218223,
+      "webpBytes": 67426
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-sound-on.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-sound-on.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-sound-on.webp",
+      "sha256": "c77d6a43f2f43e94657b003c3ac89d14181ef1b54578e20bc26b501579aa3bf2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 217892,
+      "webpBytes": 66890
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-menu-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-menu-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-menu-sound.webp",
+      "sha256": "774a27cd88b0c9094773741b2a0e15cdb762e7922c7b27161fe0ed08ea218367",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 218112,
+      "webpBytes": 66740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-mobile-320-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-mobile-320-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-mobile-320-quick.webp",
+      "sha256": "622a7fa9f625f63334160d4a21a99dd04b8768ec3dc53345232a6f22e2ce41bb",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 55376,
+      "webpBytes": 39030
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-mobile-320-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-mobile-320-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-mobile-320-welcome.webp",
+      "sha256": "3ee9663478c39bfcf9b47dbb5266234ba7a8a9cb10f1c6847c47c72c50995c7e",
+      "width": 320,
+      "height": 844,
+      "pngBytes": 106355,
+      "webpBytes": 24028
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-mobile-390-quick.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-mobile-390-quick.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-mobile-390-quick.webp",
+      "sha256": "f462434854ebb72eca115f9b0d923bab294c19f4d3b8fb530ef6af0173949960",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 61720,
+      "webpBytes": 41740
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-mobile-390-welcome.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-mobile-390-welcome.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-mobile-390-welcome.webp",
+      "sha256": "8f8dfc4480ff8a1639702087c564763091c73e8ef90bbc3dc9795db11a108b21",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 128362,
+      "webpBytes": 26776
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-first-light-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-first-light-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-first-light-close.webp",
+      "sha256": "090facbaeb1e0bef9d913e02be80be850447ee90d76774c114068505bae80f66",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 710324,
+      "webpBytes": 73754
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-first-light-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-first-light-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-first-light-key-e.webp",
+      "sha256": "0712eba072cb946bd460a34b391962d73c4c784d784f68b87b07450a3db201fc",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 343632,
+      "webpBytes": 62244
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-horizon-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-horizon-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-horizon-close.webp",
+      "sha256": "f1115197e59b30ce3b56ab2fbb32dd320eb5dde2ceaf5ddb8dabe90e09eeb592",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1183200,
+      "webpBytes": 163040
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-horizon-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-horizon-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-horizon-key-e.webp",
+      "sha256": "3d85aa671bade2d4e3c2c92831b6fc095d98dfc19481e36be7a9d6a60e49cf78",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 226302,
+      "webpBytes": 63118
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-last-postcard-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-last-postcard-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-last-postcard-close.webp",
+      "sha256": "fddb989b8894cec62061f885c66ad9edcf2ffd7e5f3599bf2466c5ddd0139c02",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 591159,
+      "webpBytes": 69420
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-last-postcard-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-last-postcard-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-last-postcard-key-e.webp",
+      "sha256": "956ab6d40a87841264f7b8357749f53bfbd13c1a1d4b9914aae0322e2e617ee6",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 121035,
+      "webpBytes": 33514
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-milestones-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-milestones-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-milestones-close.webp",
+      "sha256": "65cb617669784004ad00e63613de33c9b0cdf601abd48a86c4863d2f42a3cfd3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1022665,
+      "webpBytes": 137742
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-milestones-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-milestones-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-milestones-key-e.webp",
+      "sha256": "a21caa5990e653356c08e7d64d7d7300dc30bb210a55008bc8c45563b25b572d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1022940,
+      "webpBytes": 137884
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-old-trail-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-old-trail-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-old-trail-close.webp",
+      "sha256": "fa10c24c6c5f49103a68bd758ee0119dcaf86d75cf56f86155a7303d7e63744e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1308075,
+      "webpBytes": 190614
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-old-trail-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-old-trail-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-old-trail-key-e.webp",
+      "sha256": "9fe859999fa2069808072959558b08395a48aceadce564a0b51432bb60038c4c",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 244609,
+      "webpBytes": 61498
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-quiet-shore-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-quiet-shore-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-quiet-shore-close.webp",
+      "sha256": "b5b2afffc92dcdde34fef7aec400cd4f3234c603920206158901bb67d07a7180",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 889917,
+      "webpBytes": 123424
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-quiet-shore-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-quiet-shore-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-quiet-shore-key-e.webp",
+      "sha256": "002347aaecaadfeae642d89762d452cb742a30dd3874af93545e577680dbad8e",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 412183,
+      "webpBytes": 78578
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-roots-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-roots-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-roots-close.webp",
+      "sha256": "eea8c39c695330e5d946c6f5ac68daa9f2ddb8f9ef985ca1eb2f40d28272e581",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1055129,
+      "webpBytes": 143984
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-roots-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-roots-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-roots-key-e.webp",
+      "sha256": "6b2142c19cab79107846f3920295e6d1a0b90aa4d8401593afa0a7d37c53d663",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 458375,
+      "webpBytes": 85116
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-workshop-close.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-workshop-close.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-workshop-close.webp",
+      "sha256": "aaaf8599cc59649888c1815c5de21cfb0e2850a8f486702bc784348928c3433b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1044773,
+      "webpBytes": 139512
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-overlay-workshop-key-e.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-overlay-workshop-key-e.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-overlay-workshop-key-e.webp",
+      "sha256": "fd2e2ccf9a4812481ae49a12fd26784aed172d01d2d8206606526423a8860b0d",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 225328,
+      "webpBytes": 78424
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-railing-exit.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-railing-exit.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-railing-exit.webp",
+      "sha256": "b1f95fb67d82c9b424f493e90fa4b4a2491fc05f5ffc525d105475628a49b69a",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 290019,
+      "webpBytes": 48418
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-railing-real-key-approach.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-railing-real-key-approach.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-railing-real-key-approach.webp",
+      "sha256": "a370e38e42153e5800b9abe5d4b49f47cb7b57b2744877a61b0deca1e55c3ff3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 276090,
+      "webpBytes": 42910
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-secret-forgotten-sound.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-secret-forgotten-sound.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-secret-forgotten-sound.webp",
+      "sha256": "e1d996a480bb53202774a14b28556bda66b4a5611350839f084aab2c29b30832",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 678524,
+      "webpBytes": 125050
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-secret-page-not-yet.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-secret-page-not-yet.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-secret-page-not-yet.webp",
+      "sha256": "32dea468c5f590e39f1023b42120316212068ba401b7a88aaac629ce3ae59c93",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 610937,
+      "webpBytes": 110952
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-secret-reflection.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-secret-reflection.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-secret-reflection.webp",
+      "sha256": "6f4d7f57011c41c8a171f95c0763be44db96c2628f59d2d7c47abcb59f717bf0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 761704,
+      "webpBytes": 143168
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-secret-unmarked-road.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-secret-unmarked-road.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-secret-unmarked-road.webp",
+      "sha256": "5aa74d06224d488f33cfc104919dcbb8ec6efaafd4c8f090669d62c752799e0f",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1092270,
+      "webpBytes": 178976
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-secret-unwritten-page.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-secret-unwritten-page.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-secret-unwritten-page.webp",
+      "sha256": "d4ab7b9dd75ca8206cc9144d408d3f8c30c1753a95c78cfab83e8152e4132aa2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 392980,
+      "webpBytes": 70126
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-uncaught-errors.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-uncaught-errors.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-uncaught-errors.webp",
+      "sha256": "a86cb21954f6f939b234ba64a2f1d2e0c04c6ec9ed256e5598ffa4128b641f47",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 148806,
+      "webpBytes": 107106
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-welcome-full.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-welcome-full.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-welcome-full.webp",
+      "sha256": "8b81f6383abf188720e5bb788d5759c5afec224821242fc39a38bebcf8a9f0b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836445,
+      "webpBytes": 60466
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-welcome-skip.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-welcome-skip.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-welcome-skip.webp",
+      "sha256": "8b81f6383abf188720e5bb788d5759c5afec224821242fc39a38bebcf8a9f0b3",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 836445,
+      "webpBytes": 60466
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-first-light-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-first-light-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-first-light-high.webp",
+      "sha256": "03e94423c5f1f857578d069c3085b5d954b68f78010212aa2ea4ed75a62efd53",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 695384,
+      "webpBytes": 74130
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-horizon-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-horizon-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-horizon-high.webp",
+      "sha256": "443251446b0988987c1b3fb67fbb5d752deef15a25878aaadcd8f25d87ea3911",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1195066,
+      "webpBytes": 166054
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-last-postcard-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-last-postcard-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-last-postcard-high.webp",
+      "sha256": "6a9d9694047226f4b3952c3a2c2dce4b347c60ea9248e40636b56b22dae03ac0",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 579513,
+      "webpBytes": 66892
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-milestones-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-milestones-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-milestones-high.webp",
+      "sha256": "fbe31a97fd80df44a97425f3b7c0253ba0a40527db2b598e669eb097eb317a10",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1071393,
+      "webpBytes": 151628
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-old-trail-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-old-trail-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-old-trail-high.webp",
+      "sha256": "0155c72104f7c7bdf7740b25df7f83345163caf5027c2c88507fc9365535e035",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1315719,
+      "webpBytes": 192992
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-quiet-shore-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-quiet-shore-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-quiet-shore-high.webp",
+      "sha256": "3f70997f9549a7f68b22b156ba9583c5dd4f69647f4ce5c32d8dadec206d15e2",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 877507,
+      "webpBytes": 123684
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-roots-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-roots-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-roots-high.webp",
+      "sha256": "b2ce917ba79203a83bde68c10712e3eada913876552fba950e7ea10bb20535c6",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1082454,
+      "webpBytes": 148638
+    },
+    {
+      "source": "docs/showcase/35-rc/ui-audit-first/vi-zone-workshop-high.png",
+      "backup": "coverage/rc-raw-screenshots/ui-audit-first/vi-zone-workshop-high.png",
+      "webp": "docs/showcase/35-rc/ui-audit-first/vi-zone-workshop-high.webp",
+      "sha256": "8676ed4f67f1e4c439e858d2e421d20c67613d019b36c36bc93aa1e81d76aa3b",
+      "width": 1600,
+      "height": 900,
+      "pngBytes": 1087925,
+      "webpBytes": 147566
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-first-light-mobile-end.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-first-light-mobile-end.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-first-light-mobile-end.webp",
+      "sha256": "ef6d03516a65f50f8c5711724c003261559b9ce24403a0ec44c877a250cc8061",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 103422,
+      "webpBytes": 33546
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-first-light-mobile.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-first-light-mobile.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-first-light-mobile.webp",
+      "sha256": "a29a99ac0cc7c526ba4895f8444681d5ceb576d3c9c3ac025ccd4d8ceccd5fb0",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 114199,
+      "webpBytes": 35400
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-first-light.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-first-light.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-first-light.webp",
+      "sha256": "45aeecb6ee385ee48aa6af00f071e52dc2d42a7f82bd1d70d5453bdd83813e7a",
+      "width": 1600,
+      "height": 1067,
+      "pngBytes": 330951,
+      "webpBytes": 61456
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-old-trail-mobile-end.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-old-trail-mobile-end.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-old-trail-mobile-end.webp",
+      "sha256": "cfef70895b5b35e1bfc4137fd4a3e7dafc28de36aec3dace4a91aea80c0417cb",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 81265,
+      "webpBytes": 34888
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-old-trail-mobile.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-old-trail-mobile.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-old-trail-mobile.webp",
+      "sha256": "0573e555288936f517953cfe4417302119877eb96ef526d6ee5ac8c6f20b0611",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 137008,
+      "webpBytes": 35804
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-old-trail.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-old-trail.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-old-trail.webp",
+      "sha256": "e87398808b08653b0cbbae27233147e2c943ee47fce86df548a59b25214fa4ba",
+      "width": 1600,
+      "height": 1067,
+      "pngBytes": 503048,
+      "webpBytes": 91480
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-quiet-shore-mobile-end.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-quiet-shore-mobile-end.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-quiet-shore-mobile-end.webp",
+      "sha256": "4c8b43e99e5e76b2cbb42b075e4a3ab7bfc105ce6b611e020682adcb51009763",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 75496,
+      "webpBytes": 38304
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-quiet-shore-mobile.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-quiet-shore-mobile.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-quiet-shore-mobile.webp",
+      "sha256": "1824ff9fac0f361c930f215b6b6701c80228504143a34ba3f2ad28691fb78c8d",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 122236,
+      "webpBytes": 32562
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-quiet-shore.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-quiet-shore.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-quiet-shore.webp",
+      "sha256": "12c9f0428ae4218111e000e7ab7fedbc1719b75518479ebdd0bee1da58943178",
+      "width": 1600,
+      "height": 1067,
+      "pngBytes": 425752,
+      "webpBytes": 90826
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-workshop-mobile-end.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-workshop-mobile-end.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-workshop-mobile-end.webp",
+      "sha256": "353922943396e88e3c95743547bce24c164011f93954f9bb573207924f11b2f3",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 93969,
+      "webpBytes": 48592
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-workshop-mobile.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-workshop-mobile.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-workshop-mobile.webp",
+      "sha256": "02b836772a58981d3ce46d15082082977e06951233d36228e2ccc91efa821774",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 142828,
+      "webpBytes": 41524
+    },
+    {
+      "source": "docs/showcase/35-rc/postcards/overlay-workshop.png",
+      "backup": "coverage/rc-raw-screenshots/postcards/overlay-workshop.png",
+      "webp": "docs/showcase/35-rc/postcards/overlay-workshop.webp",
+      "sha256": "43000353806f3fa8a10daf8ba1392d16acadc8301236638b4d95551a01e3b5f5",
+      "width": 1600,
+      "height": 1067,
+      "pngBytes": 521211,
+      "webpBytes": 116952
+    },
+    {
+      "source": "docs/showcase/35-rc/welcome/welcome-after-en-desktop.png",
+      "backup": "coverage/rc-raw-screenshots/welcome/welcome-after-en-desktop.png",
+      "webp": "docs/showcase/35-rc/welcome/welcome-after-en-desktop.webp",
+      "sha256": "3f3c04fdfb355947aa1e9451f694a432a10aa1a10e90e07290e7cf3c887215b5",
+      "width": 1366,
+      "height": 800,
+      "pngBytes": 625907,
+      "webpBytes": 54000
+    },
+    {
+      "source": "docs/showcase/35-rc/welcome/welcome-after-en-mobile.png",
+      "backup": "coverage/rc-raw-screenshots/welcome/welcome-after-en-mobile.png",
+      "webp": "docs/showcase/35-rc/welcome/welcome-after-en-mobile.webp",
+      "sha256": "508eca07ad2bdac67f20d1bf48601bb7d93d05bee76c0e038254e25afe3e1ea2",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 113588,
+      "webpBytes": 27502
+    },
+    {
+      "source": "docs/showcase/35-rc/welcome/welcome-after-en-narrow.png",
+      "backup": "coverage/rc-raw-screenshots/welcome/welcome-after-en-narrow.png",
+      "webp": "docs/showcase/35-rc/welcome/welcome-after-en-narrow.webp",
+      "sha256": "616a7ac279715bfd4e69e3f4ea93bc3ab852b1ae60d8aec72eaa57feb23cff53",
+      "width": 320,
+      "height": 640,
+      "pngBytes": 53675,
+      "webpBytes": 21614
+    },
+    {
+      "source": "docs/showcase/35-rc/welcome/welcome-after-vi-desktop.png",
+      "backup": "coverage/rc-raw-screenshots/welcome/welcome-after-vi-desktop.png",
+      "webp": "docs/showcase/35-rc/welcome/welcome-after-vi-desktop.webp",
+      "sha256": "460ef91871293031e3a7634f2838d1cc42421d1ec7990ad3589217bc3a53c8a7",
+      "width": 1366,
+      "height": 800,
+      "pngBytes": 628600,
+      "webpBytes": 52622
+    },
+    {
+      "source": "docs/showcase/35-rc/welcome/welcome-after-vi-mobile.png",
+      "backup": "coverage/rc-raw-screenshots/welcome/welcome-after-vi-mobile.png",
+      "webp": "docs/showcase/35-rc/welcome/welcome-after-vi-mobile.webp",
+      "sha256": "e6ca932dfdf8c40510f39bca68386b8910c4e40b9c09980d4b0c86fa050846cc",
+      "width": 390,
+      "height": 844,
+      "pngBytes": 128513,
+      "webpBytes": 26696
+    },
+    {
+      "source": "docs/showcase/35-rc/welcome/welcome-after-vi-narrow.png",
+      "backup": "coverage/rc-raw-screenshots/welcome/welcome-after-vi-narrow.png",
+      "webp": "docs/showcase/35-rc/welcome/welcome-after-vi-narrow.webp",
+      "sha256": "d4c08b663ecd2803c34b4f10c1089dedf4ce8dd775461b3b19f835e245004e1c",
+      "width": 320,
+      "height": 640,
+      "pngBytes": 63891,
+      "webpBytes": 20458
+    }
+  ]
+}

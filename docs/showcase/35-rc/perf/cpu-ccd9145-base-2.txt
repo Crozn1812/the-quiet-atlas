@@ -1,0 +1,1 @@
+4186 first-light [balanced, 4.01s]: script 210 ms/s task 230 ms/s | roots [balanced, 4.02s]: script 219 ms/s task 239 ms/s | workshop [balanced, 4.00s]: script 217 ms/s task 235 ms/s

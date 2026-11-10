@@ -1,10 +1,10 @@
 # Duy test bản RC — 20–30 phút
 
-Ghi trước khi test: commit `____________`, ngày `____________`, máy/trình duyệt `____________`. Kết quả kỹ thuật của RC xem [showcase 35](../showcase/35-rc/audit.md); điểm dưới đây do Duy chấm.
+RC nguồn đã kiểm: **`bbd85a7`**. Ghi trước khi test: commit đang mở `____________`, ngày `____________`, máy/trình duyệt `____________`. Clone có thêm commit tài liệu/bằng chứng sau nguồn RC, không đổi mã thực thi. Kết quả kỹ thuật xem [showcase 35](../showcase/35-rc/audit.md); điểm dưới đây do Duy chấm.
 
 ## Mở bản local
 
-Trong thư mục chứa bản RC, chạy lần lượt:
+Bản RC nằm ở `D:/tqa-worktrees/RC-01` (clone riêng, chờ Claude-Lead duyệt/merge vì `.git` repo chính chỉ đọc). Mở PowerShell tại thư mục này rồi chạy lần lượt:
 
 ```powershell
 pnpm install
@@ -57,7 +57,7 @@ Chấm **1 = khó dùng/không ổn, 3 = dùng được nhưng cần sửa, 5 = 
 
 ## T08/T09 trên laptop Iris Xe (đo riêng sau playtest)
 
-Theo [quy tắc chạy một mình](../runbook/codex-workers.md#việc-chạy-một-mình), [ADR 0007 — quyết định máy nghiệm thu mới nhất](../adr/0007-benchmark-reference-machine.md) và [cấu hình/lệnh đo](../../tests/perf/playwright.frame.config.ts). Laptop tham chiếu: ASUS Vivobook Flip, i5-13500H / Iris Xe / 16 GB. Cắm sạc, Balanced/Cân bằng, tắt tiết kiệm pin; dừng worker/build/Blender và đóng trình duyệt khác. Giữ Edge đo ở phía trước, không thu nhỏ, không thao tác máy trong lúc đo. Ghi commit, OS/browser version, độ phân giải, tần số quét, DPR và nguồn điện.
+Hướng dẫn đo riêng: [T08/T09 Iris Xe](../runbook/t08-iris-xe.md). Theo [quy tắc chạy một mình](../runbook/codex-workers.md#việc-chạy-một-mình), [ADR 0007 — quyết định máy nghiệm thu mới nhất](../adr/0007-benchmark-reference-machine.md) và [cấu hình/lệnh đo](../../tests/perf/playwright.frame.config.ts). Laptop tham chiếu: ASUS Vivobook Flip, i5-13500H / Iris Xe / 16 GB. Cắm sạc, Balanced/Cân bằng, tắt tiết kiệm pin; dừng worker/build/Blender và đóng trình duyệt khác. Giữ Edge đo ở phía trước, không thu nhỏ, không thao tác máy trong lúc đo. Ghi commit, OS/browser version, độ phân giải, tần số quét, DPR và nguồn điện.
 
 Sau `pnpm build`, chạy trong PowerShell, lần lượt (cấu hình tự mở server cổng 4175):
 

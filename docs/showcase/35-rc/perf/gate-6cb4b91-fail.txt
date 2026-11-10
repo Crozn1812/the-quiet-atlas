@@ -1,0 +1,5 @@
+GATE FAIL: unit
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/world/water-streaks.test.ts > uses the same warped field for sea detail and advects without periodic lane/dash masks
+ReferenceError: shoreInfluence is not defined
+      Tests  1 failed | 1749 passed (1750)

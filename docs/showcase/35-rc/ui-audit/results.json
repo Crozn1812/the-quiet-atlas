@@ -1,0 +1,2375 @@
+{
+  "startedAt": "2026-11-09T15:53:27.852Z",
+  "base": "http://127.0.0.1:4185",
+  "viewport": "1600x900",
+  "browser": "157.0.4341.42",
+  "status": "PASS",
+  "method": "Headed Edge; goTo/visitSecret/nearVehicle are QA hooks; E/menu/vehicle/railing use real inputs. Full keyboard journey is separate. Screenshots require human visual review.",
+  "steps": [
+    {
+      "id": "intro-full",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:53:28.297Z",
+      "detail": {
+        "mode": "full",
+        "loadingMode": "loading",
+        "loadingText": "Đang tải thế giới…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "vi-intro-full.webp",
+      "endedAt": "2026-11-09T15:53:59.744Z"
+    },
+    {
+      "id": "exit-after-full-intro",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:53:59.745Z",
+      "screenshot": "vi-exit-after-full-intro.webp",
+      "endedAt": "2026-11-09T15:54:00.021Z"
+    },
+    {
+      "id": "intro-skip-real",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:00.022Z",
+      "detail": {
+        "mode": "skip",
+        "loadingMode": "loading",
+        "loadingText": "Đang tải thế giới…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "vi-intro-skip-real.webp",
+      "endedAt": "2026-11-09T15:54:08.302Z"
+    },
+    {
+      "id": "zone-first-light-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:08.304Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "first-light",
+        "position": {
+          "x": 8.997187614440918,
+          "y": 8.20897102355957,
+          "z": -0.12724675238132477
+        }
+      },
+      "screenshot": "vi-zone-first-light-high.webp",
+      "endedAt": "2026-11-09T15:54:11.384Z"
+    },
+    {
+      "id": "zone-first-light-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:11.385Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-first-light-close-camera.webp",
+      "endedAt": "2026-11-09T15:54:13.613Z"
+    },
+    {
+      "id": "overlay-first-light-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:13.614Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 8.997187614440918,
+          "y": 8.209074974060059,
+          "z": -0.12733818590641022
+        },
+        "yaw": 2.680038338045886,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 8.997187614440918,
+              "y": 8.209074974060059,
+              "z": -0.12733881175518036
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.461075305938721,
+              "y": 8.231507301330566,
+              "z": 2.960806369781494
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.3274712562561035,
+              "y": 8.233161926269531,
+              "z": 3.2293472290039062
+            },
+            "hint": "E — Lời chào đầu"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-first-light-key-e.webp",
+      "endedAt": "2026-11-09T15:54:15.103Z"
+    },
+    {
+      "id": "overlay-first-light-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:15.104Z",
+      "screenshot": "vi-overlay-first-light-close.webp",
+      "endedAt": "2026-11-09T15:54:15.328Z"
+    },
+    {
+      "id": "zone-workshop-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:15.329Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "workshop",
+        "position": {
+          "x": 57.71809768676758,
+          "y": 7.152338981628418,
+          "z": -132.1659698486328
+        }
+      },
+      "screenshot": "vi-zone-workshop-high.webp",
+      "endedAt": "2026-11-09T15:54:18.494Z"
+    },
+    {
+      "id": "zone-workshop-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:18.494Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-workshop-close-camera.webp",
+      "endedAt": "2026-11-09T15:54:20.915Z"
+    },
+    {
+      "id": "overlay-workshop-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:20.915Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 57.71809768676758,
+          "y": 7.152439117431641,
+          "z": -132.1659698486328
+        },
+        "yaw": 0.5071273574327861,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 57.71809768676758,
+              "y": 7.152338981628418,
+              "z": -132.1659698486328
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 56.090877532958984,
+              "y": 7.129295349121094,
+              "z": -135.09490966796875
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 55.94512939453125,
+              "y": 7.123344898223877,
+              "z": -135.35719299316406
+            },
+            "hint": "E — Bàn thợ cạnh suối"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-workshop-key-e.webp",
+      "endedAt": "2026-11-09T15:54:22.354Z"
+    },
+    {
+      "id": "overlay-workshop-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:22.355Z",
+      "screenshot": "vi-overlay-workshop-close.webp",
+      "endedAt": "2026-11-09T15:54:22.671Z"
+    },
+    {
+      "id": "zone-roots-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:22.672Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "roots",
+        "position": {
+          "x": 21.03185272216797,
+          "y": 6.819667816162109,
+          "z": -173.35482788085938
+        }
+      },
+      "screenshot": "vi-zone-roots-high.webp",
+      "endedAt": "2026-11-09T15:54:25.593Z"
+    },
+    {
+      "id": "zone-roots-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:25.594Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-roots-close-camera.webp",
+      "endedAt": "2026-11-09T15:54:27.977Z"
+    },
+    {
+      "id": "overlay-roots-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:27.977Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 21.03185272216797,
+          "y": 6.8197102546691895,
+          "z": -173.35482788085938
+        },
+        "yaw": 0.8590546482264418,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 21.03185272216797,
+              "y": 6.8197102546691895,
+              "z": -173.35482788085938
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 18.267602920532227,
+              "y": 6.804087162017822,
+              "z": -175.73928833007812
+            },
+            "hint": "E — Gốc rễ"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-roots-key-e.webp",
+      "endedAt": "2026-11-09T15:54:29.404Z"
+    },
+    {
+      "id": "overlay-roots-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:29.405Z",
+      "screenshot": "vi-overlay-roots-close.webp",
+      "endedAt": "2026-11-09T15:54:29.715Z"
+    },
+    {
+      "id": "zone-milestones-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:29.715Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "milestones",
+        "position": {
+          "x": -16.91104507446289,
+          "y": 6.553685665130615,
+          "z": -205.79647827148438
+        }
+      },
+      "screenshot": "vi-zone-milestones-high.webp",
+      "endedAt": "2026-11-09T15:54:32.648Z"
+    },
+    {
+      "id": "zone-milestones-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:32.649Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-milestones-close-camera.webp",
+      "endedAt": "2026-11-09T15:54:35.014Z"
+    },
+    {
+      "id": "overlay-milestones-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:35.015Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": -16.91104507446289,
+          "y": 6.553685665130615,
+          "z": -205.79647827148438
+        },
+        "yaw": 0.8259782558740385,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -16.91104507446289,
+              "y": 6.553685665130615,
+              "z": -205.79647827148438
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -19.59503173828125,
+              "y": 6.543460369110107,
+              "z": -208.2686004638672
+            },
+            "hint": ""
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -22.499956130981445,
+              "y": 6.516453742980957,
+              "z": -210.94558715820312
+            },
+            "hint": ""
+          },
+          {
+            "forward": 12,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -25.404672622680664,
+              "y": 6.49686336517334,
+              "z": -213.62237548828125
+            },
+            "hint": ""
+          },
+          {
+            "forward": 16,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -25.662046432495117,
+              "y": 6.496997356414795,
+              "z": -213.85958862304688
+            },
+            "hint": "E — Cụm đá dấu mốc"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-milestones-key-e.webp",
+      "endedAt": "2026-11-09T15:54:39.405Z"
+    },
+    {
+      "id": "overlay-milestones-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:39.406Z",
+      "screenshot": "vi-overlay-milestones-close.webp",
+      "endedAt": "2026-11-09T15:54:39.686Z"
+    },
+    {
+      "id": "zone-old-trail-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:39.687Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "old-trail",
+        "position": {
+          "x": 10.716480255126953,
+          "y": 4.6714863777160645,
+          "z": -442.1573486328125
+        }
+      },
+      "screenshot": "vi-zone-old-trail-high.webp",
+      "endedAt": "2026-11-09T15:54:43.008Z"
+    },
+    {
+      "id": "zone-old-trail-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:43.009Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-old-trail-close-camera.webp",
+      "endedAt": "2026-11-09T15:54:45.515Z"
+    },
+    {
+      "id": "overlay-old-trail-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:45.516Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 10.716480255126953,
+          "y": 4.6714863777160645,
+          "z": -442.1573486328125
+        },
+        "yaw": 0.833664274596897,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 10.716480255126953,
+              "y": 4.671377182006836,
+              "z": -442.1573486328125
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 8.16220760345459,
+              "y": 4.651797294616699,
+              "z": -444.4764099121094
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.940201282501221,
+              "y": 4.652655601501465,
+              "z": -444.6781311035156
+            },
+            "hint": "E — Cột mốc đường cũ"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-old-trail-key-e.webp",
+      "endedAt": "2026-11-09T15:54:47.089Z"
+    },
+    {
+      "id": "overlay-old-trail-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:47.090Z",
+      "screenshot": "vi-overlay-old-trail-close.webp",
+      "endedAt": "2026-11-09T15:54:47.435Z"
+    },
+    {
+      "id": "zone-horizon-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:47.436Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "horizon",
+        "position": {
+          "x": 47.72416687011719,
+          "y": 3.041001558303833,
+          "z": -646.13818359375
+        }
+      },
+      "screenshot": "vi-zone-horizon-high.webp",
+      "endedAt": "2026-11-09T15:54:51.123Z"
+    },
+    {
+      "id": "zone-horizon-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:51.123Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-horizon-close-camera.webp",
+      "endedAt": "2026-11-09T15:54:53.503Z"
+    },
+    {
+      "id": "overlay-horizon-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:53.503Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 47.72416687011719,
+          "y": 3.041001558303833,
+          "z": -646.13818359375
+        },
+        "yaw": 5.651718996687773,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 47.72416687011719,
+              "y": 3.041001558303833,
+              "z": -646.13818359375
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 49.73162841796875,
+              "y": 3.01895809173584,
+              "z": -648.881591796875
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 49.90876007080078,
+              "y": 3.0170974731445312,
+              "z": -649.1236572265625
+            },
+            "hint": "E — Ống nhòm nhìn ra biển"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-horizon-key-e.webp",
+      "endedAt": "2026-11-09T15:54:54.950Z"
+    },
+    {
+      "id": "overlay-horizon-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:54.951Z",
+      "screenshot": "vi-overlay-horizon-close.webp",
+      "endedAt": "2026-11-09T15:54:55.285Z"
+    },
+    {
+      "id": "zone-quiet-shore-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:55.286Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "quiet-shore",
+        "position": {
+          "x": 26.75743293762207,
+          "y": 1.952019214630127,
+          "z": -778.3305053710938
+        }
+      },
+      "screenshot": "vi-zone-quiet-shore-high.webp",
+      "endedAt": "2026-11-09T15:54:58.175Z"
+    },
+    {
+      "id": "zone-quiet-shore-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:54:58.175Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-quiet-shore-close-camera.webp",
+      "endedAt": "2026-11-09T15:55:00.374Z"
+    },
+    {
+      "id": "overlay-quiet-shore-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:00.375Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 26.75743293762207,
+          "y": 1.952019214630127,
+          "z": -778.3305053710938
+        },
+        "yaw": 0.5120882354132501,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 26.75743293762207,
+              "y": 1.952019214630127,
+              "z": -778.3305053710938
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 25.09130859375,
+              "y": 1.932760238647461,
+              "z": -781.293212890625
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 23.00841522216797,
+              "y": 1.9112169742584229,
+              "z": -784.9967651367188
+            },
+            "hint": ""
+          },
+          {
+            "forward": 12,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 22.591501235961914,
+              "y": 1.9059017896652222,
+              "z": -785.7371826171875
+            },
+            "hint": "E — Piano trên hiên hướng biển"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-quiet-shore-key-e.webp",
+      "endedAt": "2026-11-09T15:55:03.535Z"
+    },
+    {
+      "id": "overlay-quiet-shore-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:03.536Z",
+      "screenshot": "vi-overlay-quiet-shore-close.webp",
+      "endedAt": "2026-11-09T15:55:03.753Z"
+    },
+    {
+      "id": "zone-last-postcard-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:03.754Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "last-postcard",
+        "position": {
+          "x": 7.9608564376831055,
+          "y": 1.688770055770874,
+          "z": -895.9990844726562
+        }
+      },
+      "screenshot": "vi-zone-last-postcard-high.webp",
+      "endedAt": "2026-11-09T15:55:06.404Z"
+    },
+    {
+      "id": "zone-last-postcard-close-camera",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:06.405Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "vi-zone-last-postcard-close-camera.webp",
+      "endedAt": "2026-11-09T15:55:08.483Z"
+    },
+    {
+      "id": "overlay-last-postcard-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:08.484Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 7.960792064666748,
+          "y": 1.6887708902359009,
+          "z": -895.9990844726562
+        },
+        "yaw": 6.27340791462834,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.960792064666748,
+              "y": 1.6887708902359009,
+              "z": -895.9990844726562
+            },
+            "hint": "E — Đi tới…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.9942426681518555,
+              "y": 1.6904836893081665,
+              "z": -899.4982299804688
+            },
+            "hint": "E — Hộp thư cuối đường"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-last-postcard-key-e.webp",
+      "endedAt": "2026-11-09T15:55:09.843Z"
+    },
+    {
+      "id": "overlay-last-postcard-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:09.844Z",
+      "screenshot": "vi-overlay-last-postcard-close.webp",
+      "endedAt": "2026-11-09T15:55:10.004Z"
+    },
+    {
+      "id": "journal",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:10.005Z",
+      "screenshot": "vi-journal.webp",
+      "endedAt": "2026-11-09T15:55:10.505Z"
+    },
+    {
+      "id": "menu-quality-low",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:10.506Z",
+      "screenshot": "vi-menu-quality-low.webp",
+      "endedAt": "2026-11-09T15:55:11.848Z"
+    },
+    {
+      "id": "menu-quality-balanced",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:11.848Z",
+      "screenshot": "vi-menu-quality-balanced.webp",
+      "endedAt": "2026-11-09T15:55:12.118Z"
+    },
+    {
+      "id": "menu-quality-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:12.119Z",
+      "screenshot": "vi-menu-quality-high.webp",
+      "endedAt": "2026-11-09T15:55:12.360Z"
+    },
+    {
+      "id": "menu-reduced-motion",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:12.361Z",
+      "screenshot": "vi-menu-reduced-motion.webp",
+      "endedAt": "2026-11-09T15:55:12.587Z"
+    },
+    {
+      "id": "menu-sound",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:12.587Z",
+      "detail": {
+        "audibleSound": "manual review required"
+      },
+      "screenshot": "vi-menu-sound.webp",
+      "endedAt": "2026-11-09T15:55:12.894Z"
+    },
+    {
+      "id": "menu-language",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:12.894Z",
+      "screenshot": "vi-menu-language.webp",
+      "endedAt": "2026-11-09T15:55:13.127Z"
+    },
+    {
+      "id": "chooser-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:13.128Z",
+      "screenshot": "vi-chooser-key-e.webp",
+      "endedAt": "2026-11-09T15:55:17.085Z"
+    },
+    {
+      "id": "bike-mount",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:17.086Z",
+      "screenshot": "vi-bike-mount.webp",
+      "endedAt": "2026-11-09T15:55:17.493Z"
+    },
+    {
+      "id": "bike-manual-movement",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:17.494Z",
+      "detail": {
+        "before": {
+          "x": 11.691105842590332,
+          "y": 8.187433242797852,
+          "z": -0.9578445553779602
+        },
+        "after": {
+          "x": 18.347227096557617,
+          "y": 8.103361129760742,
+          "z": -12.43388843536377
+        },
+        "metres": 13.266632326362059
+      },
+      "screenshot": "vi-bike-manual-movement.webp",
+      "endedAt": "2026-11-09T15:55:20.628Z"
+    },
+    {
+      "id": "bike-cruise",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:20.629Z",
+      "detail": {
+        "before": {
+          "x": 18.896650314331055,
+          "y": 8.097114562988281,
+          "z": -13.316242218017578
+        },
+        "after": {
+          "x": 26.04553985595703,
+          "y": 8.007988929748535,
+          "z": -24.319902420043945
+        },
+        "metres": 13.12201049839651
+      },
+      "screenshot": "vi-bike-cruise.webp",
+      "endedAt": "2026-11-09T15:55:23.292Z"
+    },
+    {
+      "id": "bike-brake",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:23.293Z",
+      "detail": {
+        "drift": 0
+      },
+      "screenshot": "vi-bike-brake.webp",
+      "endedAt": "2026-11-09T15:55:27.574Z"
+    },
+    {
+      "id": "bike-dismount",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:27.576Z",
+      "screenshot": "vi-bike-dismount.webp",
+      "endedAt": "2026-11-09T15:55:27.729Z"
+    },
+    {
+      "id": "secret-page-not-yet",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:27.730Z",
+      "detail": {
+        "method": "QA visitSecret; early page must not trigger ending"
+      },
+      "screenshot": "vi-secret-page-not-yet.webp",
+      "endedAt": "2026-11-09T15:55:29.602Z"
+    },
+    {
+      "id": "secret-reflection",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:29.602Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "reflection",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          }
+        ]
+      },
+      "screenshot": "vi-secret-reflection.webp",
+      "endedAt": "2026-11-09T15:55:31.279Z"
+    },
+    {
+      "id": "secret-forgotten-sound",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:31.280Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "forgotten-sound",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          }
+        ]
+      },
+      "screenshot": "vi-secret-forgotten-sound.webp",
+      "endedAt": "2026-11-09T15:55:32.222Z"
+    },
+    {
+      "id": "secret-unmarked-road",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:32.223Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unmarked-road",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          }
+        ]
+      },
+      "screenshot": "vi-secret-unmarked-road.webp",
+      "endedAt": "2026-11-09T15:55:33.755Z"
+    },
+    {
+      "id": "secret-unwritten-page",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:33.756Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unwritten-page",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          },
+          {
+            "id": "unwritten-page",
+            "count": 4
+          }
+        ]
+      },
+      "screenshot": "vi-secret-unwritten-page.webp",
+      "endedAt": "2026-11-09T15:55:35.172Z"
+    },
+    {
+      "id": "ending-full",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:55:35.172Z",
+      "screenshot": "vi-ending-full.webp",
+      "endedAt": "2026-11-09T15:56:11.471Z"
+    },
+    {
+      "id": "railing-real-key-approach",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:11.472Z",
+      "screenshot": "vi-railing-real-key-approach.webp",
+      "endedAt": "2026-11-09T15:56:16.211Z"
+    },
+    {
+      "id": "railing-exit",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:16.212Z",
+      "screenshot": "vi-railing-exit.webp",
+      "endedAt": "2026-11-09T15:56:16.314Z"
+    },
+    {
+      "id": "exit-world",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:16.315Z",
+      "screenshot": "vi-exit-world.webp",
+      "endedAt": "2026-11-09T15:56:16.595Z"
+    },
+    {
+      "id": "desktop-welcome",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:16.596Z",
+      "screenshot": "vi-desktop-welcome.webp",
+      "endedAt": "2026-11-09T15:56:16.906Z"
+    },
+    {
+      "id": "desktop-quick",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:16.907Z",
+      "screenshot": "vi-desktop-quick.webp",
+      "endedAt": "2026-11-09T15:56:17.032Z"
+    },
+    {
+      "id": "cv-links",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.044Z",
+      "detail": {
+        "responses": [
+          {
+            "href": "http://127.0.0.1:4185/cv/cv-nguyen-huu-bao-duy-en-2026-11-09.pdf",
+            "status": 200,
+            "contentType": "application/pdf",
+            "bytes": 38487
+          },
+          {
+            "href": "http://127.0.0.1:4185/cv/cv-nguyen-huu-bao-duy-vi-2026-11-09.pdf",
+            "status": 200,
+            "contentType": "application/pdf",
+            "bytes": 44805
+          }
+        ],
+        "manualPdfReading": "NOT RUN"
+      },
+      "screenshot": "vi-cv-links.webp",
+      "endedAt": "2026-11-09T15:56:17.166Z"
+    },
+    {
+      "id": "case-links-present",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.167Z",
+      "detail": {
+        "links": [
+          "http://127.0.0.1:4185/vi/projects/cms-devops-platform-aws-eks/",
+          "http://127.0.0.1:4185/vi/projects/partner-data-gateway-azure/",
+          "http://127.0.0.1:4185/vi/projects/insighthub-rag/",
+          "http://127.0.0.1:4185/vi/projects/aws-sales-data-pipeline/"
+        ]
+      },
+      "screenshot": "vi-case-links-present.webp",
+      "endedAt": "2026-11-09T15:56:17.207Z"
+    },
+    {
+      "id": "case-study-1",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.207Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/cms-devops-platform-aws-eks/"
+      },
+      "screenshot": "vi-case-study-1.webp",
+      "endedAt": "2026-11-09T15:56:17.330Z"
+    },
+    {
+      "id": "case-study-2",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.331Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/partner-data-gateway-azure/"
+      },
+      "screenshot": "vi-case-study-2.webp",
+      "endedAt": "2026-11-09T15:56:17.445Z"
+    },
+    {
+      "id": "case-study-3",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.446Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/insighthub-rag/"
+      },
+      "screenshot": "vi-case-study-3.webp",
+      "endedAt": "2026-11-09T15:56:17.571Z"
+    },
+    {
+      "id": "case-study-4",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.572Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/aws-sales-data-pipeline/"
+      },
+      "screenshot": "vi-case-study-4.webp",
+      "endedAt": "2026-11-09T15:56:17.678Z"
+    },
+    {
+      "id": "uncaught-errors",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.680Z",
+      "detail": {
+        "errors": []
+      },
+      "screenshot": "vi-uncaught-errors.webp",
+      "endedAt": "2026-11-09T15:56:17.741Z"
+    },
+    {
+      "id": "mobile-390-welcome",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:17.871Z",
+      "screenshot": "vi-mobile-390-welcome.webp",
+      "endedAt": "2026-11-09T15:56:18.034Z"
+    },
+    {
+      "id": "mobile-390-quick",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:18.035Z",
+      "screenshot": "vi-mobile-390-quick.webp",
+      "endedAt": "2026-11-09T15:56:18.150Z"
+    },
+    {
+      "id": "mobile-320-welcome",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:18.285Z",
+      "screenshot": "vi-mobile-320-welcome.webp",
+      "endedAt": "2026-11-09T15:56:18.454Z"
+    },
+    {
+      "id": "mobile-320-quick",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:18.455Z",
+      "screenshot": "vi-mobile-320-quick.webp",
+      "endedAt": "2026-11-09T15:56:18.591Z"
+    },
+    {
+      "id": "intro-full",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:18.725Z",
+      "detail": {
+        "mode": "full",
+        "loadingMode": "loading",
+        "loadingText": "Loading the world…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "en-intro-full.webp",
+      "endedAt": "2026-11-09T15:56:49.007Z"
+    },
+    {
+      "id": "exit-after-full-intro",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:49.008Z",
+      "screenshot": "en-exit-after-full-intro.webp",
+      "endedAt": "2026-11-09T15:56:49.281Z"
+    },
+    {
+      "id": "intro-skip-real",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:49.282Z",
+      "detail": {
+        "mode": "skip",
+        "loadingMode": "loading",
+        "loadingText": "Loading the world…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "en-intro-skip-real.webp",
+      "endedAt": "2026-11-09T15:56:57.495Z"
+    },
+    {
+      "id": "zone-first-light-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:56:57.496Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "first-light",
+        "position": {
+          "x": 8.997187614440918,
+          "y": 8.20906925201416,
+          "z": -0.12724615633487701
+        }
+      },
+      "screenshot": "en-zone-first-light-high.webp",
+      "endedAt": "2026-11-09T15:57:00.347Z"
+    },
+    {
+      "id": "zone-first-light-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:00.348Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-first-light-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:02.569Z"
+    },
+    {
+      "id": "overlay-first-light-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:02.570Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 8.997187614440918,
+          "y": 8.209074974060059,
+          "z": -0.12733756005764008
+        },
+        "yaw": 2.680038338045886,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 8.997187614440918,
+              "y": 8.209074974060059,
+              "z": -0.12733818590641022
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.349765777587891,
+              "y": 8.232748985290527,
+              "z": 3.184589385986328
+            },
+            "hint": "E — A first hello"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-first-light-key-e.webp",
+      "endedAt": "2026-11-09T15:57:04.042Z"
+    },
+    {
+      "id": "overlay-first-light-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:04.043Z",
+      "screenshot": "en-overlay-first-light-close.webp",
+      "endedAt": "2026-11-09T15:57:04.254Z"
+    },
+    {
+      "id": "zone-workshop-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:04.255Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "workshop",
+        "position": {
+          "x": 57.71809768676758,
+          "y": 7.152338981628418,
+          "z": -132.1659698486328
+        }
+      },
+      "screenshot": "en-zone-workshop-high.webp",
+      "endedAt": "2026-11-09T15:57:07.316Z"
+    },
+    {
+      "id": "zone-workshop-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:07.317Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-workshop-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:09.704Z"
+    },
+    {
+      "id": "overlay-workshop-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:09.705Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 57.71809768676758,
+          "y": 7.152439117431641,
+          "z": -132.1659698486328
+        },
+        "yaw": 0.5071273574327861,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 57.71809768676758,
+              "y": 7.152439117431641,
+              "z": -132.1659698486328
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 56.06679153442383,
+              "y": 7.128970623016357,
+              "z": -135.13839721679688
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 55.92104721069336,
+              "y": 7.120070934295654,
+              "z": -135.40066528320312
+            },
+            "hint": "E — Workbench by the stream"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-workshop-key-e.webp",
+      "endedAt": "2026-11-09T15:57:11.186Z"
+    },
+    {
+      "id": "overlay-workshop-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:11.186Z",
+      "screenshot": "en-overlay-workshop-close.webp",
+      "endedAt": "2026-11-09T15:57:11.479Z"
+    },
+    {
+      "id": "zone-roots-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:11.480Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "roots",
+        "position": {
+          "x": 21.03185272216797,
+          "y": 6.819567680358887,
+          "z": -173.35482788085938
+        }
+      },
+      "screenshot": "en-zone-roots-high.webp",
+      "endedAt": "2026-11-09T15:57:14.428Z"
+    },
+    {
+      "id": "zone-roots-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:14.428Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-roots-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:16.837Z"
+    },
+    {
+      "id": "overlay-roots-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:16.838Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 21.03185272216797,
+          "y": 6.819667816162109,
+          "z": -173.35482788085938
+        },
+        "yaw": 0.8590546482264418,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 21.03185272216797,
+              "y": 6.8197102546691895,
+              "z": -173.35482788085938
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 18.305458068847656,
+              "y": 6.804447650909424,
+              "z": -175.7065887451172
+            },
+            "hint": "E — The root stump"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-roots-key-e.webp",
+      "endedAt": "2026-11-09T15:57:18.263Z"
+    },
+    {
+      "id": "overlay-roots-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:18.264Z",
+      "screenshot": "en-overlay-roots-close.webp",
+      "endedAt": "2026-11-09T15:57:18.574Z"
+    },
+    {
+      "id": "zone-milestones-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:18.575Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "milestones",
+        "position": {
+          "x": -16.91104507446289,
+          "y": 6.553685665130615,
+          "z": -205.79647827148438
+        }
+      },
+      "screenshot": "en-zone-milestones-high.webp",
+      "endedAt": "2026-11-09T15:57:21.588Z"
+    },
+    {
+      "id": "zone-milestones-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:21.589Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-milestones-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:24.058Z"
+    },
+    {
+      "id": "overlay-milestones-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:24.059Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": -16.91104507446289,
+          "y": 6.553685665130615,
+          "z": -205.79647827148438
+        },
+        "yaw": 0.8259782558740385,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -16.91104507446289,
+              "y": 6.553685665130615,
+              "z": -205.79647827148438
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -19.521400451660156,
+              "y": 6.54413366317749,
+              "z": -208.20069885253906
+            },
+            "hint": ""
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -22.4261417388916,
+              "y": 6.5179443359375,
+              "z": -210.87759399414062
+            },
+            "hint": ""
+          },
+          {
+            "forward": 12,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": -25.44101333618164,
+              "y": 6.496764183044434,
+              "z": -213.6559600830078
+            },
+            "hint": "E — Milestone rocks"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-milestones-key-e.webp",
+      "endedAt": "2026-11-09T15:57:28.634Z"
+    },
+    {
+      "id": "overlay-milestones-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:28.635Z",
+      "screenshot": "en-overlay-milestones-close.webp",
+      "endedAt": "2026-11-09T15:57:28.962Z"
+    },
+    {
+      "id": "zone-old-trail-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:28.964Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "old-trail",
+        "position": {
+          "x": 10.716480255126953,
+          "y": 4.671477317810059,
+          "z": -442.1573486328125
+        }
+      },
+      "screenshot": "en-zone-old-trail-high.webp",
+      "endedAt": "2026-11-09T15:57:32.533Z"
+    },
+    {
+      "id": "zone-old-trail-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:32.535Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-old-trail-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:35.096Z"
+    },
+    {
+      "id": "overlay-old-trail-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:35.098Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 10.716480255126953,
+          "y": 4.671477317810059,
+          "z": -442.1573486328125
+        },
+        "yaw": 0.833664274596897,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 10.716480255126953,
+              "y": 4.6714863777160645,
+              "z": -442.1573486328125
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 8.088274955749512,
+              "y": 4.6523919105529785,
+              "z": -444.54345703125
+            },
+            "hint": "E — Old trail marker"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-old-trail-key-e.webp",
+      "endedAt": "2026-11-09T15:57:36.484Z"
+    },
+    {
+      "id": "overlay-old-trail-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:36.485Z",
+      "screenshot": "en-overlay-old-trail-close.webp",
+      "endedAt": "2026-11-09T15:57:36.915Z"
+    },
+    {
+      "id": "zone-horizon-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:36.916Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "horizon",
+        "position": {
+          "x": 47.72416687011719,
+          "y": 3.0410025119781494,
+          "z": -646.13818359375
+        }
+      },
+      "screenshot": "en-zone-horizon-high.webp",
+      "endedAt": "2026-11-09T15:57:41.020Z"
+    },
+    {
+      "id": "zone-horizon-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:41.022Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-horizon-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:43.573Z"
+    },
+    {
+      "id": "overlay-horizon-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:43.574Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 47.72416687011719,
+          "y": 3.040902614593506,
+          "z": -646.13818359375
+        },
+        "yaw": 5.651718996687773,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 47.72416687011719,
+              "y": 3.040996789932251,
+              "z": -646.13818359375
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 49.790679931640625,
+              "y": 3.0183043479919434,
+              "z": -648.9623413085938
+            },
+            "hint": "E — Sea-facing viewer"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-horizon-key-e.webp",
+      "endedAt": "2026-11-09T15:57:44.973Z"
+    },
+    {
+      "id": "overlay-horizon-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:44.974Z",
+      "screenshot": "en-overlay-horizon-close.webp",
+      "endedAt": "2026-11-09T15:57:45.377Z"
+    },
+    {
+      "id": "zone-quiet-shore-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:45.378Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "quiet-shore",
+        "position": {
+          "x": 26.75743293762207,
+          "y": 1.952019214630127,
+          "z": -778.3305053710938
+        }
+      },
+      "screenshot": "en-zone-quiet-shore-high.webp",
+      "endedAt": "2026-11-09T15:57:48.504Z"
+    },
+    {
+      "id": "zone-quiet-shore-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:48.505Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-quiet-shore-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:50.786Z"
+    },
+    {
+      "id": "overlay-quiet-shore-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:50.788Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 26.75743293762207,
+          "y": 1.952019214630127,
+          "z": -778.3305053710938
+        },
+        "yaw": 0.5120882354132501,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 26.75743293762207,
+              "y": 1.952019214630127,
+              "z": -778.3305053710938
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 25.09139060974121,
+              "y": 1.9327605962753296,
+              "z": -781.2931518554688
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 8,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 23.131134033203125,
+              "y": 1.9115650653839111,
+              "z": -784.7789916992188
+            },
+            "hint": ""
+          },
+          {
+            "forward": 12,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 22.44517707824707,
+              "y": 1.9042693376541138,
+              "z": -785.9991455078125
+            },
+            "hint": "E — Piano on the seaside porch"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-quiet-shore-key-e.webp",
+      "endedAt": "2026-11-09T15:57:54.173Z"
+    },
+    {
+      "id": "overlay-quiet-shore-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:54.175Z",
+      "screenshot": "en-overlay-quiet-shore-close.webp",
+      "endedAt": "2026-11-09T15:57:54.439Z"
+    },
+    {
+      "id": "zone-last-postcard-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:54.440Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "last-postcard",
+        "position": {
+          "x": 7.9608564376831055,
+          "y": 1.688770055770874,
+          "z": -895.9990844726562
+        }
+      },
+      "screenshot": "en-zone-last-postcard-high.webp",
+      "endedAt": "2026-11-09T15:57:57.122Z"
+    },
+    {
+      "id": "zone-last-postcard-close-camera",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:57.124Z",
+      "detail": {
+        "method": "real mouse wheel, fixed-pitch orbit",
+        "requestedDistanceM": 4,
+        "restoredDistanceM": 12,
+        "visualApproval": "NOT RUN — human must review character/landmark occlusion and camera clipping in screenshot"
+      },
+      "screenshot": "en-zone-last-postcard-close-camera.webp",
+      "endedAt": "2026-11-09T15:57:59.280Z"
+    },
+    {
+      "id": "overlay-last-postcard-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:57:59.281Z",
+      "detail": {
+        "approach": "real WASD search",
+        "origin": {
+          "x": 7.960789203643799,
+          "y": 1.6888697147369385,
+          "z": -895.9990844726562
+        },
+        "yaw": 6.27340791462834,
+        "observations": [
+          {
+            "forward": 0,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.960788249969482,
+              "y": 1.688769817352295,
+              "z": -895.9990844726562
+            },
+            "hint": "E — Travel…"
+          },
+          {
+            "forward": 4,
+            "right": 0,
+            "reached": true,
+            "position": {
+              "x": 7.994274139404297,
+              "y": 1.6899065971374512,
+              "z": -899.4982299804688
+            },
+            "hint": "E — The last mailbox"
+          }
+        ],
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-last-postcard-key-e.webp",
+      "endedAt": "2026-11-09T15:58:00.676Z"
+    },
+    {
+      "id": "overlay-last-postcard-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:00.677Z",
+      "screenshot": "en-overlay-last-postcard-close.webp",
+      "endedAt": "2026-11-09T15:58:00.876Z"
+    },
+    {
+      "id": "journal",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:00.877Z",
+      "screenshot": "en-journal.webp",
+      "endedAt": "2026-11-09T15:58:01.402Z"
+    },
+    {
+      "id": "menu-quality-low",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:01.403Z",
+      "screenshot": "en-menu-quality-low.webp",
+      "endedAt": "2026-11-09T15:58:01.963Z"
+    },
+    {
+      "id": "menu-quality-balanced",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:01.964Z",
+      "screenshot": "en-menu-quality-balanced.webp",
+      "endedAt": "2026-11-09T15:58:02.285Z"
+    },
+    {
+      "id": "menu-quality-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:02.287Z",
+      "screenshot": "en-menu-quality-high.webp",
+      "endedAt": "2026-11-09T15:58:02.560Z"
+    },
+    {
+      "id": "menu-reduced-motion",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:02.561Z",
+      "screenshot": "en-menu-reduced-motion.webp",
+      "endedAt": "2026-11-09T15:58:02.828Z"
+    },
+    {
+      "id": "menu-sound",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:02.829Z",
+      "detail": {
+        "audibleSound": "manual review required"
+      },
+      "screenshot": "en-menu-sound.webp",
+      "endedAt": "2026-11-09T15:58:03.131Z"
+    },
+    {
+      "id": "menu-language",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:03.132Z",
+      "screenshot": "en-menu-language.webp",
+      "endedAt": "2026-11-09T15:58:03.440Z"
+    },
+    {
+      "id": "chooser-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:03.442Z",
+      "screenshot": "en-chooser-key-e.webp",
+      "endedAt": "2026-11-09T15:58:07.893Z"
+    },
+    {
+      "id": "bike-mount",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:07.894Z",
+      "screenshot": "en-bike-mount.webp",
+      "endedAt": "2026-11-09T15:58:08.475Z"
+    },
+    {
+      "id": "bike-manual-movement",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:08.477Z",
+      "detail": {
+        "before": {
+          "x": 11.691105842590332,
+          "y": 8.18773365020752,
+          "z": -0.9578470587730408
+        },
+        "after": {
+          "x": 18.486591339111328,
+          "y": 8.101787567138672,
+          "z": -12.658380508422852
+        },
+        "metres": 13.530746695574539
+      },
+      "screenshot": "en-bike-manual-movement.webp",
+      "endedAt": "2026-11-09T15:58:11.623Z"
+    },
+    {
+      "id": "bike-cruise",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:11.625Z",
+      "detail": {
+        "before": {
+          "x": 18.966882705688477,
+          "y": 8.096087455749512,
+          "z": -13.428525924682617
+        },
+        "after": {
+          "x": 26.165632247924805,
+          "y": 8.006743431091309,
+          "z": -24.499549865722656
+        },
+        "metres": 13.205664166369273
+      },
+      "screenshot": "en-bike-cruise.webp",
+      "endedAt": "2026-11-09T15:58:14.315Z"
+    },
+    {
+      "id": "bike-brake",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:14.316Z",
+      "detail": {
+        "drift": 0
+      },
+      "screenshot": "en-bike-brake.webp",
+      "endedAt": "2026-11-09T15:58:18.637Z"
+    },
+    {
+      "id": "bike-dismount",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:18.638Z",
+      "screenshot": "en-bike-dismount.webp",
+      "endedAt": "2026-11-09T15:58:18.806Z"
+    },
+    {
+      "id": "secret-page-not-yet",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:18.808Z",
+      "detail": {
+        "method": "QA visitSecret; early page must not trigger ending"
+      },
+      "screenshot": "en-secret-page-not-yet.webp",
+      "endedAt": "2026-11-09T15:58:20.955Z"
+    },
+    {
+      "id": "secret-reflection",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:20.956Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "reflection",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          }
+        ]
+      },
+      "screenshot": "en-secret-reflection.webp",
+      "endedAt": "2026-11-09T15:58:23.175Z"
+    },
+    {
+      "id": "secret-forgotten-sound",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:23.177Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "forgotten-sound",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          }
+        ]
+      },
+      "screenshot": "en-secret-forgotten-sound.webp",
+      "endedAt": "2026-11-09T15:58:24.193Z"
+    },
+    {
+      "id": "secret-unmarked-road",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:24.194Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unmarked-road",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          }
+        ]
+      },
+      "screenshot": "en-secret-unmarked-road.webp",
+      "endedAt": "2026-11-09T15:58:25.957Z"
+    },
+    {
+      "id": "secret-unwritten-page",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:25.959Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unwritten-page",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          },
+          {
+            "id": "unwritten-page",
+            "count": 4
+          }
+        ]
+      },
+      "screenshot": "en-secret-unwritten-page.webp",
+      "endedAt": "2026-11-09T15:58:27.998Z"
+    },
+    {
+      "id": "ending-full",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:58:27.999Z",
+      "screenshot": "en-ending-full.webp",
+      "endedAt": "2026-11-09T15:59:03.870Z"
+    },
+    {
+      "id": "railing-real-key-approach",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:03.871Z",
+      "screenshot": "en-railing-real-key-approach.webp",
+      "endedAt": "2026-11-09T15:59:08.604Z"
+    },
+    {
+      "id": "railing-exit",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:08.605Z",
+      "screenshot": "en-railing-exit.webp",
+      "endedAt": "2026-11-09T15:59:08.707Z"
+    },
+    {
+      "id": "exit-world",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:08.709Z",
+      "screenshot": "en-exit-world.webp",
+      "endedAt": "2026-11-09T15:59:08.975Z"
+    },
+    {
+      "id": "desktop-welcome",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:08.977Z",
+      "screenshot": "en-desktop-welcome.webp",
+      "endedAt": "2026-11-09T15:59:09.281Z"
+    },
+    {
+      "id": "desktop-quick",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.282Z",
+      "screenshot": "en-desktop-quick.webp",
+      "endedAt": "2026-11-09T15:59:09.393Z"
+    },
+    {
+      "id": "cv-links",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.404Z",
+      "detail": {
+        "responses": [
+          {
+            "href": "http://127.0.0.1:4185/cv/cv-nguyen-huu-bao-duy-en-2026-11-09.pdf",
+            "status": 200,
+            "contentType": "application/pdf",
+            "bytes": 38487
+          },
+          {
+            "href": "http://127.0.0.1:4185/cv/cv-nguyen-huu-bao-duy-vi-2026-11-09.pdf",
+            "status": 200,
+            "contentType": "application/pdf",
+            "bytes": 44805
+          }
+        ],
+        "manualPdfReading": "NOT RUN"
+      },
+      "screenshot": "en-cv-links.webp",
+      "endedAt": "2026-11-09T15:59:09.536Z"
+    },
+    {
+      "id": "case-links-present",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.537Z",
+      "detail": {
+        "links": [
+          "http://127.0.0.1:4185/en/projects/cms-devops-platform-aws-eks/",
+          "http://127.0.0.1:4185/en/projects/partner-data-gateway-azure/",
+          "http://127.0.0.1:4185/en/projects/insighthub-rag/",
+          "http://127.0.0.1:4185/en/projects/aws-sales-data-pipeline/"
+        ]
+      },
+      "screenshot": "en-case-links-present.webp",
+      "endedAt": "2026-11-09T15:59:09.573Z"
+    },
+    {
+      "id": "case-study-1",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.574Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/cms-devops-platform-aws-eks/"
+      },
+      "screenshot": "en-case-study-1.webp",
+      "endedAt": "2026-11-09T15:59:09.679Z"
+    },
+    {
+      "id": "case-study-2",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.680Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/partner-data-gateway-azure/"
+      },
+      "screenshot": "en-case-study-2.webp",
+      "endedAt": "2026-11-09T15:59:09.789Z"
+    },
+    {
+      "id": "case-study-3",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.790Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/insighthub-rag/"
+      },
+      "screenshot": "en-case-study-3.webp",
+      "endedAt": "2026-11-09T15:59:09.896Z"
+    },
+    {
+      "id": "case-study-4",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:09.897Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/aws-sales-data-pipeline/"
+      },
+      "screenshot": "en-case-study-4.webp",
+      "endedAt": "2026-11-09T15:59:10.006Z"
+    },
+    {
+      "id": "uncaught-errors",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:10.007Z",
+      "detail": {
+        "errors": []
+      },
+      "screenshot": "en-uncaught-errors.webp",
+      "endedAt": "2026-11-09T15:59:10.053Z"
+    },
+    {
+      "id": "mobile-390-welcome",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:10.182Z",
+      "screenshot": "en-mobile-390-welcome.webp",
+      "endedAt": "2026-11-09T15:59:10.333Z"
+    },
+    {
+      "id": "mobile-390-quick",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:10.334Z",
+      "screenshot": "en-mobile-390-quick.webp",
+      "endedAt": "2026-11-09T15:59:10.439Z"
+    },
+    {
+      "id": "mobile-320-welcome",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:10.558Z",
+      "screenshot": "en-mobile-320-welcome.webp",
+      "endedAt": "2026-11-09T15:59:10.701Z"
+    },
+    {
+      "id": "mobile-320-quick",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:59:10.702Z",
+      "screenshot": "en-mobile-320-quick.webp",
+      "endedAt": "2026-11-09T15:59:10.808Z"
+    }
+  ],
+  "endedAt": "2026-11-09T15:59:10.818Z"
+}
