@@ -52,8 +52,11 @@
   "humanT10Playtest": "DEFERRED",
   "mainMerge": {
     "status": "BLOCKED",
-    "reason": "Main .git read-only; Claude-Lead fetch/review/merge per latest handoff"
+    "reason": "Main .git read-only; Claude-Lead fetch/review/merge per latest handoff",
+    "mainHead": "d00bf20",
+    "runtimeEquivalentTo": "3bb0752"
   },
   "push": "NOT RUN",
-  "limits": "Image review is sampled; viewport snapshots do not replace human/audio/phone/laptop testing; earlier FAIL/BLOCKED evidence retained"
+  "limits": "Image review is sampled; viewport snapshots do not replace human/audio/phone/laptop testing; earlier FAIL/BLOCKED evidence retained",
+  "evidenceCommit": "1cfda44de4e8447c1d02ba94e197f050291e4b2a"
 }

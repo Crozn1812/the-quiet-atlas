@@ -7,7 +7,7 @@
 - CPU harness gốc Balanced/1500 ms warm-up/W 4 s, ABBA hai lượt mỗi bản: delta Script/Task First Light **+3,5/+5**, Roots **−15/−17**, Workshop **−11/−12 ms/s**: PASS trần +10. Baseline export `144a02c` có world source giống main `3bb0752`, git diff đã kiểm. Giữ mọi FAIL cũ; diagnostic 15 s không dùng thay gate.
 - Lead đã mở từng ảnh đủ 8 khu High và 15 ảnh intro/ending; Art/QA mở 12 Welcome/Quick VI/EN desktop/mobile cuối. Max luma delta 0,001. Slideshow ảnh QA **45,00 s**, 1280×720, WebM; đã decode/seek/xem khung, không gọi là video gameplay. Chạy tuyến phím thật và UI140 đã có từ lượt trước, không làm lại.
 - T08/T09 Iris Xe **NOT RUN**; T10/điểm người chơi **DEFERRED** cho Duy. P3 còn lại và giới hạn kiểm mẫu ghi trong audit; bảng chấm vẫn trống.
-- Main vẫn `3bb0752`, `.git` chỉ đọc, **chưa merge/push**. Theo chỉ dẫn Claude-Lead 10/11 06:50: Codex được chốt DONE bằng hash trong clone sau đủ gate; Claude-Lead `git fetch D:/tqa-worktrees/RC-01 lane/RC-01`, duyệt/merge main. Không cần Codex tự merge trong môi trường này.
+- Main HEAD `d00bf20` (chỉ thêm tài liệu, runtime như `3bb0752`), `.git` chỉ đọc, **chưa merge/push**. Theo chỉ dẫn Claude-Lead 10/11 06:50: Codex được chốt DONE bằng hash trong clone sau đủ gate; Claude-Lead `git fetch D:/tqa-worktrees/RC-01 lane/RC-01`, duyệt/merge main. Không cần Codex tự merge trong môi trường này.
 - Bằng chứng/tài liệu được commit sau nguồn RC, **không đổi runtime/assets/dependency**. Các checkpoint “đang làm” bên dưới là lịch sử đã xử lý; không khởi động lại ticket/đo đã hoàn tất.
 
 Lỗi môi trường đã xử lý: e2e lần đầu đủ 153 ok nhưng treo teardown server Windows; chạy lại dùng server ngoài exit 0. Lighthouse lần launcher đầu không fetch được CDP, taskkill cũng bị từ chối; chạy lại bằng Edge do Playwright quản lý, attach CDP loopback 9333, giữ nguyên profile/15 runs/assertions. Giữ log FAIL/BLOCKED gốc trong showcase.
@@ -100,3 +100,13 @@ Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/t
 - Đã đo lại CPU ABBA sau RC11: First Light baseline trung bình Script/Task 225,5/247 ms/s, RC11 279,5/304: FAIL. Roots và Workshop không tăng trên cặp này. Giữ log `perf/cpu-confirm-*.txt`; RC15/16 chưa đo. Không ghi CPU PASS.
 - RC12 mở rộng quad không đủ sửa tam giác biển. Đã cô lập vào shader shoreline (constant offshore loại dải), đang thử sửa có bằng chứng trước/sau; chưa duyệt ending. Debug `__rcDebug` trong index.ts là tạm, phải bỏ trước chốt nguồn/build/gate cuối.
 - Audit/checklist/README và guide đã cập nhật trong clone; toàn bộ gate RC cuối, High after/luma, render ending, e2e4, load ≤6s/8MB và Lighthouse vẫn chờ chốt nguồn. Đọc bản clone để tiếp tục nếu phiên này dừng giữa chừng.
+
+Bằng chứng/hướng dẫn đã commit: `1cfda44de4e8447c1d02ba94e197f050291e4b2a`. Git diff runtime/assets/dependency từ nguồn RC rỗng; không chạy lại gate chỉ vì thay tài liệu. Main `d00bf20` chỉ thêm tài liệu so với baseline runtime `3bb0752`.
+
+## Chỉ dẫn Lead gốc từ main d00bf20 (lịch sử, CPU nay đã xử lý)
+
+##### Lead (Claude) 2026-11-10 06:50 — cách merge khi `.git` main chỉ đọc
+
+Codex **không cần** tự merge. Khi RC đủ gate trong clone `D:/tqa-worktrees/RC-01`, commit trong clone rồi ghi một dòng riêng `RC-01 DONE <hash-trong-clone>`. Claude-Lead sẽ `git fetch D:/tqa-worktrees/RC-01 lane/RC-01`, duyệt và merge vào main. **Ưu tiên còn lại:** CPU First Light vẫn FAIL (+54 ms/s ở RC11, Workshop +20/+21 ở 30e90). Phải đưa về ≤ main + 10 ms/s (2 lượt ABBA, máy rảnh) trước khi ghi DONE, hoặc ghi rõ lý do kèm số đo cho Duy quyết.
+
+RC-01 DONE bbd85a7c336aa025f11f42d40a07ea8bdbea83f1

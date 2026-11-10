@@ -1,6 +1,6 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-**Điều phối mới nhất (10/11):** Codex làm Lead + thi công RC-01 để Duy test toàn bộ. [Showcase 35 và audit](showcase/35-rc/README.md) · [Hướng dẫn test 20–30 phút](playtest/rc-guide.md). Clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`; main vẫn `3bb0752`, chưa push. `.git` main chỉ đọc: Claude-Lead sẽ fetch/duyệt/merge clone khi đủ gate theo [handoff](runbook/lead-handoff.md).
+**Điều phối mới nhất (10/11):** Codex làm Lead + thi công RC-01 để Duy test toàn bộ. [Showcase 35 và audit](showcase/35-rc/README.md) · [Hướng dẫn test 20–30 phút](playtest/rc-guide.md). Clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`; main hiện `d00bf20` (thêm tài liệu từ `3bb0752`, runtime chưa chứa RC), chưa push. `.git` main chỉ đọc: Claude-Lead sẽ fetch/duyệt/merge clone khi đủ gate theo [handoff](runbook/lead-handoff.md).
 
 ## RC-01 — đủ gate để Duy test local (2026-11-10)
 
