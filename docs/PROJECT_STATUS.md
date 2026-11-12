@@ -1,5 +1,13 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## RC-01 đã chốt trong clone — lần 3, 2026-11-10
+
+Nguồn RC đã kiểm `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`; bằng chứng/hướng dẫn commit `1cfda44de4e8447c1d02ba94e197f050291e4b2a` trên `lane/RC-01`, clone `D:/tqa-worktrees/RC-01`. [Showcase](../../tqa-worktrees/RC-01/docs/showcase/35-rc/README.md) · [Hướng dẫn test 20–30 phút](../../tqa-worktrees/RC-01/docs/playtest/rc-guide.md) · [Audit/log](../../tqa-worktrees/RC-01/docs/showcase/35-rc/audit.md).
+
+PASS: build/strict gate1759unit, full e2e153/153 (4 worker), CPU ABBA trần+10, sáu tải lạnh worst4,653s/2.128.915B, Lighthouse15lượt, CV/bundle/license/assets và duyệt8High+15cinematic+12Welcome/Quick. SlideshowQA45s có trong showcase. T08/T09 IrisXe NOT RUN, T10/playtest Duy DEFERRED; bảng chấm trống.
+
+Main HEAD `d00bf20` vẫn chưa có runtime RC (chỉ thêm tài liệu so với `3bb0752`), chưa push. Theo ngoại lệ Lead06:50, Claude-Lead fetch/duyệt/merge clone. Các phần phía dưới giữ lịch sử trước RC; không dùng làm trạng thái mới nhất.
+
 **Điều phối mới nhất:** Duy yêu cầu bàn giao cho Claude; xem [bản bàn giao 08/11](runbook/claude-handoff-2026-11-08.md). Codex đã lưu toàn bộ mã/bằng chứng và dừng thi công, chờ Duy gọi Claude tiếp nhận. Mẫu First Light R1 vẫn chờ duyệt, chưa merge.
 
 > Cập nhật lần cuối: 2026-11-08 (đợt 31: UX/UI, e2e 151/151, unit 1697/1697, tải lạnh và Lighthouse PASS trên main `7774ae8`).

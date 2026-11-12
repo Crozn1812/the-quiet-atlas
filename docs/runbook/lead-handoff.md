@@ -1,3 +1,11 @@
+# RC-01 — hoàn tất lần 3, bàn giao Claude-Lead
+
+Nguồn đã kiểm `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`; bằng chứng/hướng dẫn đã commit `1cfda44de4e8447c1d02ba94e197f050291e4b2a` tại clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`. [Bàn giao đầy đủ](../../../tqa-worktrees/RC-01/docs/runbook/lead-handoff.md) · [Showcase](../../../tqa-worktrees/RC-01/docs/showcase/35-rc/README.md) · [Duy test](../../../tqa-worktrees/RC-01/docs/playtest/rc-guide.md).
+
+Đủ gate máy dev: strict1759unit, e2e153/1534worker, loadworst4653,10ms/world2128915B, Lighthouse15mobile/slow4G/CPU4×, CPU ABBA2mỗi bản deltaScript/TaskFL+3,5/+5;Roots−15/−17;Workshop−11/−12ms/s, CV/tài nguyên/renderPASS. Duyệt8High+15cinematic, Art/QA12front; videoQA45s đã decode/seek/xem. T08/T09 NOT RUN; T10/Duy DEFERRED.
+
+Main `d00bf20` chưa merge runtime RC; ngoại lệ Lead06:50 cho phép DONE hashclone để Claude-Lead fetch/duyệt/merge. Không push/cloud/credential. Chỉ có tài liệu trạng thái được cập nhật tại main; mã/assets/test nằm trong clone. Các checkpoint “đang làm” phía dưới là lịch sử đã xử lý, không làm lại.
+
 # Bàn giao UX/UI — 2026-11-08
 
 **Duy yêu cầu bàn giao lại cho Claude.** Bản tiếp nhận đầy đủ: [claude-handoff-2026-11-08.md](claude-handoff-2026-11-08.md). Codex đã chuẩn bị tài liệu, chờ Duy gọi Claude tiếp nhận; chưa xác nhận Claude đã đọc. Không còn lịch heartbeat tự chạy.
@@ -41,6 +49,18 @@ Theo `docs/tickets/R1-rollout.md`: **R1-A** (rừng, tổng quát hoá cơ chế
 Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/tickets/RC-01-release-candidate.md`, được khởi động bằng `bash tools/lead/run-codex-lead.sh RC-01-release-candidate.md`. Script tự chạy lại sau giờ reset và dừng khi file này có dòng `RC-01 DONE <hash>`.
 
 ### RC-01 đang làm
+
+#### Lần 3 — đang tiếp tục tại clone, nguồn `4d627b1`
+
+##### Cập nhật ưu tiên lần3 — `bbd85a7`, đọc checkpoint clone
+
+- Nguồn `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1` gồm RC21/RC22. Build/target26unit/strictgate1759PASS; **CPU harness gốc ABBA2mỗi bản PASS**: deltaScript/Task FirstLight+3,5/+5, Roots−15/−17, Workshop−11/−12ms/s. `perf/cpu-final-summary.json` giữ4log và provenancebaselineworldmain3bb.
+- Lead đã mở đủ8Highafter-bbd, luma maxdelta0,001; chuỗi kiểm cuối đang chạy session17459 trong clone. Đọc coverage/rc-*-bbd85a7.log và clonehandoff trước khi chạy lại. Còn renderintro/endingbbd, full e2e4, load≤6s/8MB, Lighthouse, CV và commit báo cáo. Không làm lại UI140/journey. ChưaDONE.
+
+- Đọc checkpoint lần3 trong `D:/tqa-worktrees/RC-01/docs/runbook/lead-handoff.md` và log clone để tiếp tục; không làm lại UI140/journey. Nguồn hiện `4d627b1c3831a6b6b86545cdda499a545524a677`.
+- Strictgate1753/1753 và build trên4d PASS; bundle/license/assets lần3 PASS. Lead đã mở8High `after/`, maxdelta luma0,001; mở intro4khung và ending-source-final (hết wedge rõ, actor ngoài ghế), hint-final4caseVI/EN PASS.
+- E2E4worker153/153 dòngok nhưng treo teardown server Windows, CHƯA suitePASS. Đã dừng riêng runner/server của lượt; sẽ rerun dùng E2E_PORT4185/reuse server ngoài để tránh taskkill. CPU ABBA3 chuẩn vẫn FAIL Roots; diagnostic15swarmupABBA đang chạy để ghiFPS/CPUframe, không thay ngưỡng.
+- Còn full e2e exit0, load≤6s/8MB, LHCI, CPU và báo cáo/commitbằngchứng cuối. Chưa DONE/push. Chỉ dẫn Claude06:50 bên dưới vẫn áp dụng: cloneđủgate thì DONEhashclone cho Claude review/merge.
 
 - Lần 1, 2026-11-09: base main 3bb0752. KHÔNG làm lại RC-02 capture và lượt journey đã hoàn thành.
 - Môi trường từ chối ghi .git repo chính (git worktree add lỗi RC-01.lock Permission denied). Đã tạo clone độc lập D:/tqa-worktrees/RC-01, lane/RC-01, không phải worktree được đăng ký. Code/asset/bằng chứng ở clone; chưa merge main, chưa push.
@@ -88,3 +108,5 @@ Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/t
 ##### Lead (Claude) 2026-11-10 06:50 — cách merge khi `.git` main chỉ đọc
 
 Codex **không cần** tự merge. Khi RC đủ gate trong clone `D:/tqa-worktrees/RC-01`, commit trong clone rồi ghi một dòng riêng `RC-01 DONE <hash-trong-clone>`. Claude-Lead sẽ `git fetch D:/tqa-worktrees/RC-01 lane/RC-01`, duyệt và merge vào main. **Ưu tiên còn lại:** CPU First Light vẫn FAIL (+54 ms/s ở RC11, Workshop +20/+21 ở 30e90). Phải đưa về ≤ main + 10 ms/s (2 lượt ABBA, máy rảnh) trước khi ghi DONE, hoặc ghi rõ lý do kèm số đo cho Duy quyết.
+
+RC-01 DONE bbd85a7c336aa025f11f42d40a07ea8bdbea83f1
