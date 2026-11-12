@@ -6,6 +6,13 @@ Duy đã cài Antigravity và cấp toàn quyền (2026-11-12). Claude không đ
 2. Duy mở Antigravity → **Open Folder** đúng worktree đó → dán lời nhắn bên dưới (đổi `<ticket>`).
 3. Xong, Duy nhắn Claude "AG-<ticket> xong". Claude build, chạy e2e, xem ảnh, rồi merge hoặc trả lại.
 
+**Từ 2026-11-12 (tối):** Duy cho Claude-Lead dùng computer use, nên bước 2–3 do Lead tự làm:
+
+- Trong Antigravity: biểu tượng thư mục cạnh **Projects** → **Add Folder** → chọn worktree → **Next**. Hộp chọn thư mục của Windows không cho gõ đường dẫn; bấm `New Volume (D:)` → `tqa-worktrees` → thư mục ticket → **Select Folder**.
+- Mỗi worktree là một project riêng; hai project chạy song song được. Dán lời nhắn vào ô chat của đúng project rồi gửi.
+- Cửa sổ Antigravity có thể nằm ở màn hình phụ (`EGM22F100V`) hoặc màn hình chính.
+- Lead chờ file `tools/review/AG-<ticket>-handoff.md` xuất hiện, rồi duyệt như ticket Codex.
+
 ## Lời nhắn mẫu để dán vào Antigravity
 
 ```
