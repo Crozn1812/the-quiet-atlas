@@ -13,6 +13,7 @@ Chung cho mọi ticket:
   - không khí **tối, mờ sương** đúng bình minh (luma rừng khoảng 0,20–0,26).
 - **Tia nắng:** các vệt sáng thể tích mảnh **lọt qua khe lá, chiếu xiên từ trái sang phải**, lấp lánh nhẹ (lá rung). Không dùng một dải trắng to như bản dở.
 - **Suối First Light:** nhân vật **lội xuống được** (lòng suối nông, có collider đáy), có **vài con cá** bơi (instanced, rẻ).
+- **Được sửa:** `src/features/world/foliage/*`, `src/features/world/zones/first-light.ts`, `src/features/world/terrain/*` (núi, nguồn, lòng suối), `src/features/world/water/*` (đoạn suối First Light, cá), `src/features/world/sky/*`, `src/features/world/art/direction.ts`, `src/features/world/post/*` (tia nắng), collider đáy suối trong `scene/*`, nối ngắn trong `index.ts`, `tools/assets/blender/`, `public/world/`, LICENSES, test.
 - **Ngân sách (ADR 0015):** không còn trần 8 MB; vào chơi ≤ 10 s (asset nặng nạp deferred); CPU ≤ main + 10 ms/s.
 
 ## VH-02: lái xe đúng hướng, ghi-đông xoay, lên/xuống xe (cổng 4512)
@@ -24,6 +25,7 @@ Chung cho mọi ticket:
 - Được sửa: `src/features/world/vehicle/*`, `src/features/vehicle/*`, `src/features/world/character/ride.ts`, test.
 
 ## MS-01: bỏ mascot (cổng 4513)
+- **Được sửa:** `src/features/world/mascot/*` (xoá), mọi chỗ nối mascot trong `src/features/world/index.ts`, `src/components/portfolio/WorldMenu.ts` + `src/i18n/*` (bỏ cài đặt Mascot), test unit/e2e liên quan.
 - Gỡ hẳn mascot (giọt nước), gồm gợi ý, cài đặt "Mascot" trong Menu, test liên quan.
 - Thông tin mascot từng nói ra không được mất: chuyển sang hint HUD sẵn có (nếu cần).
 - Không để lại code chết.
