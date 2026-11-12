@@ -72,5 +72,9 @@ for (const [locale, file] of Object.entries(files)) {
   const text = extractText(pdf);
   const name = locale === "vi" ? "Nguyễn Hữu Bảo Duy" : "Nguyen Huu Bao Duy";
   if (!text.replace(/\n/g, "").includes(name)) throw new Error(`PDF name missing: ${name}`);
+  const compact = text.replace(/\s/g, "");
+  for (const expected of ["CCNA", "03/2026", "Tools", "Postman", "Languages", "Cisco Certified Network Associate"]) {
+    if (!compact.includes(expected.replace(/\s/g, ""))) throw new Error(`PDF updated content missing: ${locale}: ${expected}`);
+  }
   console.log(`${locale}: extracted ${name}; metadata verified; ${pdf.length} bytes`);
 }

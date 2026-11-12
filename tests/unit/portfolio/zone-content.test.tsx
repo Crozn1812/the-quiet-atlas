@@ -81,6 +81,34 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     expect(html).not.toContain("The Making of The Quiet Atlas");
   });
 
+  it("offers a large linked diagram and explicit full case study in both project views", () => {
+    const data = fixture(locale);
+    const project = data.projects[0]!;
+    for (const html of [render(locale, "workshop", data), renderToStaticMarkup(createElement(OverlayProject, { locale, project }))]) {
+      expect(html).toContain(`href="/architecture/${project.slug}.svg" target="_blank"`);
+      expect(html).toContain(locale === "vi" ? "Bấm để phóng to" : "Click to enlarge");
+      expect(html).toContain(locale === "vi" ? "Đọc case study đầy đủ →" : "Read the full case study →");
+      expect(html).toContain(`href="/${locale}/projects/${project.slug}/" target="_blank"`);
+    }
+  });
+
+  it("renders one skill per list item in five factual groups and publishes the confirmed CCNA date", () => {
+    const data = fixture(locale);
+    const profile = content.profiles.find(p => p.locale === locale)!;
+    data.skills = profile.skills;
+    const html = render(locale, "roots", data);
+    expect(profile.skills.map(group => group.title)).toEqual([
+      "Cloud Platform · AWS", "Cloud Platform · Azure", "Languages", "Network and Systems", "Tools",
+    ]);
+    const rows = profile.skills.flatMap(group => group.description.split("\n"));
+    expect(html.match(/<li\b/g)).toHaveLength(rows.length + profile.skills.length);
+    for (const row of rows) expect(html).toContain(`<li>${escaped(row)}</li>`);
+    data.certificates = profile.certificates;
+    const certificates = render(locale, "milestones", data);
+    expect(certificates).toContain("<h2>CCNA</h2>");
+    expect(certificates).toContain("03/2026");
+  });
+
   it("places a supplied making-of case study last without duplicating it", () => {
     const data = fixture(locale);
     const making = {

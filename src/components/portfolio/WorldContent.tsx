@@ -107,13 +107,6 @@ export function mountWorldContent(container: HTMLElement, language: string) {
             >
               {locale === "vi" ? "Chép liên kết dự án" : "Copy project link"}
             </button>
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener"
-            >
-              {locale === "vi" ? "Đọc bản đầy đủ" : "Read full version"}
-            </a>
             <OverlayProject
               project={project}
               locale={locale}

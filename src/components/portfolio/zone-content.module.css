@@ -130,6 +130,46 @@
   outline-offset: 3px;
 }
 
+.diagram {
+  inline-size: 100%;
+  min-inline-size: 0;
+  margin: 1.5rem 0;
+}
+
+.diagram > a {
+  display: block;
+  inline-size: 100%;
+  padding: 0;
+  cursor: zoom-in;
+}
+
+.diagram figcaption {
+  margin-block-start: .5rem;
+  font-size: 1rem;
+}
+
+.page .projectLink {
+  color: var(--water);
+  text-decoration: underline;
+  text-decoration-thickness: .08em;
+}
+
+.page .caseStudy {
+  padding: .65rem 1rem;
+  border: 2px solid var(--water);
+  color: var(--water);
+  font-weight: 700;
+}
+
+.skills {
+  padding-inline-start: 1.4rem;
+  list-style: disc;
+}
+
+.skills > li {
+  margin-block: .5rem;
+}
+
 .links > a,
 .body > a,
 .postcard section > a {

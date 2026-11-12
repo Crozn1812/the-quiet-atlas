@@ -210,28 +210,33 @@ const hptSummary: Record<Locale, string> = {
 // xác minh nên không ghi mã. Bản chụp chứng chỉ lưu ngoài repo. Phần tính cách Duy đã duyệt (Q-42).
 type ProfileItem={ title: string; description: string };
 const skills: Record<Locale, ProfileItem[]> = {
+  // UI-05: one newline-delimited skill per list item in the overlay and CV.
+  // Sources: project copy above and Duy's approved Q-34 profile (coursework/labs stay labelled).
   vi: [
-    { title: "Cloud Platform · AWS", description: "EC2, S3, Lambda, DynamoDB, CloudWatch và AWS CDK. Đồ án CMS dùng EKS, ECR, ALB và RDS PostgreSQL. Pipeline dữ liệu bán hàng dùng S3 → Lambda để xử lý CSV." },
-    { title: "Cloud Platform · Azure", description: "Azure API Management, Azure Functions, Microsoft Entra ID và Application Insights trong Partner Data Gateway. Microsoft Foundry, Microsoft Fabric và Power Automate trong thời gian thực tập." },
-    { title: "Ngôn ngữ và hệ điều hành", description: "Python cho xử lý dữ liệu và dịch vụ backend. Linux và shell cho môi trường triển khai. C++ trong học tập." },
-    { title: "Network and Systems", description: "Nền tảng mạng theo nội dung CCNA, thực hành Cisco Packet Tracer và tìm hiểu pfSense." },
-    { title: "DevOps và công cụ", description: "Terraform, Docker, Kubernetes, Helm, Jenkins, GitHub Actions và Argo CD. Prometheus và Grafana để quan sát. Postman để kiểm thử API." }
+    { title: "Cloud Platform · AWS", description: "EC2\nS3 — pipeline xử lý CSV bán hàng\nLambda — xử lý CSV khi S3 có sự kiện\nDynamoDB\nCloudWatch\nAWS CDK\nEKS — đồ án CMS\nECR — đồ án CMS\nALB — đồ án CMS\nRDS PostgreSQL — đồ án CMS" },
+    { title: "Cloud Platform · Azure", description: "Azure API Management — Partner Data Gateway\nAzure Functions — Partner Data Gateway\nMicrosoft Entra ID — Partner Data Gateway\nApplication Insights — Partner Data Gateway\nMicrosoft Foundry — thực tập\nMicrosoft Fabric — thực tập\nPower Automate — thực tập" },
+    { title: "Languages", description: "Python — xử lý dữ liệu và dịch vụ backend\nShell — môi trường triển khai\nC++ — học tập" },
+    { title: "Network and Systems", description: "Linux — môi trường triển khai\nNền tảng mạng CCNA\nCisco Packet Tracer — thực hành lab\npfSense — tìm hiểu" },
+    { title: "Tools", description: "Terraform\nDocker\nKubernetes\nHelm\nJenkins\nGitHub Actions\nArgo CD\nPrometheus — quan sát hệ thống\nGrafana — quan sát hệ thống\nPostman — kiểm thử API" }
   ],
   en: [
-    { title: "Cloud Platform · AWS", description: "EC2, S3, Lambda, DynamoDB, CloudWatch and AWS CDK. The CMS capstone uses EKS, ECR, ALB and RDS PostgreSQL. The sales pipeline uses S3 events to trigger Lambda for CSV processing." },
-    { title: "Cloud Platform · Azure", description: "Azure API Management, Azure Functions, Microsoft Entra ID and Application Insights in Partner Data Gateway. Microsoft Foundry, Microsoft Fabric and Power Automate during my internship." },
-    { title: "Languages and operating systems", description: "Python for data processing and backend services. Linux and shell for deployment environments. C++ in coursework." },
-    { title: "Network and Systems", description: "CCNA networking fundamentals, Cisco Packet Tracer labs and pfSense study." },
-    { title: "DevOps and tools", description: "Terraform, Docker, Kubernetes, Helm, Jenkins, GitHub Actions and Argo CD. Prometheus and Grafana for observability. Postman for API testing." }
+    { title: "Cloud Platform · AWS", description: "EC2\nS3 — sales CSV processing pipeline\nLambda — CSV processing triggered by S3 events\nDynamoDB\nCloudWatch\nAWS CDK\nEKS — CMS capstone\nECR — CMS capstone\nALB — CMS capstone\nRDS PostgreSQL — CMS capstone" },
+    { title: "Cloud Platform · Azure", description: "Azure API Management — Partner Data Gateway\nAzure Functions — Partner Data Gateway\nMicrosoft Entra ID — Partner Data Gateway\nApplication Insights — Partner Data Gateway\nMicrosoft Foundry — internship\nMicrosoft Fabric — internship\nPower Automate — internship" },
+    { title: "Languages", description: "Python — data processing and backend services\nShell — deployment environments\nC++ — coursework" },
+    { title: "Network and Systems", description: "Linux — deployment environments\nCCNA networking fundamentals\nCisco Packet Tracer — labs\npfSense — study" },
+    { title: "Tools", description: "Terraform\nDocker\nKubernetes\nHelm\nJenkins\nGitHub Actions\nArgo CD\nPrometheus — observability\nGrafana — observability\nPostman — API testing" }
   ]
 };
 const certificates: Record<Locale, ProfileItem[]>={
+  // CCNA earned 03/2026: Duy confirmed in R2 playtest feedback (UI-05).
   vi: [
+    { title: "CCNA", description: "Cisco Certified Network Associate, nhận tháng 03/2026." },
     { title: "Chứng nhận hoàn thành khoá DevOps, VTI Academy", description: "Certificate of Completion, 09/2026. Khoá học có đồ án tốt nghiệp là CMS DevOps Platform trên AWS EKS." },
     { title: "Dự định: AWS Solutions Architect Associate", description: "Chưa thi. Viên đá này còn để trống." },
     { title: "Dự định: chứng chỉ Linux hoặc CEH", description: "Chưa thi. Viên đá này còn để trống." }
   ],
   en: [
+    { title: "CCNA", description: "Cisco Certified Network Associate, earned 03/2026." },
     { title: "Certificate of Completion: DevOps, VTI Academy", description: "Completed the DevOps training course, 09/2026. Its graduation project was the CMS DevOps Platform on AWS EKS." },
     { title: "Planned: AWS Solutions Architect Associate", description: "Not taken yet. This stone is still blank." },
     { title: "Planned: a Linux certification or CEH", description: "Not taken yet. This stone is still blank." }

@@ -40,7 +40,12 @@ export function cvHtml(content, locale) {
       <p>${labels.expected}: ${e(x.expectedGraduation)} · ${x.status === "graduated" ? labels.graduated : labels.inProgress}</p>
     </article>`).join("")}` : ""}
     <h2>${locale === "vi" ? "Kỹ năng" : "Skills"}</h2>
-    ${profile.skills.map(item => `<p><strong>${e(item.title)}</strong> · ${e(item.description)}</p>`).join("")}
+    <div class="skills">${profile.skills.map(item => `<section>
+      <h3>${e(item.title)}</h3>
+      <ul>${item.description.split("\n").filter(Boolean).map(skill => `<li>${e(skill)}</li>`).join("")}</ul>
+    </section>`).join("")}</div>
+    <h2>${locale === "vi" ? "Chứng chỉ & học tập" : "Certificates & learning"}</h2>
+    ${profile.certificates.map(item => `<article><h3>${e(item.title)}</h3><p>${e(item.description)}</p></article>`).join("")}
     <h2>${labels.projects}</h2>
     ${projects.map(p => `<article>
       <h3>${e(p.title)}${p.reviewStatus !== "approved" ? " · Draft" : ""}</h3>
@@ -59,6 +64,10 @@ export function cvHtml(content, locale) {
     h1, h2, h3 { break-after: avoid; }
     p { margin: 5pt 0; orphans: 3; widows: 3; overflow-wrap: anywhere; }
     article { break-inside: auto; }
+    .skills { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
+    .skills section { break-inside: avoid; }
+    ul { margin: 5pt 0; padding-left: 14pt; }
+    li { margin: 2pt 0; break-inside: avoid; }
   `);
 }
 

@@ -4,6 +4,19 @@ import { content } from "@/content";
 import { cvHtml, cleanMetadata } from "../../../tools/cv/render.mjs";
 import { listenWorldError } from "@/components/portfolio/worldError";
 
+it("keeps every skill on its own list item and includes CCNA with the confirmed award month", () => {
+  for (const locale of ["en", "vi"]) {
+    const html = cvHtml(content, locale);
+    const profile = content.profiles.find(p => p.locale === locale)!;
+    expect(html).toContain("<h3>Tools</h3>");
+    expect(html).toContain("<h3>CCNA</h3>");
+    expect(html).toContain("03/2026");
+    expect(html.match(/<li>/g)).toHaveLength(profile.skills.flatMap(group => group.description.split("\n")).length);
+    expect(html).toContain(locale === "vi" ? "C++ — học tập" : "C++ — coursework");
+    expect(html).toContain(locale === "vi" ? "pfSense — tìm hiểu" : "pfSense — study");
+  }
+});
+
 it("renders the approved bilingual CV without Draft labels, escapes text, and omits TBD phone", () => {
   for (const locale of ["en", "vi"]) {
     const html = cvHtml(content, locale);

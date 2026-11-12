@@ -163,14 +163,13 @@ test("§6.3 Roots: overlay shows Duy's current skills, links Quick Portfolio; ×
   await expect(overlayTitle(page)).toHaveText("The Roots");
   await expect(overlayTitle(page)).toBeFocused();
   await expect(overlay(page).getByRole("heading", { level: 1, name: "Skills" })).toBeVisible({ timeout: 10_000 });
-  for (const title of ["Cloud Platform · AWS", "Cloud Platform · Azure", "Languages and operating systems", "Network and Systems", "DevOps and tools"]) {
+  // UI-05 (Duy round 2): one skill per line, five groups including Tools.
+  for (const title of ["Cloud Platform · AWS", "Cloud Platform · Azure", "Languages", "Network and Systems", "Tools"]) {
     await expect(overlay(page).getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
   }
-  await expect(overlay(page).getByText("EC2, S3, Lambda, DynamoDB, CloudWatch and AWS CDK.", { exact: false })).toBeVisible();
-  await expect(overlay(page).getByText("Azure API Management, Azure Functions, Microsoft Entra ID and Application Insights", { exact: false })).toBeVisible();
-  await expect(overlay(page).getByText("Python for data processing and backend services.", { exact: false })).toBeVisible();
-  await expect(overlay(page).getByText("CCNA networking fundamentals, Cisco Packet Tracer labs and pfSense study.", { exact: true })).toBeVisible();
-  await expect(overlay(page).getByText("Terraform, Docker, Kubernetes, Helm, Jenkins, GitHub Actions and Argo CD.", { exact: false })).toBeVisible();
+  for (const item of ["EC2", "Azure API Management — Partner Data Gateway", "Python — data processing and backend services", "CCNA networking fundamentals", "Postman — API testing"]) {
+    await expect(overlay(page).getByText(item, { exact: true })).toBeVisible();
+  }
   await expect(overlay(page).getByText("Duy is still writing this page.")).toHaveCount(0);
   await expect(overlay(page).getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", "/en/quick/");
 

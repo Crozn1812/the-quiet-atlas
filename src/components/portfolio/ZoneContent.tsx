@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import type { Locale } from "@/i18n/locales";
 import { messages } from "@/i18n/messages";
 import { EvidenceView, SourceLinkView } from "./ProjectLinkViews";
-import { ProjectHeading } from "./ProjectHeading";
 import { ProjectDiagram } from "./ProjectDiagram";
 import { gmailCompose } from "./contact";
 import type { WorldContentData, WorldProject } from "./worldContentData";
@@ -73,11 +72,12 @@ export function OverlayProject({ project, locale }: { project: WorldProject; loc
   const evidence = project.evidence.filter(item => published(item.level));
   return (
     <article className={styles.page}>
-      <ProjectHeading
-        title={published(project.title)}
-        statusLabel={published(project.statusLabel)}
-      />
+      <h1><a className={styles.projectLink} href={`/${locale}/projects/${project.slug}/`}
+        target="_blank" rel="noopener noreferrer">{published(project.title)} ↗</a></h1>
+      {published(project.statusLabel) && <p className={styles.meta}>{project.statusLabel}</p>}
       <p>{published(project.summary)}</p>
+      <ProjectDiagram slug={project.slug} title={project.title} locale={locale} />
+      <FullCaseStudy slug={project.slug} locale={locale} />
       {evidence.length > 0 && <EvidenceView
         evidence={evidence}
         locale={locale}
@@ -88,6 +88,13 @@ export function OverlayProject({ project, locale }: { project: WorldProject; loc
       />
     </article>
   );
+}
+
+function FullCaseStudy({ slug, locale }: { slug: string; locale: Locale }) {
+  return <a className={styles.caseStudy} href={`/${locale}/projects/${slug}/`}
+    target="_blank" rel="noopener noreferrer">
+    {locale === "vi" ? "Đọc case study đầy đủ →" : "Read the full case study →"}
+  </a>;
 }
 
 export function ZoneContent({ locale, zoneId, data }: {
@@ -126,10 +133,11 @@ export function ZoneContent({ locale, zoneId, data }: {
       <div className={styles.entries}>
         {projects.filter(project => published(project.title)).map(project => (
           <section key={project.id}>
-            <h2><a href={`/${locale}/projects/${project.slug}/`}>{project.title}</a></h2>
+            <h2><a className={styles.projectLink} href={`/${locale}/projects/${project.slug}/`}>{project.title} ↗</a></h2>
             {published(project.statusLabel) && <p className={styles.meta}>{project.statusLabel}</p>}
             {published(project.summary) && <p>{project.summary}</p>}
             <ProjectDiagram slug={project.slug} title={project.title} locale={locale} />
+            <FullCaseStudy slug={project.slug} locale={locale} />
           </section>
         ))}
       </div>
@@ -206,7 +214,11 @@ export function ZoneContent({ locale, zoneId, data }: {
     <>
       {items.length > 0 ? (
         <ul className={styles.entries}>
-          {items.map((item, index) => <li key={index}><h2>{item.title}</h2><p>{item.description}</p></li>)}
+          {items.map((item, index) => <li key={index}><h2>{item.title}</h2>
+            {zoneId === "roots" ? <ul className={styles.skills}>
+              {item.description.split("\n").filter(Boolean).map(skill => <li key={skill}>{skill}</li>)}
+            </ul> : <p>{item.description}</p>}
+          </li>)}
         </ul>
       ) : <p className={styles.lead}>{unwritten}</p>}
       {quick}
