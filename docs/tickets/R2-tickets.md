@@ -83,3 +83,13 @@ Chung cho mọi ticket:
 - **Lan can:** liền một hàng, cao đều.
 - **Tựa lan can:** E "Look out to sea" phải hoạt động (e2e `world-railing.spec.ts`).
 - Được sửa: `src/features/world/road/*`, `terrain/height.ts` (phần đường), `src/features/interaction/lean.ts`, test.
+
+### RT-02: trả lại vòng 1 (Lead, ảnh `docs/showcase/36-r2/lead-review/rt02-r0-*.webp`)
+
+Từ camera chơi chỉ thấy **một cột thân thẳng, đen**; không thấy rễ, cành xoắn, tầng tán. Bảng kỹ năng là ô trắng nhỏ, không đọc được chữ. Cây elf phải **đọc được ngay trong khung chơi**:
+- **Gốc và rễ:** gốc loe rộng 8–12 m; 6–10 rễ nổi cong, chạy ra 8–15 m, có rễ vồng lên khỏi mặt đất (đi vòng qua được).
+- **Thân:** xoắn rõ, vỏ nâu-xám ấm có rêu, không đen. Thân tách thành 3–5 nhánh lớn từ độ cao 6–10 m, các nhánh cong vặn ra ngoài; vài nhánh thấp vươn qua lối đi để nằm trong khung chơi.
+- **Tán:** 3+ tầng tán dày, chồng nhau, rủ thấp tới 10–14 m ở mép; có dây leo hoặc rễ khí rủ xuống.
+- **Bảng sơ đồ kỹ năng:** cột riêng cạnh lối đi, quay về phía lối đi, chữ đọc được ở khoảng cách chơi (chữ cao ≥ 24 px trên khung 1600×900). Nội dung theo nhóm kỹ năng mới (UI-05 đã merge: AWS, Azure, Languages, Network and Systems, Tools).
+- Được dùng **Blender MCP** (đã cấu hình cho Codex) hoặc script Blender để dựng GLB; ngân sách theo ADR 0015 (không còn trần 6 000 tam giác cứng; giữ dưới khoảng 25 000 tam giác và nạp deferred).
+- Tự chụp bằng `node tools/review/wide-shots.mjs <base> roots <out>` cùng `ingame-shots` ở High.
