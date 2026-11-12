@@ -2,7 +2,6 @@
 /* eslint-disable @next/next/no-html-link-for-pages */
 // Quick Portfolio is server-only. It lives apart from Portfolio.tsx so the Quick route does not import
 // WorldEntry and therefore does not ship or instantiate its client chunk (L1-012).
-import { portfolioCopy } from "@/i18n/portfolio";
 import { ProfileContent, ProjectsContent } from "./ServerZoneContent";
 import { content } from "@/content";
 import type { Locale } from "@/i18n/locales";
@@ -10,6 +9,7 @@ import { messages } from "@/i18n/messages";
 import { ProfileJsonLd } from "./ProfileJsonLd";
 import { ProfileHistory } from "./ProfileHistory";
 import { published, publishedUrl } from "./published";
+import { gmailCompose } from "./contact";
 
 export function QuickPortfolio({ locale }: { locale: Locale }) {
   const p = content.profiles.find(p => p.locale === locale)!;
@@ -29,7 +29,7 @@ export function QuickPortfolio({ locale }: { locale: Locale }) {
         <div className="quick-navigation">
           <nav aria-label="Portfolio">
             <a href={`/${locale}/`}>{t.home}</a>
-            <a href="/cv/">CV</a>
+            <a href="#contact">{t.contact}</a>
           </nav>
           <nav aria-label="Language">
             <a
@@ -51,17 +51,10 @@ export function QuickPortfolio({ locale }: { locale: Locale }) {
       </header>
       <ProfileHistory profile={p} locale={locale} />
       <ProjectsContent locale={locale} />
-      <a href={`/${locale}/privacy/`}>{portfolioCopy[locale].privacy}</a>
-      <section
-        id="cv"
-        aria-labelledby="cv-title"
-      >
-        <h2 id="cv-title">CV</h2>
-        <a href="/cv/">CV</a>
-      </section>
       <section aria-labelledby="contact">
         <h2 id="contact">{t.contact}</h2>
-        {publishedUrl(p.email) && <a href={`mailto:${p.email}`}>{p.email}</a>}
+        {publishedUrl(p.email) && <a href={gmailCompose(p.email)} target="_blank" rel="noopener noreferrer">{p.email}</a>}
+        <p><a href="/cv/">{locale === "vi" ? "Tải CV" : "Download CV"}</a></p>
         {published(p.phone) && <p>{t.phone}: {published(p.phone)}</p>}
         {publishedUrl(p.githubUrl) && <p><a href={p.githubUrl}>GitHub</a></p>}
         {publishedUrl(p.linkedinUrl) && <p><a href={p.linkedinUrl}>LinkedIn</a></p>}

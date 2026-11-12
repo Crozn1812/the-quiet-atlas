@@ -200,6 +200,33 @@ it("updates the Quick link and the complete keyboard/mouse guide when locale cha
   expect(quick.href).toBe("/en/quick/");
 });
 
+it.each(["en", "vi"])("ADR 0016: switches page language from %s while keeping the world English", async pageLocale => {
+  const onLocale = vi.fn();
+  const worldLocale = vi.fn();
+  dom.container.addEventListener("tqa:set-locale", worldLocale);
+  await act(async () => {
+    remove = mountWorldMenu(dom.container as unknown as HTMLElement, "en",
+      dom.trigger as unknown as HTMLButtonElement, vi.fn(), onLocale, true, pageLocale);
+  });
+  await click(dom.trigger);
+  const quick = menu().querySelector("a")! as TestElement & { href: string };
+  expect(button(pageLocale === "vi" ? "Tiếng Việt" : "English").getAttribute("aria-pressed")).toBe("true");
+  expect(quick.href).toBe(`/${pageLocale}/quick/`);
+  for (const next of pageLocale === "en" ? ["vi", "en"] : ["en", "vi"]) {
+    await click(button(next === "vi" ? "Tiếng Việt" : "English"));
+    expect(history.replaceState).toHaveBeenLastCalledWith(null, "", `/${next}/`);
+    expect((dom.document.documentElement as TestElement & { lang: string }).lang).toBe(next);
+    expect(button(next === "vi" ? "Tiếng Việt" : "English").getAttribute("aria-pressed")).toBe("true");
+    expect(quick.href).toBe(`/${next}/quick/`);
+    expect(quick.textContent).toBe("Open Quick Portfolio");
+    expect(button("Atlas Journal")).toBeDefined();
+    expect(button("× Close")).toBeDefined();
+    expect(menu().open).toBe(true);
+    expect(onLocale).toHaveBeenLastCalledWith(next, expect.objectContaining({ leave: "Exit world" }), { sound: "Sound", actions: "World actions" });
+  }
+  expect(worldLocale).not.toHaveBeenCalled();
+});
+
 it("traps Tab and Shift+Tab with the new controls and restores focus on Escape", async () => {
   installSound();
   const pauses = vi.fn();

@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type MeshToonMaterial } from "three";
+import { Box3, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector3, type MeshToonMaterial } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
@@ -8,6 +8,7 @@ import { waterLevelAt } from "../terrain/height";
 import type { Quality } from "../terrain";
 
 const anchor = ZONES.find(zone => zone.id === "first-light")!;
+export const FIRST_LIGHT_SUN = new Vector3(-0.74, 0.57, 0.35).normalize();
 export const FIRST_LIGHT_GROVE_RADIUS = 48;
 export function firstLightGroveWeight(x: number, z: number) {
   const distance = Math.hypot(x - anchor.position.x, z - anchor.position.z);
@@ -129,8 +130,15 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
     x: anchor.position.x + x * Math.cos(yaw) + z * Math.sin(yaw),
     z: anchor.position.z - x * Math.sin(yaw) + z * Math.cos(yaw),
   });
-  // An open centre, asymmetrical foreground frame and three receding woodland layers.
+  // Overlapping trees on the far bank close the horizon behind the open walking corridor.
   const candidates = [
+    [17,-14,1.22], [20,-7,1.17], [16,-2,1.24], [18,5,1.18], [17,13,1.2],
+    [18,20,1.14], [17,25,1.22], [23,15,1.17], [26,20,1.18],
+    [22,-11,0.78], [25,-3,0.73], [28,5,0.69], [23,10,0.82],
+    [22,26,0.76], [17,30,0.79], [21,35,0.81], [17,39,0.75], [18,43,1.14],
+    [29,26,0.69], [25,31,1.15], [28,35,0.81],
+    [32,29,0.64], [34,33,0.92], [29,37,0.76], [24,41,0.88], [19,43,0.67],
+    [-8,-12,1.10], [-9,-2,1.06], [-8,5,1.18], [-11,12,1.12], [-8,20,1.07],
     [-13,-13,1.16], [14,-12,1.08], [-17,7,1.02], [19,10,1.2],
     [-26,-22,1.1], [-15,-27,0.98], [-6,-32,1.12], [7,-31,1.04], [20,-25,1.18], [30,-18,1.08],
     [-5,-19,0.86], [6,-22,1.22], [-18,-18,1.24], [19,-16,0.92], [1,-26,1.1],
@@ -149,13 +157,14 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
     const y = heightAt(x, z);
     if (!Number.isFinite(y) || y < waterLevelAt(z) + 0.6 || nearestPath(x,z).distance < 6.8
       || nearestRiver(x,z).distance < 7 || zoneBounds.some(b => x > b.min.x - 1 && x < b.max.x + 1 && z > b.min.z - 1 && z < b.max.z + 1)) continue;
+    if (sites.some(tree => Math.hypot(x - tree.x, z - tree.z) < 3.8)) continue;
     sites.push({ x, y: y - 0.04, z, scale: scale!, variant: i % 3 });
   }
   const material = createRampMaterial(0xffffff, { steps: 4, soft: false });
   material.vertexColors = true;
   const renderSites = sites;
   const meshes = [0,1,2].map(variant => {
-    const geometry = createFirstLightTree(variant);
+    const geometry = createFirstLightTree(variant).scale(1.58, 1.63, 1.53);
     const items = renderSites.filter(s => s.variant === variant);
     const mesh = new InstancedMesh(geometry, material, items.length);
     mesh.name = `first-light-grove-trees-${variant}`;
@@ -165,17 +174,55 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
       matrix.setPosition(s.x,s.y,s.z); mesh.setMatrixAt(i,matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
-    mesh.castShadow = false; mesh.receiveShadow = true;
+    mesh.castShadow = true;
     mesh.computeBoundingBox(); mesh.computeBoundingSphere();
     group.add(mesh); return mesh;
   });
   // Physics/camera volumes match the visible trunks, never the overhanging crowns.
-  const colliderGeometry = new CylinderGeometry(0.45,0.45,5.2,6);
+  const colliderGeometry = new CylinderGeometry(0.52,0.52,5.2,6);
   const colliderMaterial = new MeshBasicMaterial();
   const trunks = sites.map(s => {
     const m = new Mesh(colliderGeometry,colliderMaterial);
     m.position.set(s.x,s.y+2.6*s.scale,s.z); m.scale.set(1,s.scale,1); m.updateMatrixWorld(true); return m;
   });
+  // Two small breaks in the crowns catch the dawn light over the dry trail.
+  // Crossed ribbons keep the light visible from either side of the clearing.
+  const beams: BufferGeometry[] = [];
+  const across = new Vector3(0, 1, 0).cross(FIRST_LIGHT_SUN).normalize();
+  const second = FIRST_LIGHT_SUN.clone().cross(across);
+  for (const [localX, localZ, length, width] of [[-0.8, 9, 20, 1.45], [1.0, 16, 24, 0.95]]) {
+    const { x, z } = toWorld(localX!, localZ!);
+    const base = new Vector3(x, heightAt(x, z) + 0.15, z);
+    for (const lateral of [across, second]) {
+      const plane = new PlaneGeometry(width!, length!, 8, 8);
+      const vertices = plane.getAttribute("position");
+      const colors: number[] = [];
+      const point = new Vector3();
+      for (let i = 0; i < vertices.count; i++) {
+        const progress = vertices.getY(i) / length! + 0.5;
+        const fraction = vertices.getX(i) / (width! * 0.5);
+        const opacity = Math.pow(Math.max(0, Math.cos(Math.PI * fraction * 0.5)), 3)
+          * Math.min(1, progress * 7) * Math.min(1, (1 - progress) * 5);
+        point.copy(base).addScaledVector(FIRST_LIGHT_SUN, progress * length!)
+          .addScaledVector(lateral, vertices.getX(i) * (1 - 0.55 * progress));
+        vertices.setXYZ(i, point.x, point.y, point.z);
+        colors.push(1, 1, 1, opacity);
+      }
+      plane.setAttribute("color", new Float32BufferAttribute(colors, 4));
+      beams.push(plane);
+    }
+  }
+  const beamGeometry = mergeGeometries(beams, false)!;
+  beams.forEach(geometry => geometry.dispose());
+  const beamMaterial = new MeshBasicMaterial({
+    color: new Color(PALETTE.sunGold).lerp(new Color(PALETTE.cloud), 0.48),
+    side: DoubleSide, transparent: true, opacity: 0.135, depthWrite: false,
+    vertexColors: true, forceSinglePass: true,
+  });
+  const dawnRays = new Mesh(beamGeometry, beamMaterial);
+  dawnRays.name = "first-light-dawn-rays";
+  dawnRays.raycast = () => {};
+  group.add(dawnRays);
   const groundParts: BufferGeometry[] = [];
   const groundGeometry = new BufferGeometry();
   const groundMesh = new Mesh(groundGeometry, material);
@@ -234,6 +281,7 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
       if (disposed) return; disposed = true;
       buildGround.return(undefined);
       meshes.forEach(m=>m.geometry.dispose()); material.dispose();
+      beamGeometry.dispose(); beamMaterial.dispose();
       groundGeometry.dispose(); colliderGeometry.dispose(); colliderMaterial.dispose(); group.removeFromParent(); group.clear();
     },
   };

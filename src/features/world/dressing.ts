@@ -5,19 +5,17 @@ import { BoxGeometry, BufferAttribute, BufferGeometry, Color, Group, InstancedMe
 import { createBridges, type BridgeCollider } from "./bridges";
 import { createWaymarks } from "./waymarks";
 import { createShore } from "./shore";
-import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS } from "./road/road";
+import { buildRoadSurface, createCoastRoad } from "./road/road";
 import { hex, PALETTE } from "./art/palette";
 import { createRampMaterial } from "./materials/ramp";
 import { pathPointAt } from "./layout/path";
-import { roadBaseHeight, waterLevelAt, worldHeight } from "./terrain/height";
+import { waterLevelAt, worldHeight } from "./terrain/height";
 import { nearestPath } from "./terrain/samples";
 import { sampleShoreContour, shoreGroundHeight, shoreNormal, type ShorePoint } from "./shore/contour";
 import { SHORE_SEED, shorePlacementClear, type ShoreLayout, type ShoreStone, type Pebble, type Boulder, type Cairn, type SandPatch } from "./shore/layout";
 import { createShoreRockGeometry } from "./shore/geometry";
-import { createRoadLayout, ROAD_START, ROAD_END, ROAD_LIFT, roadFrameAt } from "./road/layout";
+import { createRoadLayout } from "./road/layout";
 import { createRoadInstances, createRoadWires } from "./road/posts";
-import { roadGeometryBuilder } from "./road/geometry";
-import { roadBandOffsetAt, roadSurfaceColorAt } from "./road/surface";
 
 /** B2-163: guard posts and utility poles report circles; stand them up as boxes over their own height. */
 function coastRoadDressing(): DressingModule {
@@ -329,35 +327,6 @@ function deferredShore() {
   } };
 }
 
-function* dressingRoadSurface() {
-  const builder = roadGeometryBuilder();
-  const rows: Vector3[][] = [];
-  for (let i = 0; i <= ROAD_SEGMENTS; i++) {
-    yield;
-    const t = ROAD_START + (ROAD_END - ROAD_START) * i / ROAD_SEGMENTS;
-    const { point, right } = roadFrameAt(t);
-    rows.push(ROAD_BANDS.map(offset => {
-      const vertex = point.clone().addScaledVector(right, roadBandOffsetAt(offset, t));
-      vertex.y = roadBaseHeight(vertex.x, vertex.z) + ROAD_LIFT; // B2-195: same pre-cut ground as road.ts
-      return vertex;
-    }));
-  }
-  for (let row = 0; row < ROAD_SEGMENTS; row++) {
-    yield;
-    for (let band = 0; band < ROAD_BANDS.length - 1; band++) {
-      const left = ROAD_BANDS[band]!, right = ROAD_BANDS[band + 1]!;
-      const middle = (left + right) / 2;
-      const a = rows[row]![band]!, b = rows[row]![band + 1]!;
-      const c = rows[row + 1]![band]!, d = rows[row + 1]![band + 1]!;
-      const ca = roadSurfaceColorAt(a.x, a.z, left, middle), cb = roadSurfaceColorAt(b.x, b.z, right, middle);
-      const cc = roadSurfaceColorAt(c.x, c.z, left, middle), cd = roadSurfaceColorAt(d.x, d.z, right, middle);
-      builder.triangle(a, b, c, [ca, cb, cc]);
-      builder.triangle(b, d, c, [cb, cd, cc]);
-    }
-  }
-  return builder.finish();
-}
-
 function deferredRoad() {
   const layout = createRoadLayout();
   const group = new Group();
@@ -369,7 +338,7 @@ function deferredRoad() {
   }));
   const resources: { dispose(): void }[] = [];
   function* construct() {
-    const geometry = yield* dressingRoadSurface();
+    const geometry = yield* buildRoadSurface();
     resources.push(geometry);
     const material = createRampMaterial(hex("laneWhite"));
     resources.push(material);

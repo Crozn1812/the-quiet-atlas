@@ -36,11 +36,12 @@ test("the journal starts empty on every Enter World (no stored progress)", async
   const world = await enterWorld(page, "vi");
   test.skip(!world, "NOT RUN: no WebGL2");
   await page.locator("canvas").first().focus();
-  const journal = page.getByRole("dialog", { name: "Sổ Atlas" });
+  const journal = page.getByRole("dialog", { name: "Atlas Journal" });
+  // ADR 0016: journal title and visited labels stay English on /vi/.
   // Under parallel load the journal chunk may not be listening yet; press again only while closed.
   await expect(async () => {
     if (!(await journal.isVisible())) await page.keyboard.press("j");
     await expect(journal).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 30_000 });
-  await expect(journal.getByRole("button", { name: /đã ghé/ })).toHaveCount(0);
+  await expect(journal.getByRole("button", { name: /, visited$/ })).toHaveCount(0);
 });

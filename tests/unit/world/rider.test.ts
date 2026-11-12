@@ -58,6 +58,38 @@ describe("RD-01 leaning pose", () => {
 });
 
 describe("D-23 mounted pose", () => {
+  it.each([false, true])("lands upright after stepping off a banked bike (reduced motion: %s)", reducedMotion => {
+    const character = rig();
+    const root = character.root;
+    root.traverse(node => { node.name = node.name.replaceAll(".", ""); });
+    root.rotation.y = .4;
+    const standingRotation = root.quaternion.clone();
+    const hips = root.getObjectByName("hips")!;
+    const standingHips = hips.quaternion.clone();
+    const pose = createRiderPose(character);
+    const bike = new Group();
+    bike.rotation.set(.12, 1.1, -.18);
+    bike.position.set(3, 2, -5);
+    expect(pose.supported).toBe(true);
+    pose.update({ mode: "ride", speed: 0 }, bike);
+    expect(root.quaternion.angleTo(standingRotation)).toBeGreaterThan(.2);
+    expect(hips.quaternion.angleTo(standingHips)).toBeGreaterThan(.2);
+
+    const destination = new Vector3(4, 2 + HEIGHT, -5);
+    root.position.copy(destination);
+    pose.update({ mode: "walk", speed: 0 }, bike, 0, reducedMotion);
+    expect(pose.transitioning).toBe(!reducedMotion);
+    if (!reducedMotion) {
+      pose.update({ mode: "walk", speed: 0 }, bike, .45, false);
+      expect(root.quaternion.angleTo(standingRotation)).toBeLessThan(.3);
+      pose.update({ mode: "walk", speed: 0 }, bike, .25, false);
+    }
+    expect(pose.transitioning).toBe(false);
+    expect(root.position.distanceTo(destination)).toBeLessThan(1e-6);
+    expect(root.quaternion.angleTo(standingRotation)).toBeLessThan(1e-6);
+    expect(hips.quaternion.angleTo(standingHips)).toBeLessThan(1e-6);
+    character.dispose();
+  });
   it("keeps a character without rig bones visible and safely restores walking", () => {
     const character = createCharacter(new Group(), ["Idle", "Walk", "Run"].map(name => new AnimationClip(name, 1, [])));
     const pose = createRiderPose(character);

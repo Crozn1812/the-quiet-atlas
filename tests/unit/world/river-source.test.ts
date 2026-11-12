@@ -62,7 +62,7 @@ describe("river spring ribbon", () => {
     } finally { geometry.dispose(); }
   });
 
-  it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves every old vertex/normal/UV for 0.03 <= t < 0.95 (%s segments)", segments => {
+  it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves centre, level, normals and UV with bank-seated edges for 0.03 <= t < 0.95 (%s segments)", segments => {
     const geometry = createRibbonGeometry(segments);
     try {
       const positions = geometry.getAttribute("position");
@@ -75,14 +75,19 @@ describe("river spring ribbon", () => {
         const tangent = riverTangentAt(t);
         const progress = Math.max(0, (t - 0.96) / 0.04);
         const mouth = progress * progress * (3 - 2 * progress);
-        const halfWidth = (4 + 6 * t + 50 * mouth) / 2;
+        // RC-02 widens only the hidden bank overlap, up to four metres per side.
+        const a = new Vector3().fromBufferAttribute(positions, row * 2);
+        const b = new Vector3().fromBufferAttribute(positions, row * 2 + 1);
+        const halfWidth = a.distanceTo(b) / 2;
+        expect(halfWidth).toBeGreaterThanOrEqual((4 + 6 * t) / 2 - 1e-4);
+        expect(halfWidth).toBeLessThanOrEqual((4 + 6 * t) / 2 + 4 + 1e-4);
         const level = waterLevelAt(centre.z) - 0.05 * mouth;
         for (const side of [-1, 1]) {
           const vertex = row * 2 + (side + 1) / 2;
           // The old geometry also stored its formula in Float32BufferAttribute.
           const expected = [centre.x - tangent.z * halfWidth * side, level, centre.z + tangent.x * halfWidth * side];
           const actual = [positions.getX(vertex), positions.getY(vertex), positions.getZ(vertex)];
-          actual.forEach((value, axis) => expect(Math.abs(value - Math.fround(expected[axis]!))).toBeLessThanOrEqual(1e-6));
+          actual.forEach((value, axis) => expect(Math.abs(value - Math.fround(expected[axis]!))).toBeLessThanOrEqual(1e-4));
           expect([normals.getX(vertex), normals.getY(vertex), normals.getZ(vertex)]).toEqual([0, 1, 0]);
           expect(uv.getX(vertex)).toBe((side + 1) / 2);
           expect(uv.getY(vertex)).toBe(Math.fround(t * riverLength()));

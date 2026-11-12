@@ -121,7 +121,8 @@ afterEach(() => {
 });
 
 describe("The Roots procedural zone", () => {
-  it("locks the pre-r4 interaction and collider contract", () => {
+  // RC-02 names the living ancient tree; collider positions remain unchanged.
+  it("locks the ancient-tree interaction and collider contract", () => {
     const fixtures = [context(), context({ seed: 1 }), context({ seed: 9371 }),
       context({ heightAt: (x, z) => x * 0.035 + z * 0.02 }),
       context({ underWater: x => x > 2.6 })];
@@ -130,7 +131,7 @@ describe("The Roots procedural zone", () => {
       return { colliders: scene.colliders, interactable: scene.interactable };
     });
     expect(createHash("sha256").update(JSON.stringify(contracts)).digest("hex"))
-      .toBe("35041ee383501b77982fa52eb28c001982c71da6cdab3c10f6f65b01ca78f165");
+      .toBe("dd7df4698f561c17d51de5e5830f8ad0d6c9207feaabb460f8790fe3b65cf6c4");
   });
   it("places the complete world on the rendered terrain without throwing", () => {
     let terrain: ZoneSceneContext | undefined;
@@ -243,6 +244,11 @@ describe("The Roots procedural zone", () => {
         const positions = mesh.geometry.getAttribute("position");
         for (let i = 0; i < positions.count; i++) {
           const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
+          // The living canopy may overhang the path/water above walking headroom.
+          if (mesh.name === "roots-ancient-tree" && y > ctx.heightAt(x, z) + 3) {
+            expect(Math.hypot(x, y, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+            continue;
+          }
           expect(Math.abs(x)).toBeGreaterThan(PATH_CLEARANCE);
           expect(ctx.onPath(x, z)).toBe(false);
           expect(ctx.underWater(x, z)).toBe(false);
@@ -283,22 +289,20 @@ describe("The Roots procedural zone", () => {
       .toEqual(meshes(normal).map(mesh => mesh.geometry.getAttribute("position").count));
   });
 
-  it("has a broad, flat end-grain table and seven visible root tips on either verge", () => {
+  it("has a living canopy above the root collar and seven visible root tips on either verge", () => {
     for (const side of [1, -1]) {
       const ctx = context({ heightAt: (x, z) => x * 0.03 - z * 0.01,
         underWater: x => side * x < -2.6 });
       const scene = create(ctx);
-      const cut = scene.group.getObjectByName("roots-cut") as PaintedMesh;
-      const bounds = new Box3().setFromObject(cut), size = bounds.getSize(new Vector3());
-      expect(size.x).toBeGreaterThan(2.5 * 1.6);
-      expect(size.z).toBeGreaterThan(2.5 * 1.6);
-      expect(size.y).toBeLessThan(1e-5);
-      const p = new Vector3(side * 6.4, ctx.heightAt(side * 6.4, scene.interactable.position.z) + 1.28 * 1.6,
-        scene.interactable.position.z);
-      expect(bounds.min.y).toBeCloseTo(p.y, 5);
-      const hits = new Raycaster(new Vector3(p.x + 0.2, p.y + 2, p.z), new Vector3(0, -1, 0))
-        .intersectObject(scene.group);
-      expect(hits[0]?.object.name).toBe("roots-cut");
+      // RC-02 replaces the cut tabletop with a living tree above the same root collar.
+      expect(scene.group.getObjectByName("roots-cut")).toBeUndefined();
+      const tree = scene.group.getObjectByName("roots-ancient-tree") as PaintedMesh;
+      const bounds = new Box3().setFromObject(tree), size = bounds.getSize(new Vector3());
+      expect(size.y).toBeGreaterThan(10);
+      expect(size.x).toBeGreaterThan(8);
+      const collar = ctx.heightAt(side * 6.4, scene.interactable.position.z) + 1.28 * 1.6;
+      expect(bounds.min.y).toBeLessThan(collar);
+      expect(bounds.min.y).toBeGreaterThan(collar - 0.5);
       const wood = scene.group.getObjectByName("roots-wood") as PaintedMesh;
       for (const rings of rootSections(scene).slice(0, 7)) {
         // Follow the actual S tangent into the narrow tip, away from the cap edge.
@@ -318,7 +322,7 @@ describe("The Roots procedural zone", () => {
         rings.forEach(ring => expect(ring).toHaveLength(8));
         return rings.map(ringCenter);
       });
-      const stump = new Box3().setFromObject(scene.group.getObjectByName("roots-cut")!).getCenter(new Vector3());
+      const stump = new Vector3(6.4864, 0, scene.interactable.position.z);
       const main = curves.filter(curve => Math.hypot(curve[0]!.x - stump.x, curve[0]!.z - stump.z) < 2.4);
       expect(main).toHaveLength(7);
       for (const rings of roots.slice(0, 7)) {
@@ -382,7 +386,7 @@ describe("The Roots procedural zone", () => {
     expect(crossings).toBeGreaterThan(0);
   });
 
-  it("exposes six recessed bark fissures and two contrasting age rings", () => {
+  it("exposes six recessed bark fissures and contrasting living bark and foliage", () => {
     const scene = create();
     const bark = meshes(scene).filter(mesh => /roots-(wood|ink)$/.test(mesh.name));
     const center = new Vector3(6.44, 1.35, 0);
@@ -397,14 +401,12 @@ describe("The Roots procedural zone", () => {
       const angle = (15 + i * 60) * Math.PI / 180;
       expect(depth(angle) - (depth(angle - 0.15) + depth(angle + 0.15)) / 2).toBeGreaterThan(0.03);
     }
-    const cut = scene.group.getObjectByName("roots-cut") as PaintedMesh;
-    const pigment = (radius: number) => {
-      const hit = new Raycaster(new Vector3(6.4864 + radius, 3, 0), new Vector3(0, -1, 0)).intersectObject(cut)[0]!;
-      const color = new Color().fromBufferAttribute(cut.geometry.getAttribute("color"), hit.face!.a);
-      return color.r + color.g + color.b;
-    };
-    expect(pigment(0.68)).toBeLessThan(pigment(0.45) * 0.9);
-    expect(pigment(1.4)).toBeLessThan(pigment(1.1) * 0.9);
+    // Living foliage replaces the old exposed age-ring cap in RC-02.
+    const tree = scene.group.getObjectByName("roots-ancient-tree") as PaintedMesh;
+    const colors = tree.geometry.getAttribute("color");
+    const pigments = new Set(Array.from({ length: colors.count }, (_, i) =>
+      [colors.getX(i), colors.getY(i), colors.getZ(i)].join(",")));
+    expect(pigments.size).toBeGreaterThanOrEqual(3);
   });
 
   it("buries every root section and three small mist pebble nodes on sloping terrain", () => {
@@ -463,7 +465,8 @@ describe("The Roots procedural zone", () => {
 
   it("reserves about a tenth of the surface for ink and two tiny flower accents", () => {
     const scene = create();
-    const areas = meshes(scene).map(mesh => {
+    // Ink coverage still describes the root collar, independently of the new canopy.
+    const areas = meshes(scene).filter(mesh => mesh.name !== "roots-ancient-tree").map(mesh => {
       const p = mesh.geometry.getAttribute("position");
       let area = 0;
       for (let i = 0; i < p.count; i += 3) {
@@ -506,7 +509,7 @@ describe("The Roots procedural zone", () => {
   it("uses the requested labels and keeps the table within E range of the road edge", () => {
     const scene = create(), p = scene.interactable.position;
     expect(scene.zoneId).toBe("roots");
-    expect(scene.interactable.label).toEqual({ en: "The root stump", vi: "Gốc rễ" });
+    expect(scene.interactable.label).toEqual({ en: "The ancient tree", vi: "C\u00e2y c\u1ed5 th\u1ee5" });
     expect(p.distanceTo(new Vector3(PATH_CLEARANCE, 0, p.z))).toBeLessThanOrEqual(2.5);
   });
 
@@ -522,6 +525,7 @@ describe("The Roots procedural zone", () => {
       "roots-node": [[pigment("mist").lerp(pigment("rockDark"), 0.04), pigment("mist").lerp(pigment("rockDark"), 0.14)]],
     };
     const pigments: Record<string, Color> = {
+      "roots-ancient-tree": new Color(1, 1, 1),
       "roots-wood": new Color(1, 1, 1), "roots-cut": new Color(1, 1, 1),
       "roots-moss": new Color(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6),
       "roots-node": new Color(1, 1, 1), "roots-vine": new Color(PALETTE.forestDeep),
@@ -672,8 +676,8 @@ describe("The Roots procedural zone", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // R4 replaces the barrel/flat roots with cracked kit bark, raised roots and kit pebbles.
-    expect(fingerprint).toBe("b7cca1038be4a0f36605406192aecc41a87738a3c4f197ed99cc191a3019abc8");
+    // RC-02 replaces the exposed cut cap with a living, zone-bounded ancient tree.
+    expect(fingerprint).toBe("db3c150880fa05641e2d5d7b227f7ace6ab0c7f7899aa2ccd74885514f47561d");
   });
 
 });

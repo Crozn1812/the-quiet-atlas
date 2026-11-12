@@ -18,7 +18,7 @@ function renderedHeight(x: number, z: number): number {
     : d + (c - d) * (1 - tx) + (b - d) * (1 - tz);
 }
 
-it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves every upstream vertex at t < 0.95 (%s segments)", segments => {
+it.each([RIBBON_SEGMENTS, 1000, 17, 1])("keeps upstream centres and water levels while seating edges into banks at t < 0.95 (%s segments)", segments => {
   const geometry = createRibbonGeometry(segments);
   try {
     const positions = geometry.getAttribute("position");
@@ -27,12 +27,16 @@ it.each([RIBBON_SEGMENTS, 1000, 17, 1])("preserves every upstream vertex at t < 
       const centre = riverPointAt(t);
       const tangent = riverTangentAt(t);
       const level = waterLevelAt(centre.z);
+      // RC-02 extends edges into the rendered bank; the spline centre and level stay fixed.
+      const width = Math.hypot(positions.getX(row * 2 + 1) - positions.getX(row * 2), positions.getZ(row * 2 + 1) - positions.getZ(row * 2));
+      expect(width).toBeGreaterThanOrEqual(riverWidthAt(t) - 1e-4);
+      expect(width).toBeLessThanOrEqual(riverWidthAt(t) + 8 + 1e-4);
       for (const side of [-1, 1]) {
         const vertex = row * 2 + (side + 1) / 2;
         expect([positions.getX(vertex), positions.getY(vertex), positions.getZ(vertex)]).toEqual([
-          centre.x - tangent.z * riverWidthAt(t) / 2 * side, level,
-          centre.z + tangent.x * riverWidthAt(t) / 2 * side,
-        ].map(Math.fround));
+          centre.x - tangent.z * width / 2 * side, level,
+          centre.z + tangent.x * width / 2 * side,
+        ].map(value => expect.closeTo(Math.fround(value), 4)));
       }
     }
   } finally { geometry.dispose(); }

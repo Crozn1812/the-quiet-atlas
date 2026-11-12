@@ -29,6 +29,7 @@ import { disposeRampGradients } from "./materials/ramp";
 import { createCharacterAnimator } from "./character/animator";
 import { loadCharacter } from "./character/loader";
 import { createProp, type PropKind } from "./props";
+import { createSignLabel } from "./props/lettering";
 import { createGradedPaperPass } from "./scene/paper";
 import { STYLE_PRESETS, WORLD_DIRECTION } from "./art/direction";
 import { pathLength, pathPointAt } from "./layout/path";
@@ -251,9 +252,22 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     return mesh;
   }
   contentTargets.push(...zones.map(zone => zone.target));
+  const signs = {
+    "first-light": "First Light", workshop: "Workshop", roots: "The Roots", milestones: "Milestones",
+    "old-trail": "Old Trail", horizon: "Horizon", "quiet-shore": "Quiet Shore", "last-postcard": "Last Postcard",
+  };
   const props = SIGNPOSTS.map(post => {
     const mesh = placeProp("signpost", post.position.x, post.position.z, `teleport-${post.zoneId}`);
-    return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh };
+    const label = createSignLabel(signs[post.zoneId]);
+    if (label) {
+      label.mesh.position.set(-0.20, 0.525, 0.107);
+      const back = label.mesh.clone();
+      back.position.z = -label.mesh.position.z;
+      back.rotation.y = Math.PI;
+      back.raycast = label.mesh.raycast;
+      mesh.add(label.mesh, back);
+    }
+    return { id: mesh.name, kind: "teleport" as const, zoneId: post.zoneId, position: mesh.position, mesh, lettering: label };
   });
   let story = initialStory();
   let ending: ReturnType<typeof createEndingController> | undefined;
@@ -263,9 +277,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const secretSolids: Box3[] = [];
   const secretMeshes: Mesh[] = [];
   const secretTargets = SECRETS.map(secret => {
-    const root = createSecretLandmark(secret.landmark);
     const { x, z } = secret.position;
-    root.position.set(x, surfaceHeight(x, z), z);
+    const base = surfaceHeight(x, z);
+    const root = createSecretLandmark(secret.landmark, (dx, dz) => surfaceHeight(x + dx, z + dz) - base - 0.012);
+    root.position.set(x, base, z);
     root.updateMatrixWorld(true);
     root.traverse(object => { if ((object as Mesh).isMesh) secretMeshes.push(object as Mesh); });
     scene.add(root);
@@ -314,11 +329,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const vehicleTarget: InteractionTarget = {
     id: "gd110", kind: "vehicle", zoneId: "first-light", position: new Vector3(),
   };
-  function publishVehicle(dt = 0) {
+  function publishVehicle(dt = 0, immediate = false) {
     bike.update(vehicle, corridor, dt);
     Object.assign(vehicleTarget.position, bike.group.position);
     vehicleTarget.position.y += HEIGHT;
-    rider.update(vehicle, bike.riderFrame);
+    rider.update(vehicle, bike.riderFrame, dt, reducedMotion || immediate);
     container.dataset.worldVehicle = vehicle.mode === "walk" ? "parked" : vehicle.cruise ? "cruise" : "manual";
   }
   publishVehicle();
@@ -405,7 +420,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     discover,
     lookout: () => lookout.begin(),
     ride() {
-      if (!cameraEnabled()) return false;
+      if (!cameraEnabled() || rider.transitioning) return false;
       const result = mount(vehicle, Math.hypot(physics.position.x - vehicleTarget.position.x, physics.position.z - vehicleTarget.position.z));
       if (!result.ok) return false;
       vehicle = result.state;
@@ -708,6 +723,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     return nearest;
   }
   function getOffVehicle() {
+    if (rider.transitioning) return;
     const obstacles = solidBounds(0.4);
     const result = requestDismount(vehicle, corridor, {
       surfaceHeight, waterLevelAt, contains: point => composed.contains(point),
@@ -719,6 +735,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (result.ok && safe) {
       vehicle = result.state;
       physics.teleport(safe);
+      player.position.copy(safe);
       updateMascot(0, true);
       state = sessionReducer({ ...state, position: { ...safe } }, { type: "safePosition", position: safe });
       clear();
@@ -728,12 +745,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   }
   function parkVehicle() {
     lookout.cancel();
-    if (vehicle.mode !== "ride") return;
+    if (vehicle.mode !== "ride") {
+      if (rider.transitioning) publishVehicle(0, true);
+      return;
+    }
     // Travel/recovery owns the destination; release the rider before resetting the bike.
     vehicle = dismount({ ...vehicle, speed: 0 }, true).state;
     vehicle = parkedVehicle;
     unsafeStop = false;
-    publishVehicle();
+    publishVehicle(0, true);
     updateMascot(0, true);
   }
   function driveVehicle(dt: number) {
@@ -1310,8 +1330,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       accumulator = plan.remainder;
       for (let i = 0; i < plan.steps; i++) {
         composed.update(physics.position, FIXED_DT);
-        if (vehicle.mode === "ride") driveVehicle(FIXED_DT);
-        else state = locomotion.step(state, keys, yaw, FIXED_DT);
+        if (!rider.transitioning) {
+          if (vehicle.mode === "ride") driveVehicle(FIXED_DT);
+          else state = locomotion.step(state, keys, yaw, FIXED_DT);
+        }
         if (!composed.contains(physics.position)) returnToPath();
       }
     }
@@ -1324,7 +1346,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // Teleports and intro hand-offs jump the controller: never read them as running.
     // A paused world is frozen (§6.1): no idle breathing either (e2e compares paused frames pixel for pixel).
     const animDt = canSimulate(state) ? dt : 0;
-    animator.update(animDt, vehicle.mode === "ride" || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
+    animator.update(animDt, vehicle.mode === "ride" || rider.transitioning || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(animDt);
     let introFrame: IntroFrame | undefined;
     if (intro?.inputLocked) {
@@ -1555,7 +1577,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       disposeLandmark(root);
       root.removeFromParent();
     }
-    for (const { mesh } of props) {
+    for (const { mesh, lettering } of props) {
+      lettering?.dispose();
       mesh.geometry.dispose();
       for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();
     }

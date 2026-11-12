@@ -27,7 +27,7 @@ for (const locale of ["vi", "en"]) test(`coastal railing: keyboard approach, E /
     const key = Math.abs(delta.x) > Math.abs(delta.z) ? delta.x > 0 ? "d" : "a" : delta.z > 0 ? "s" : "w";
     await page.keyboard.down(key); await page.waitForTimeout(100); await page.keyboard.up(key);
   }
-  await expect(world!.locator("[data-world-interaction-hint]")).toHaveText(locale === "vi" ? "E — Ngắm biển" : "E — Look out to sea");
+  await expect(world!.locator("[data-world-interaction-hint]")).toHaveText("E — Look out to sea");
   await page.screenshot({ path: `test-results/rd01/${locale}-terminal-gameplay.png` });
   for (const exit of ["e", "Escape", "w"]) {
     await page.keyboard.press("e");

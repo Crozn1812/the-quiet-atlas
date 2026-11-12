@@ -6,6 +6,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
+import { createSkillsBoard } from "../props/lettering";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
@@ -267,8 +268,7 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   collider([0.65, 0.23, 0.65], [ropeX, ropeY + 0.115, ropeZ]);
   add(new OctahedronGeometry(0.06, 0).translate(ropeX + 0.28, ropeY + 0.17, ropeZ), "flower");
 
-  // Making-of corner: paper faces the path. The ink marks are an abstract frame,
-  // diagonal roof study and ground line, never glyphs, branding or a texture.
+  // Project skills map faces the path.
   cluster = "making-of";
   const easelX = -4.85, easelZ = -4.25;
   const easelY = highest([-5.3, -4.4, -4.9, -3.6]);
@@ -277,9 +277,12 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   box("wood", [0.2, 0.08, 1.16], [easelX, easelY + 0.83, easelZ]);
   box("wood", [0.07, 1.12, 1.08], [easelX, easelY + 1.43, easelZ]);
   box("paper", [0.014, 0.94, 0.93], [-4.804, easelY + 1.43, easelZ]);
-  for (const z of [-4.55, -3.99]) box("ink", [0.01, 0.35, 0.014], [-4.791, easelY + 1.36, z]);
-  box("ink", [0.01, 0.015, 0.72], [-4.791, easelY + 1.13, -4.25]);
-  add(detail([0.01, 0.016, 0.67], [0, 0, 0]).rotateX(0.16).translate(-4.791, easelY + 1.6, -4.25), "ink");
+  const skillsBoard = createSkillsBoard();
+  if (skillsBoard) {
+    skillsBoard.mesh.rotation.y = Math.PI / 2;
+    skillsBoard.mesh.position.set(-4.77, easelY + 1.43, easelZ);
+    group.add(skillsBoard.mesh);
+  }
   collider([0.65, 2, 1.2], [-4.98, easelY + 1, easelZ]);
 
   // Two shallow, uneven mats cover over a third of the roof; both follow its pitch.
@@ -379,6 +382,7 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
       disposed = true;
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
+      skillsBoard?.dispose();
       group.removeFromParent();
       group.clear();
     },

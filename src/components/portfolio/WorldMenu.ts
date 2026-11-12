@@ -8,11 +8,12 @@ import { journalTitle } from "@/features/journal/model";
 import { mountWorldJournal } from "./journal/WorldJournal";
 import { mountWorldTeleport } from "./teleport/WorldTeleport";
 
-export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void, onLocale: (locale: WorldLocale, copy: WorldCopy, labels: { sound: string; actions: string }) => void) {
+export function mountWorldMenu(container: HTMLElement, locale: string, trigger: HTMLButtonElement, leaveWorld: () => void, onLocale: (locale: WorldLocale, copy: WorldCopy, labels: { sound: string; actions: string }) => void, fixedLanguage = false, pageLocale = locale) {
   const removeJournal = mountWorldJournal(container, locale);
   const removeTeleport = mountWorldTeleport(container, locale);
   const removeContent = mountWorldContent(container, locale);
   let language: WorldLocale = locale === "vi" ? "vi" : "en";
+  let pageLanguage: WorldLocale = pageLocale === "vi" ? "vi" : "en";
   let copy = worldMenuMessages[language];
   const translations: (() => void)[] = [];
   const host = document.createElement("div");
@@ -146,37 +147,46 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   }
   translations.push(syncMascot);
 
-  const languages = document.createElement("fieldset");
-  const legend = document.createElement("legend");
-  translations.push(() => {
-    legend.textContent = copy.language;
-  });
-  languages.append(legend);
-  for (const next of ["en", "vi"] as const) {
-    const choice = button(() => next === "vi" ? "Tiếng Việt" : "English", () => {
-      if (next === language) return;
-      language = next;
-      copy = worldMenuMessages[next];
-      replaceWorldLocale(next, history, document);
-      container.dispatchEvent(new CustomEvent("tqa:set-locale", {
-        detail: { locale: next },
-      }));
-      for (const translate of translations) translate();
-      onLocale(next, messages[next].world, {
-        sound: next === "vi" ? "Âm thanh" : "Sound",
-        actions: next === "vi" ? "Thao tác world" : "World actions",
-      });
-      removeContent.setLocale(next);
-      removeJournal.setLocale(next);
-      removeTeleport.setLocale(next);
-    });
+  {
+    const languages = document.createElement("fieldset");
+    const legend = document.createElement("legend");
     translations.push(() => {
-      choice.setAttribute("aria-pressed", String(language === next));
+      legend.textContent = copy.language;
     });
-    languages.append(choice);
+    languages.append(legend);
+    for (const next of ["en", "vi"] as const) {
+      const choice = button(() => next === "vi" ? "Tiếng Việt" : "English", () => {
+        if (next === pageLanguage) return;
+        pageLanguage = next;
+        replaceWorldLocale(next, history, document);
+        // ADR 0016: change the page language without changing or remounting the world.
+        if (fixedLanguage) {
+          for (const translate of translations) translate();
+          onLocale(next, messages.en.world, { sound: "Sound", actions: "World actions" });
+          return;
+        }
+        language = next;
+        copy = worldMenuMessages[next];
+        container.dispatchEvent(new CustomEvent("tqa:set-locale", {
+          detail: { locale: next },
+        }));
+        for (const translate of translations) translate();
+        onLocale(next, messages[next].world, {
+          sound: next === "vi" ? "Âm thanh" : "Sound",
+          actions: next === "vi" ? "Thao tác world" : "World actions",
+        });
+        removeContent.setLocale(next);
+        removeJournal.setLocale(next);
+        removeTeleport.setLocale(next);
+      });
+      translations.push(() => {
+        choice.setAttribute("aria-pressed", String(pageLanguage === next));
+      });
+      languages.append(choice);
+    }
+    languages.className = "world-menu-choices";
+    destination.append(languages);
   }
-  languages.className = "world-menu-choices";
-  destination.append(languages);
 
   const keys = document.createElement("details");
   destination = group(() => language === "vi" ? "Khác" : "Other");
@@ -196,7 +206,7 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   destination.append(keys);
   const quick = document.createElement("a");
   translations.push(() => {
-    quick.href = `/${language}/quick/`;
+    quick.href = `/${pageLanguage}/quick/`;
     quick.textContent = copy.quick;
   });
   destination.append(quick);

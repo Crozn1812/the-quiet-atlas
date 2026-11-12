@@ -17,7 +17,8 @@ test("teleport chooser: opens on the world event, disables the current zone, clo
     // Same event the world sends when E is pressed at the First Light signpost.
     node.dispatchEvent(new CustomEvent("tqa:teleport-choose", { detail: { from: "first-light" } }));
   });
-  const chooser = page.getByRole("dialog", { name: "Đi tới…" });
+  // ADR 0016: the travel chooser stays English on /vi/.
+  const chooser = page.getByRole("dialog", { name: "Travel to…" });
   await expect(chooser).toBeVisible();
   await expect(chooser.getByRole("button", { name: /The First Light/ })).toBeDisabled();
   await chooser.getByRole("button", { name: /The Workshop/ }).click();

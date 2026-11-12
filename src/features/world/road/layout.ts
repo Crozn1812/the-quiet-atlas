@@ -8,9 +8,8 @@ import { nearestPath } from "../terrain/samples";
 export const ROAD_START = 0.8;
 export const ROAD_END = 1;
 export const ROAD_WIDTH = 5;
-// B2-195: +10 cm from the original grade, retaining 5 cm clearance even
-// between vertices of the coarser 2 m terrain beneath the gravel shoulders.
-export const ROAD_LIFT = 0.12;
+// A thin painted surface over the same ground triangles that support the player.
+export const ROAD_LIFT = 0.025;
 export const ROAD_TAPER_LENGTH = 12;
 export const POST_SPACING = 11;
 export const POLE_SPACING = 45;

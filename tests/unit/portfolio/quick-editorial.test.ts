@@ -19,7 +19,7 @@ it.each(["en", "vi"] as const)("preserves the Quick heading outline and public p
   expect(headings.filter(h => h[1] === "2").map(h => h[2])).toEqual([
     locale === "vi" ? "Kinh nghiệm" : "Experience",
     locale === "vi" ? "Học vấn" : "Education",
-    messages[locale].projects, "CV", messages[locale].contact,
+    messages[locale].projects, messages[locale].contact,
   ]);
   expect(html).toContain(renderToStaticMarkup(createElement(ProjectsContent, { locale })));
   expect(html).toContain(renderToStaticMarkup(createElement(ProfileJsonLd, { locale })));
@@ -27,10 +27,10 @@ it.each(["en", "vi"] as const)("preserves the Quick heading outline and public p
   expect(html).not.toMatch(/<canvas|<button/);
 });
 
-it.each(["en", "vi"] as const)("keeps welcome, CV and both language links in the static %s header (email lives once, in Contact)", locale => {
+it.each(["en", "vi"] as const)("keeps welcome, contact and both language links in the static %s header (email lives once, in Contact)", locale => {
   const html = renderToStaticMarkup(createElement(QuickPortfolio, { locale }));
   const header = html.match(/<header\b[^>]*>([\s\S]*?)<\/header>/)![1]!;
-  for (const href of [`/${locale}/`, "/cv/", "/en/quick/", "/vi/quick/"]) {
+  for (const href of [`/${locale}/`, "#contact", "/en/quick/", "/vi/quick/"]) {
     expect(header).toContain(`href="${href}"`);
   }
   expect(header).toContain("The Quiet Atlas · Quick Portfolio");

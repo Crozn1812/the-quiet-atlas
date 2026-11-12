@@ -333,3 +333,30 @@ export function waterLevelAt(z: number): number {
   if (!Number.isFinite(z)) throw new RangeError("Water level coordinate must be finite");
   return riverLevel(z) - 0.35 * coastWeight(z);
 }
+
+/** Height on the rendered/Rapier triangles, including their diagonal and Float32 rounding. */
+export function surfaceHeight(x: number, z: number, sample = worldHeight): number {
+  const step = 2;
+  const x0 = Math.floor(x / step) * step;
+  const z0 = Math.floor(z / step) * step;
+  const u = (x - x0) / step;
+  const v = (z - z0) / step;
+  const a = Math.fround(sample(x0, z0));
+  const b = Math.fround(sample(x0 + step, z0));
+  const c = Math.fround(sample(x0, z0 + step));
+  const d = Math.fround(sample(x0 + step, z0 + step));
+  return u + v <= 1 ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
+}
+
+/** Reuse lattice samples while constructing a static mesh. */
+export function createSurfaceSampler() {
+  const heights = new Map<string, number>();
+  return (x: number, z: number) => surfaceHeight(x, z, (gridX, gridZ) => {
+    const key = `${gridX},${gridZ}`;
+    const existing = heights.get(key);
+    if (existing !== undefined) return existing;
+    const height = worldHeight(gridX, gridZ);
+    heights.set(key, height);
+    return height;
+  });
+}

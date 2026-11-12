@@ -45,9 +45,10 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
         const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(zone.t)), timeOfDayAt(zone.t)), zone.t);
         if (zone.biome === "forest-dawn") {
           // R1 dawn biome; hill and coast retain their shipped contract.
-          grade.sunIntensity = 2;
-          grade.hemiIntensity = 1.25;
-          grade.fogColor.set(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.25);
+          grade.sunIntensity = 1.28;
+          grade.hemiIntensity = 0.64;
+          grade.sunColor.lerp(new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.12), 0.28);
+          grade.fogColor.set(PALETTE.skyLow).lerp(new Color(PALETTE.sunGold), 0.20);
         }
         // nearestPath's sampled projection differs slightly from the authored zone t.
         expect(composed.sun.intensity).toBeCloseTo(grade.sunIntensity, 6);

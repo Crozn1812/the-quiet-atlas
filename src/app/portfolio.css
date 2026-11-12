@@ -532,11 +532,11 @@ nav[aria-label="Language"] ul {
   letter-spacing: 0;
   white-space: nowrap;
 }
-.world-hud[data-compact="false"] a[href^="mailto:"] {
+.world-hud[data-compact="false"] a[data-contact-email] {
   flex: 1 1 0;
   min-inline-size: 0;
 }
-.world-hud[data-compact="false"] a[href^="mailto:"] span {
+.world-hud[data-compact="false"] a[data-contact-email] span {
   overflow: hidden;
   text-overflow: ellipsis;
 }

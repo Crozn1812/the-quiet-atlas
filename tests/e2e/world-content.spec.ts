@@ -152,8 +152,8 @@ test("T07 Workshop: walk to the desk with real keys (W+D), hint = workshop, E op
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-// Q-34 (batch 24): Roots now shows Duy's real skills (it used to say "Duy is still writing this page").
-test("§6.3 Roots: overlay shows Duy's skills with their level, links Quick Portfolio; × Close closes", async ({ page }) => {
+// ADR 0016: Roots shows the current English skills, replacing the old proficiency list.
+test("§6.3 Roots: overlay shows Duy's current skills, links Quick Portfolio; × Close closes", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await setup(page);
 
@@ -162,7 +162,15 @@ test("§6.3 Roots: overlay shows Duy's skills with their level, links Quick Port
   await expect(world).toHaveAttribute("data-world-paused", "true");
   await expect(overlayTitle(page)).toHaveText("The Roots");
   await expect(overlayTitle(page)).toBeFocused();
-  await expect(overlay(page).getByText("Linux and Python")).toBeVisible({ timeout: 10_000 });
+  await expect(overlay(page).getByRole("heading", { level: 1, name: "Skills" })).toBeVisible({ timeout: 10_000 });
+  for (const title of ["Cloud Platform · AWS", "Cloud Platform · Azure", "Languages and operating systems", "Network and Systems", "DevOps and tools"]) {
+    await expect(overlay(page).getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
+  }
+  await expect(overlay(page).getByText("EC2, S3, Lambda, DynamoDB, CloudWatch and AWS CDK.", { exact: false })).toBeVisible();
+  await expect(overlay(page).getByText("Azure API Management, Azure Functions, Microsoft Entra ID and Application Insights", { exact: false })).toBeVisible();
+  await expect(overlay(page).getByText("Python for data processing and backend services.", { exact: false })).toBeVisible();
+  await expect(overlay(page).getByText("CCNA networking fundamentals, Cisco Packet Tracer labs and pfSense study.", { exact: true })).toBeVisible();
+  await expect(overlay(page).getByText("Terraform, Docker, Kubernetes, Helm, Jenkins, GitHub Actions and Argo CD.", { exact: false })).toBeVisible();
   await expect(overlay(page).getByText("Duy is still writing this page.")).toHaveCount(0);
   await expect(overlay(page).getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", "/en/quick/");
 

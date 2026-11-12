@@ -49,7 +49,7 @@ describe("river ribbon", () => {
           // Retain the wider rocky forest channel; probe 0.5 m inside the
           // hill ribbon to allow the 2 m terrain triangles to meet the bank.
           const margin = row / RIBBON_SEGMENTS >= 0.37 && row / RIBBON_SEGMENTS <= 0.79 ? -0.5 : 0.5;
-          const point = centre.clone().addScaledVector(normal, across * (a.distanceTo(b) / 2 + margin));
+          const point = centre.clone().addScaledVector(normal, across * (riverWidthAt(row / RIBBON_SEGMENTS) / 2 + margin));
           const context = `${id}, row=${row}, across=${across}`;
           expect(worldHeight(point.x, point.z), context).toBeLessThan(point.y);
           expect(renderedHeight(point.x, point.z), context).toBeLessThan(point.y);
@@ -88,14 +88,14 @@ describe("river ribbon", () => {
     const positions = geometry.getAttribute("position");
     const uv = geometry.getAttribute("uv");
     const normals = geometry.getAttribute("normal");
-    let previousWidth = 0;
+    // RC-02 bank overlap varies with the terrain; the visible channel keeps its authored width.
     for (let i = 0; i < positions.count / 2; i++) {
       const a = new Vector3().fromBufferAttribute(positions, i * 2);
       const b = new Vector3().fromBufferAttribute(positions, i * 2 + 1);
       const width = a.distanceTo(b);
-      expect(width).toBeGreaterThanOrEqual(previousWidth);
       const t = uv.getY(i * 2) / riverLength();
-      expect(width).toBeCloseTo(riverWidthAt(t), 3);
+      expect(width).toBeGreaterThanOrEqual(riverWidthAt(t) - 1e-4);
+      expect(width).toBeLessThanOrEqual(riverWidthAt(t) + 8 + 1e-4);
       for (const vertex of [i * 2, i * 2 + 1]) {
         const blend = Math.max(0, (t - 0.96) / 0.04);
         const sink = 0.05 * blend * blend * (3 - 2 * blend);
@@ -105,7 +105,6 @@ describe("river ribbon", () => {
       }
       expect(uv.getX(i * 2)).toBe(0);
       expect(uv.getX(i * 2 + 1)).toBe(1);
-      previousWidth = width;
     }
     expect(riverWidthAt(0)).toBeCloseTo(0.6);
     expect(riverWidthAt(0.96)).toBeCloseTo(9.76);
@@ -208,7 +207,9 @@ describe("painted water material", () => {
       new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.seaShallow), 0.6).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
     expect(material.uniforms.uEdgeColor!.value.toArray()).toEqual(
       new Color(PALETTE.seaShallow).lerp(new Color(PALETTE.forestLight), 0.25).multiply(light).toArray().map(v => expect.closeTo(v, 12)));
-    expect(material.transparent).toBe(false);
+    // RC-02 reveals the stream bed with translucent water; sea remains opaque.
+    expect(material.transparent).toBe(true);
+    expect(material.depthWrite).toBe(false);
     material.dispose();
   });
 

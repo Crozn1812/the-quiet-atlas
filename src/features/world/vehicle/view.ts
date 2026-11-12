@@ -1,4 +1,4 @@
-import { Group } from "three";
+import { CylinderGeometry, Group, Mesh, MeshBasicMaterial } from "three";
 import { vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
 import { createGd110, disposeGd110, GD110_WHEEL_RADIUS } from "./mesh";
 
@@ -20,6 +20,14 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
   group.name = "vehicle_view";
   const bike = createGd110();
   group.add(bike);
+  const standPivot = new Group();
+  standPivot.position.set(0.15, 0.28, -0.16);
+  const stand = new Mesh(new CylinderGeometry(0.012, 0.017, 0.30, 5),
+    new MeshBasicMaterial({ color: 0x50483d }));
+  stand.position.y = -0.15;
+  standPivot.add(stand);
+  bike.add(standPivot);
+  let standFold = 0;
   const wheels = [bike.getObjectByName("rear_wheel")!, bike.getObjectByName("front_wheel")!];
   let previous: { state: VehicleState; corridor: VehicleCorridor } | undefined;
   let lean = 0;
@@ -62,6 +70,10 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
         target = clamp(-Math.atan(state.speed * state.speed * curvature / 9.81), -MAX_VEHICLE_LEAN, MAX_VEHICLE_LEAN);
       }
       const seconds = Number.isFinite(dt) ? clamp(dt, 0, .25) : 0;
+      const standTarget = state.mode === "ride" ? 1 : 0;
+      standFold = reducedMotion ? standTarget : standFold + (standTarget - standFold) * Math.min(1, seconds * 6);
+      standPivot.rotation.x = standFold * 1.5;
+      standPivot.rotation.z = 0.32 * (1 - standFold);
       lean = reducedMotion ? 0 : lean + (target - lean) * (1 - Math.exp(-8 * seconds));
       if (target === 0 && Math.abs(lean) < 1e-6) lean = 0;
       bike.rotation.z = lean;

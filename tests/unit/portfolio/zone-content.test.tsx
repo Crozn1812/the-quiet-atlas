@@ -42,7 +42,7 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     expect(html.match(/<h1\b/g)).toHaveLength(1);
     expect(html).toMatch(/<h1[^>]*id="zone-content-title"[^>]*tabindex="-1"/);
     const images = html.match(/<img\b[^>]*>/g)!;
-    expect(images).toHaveLength(1);
+    expect(images).toHaveLength(zoneId === "workshop" ? 5 : 1);
     expect(images[0]).toContain(`src="/zones/${zoneId}.webp"`);
     expect(images[0]).toContain('loading="lazy"');
     expect(images[0]).toContain('width="960"');
@@ -55,18 +55,18 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     const kicker = header.match(/<p[^>]*>(.*?)<\/p>/)![1];
     const title = header.match(/<h1[^>]*>(.*?)<\/h1>/)![1];
     expect(title).not.toBe(kicker);
-    expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD|<h3\b|target=/);
+    expect(html).not.toMatch(/Under construction|Đang xây dựng|TBD|<h3\b/);
   });
 
-  it("keeps the public introduction and offers Quick and the CV page", () => {
+  it("keeps the public introduction and offers Quick", () => {
     const data = fixture(locale);
     const html = render(locale, "first-light", data);
     for (const value of Object.values(data.profile).filter(value => typeof value === "string").slice(0, 4)) {
       expect(html).toContain(escaped(value));
     }
     expect(html).toContain(`href="/${locale}/quick/"`);
-    expect(html).toContain('href="/cv/"');
-    expect(html).toContain(locale === "vi" ? "Tải CV" : "Download CV");
+    expect(html).not.toContain('href="/cv/"');
+
   });
 
   it("renders every real project once and adds no fictional making-of", () => {
@@ -122,11 +122,11 @@ describe.each(["en", "vi"] as const)("zone magazine (%s)", locale => {
     const profile = content.profiles.find(p => p.locale === locale)!;
     Object.assign(data.profile, { phone: profile.phone, cvUrl: "TBD" });
     const html = render(locale, "last-postcard", data);
-    for (const href of [`mailto:${profile.email}`, `tel:${profile.phone.replaceAll(" ", "")}`, profile.githubUrl, profile.linkedinUrl, "/cv/"]) {
+    for (const href of [`https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=${encodeURIComponent(profile.email)}`, `tel:${profile.phone.replaceAll(" ", "")}`, profile.githubUrl, profile.linkedinUrl, "/cv/"]) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).toContain("<address");
-    expect(html).not.toMatch(/TBD|target=/);
+    expect(html).not.toMatch(/TBD/);
   });
 
   it.each(optional)("shows honest copy for %s when %s is absent or empty", (zoneId, field) => {

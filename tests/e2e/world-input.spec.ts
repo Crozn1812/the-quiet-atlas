@@ -122,22 +122,15 @@ test("Q21 (reload): reloading while in the world starts a new session on Welcome
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-// L3-009 — Q21 language switch inside the world (spec §6.3, L1-009): the menu's "English" / "Tiếng Việt" buttons swap
-// the dictionary and overlay content in place, replace the URL /en/ ↔ /vi/ (history.replaceState), keep the Canvas
-// (no remount) and the player's position. There is no public position API: position is checked through
-// `data-world-hint` / `data-world-quality` and through canvas pixels of the frame frozen by the open menu (the player
-// is walked away from spawn first, so a remount, which respawns at (0, 4) with the initial camera, would change it).
-// The running scene is not pixel-stable while idle, so position after resuming is only checked via `data-world-hint`.
+// Q21 / ADR 0016: Menu language changes the page URL, metadata and outgoing page links.
+// World copy stays English, with the same canvas, WebGL context and player position.
+// Position is checked through the frozen scene after walking away from spawn, plus the resumed hint.
 test.describe("Q21 language switch inside the world", () => {
   const world = (page: Page) => page.locator(`[data-world-chunk]`);
   // B2-230 adds a quality fieldset; the language fieldset is the one with the locale buttons.
   const languages = (page: Page) => dialog(page).locator("fieldset").filter({ has: page.getByRole("button", { name: "Tiếng Việt" }) });
   const overlay = (page: Page) => page.locator("dialog.world-content");
-  /**
-   * HUD/corner card text changes with the language; hide it so canvas pixels compare only the 3D scene.
-   * Since L3-010 (ADR 0008 đợt 10) the world's own visible prop label (`[data-world-chunk] > p` without aria-live,
-   * drawn over the canvas top-right) is localized too, so it is hidden as well (L4-010).
-   */
+  /** Hide UI so the frozen canvas comparison checks only the player's scene. */
   const SCENE_ONLY =
     ".corner-panel, .world-hud, .world-menu dialog, [aria-live], [data-world-chunk] > p { visibility: hidden !important; }";
 
@@ -197,7 +190,7 @@ test.describe("Q21 language switch inside the world", () => {
     await expect(page.locator("[data-app-mode='world']")).toHaveCount(1);
   }
 
-  test("en → vi: URL /vi/ via replaceState, lang/title/menu/HUD in Vietnamese, same Canvas, 0 errors; axe on the open menu", async ({ page }) => {
+  test("en → vi: URL /vi/ via replaceState, page lang/title in Vietnamese, English menu/HUD, same Canvas, 0 errors; axe on the open menu", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const network = trackNetwork(page);
     const entered = await enter(page, "en");
@@ -209,15 +202,14 @@ test.describe("Q21 language switch inside the world", () => {
 
     await switchLanguage(page, en, vi, "Tiếng Việt");
     await expect(page).toHaveTitle("Chào mừng · The Quiet Atlas");
-    await expect(dialog(page).getByRole("button", { name: vi.leave, exact: true })).toBeVisible();
-    await expect(dialog(page).getByRole("button", { name: "× Đóng", exact: true })).toBeVisible();
-    await expect(dialog(page).getByRole("button", { name: "× Đóng", exact: true })).toBeVisible();
-    await expect(dialog(page).getByRole("group", { name: "Chất lượng" })).toBeVisible();
-    await expect(dialog(page).getByRole("link", { name: "Mở Quick Portfolio" })).toHaveAttribute("href", "/vi/quick/");
-    await expect(languages(page).locator("legend")).toHaveText("Ngôn ngữ");
-    await expect(page.locator(HUD)).toHaveAttribute("aria-label", "Thao tác world");
-    await expect(page.locator(HUD).getByRole("button", { name: vi.sound, exact: true })).toBeAttached();
-    await expect(page.locator(HUD).getByRole("button", { name: vi.leave, exact: true })).toBeAttached();
+    await expect(dialog(page).getByRole("button", { name: en.leave, exact: true })).toBeVisible();
+    await expect(dialog(page).getByRole("button", { name: "× Close", exact: true })).toBeVisible();
+    await expect(dialog(page).getByRole("group", { name: "Quality" })).toBeVisible();
+    await expect(dialog(page).getByRole("link", { name: "Open Quick Portfolio" })).toHaveAttribute("href", "/vi/quick/");
+    await expect(languages(page).locator("legend")).toHaveText("Language");
+    await expect(page.locator(HUD)).toHaveAttribute("aria-label", "World actions");
+    await expect(page.locator(HUD).getByRole("button", { name: en.sound, exact: true })).toBeAttached();
+    await expect(page.locator(HUD).getByRole("button", { name: en.leave, exact: true })).toBeAttached();
     await expect(page.locator(HUD).getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", "/vi/quick/");
 
     await test.step("axe on the open menu (vi): 0 critical/serious", async () => {
@@ -231,7 +223,7 @@ test.describe("Q21 language switch inside the world", () => {
     expect((await network.worldChunks()).length, "world chunk re-requested").toBe(chunksBefore);
     await expect(entered).toHaveAttribute("data-world-chunk", WORLD_MARKER);
 
-    await dialog(page).getByRole("button", { name: "× Đóng", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "× Close", exact: true }).click();
     await expect(dialog(page)).not.toHaveAttribute("open", "");
     await expect(entered).toHaveAttribute("data-world-paused", "false");
     // The hint is cleared while paused (interaction disabled); once resumed it must be the same target as before.
@@ -241,12 +233,12 @@ test.describe("Q21 language switch inside the world", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("vi → en: URL /en/ via replaceState, lang/title/HUD in English, same Canvas, 0 errors", async ({ page }) => {
+  test("vi → en: URL /en/ via replaceState, page lang/title in English, English HUD, same Canvas, 0 errors", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await enter(page, "vi");
     const [en, vi] = LOCALES;
     await expect(page).toHaveTitle("Chào mừng · The Quiet Atlas");
-    await expect(page.locator(HUD)).toHaveAttribute("aria-label", "Thao tác world");
+    await expect(page.locator(HUD)).toHaveAttribute("aria-label", "World actions");
     const webgl2Before = await webgl2Count(page);
 
     await switchLanguage(page, vi, en, "English");
@@ -301,7 +293,7 @@ test.describe("Q21 language switch inside the world", () => {
     await expect(entered).toHaveAttribute("data-world-quality", quality ?? "");
     await expectSameWorld(page, webgl2Before);
 
-    await dialog(page).getByRole("button", { name: "× Đóng", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "× Close", exact: true }).click();
     await expect(dialog(page)).not.toHaveAttribute("open", "");
     await expect(entered).toHaveAttribute("data-world-paused", "false");
     if (hint === null) await expect(entered).not.toHaveAttribute("data-world-hint", /.*/);
@@ -310,7 +302,7 @@ test.describe("Q21 language switch inside the world", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("overlay content follows the language: en shows Close / Nguyen Huu Bao Duy; after switching to vi, Đóng / Nguyễn Hữu Bảo Duy", async ({ page }) => {
+  test("ADR 0016: overlay stays English after changing the page language to vi", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const entered = await enter(page, "en");
     const [en, vi] = LOCALES;
@@ -325,15 +317,15 @@ test.describe("Q21 language switch inside the world", () => {
     await expect(overlay(page)).not.toHaveAttribute("open", "");
 
     await switchLanguage(page, en, vi, "Tiếng Việt");
-    await dialog(page).getByRole("button", { name: "× Đóng", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "× Close", exact: true }).click();
     await expect(dialog(page)).not.toHaveAttribute("open", "");
 
     await openFirstLight();
     await expect(overlay(page)).toHaveAttribute("open", "");
-    await expect(overlay(page).getByRole("button", { name: "× Đóng", exact: true })).toBeVisible();
-    await expect(overlay(page).getByRole("heading", { level: 1, name: vi.name })).toBeVisible({ timeout: 10_000 });
-    await expect(overlay(page).getByRole("heading", { level: 1, name: en.name })).toHaveCount(0);
-    await overlay(page).getByRole("button", { name: "× Đóng", exact: true }).click();
+    await expect(overlay(page).getByRole("button", { name: "× Close", exact: true })).toBeVisible();
+    await expect(overlay(page).getByRole("heading", { level: 1, name: en.name })).toBeVisible({ timeout: 10_000 });
+    await expect(overlay(page).getByRole("heading", { level: 1, name: vi.name })).toHaveCount(0);
+    await overlay(page).getByRole("button", { name: "× Close", exact: true }).click();
     await expect(overlay(page)).not.toHaveAttribute("open", "");
     await expect(entered).toHaveAttribute("data-world-paused", "false");
     expect(errors, errors.join("\n")).toEqual([]);
@@ -344,12 +336,12 @@ test.describe("Q21 language switch inside the world", () => {
     await enter(page, "en");
     const [en, vi] = LOCALES;
     await switchLanguage(page, en, vi, "Tiếng Việt");
-    await dialog(page).getByRole("button", { name: "× Đóng", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "× Close", exact: true }).click();
     await expect(dialog(page)).not.toHaveAttribute("open", "");
 
     // A full navigation drops the in-page tag set on window by this test.
     await page.evaluate(() => void ((window as unknown as { __tqaSameDocument: boolean }).__tqaSameDocument = true));
-    await page.locator(HUD).getByRole("button", { name: vi.leave, exact: true }).click();
+    await page.locator(HUD).getByRole("button", { name: en.leave, exact: true }).click();
     await expect(page).toHaveURL(/\/vi\/$/);
     await expect(page.getByRole("heading", { level: 1, name: vi.name })).toBeVisible();
     await expect(page.locator("[data-app-mode]")).toHaveAttribute("data-app-mode", "welcome");
@@ -363,10 +355,10 @@ test.describe("Q21 language switch inside the world", () => {
   });
 });
 
-// L4-010 — Q21 language inside the world (ADR 0008 "đợt 10", spec §6.3): the world's own copy follows the locale.
+// Q21 / ADR 0016 supersedes ADR 0008: world copy stays English on both page locales.
 // Contract: `data-world-locale` on the container, `canvas[aria-label]`, hint text "E — …" (src/features/world/copy.ts).
 // Expected strings mirror src/features/world/copy.ts (kept literal here so a copy regression is caught).
-test.describe("Q21 world copy follows the language (ADR 0008 đợt 10)", () => {
+test.describe("Q21 world copy stays English (ADR 0016)", () => {
   const CANVAS_LABEL = {
     en: "A riverside journey through eight places. WASD to walk, Shift to run, ←→ or drag to orbit, +/− or wheel to zoom, E to interact, J for journal, Esc for menu. Click a nearby object to open its story.",
     vi: "Hành trình qua tám khu bên dòng sông. WASD để đi bộ, Shift để chạy, ←→ hoặc kéo để xoay, +/− hoặc cuộn để thu phóng, E để tương tác, J mở sổ, Esc mở menu. Bấm vật thể ở gần để mở câu chuyện.",
@@ -374,22 +366,22 @@ test.describe("Q21 world copy follows the language (ADR 0008 đợt 10)", () => 
   // B2-100/B2-150: the First Light notebook is hinted at the spawn.
   const HINT = { en: "E — A first hello", vi: "E — Lời chào đầu" } as const;
 
-  test("Enter World on /vi/: data-world-locale=vi, Vietnamese canvas aria-label and spawn hint", async ({ page }) => {
+  test("Enter World on /vi/: English world locale, canvas aria-label and spawn hint", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const entered = await enterWorld(page, "vi");
     test.skip(!entered, "NOT RUN: WebGL2 unavailable in this browser");
     test.info().annotations.push({ type: "window-focus", description: await ensureWindowFocus(page) });
     await expect(entered!).toHaveAttribute("data-world-paused", "false");
-    await expect(entered!).toHaveAttribute("data-world-locale", "vi");
-    await expect(entered!.locator("canvas")).toHaveAttribute("aria-label", CANVAS_LABEL.vi);
+    await expect(entered!).toHaveAttribute("data-world-locale", "en");
+    await expect(entered!.locator("canvas")).toHaveAttribute("aria-label", CANVAS_LABEL.en);
     // Spawn (0, 4) is within reach of the First Light signpost (world-content.spec.ts T07).
     await expect(entered!).toHaveAttribute("data-world-hint", "first-light");
-    await expect(entered!.getByText(HINT.vi, { exact: true })).toBeAttached();
-    await expect(entered!.getByText(HINT.en, { exact: true })).toHaveCount(0);
+    await expect(entered!.getByText(HINT.en, { exact: true })).toBeAttached();
+    await expect(entered!.getByText(HINT.vi, { exact: true })).toHaveCount(0);
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("/en/ → menu Tiếng Việt: data-world-locale and canvas aria-label switch on the same canvas; hint text in Vietnamese", async ({ page }) => {
+  test("/en/ → menu Tiếng Việt: page changes, English world locale, canvas label and hint stay on the same canvas", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const entered = await enterWorld(page, "en");
     test.skip(!entered, "NOT RUN: WebGL2 unavailable in this browser");
@@ -406,19 +398,19 @@ test.describe("Q21 world copy follows the language (ADR 0008 đợt 10)", () => 
     await expect(dialog(page)).toHaveAttribute("open", "");
     await dialog(page).getByRole("button", { name: "Tiếng Việt" }).click();
     await expect(page).toHaveURL(/\/vi\/$/);
-    await expect(entered!).toHaveAttribute("data-world-locale", "vi");
-    await expect(canvas).toHaveAttribute("aria-label", CANVAS_LABEL.vi);
+    await expect(entered!).toHaveAttribute("data-world-locale", "en");
+    await expect(canvas).toHaveAttribute("aria-label", CANVAS_LABEL.en);
     await expect(page.locator("canvas")).toHaveCount(1);
     expect(await canvas.evaluate(element => (element as unknown as { __tqaTag?: string }).__tqaTag), "canvas element was replaced (remount)").toBe("L4-010");
 
-    await dialog(page).getByRole("button", { name: "× Đóng", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "× Close", exact: true }).click();
     await expect(dialog(page)).not.toHaveAttribute("open", "");
     await expect(entered!).toHaveAttribute("data-world-paused", "false");
-    // Position unchanged → the same First Light hint reappears once resumed, now in Vietnamese.
+    // Position unchanged → the same First Light hint reappears once resumed, still in English.
     await expect(entered!).toHaveAttribute("data-world-hint", "first-light");
-    await expect(entered!.getByText(HINT.vi, { exact: true })).toBeAttached();
-    await expect(entered!.getByText(HINT.en, { exact: true })).toHaveCount(0);
-    await expect(entered!).toHaveAttribute("data-world-locale", "vi");
+    await expect(entered!.getByText(HINT.en, { exact: true })).toBeAttached();
+    await expect(entered!.getByText(HINT.vi, { exact: true })).toHaveCount(0);
+    await expect(entered!).toHaveAttribute("data-world-locale", "en");
     expect(errors, errors.join("\n")).toEqual([]);
   });
 });

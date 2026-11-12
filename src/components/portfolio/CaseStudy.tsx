@@ -3,6 +3,7 @@ import { projectStatusLabel } from "@/content/schema";
 import { portfolioCopy } from "@/i18n/portfolio";
 import { ProjectEvidence, SourceLink, type Project } from "./ProjectLinks";
 import { published, publishedUrl } from "./published";
+import { ProjectDiagram } from "./ProjectDiagram";
 
 export function CaseStudy({ project: p, embedded = false }: {
   project: Project;
@@ -35,6 +36,7 @@ export function CaseStudy({ project: p, embedded = false }: {
       {groups.map((values, i) => values.length > 0 && (
         <section key={i} aria-labelledby={'section-' + i}>
           <h2 id={'section-' + i}>{t.sections[i]}</h2>
+          {i === 0 && <ProjectDiagram slug={p.slug} title={p.title} locale={p.locale} />}
           {values.map((v, j) => <p key={j}>{v}</p>)}
           {(i === 0 || i === 8) && <ProjectEvidence project={p} />}
           {i === 8 && metrics.map((m, j) => (

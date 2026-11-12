@@ -224,7 +224,8 @@ describe("vehicle view", () => {
     expect(disposeOther).not.toHaveBeenCalled();
     expect(parent.children).toHaveLength(0);
     expect(a.group.children).toHaveLength(0);
-    expect(meshes(b.group)).toHaveLength(1);
+    // RC-02 adds the folding kickstand as a second owned mesh.
+    expect(meshes(b.group)).toHaveLength(2);
     b.update(riding(), straight, .25);
   });
 });

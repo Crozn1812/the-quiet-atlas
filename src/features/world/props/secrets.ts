@@ -169,13 +169,21 @@ function windChime(build: Builder, root: Group) {
   }
 }
 
-function trail(build: Builder) {
-  for (let i = 0; i < 12; i++) {
-    build.add(new CylinderGeometry(0.24, 0.27, 0.065, 5).scale(1.15, 1, 0.73)
-      .rotateY(i * 0.71).translate(Math.sin(i * 0.83) * 0.22, 0.0325, -i * 0.78), "stone");
+function trail(build: Builder, groundAt: (x: number, z: number) => number) {
+  function add(geometry: BufferGeometry) {
+    const vertices = geometry.getAttribute("position");
+    for (let i = 0; i < vertices.count; i++) {
+      vertices.setY(i, vertices.getY(i) + groundAt(vertices.getX(i), vertices.getZ(i)));
+    }
+    geometry.computeVertexNormals();
+    build.add(geometry, "stone");
   }
-  build.add(box([0.24, 0.52, 0.22], [0.02, 0.26, -9]), "stone");
-  build.add(new BoxGeometry(0.21, 0.14, 0.18).rotateY(0.12).translate(0.02, 0.59, -9), "stone");
+  for (let i = 0; i < 12; i++) {
+    add(new CylinderGeometry(0.24, 0.27, 0.065, 5).scale(1.15, 1, 0.73)
+      .rotateY(i * 0.71).translate(Math.sin(i * 0.83) * 0.22, 0.0325, -i * 0.78));
+  }
+  add(box([0.24, 0.52, 0.22], [0.02, 0.26, -9]));
+  add(new BoxGeometry(0.21, 0.14, 0.18).rotateY(0.12).translate(0.02, 0.59, -9));
 }
 
 /** The seat faces local +Z; the short fence sits along its right side. */
@@ -203,7 +211,7 @@ function bench(build: Builder, root: Group) {
 }
 
 /** Deterministic scenery in metres, grounded at y=0. No world wiring or animation. */
-export function createSecretLandmark(landmark: SecretLandmark): Group {
+export function createSecretLandmark(landmark: SecretLandmark, groundAt: (x: number, z: number) => number = () => 0): Group {
   const root = new Group();
   root.name = landmark;
   root.userData.landmark = landmark;
@@ -211,7 +219,7 @@ export function createSecretLandmark(landmark: SecretLandmark): Group {
   switch (landmark) {
     case "vine-arch-mirror": arch(build); break;
     case "wind-chime": windChime(build, root); break;
-    case "faint-trail": trail(build); break;
+    case "faint-trail": trail(build, groundAt); break;
     case "bench": bench(build, root); break;
   }
   build.finish();

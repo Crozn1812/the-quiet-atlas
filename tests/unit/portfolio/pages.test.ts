@@ -16,14 +16,15 @@ it("keeps Welcome readable without JS and moves long content to Quick", () => {
     expect(html).toContain(profile.introduction);
     expect(html).toContain(messages[locale].world.unavailable);
     expect(html).toMatch(/<button disabled=""[^>]*>Enter World<\/button>/);
-    expect(html).toContain(`href="mailto:${profile.email}"`);
-    expect(html).toContain('href="/cv/"');
+    expect(html).toContain(`href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=${encodeURIComponent(profile.email)}"`);
+    expect(html).not.toContain('href="/cv/"');
     expect(html).not.toContain('<section');
     expect(html.match(/>Quick Portfolio<\/span>/g)).toHaveLength(1);
     expect(html.indexOf('class="world-viewport"')).toBeLessThan(html.indexOf('class="world-hud"'));
     const quick = renderToStaticMarkup(createElement(Portfolio, { locale, quick: true }));
     expect(quick).toContain('id="projects"');
     expect(quick).toContain('id="contact"');
+    expect(quick).toContain('href="/cv/"');
     expect(quick).not.toContain('class="welcome-shell"');
   }
 });

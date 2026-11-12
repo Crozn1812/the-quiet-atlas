@@ -19,7 +19,13 @@ describe('FirstLight bounded woodland prototype',()=>{
   const grove=createFirstLightGrove(surfaceHeight,[]);
   console.log('FL01',grove.sites.length,'trees',grove.meshes.reduce((n,m)=>n+m.count*m.geometry.getAttribute('position').count/3,0),'triangles', 'draws',grove.group.children.length);
   expect(grove.sites.length).toBeGreaterThan(20);
-  expect(grove.group.children).toHaveLength(4);
+  expect(grove.group.children).toHaveLength(5);
+  const rays = grove.group.getObjectByName('first-light-dawn-rays') as Mesh;
+  expect(rays.geometry.index!.count / 3).toBe(512);
+  const colors = rays.geometry.getAttribute('color');
+  expect(colors.itemSize).toBe(4);
+  expect(colors.getW(0)).toBe(0);
+  expect(Math.max(...Array.from({length: colors.count}, (_, i) => colors.getW(i)))).toBe(1);
   for(const s of grove.sites){expect(inFirstLightGrove(s.x,s.z)).toBe(true);expect(nearestPath(s.x,s.z).distance).toBeGreaterThanOrEqual(6.8);expect(nearestRiver(s.x,s.z).distance).toBeGreaterThanOrEqual(7);}
   const n=grove.trunks.length;grove.setQuality('Low');expect(grove.trunks).toHaveLength(n);grove.setQuality('High');expect(grove.trunks).toHaveLength(n);grove.dispose();grove.dispose();
  });

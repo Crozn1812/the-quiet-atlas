@@ -12,7 +12,8 @@ test("plays on Enter World, offers a focused Skip, and hands control back on Ski
   test.skip(!world, "NOT RUN: no WebGL2");
   await expect(world!).toHaveAttribute("data-world-intro", "playing");
   const skip = page.locator("[data-world-intro-skip]");
-  await expect(skip).toHaveText("Bỏ qua");
+  // ADR 0016: cinematic copy stays English on /vi/.
+  await expect(skip).toHaveText("Skip");
   await expect(page.locator("[data-world-letterbox]")).toHaveCount(2);
   // B2-235: the HUD stays out of the cinematic frame and returns at handoff.
   await expect(page.locator(MENU_TRIGGER)).toBeHidden();

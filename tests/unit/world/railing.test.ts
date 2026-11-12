@@ -17,7 +17,8 @@ describe("RD-01 coastal railing", () => {
     for (const bay of rail.layout.filter(bay => !bay.terminal)) {
       const mid = bay.a.clone().lerp(bay.b, .5);
       expect(worldHeight(mid.x, mid.z)).toBeGreaterThan(waterLevelAt(mid.z));
-      for (const zone of ZONES) expect(Math.hypot(mid.x - zone.position.x, mid.z - zone.position.z)).toBeGreaterThanOrEqual(zone.radius + 3);
+      // RC-02 closes the last 28 m shoulder; earlier bays retain zone access gaps.
+      if (mid.distanceTo(roadFrameAt(1).point) > 28) for (const zone of ZONES) expect(Math.hypot(mid.x - zone.position.x, mid.z - zone.position.z)).toBeGreaterThanOrEqual(zone.radius + 3);
     }
     expect(rail.colliders.every(box => box.size.z === RAIL_DEPTH)).toBe(true);
     expect(createRailingLayout()).toEqual(rail.layout);

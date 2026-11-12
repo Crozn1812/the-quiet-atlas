@@ -302,7 +302,11 @@ const fragmentShader = /* glsl */ `
       foam *= 1.0 - smoothstep(SEA_FOAM_MAX_SLOPE * 0.5, SEA_FOAM_MAX_SLOPE, abs(slope));
       color = mix(color, uPaperColor, foam);
     #endif
-    gl_FragColor = vec4(color, 1.0);
+    #ifdef SEA_WATER
+      gl_FragColor = vec4(color, 1.0);
+    #else
+      gl_FragColor = vec4(color, mix(0.48, 0.70, sin(vWaterUv.y * 0.7 - uTime * 1.1) * 0.5 + 0.5));
+    #endif
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     #include <fog_fragment>
@@ -370,6 +374,8 @@ export class WaterMaterial extends ShaderMaterial {
       vertexShader,
       fragmentShader,
       fog: true,
+      transparent: !sea,
+      depthWrite: sea,
       // The existing coast terrain is flat at sea level; avoid coplanar flicker.
       polygonOffset: true,
       polygonOffsetFactor: -1,

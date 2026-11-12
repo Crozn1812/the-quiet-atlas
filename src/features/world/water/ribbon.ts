@@ -1,5 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
-import { riverWidthAt, waterLevelAt, worldHeight } from "../terrain/height";
+import { createSurfaceSampler, riverWidthAt, waterLevelAt, worldHeight } from "../terrain/height";
 import { riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
@@ -39,6 +39,7 @@ export { riverWidthAt } from "../terrain/height";
 
 /** Two vertices per row, UV.x across the ribbon, UV.y downstream in metres. */
 export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry {
+  const surfaceHeight = createSurfaceSampler();
   if (!Number.isInteger(segments) || segments < 1 || segments > 16384) {
     throw new RangeError("Water ribbon segments must be an integer between 1 and 16384");
   }
@@ -67,9 +68,18 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
     const blend = Math.max(0, Math.min(1, (t - blendStart) / (blendEnd - blendStart)));
     const level = originalLevel + (Math.min(originalLevel, WATER_LEVEL - 0.05) - originalLevel)
       * blend * blend * (3 - 2 * blend);
+    const nx = -tangent.z, nz = tangent.x;
+    let edge = halfWidth;
+    // Submerge the ribbon edges beneath the rendered banks without moving its centre.
+    if (t > 0.03 && t < blendStart) {
+      const limit = halfWidth + 4 * Math.min(1, (t - 0.03) / 0.01);
+      while (edge < limit && [-1, 1].some(side =>
+        surfaceHeight(centre.x + nx * edge * side, centre.z + nz * edge * side) < level + 0.05)) {
+        edge = Math.min(limit, edge + 0.5);
+      }
+    }
     for (const side of [-1, 1]) {
-      positions.push(centre.x - tangent.z * halfWidth * side, level,
-        centre.z + tangent.x * halfWidth * side);
+      positions.push(centre.x + nx * edge * side, level, centre.z + nz * edge * side);
       normals.push(0, 1, 0);
       uvs.push((side + 1) / 2, t * length);
     }

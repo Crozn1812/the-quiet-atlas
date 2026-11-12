@@ -5,6 +5,8 @@ import type { Locale } from "@/i18n/locales";
 import { messages } from "@/i18n/messages";
 import { EvidenceView, SourceLinkView } from "./ProjectLinkViews";
 import { ProjectHeading } from "./ProjectHeading";
+import { ProjectDiagram } from "./ProjectDiagram";
+import { gmailCompose } from "./contact";
 import type { WorldContentData, WorldProject } from "./worldContentData";
 import styles from "./zone-content.module.css";
 
@@ -111,7 +113,7 @@ export function ZoneContent({ locale, zoneId, data }: {
       <>
         <p className={styles.lead}>{[published(p.role), published(p.level)].filter(Boolean).join(" · ")}</p>
         <p>{published(p.introduction)}</p>
-        <nav className={styles.links} aria-label={vi ? "Hồ sơ" : "Profile"}>{quick}{cv}</nav>
+        <nav className={styles.links} aria-label={vi ? "Hồ sơ" : "Profile"}>{quick}</nav>
       </>
     ));
   }
@@ -127,6 +129,7 @@ export function ZoneContent({ locale, zoneId, data }: {
             <h2><a href={`/${locale}/projects/${project.slug}/`}>{project.title}</a></h2>
             {published(project.statusLabel) && <p className={styles.meta}>{project.statusLabel}</p>}
             {published(project.summary) && <p>{project.summary}</p>}
+            <ProjectDiagram slug={project.slug} title={project.title} locale={locale} />
           </section>
         ))}
       </div>
@@ -179,7 +182,7 @@ export function ZoneContent({ locale, zoneId, data }: {
         <section className={styles.address}>
           <h2>{vi ? "Liên hệ & CV" : "Contact & CV"}</h2>
           <address className={styles.links}>
-            {published(p.email) && <a href={`mailto:${p.email}`}>{p.email}</a>}
+            {p.email && published(p.email) && <a href={gmailCompose(p.email)} target="_blank" rel="noopener noreferrer">{p.email}</a>}
             {p.phone && published(p.phone) && <a href={`tel:${p.phone.replace(/\s/g, "")}`}>{p.phone}</a>}
             {published(p.githubUrl) && <a href={p.githubUrl}>GitHub</a>}
             {published(p.linkedinUrl) && <a href={p.linkedinUrl}>LinkedIn</a>}

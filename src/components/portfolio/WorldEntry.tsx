@@ -1,12 +1,12 @@
 "use client";
 
-/* Static CV navigation avoids prefetching the client router. */
-/* eslint-disable @next/next/no-html-link-for-pages */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AmbienceBridge } from "./sound/ambience-bridge";
 import { createCapabilityReader, worldEligibility } from "./capabilities";
 import { listenWorldError } from "./worldError";
+import { gmailCompose } from "./contact";
+import { messages } from "@/i18n/messages";
 
 export type WorldCopy = {
   unavailable: string;
@@ -31,16 +31,16 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
   children: ReactNode;
   backdrop: ReactNode;
 }) {
-  const [locale, setLocale] = useState(initialLocale);
-  const [copy, setCopy] = useState(initialCopy);
-  const currentLocale = useRef(initialLocale);
-  const [announcement, setAnnouncement] = useState("");
+  const [appMode, setAppMode] = useState<"welcome" | "loading" | "world" | "recoverableError">("welcome");
+  const [pageLocale, setPageLocale] = useState(initialLocale);
+  const pageLocaleRef = useRef(initialLocale);
+  const locale = appMode === "world" ? "en" : initialLocale;
+  const copy = appMode === "world" ? messages.en.world : initialCopy;
   const hud = {
     sound: locale === "vi" ? "Âm thanh" : "Sound",
     actions: locale === "vi" ? "Thao tác world" : "World actions",
   };
   const [eligibility, setEligibility] = useState<ReturnType<typeof worldEligibility>>();
-  const [appMode, setAppMode] = useState<"welcome" | "loading" | "world" | "recoverableError">("welcome");
   const [retried, setRetried] = useState(false);
   // Bumped on every failure: a synchronous failure batches "loading" → "recoverableError", so appMode alone may not change.
   const [failures, setFailures] = useState(0);
@@ -136,10 +136,9 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
     generation.current++;
     teardown.current?.();
     teardown.current = undefined;
-    if (currentLocale.current !== initialLocale) {
-      // End the session and render the server Welcome in the selected locale (Q21).
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      location.assign(`/${currentLocale.current}/`);
+    if (pageLocaleRef.current !== initialLocale) {
+      // Load the translated server-rendered Welcome after tearing down this session.
+      window.location.assign(new URL(`/${pageLocaleRef.current}/`, window.location.origin).href);
       return;
     }
     setAppMode("welcome");
@@ -157,7 +156,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       if (current !== generation.current || !container.current) return;
       const unmount = await mountWorld(container.current, {
         collision: "rapier",
-        locale: currentLocale.current === "vi" ? "vi" : "en",
+        locale: "en",
       });
       if (current !== generation.current) {
         unmount();
@@ -172,18 +171,15 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       if (current !== generation.current || !container.current) return;
       const { mountWorldHud } = await import("./hud/WorldHud");
       if (current !== generation.current || !container.current) return;
-      const removeHud = mountWorldHud(container.current, currentLocale.current, menu.current!);
+      const removeHud = mountWorldHud(container.current, "en", menu.current!);
       teardown.current = () => {
         removeHud();
         unmount();
       };
-      const removeMenu = mountWorldMenu(container.current, locale, menu.current!, leaveWorld, (next, nextCopy) => {
-        currentLocale.current = next;
-        setLocale(next);
-        setCopy(nextCopy);
-        removeHud.setLocale(next);
-        setAnnouncement(next === "vi" ? "Ngôn ngữ: Tiếng Việt" : "Language: English");
-      });
+      const removeMenu = mountWorldMenu(container.current, "en", menu.current!, leaveWorld, next => {
+        pageLocaleRef.current = next;
+        setPageLocale(next);
+      }, true, initialLocale);
       teardown.current = () => {
         removeHud();
         removeMenu();
@@ -208,17 +204,12 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
       className="world-entry"
       data-app-mode={fallback ? "editorial" : appMode}
     >
-      <span
-        className="visually-hidden"
-        aria-live="polite"
-      >
-        {announcement}
-      </span>
       {backdrop}
       <div
         ref={container}
         tabIndex={-1}
         role="region"
+        lang="en"
         aria-label={copy.scene}
         hidden={appMode !== "loading" && appMode !== "world"}
         className="world-viewport"
@@ -243,7 +234,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
             >
               Enter World
             </button>
-            {fallback && <a href={`/${locale}/quick/`}>{copy.editorial}</a>}
+            {fallback && <a href={`/${pageLocale}/quick/`}>{copy.editorial}</a>}
           </nav>
           <p id="world-reason" aria-live="polite">
             {!eligibility ? copy.unavailable : appMode === "loading" ? copy.loading : appMode === "recoverableError" ? copy.error : fallback ? copy[eligibility] : ""}
@@ -261,15 +252,15 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
           >
             {copy.soundReason}
           </span>
-          <a href={`/${locale}/quick/`}>
+          <a href={`/${pageLocale}/quick/`}>
             <HudIcon kind="quick" />
             <span>Quick Portfolio</span>
           </a>
-          <a href="/cv/">
+          <a href={`/${pageLocale}/quick/#contact`}>
             <HudIcon kind="cv" />
-            <span>CV</span>
+            <span>{locale === "vi" && appMode !== "world" ? "Liên hệ & CV" : "Contact & CV"}</span>
           </a>
-          <a href={`mailto:${email}`}>
+          <a href={gmailCompose(email)} data-contact-email target="_blank" rel="noopener noreferrer">
             <HudIcon kind="email" />
             <span>{appMode === "world" ? "Email" : email}</span>
           </a>

@@ -195,42 +195,34 @@ const review={
   publicApproval: true,
   lastReviewedAt: "2026-11-04"
 } as const;
-const introduction: Record<Locale, string>={
-  en: "Fourth-year Network and Systems student at PTIT and CloudDevOps Engineer (Intern) at HPT, building automated, traceable infrastructure on AWS and Azure.",
-  vi: "Sinh viên năm tư PTIT, CloudDevOps Engineer (thực tập) tại HPT, xây dựng hạ tầng tự động trên AWS và Azure."
+const introduction: Record<Locale, string> = {
+  vi: "Mình là sinh viên năm cuối ngành Mạng và Hệ thống tại PTIT. Mình đang học tập và trau dồi kinh nghiệm triển khai, vận hành các dịch vụ cloud và tự động hóa quy trình hệ thống.",
+  en: "I am a final-year Network and Systems student at PTIT. I am developing practical experience in deploying and operating cloud services and automating system workflows."
 };
 // Q-23b: công việc tại HPT.
-const hptSummary: Record<Locale, string>={
-  en: "Deploying Microsoft Azure cloud services: API Management, Azure Functions, Microsoft Fabric and Power Automate.",
-  vi: "Triển khai các dịch vụ cloud Microsoft Azure: API Management, Azure Functions, Microsoft Fabric và Power Automate."
+const hptSummary: Record<Locale, string> = {
+  vi: "Tham gia triển khai các dịch vụ Microsoft Cloud tại HPT Corporation. Trong dự án chia sẻ dữ liệu đối tác, mình làm việc với Azure API Management để quản lý điểm truy cập API và với Azure Functions để kết nối, chuẩn hóa và lọc dữ liệu từ nguồn cloud và on-premises. Mình cũng làm việc với Microsoft Fabric cho quy trình dữ liệu, Power Automate cho tự động hóa luồng công việc và Microsoft Foundry trong quá trình tìm hiểu và triển khai các dịch vụ AI.",
+  en: "Contributed to Microsoft Cloud deployments at HPT Corporation. On the partner data sharing project, I worked with Azure API Management to manage API access and Azure Functions to connect, normalize and filter data from cloud and on-premises sources. I also worked with Microsoft Fabric for data workflows, Power Automate for workflow automation and Microsoft Foundry while exploring and deploying AI services."
 };
 // Q-34..37 (Duy trả lời 2026-11-05). Giữ đúng mức "đã làm / đã học / muốn học" (spec §4.3), không phần trăm.
 // Định hướng ghi là định hướng tính từ mốc tốt nghiệp, không phải thành tích. Chứng chỉ VTI: Lead đã đối chiếu bản
 // giấy Duy gửi (Q-40, 2026-11-05): "Certificate of Completion", khoá DEVOPS, VTI Academy, 9/2026; giấy không có mã
 // xác minh nên không ghi mã. Bản chụp chứng chỉ lưu ngoài repo. Phần tính cách Duy đã duyệt (Q-42).
 type ProfileItem={ title: string; description: string };
-const skills: Record<Locale, ProfileItem[]>={
+const skills: Record<Locale, ProfileItem[]> = {
   vi: [
-    { title: "Cloud: AWS, Azure", description: "Đã làm. Dựng hạ tầng AWS EKS trong dự án CMS DevOps Platform; triển khai dịch vụ Azure khi thực tập tại HPT." },
-    { title: "Container và Kubernetes", description: "Đã làm." },
-    { title: "Monitoring và logging", description: "Đã làm." },
-    { title: "Infrastructure as Code: Terraform", description: "Đã học, đã thực hành." },
-    { title: "CI/CD", description: "Đã học." },
-    { title: "Bảo mật trong DevOps", description: "Đã học." },
-    { title: "Mạng và hệ thống", description: "Ngành học của mình. Đã học và đã làm: dựng hạ tầng mạng Cisco trên Packet Tracer." },
-    { title: "Linux và Python", description: "Linux: đã học, đã làm, tự tin nhất. Python: đã học, đã làm." },
-    { title: "Muốn học tiếp", description: "Nắm thật chắc các kỹ năng DevOps đã học, rồi học tiếp AIOps." }
+    { title: "Cloud Platform · AWS", description: "EC2, S3, Lambda, DynamoDB, CloudWatch và AWS CDK. Đồ án CMS dùng EKS, ECR, ALB và RDS PostgreSQL. Pipeline dữ liệu bán hàng dùng S3 → Lambda để xử lý CSV." },
+    { title: "Cloud Platform · Azure", description: "Azure API Management, Azure Functions, Microsoft Entra ID và Application Insights trong Partner Data Gateway. Microsoft Foundry, Microsoft Fabric và Power Automate trong thời gian thực tập." },
+    { title: "Ngôn ngữ và hệ điều hành", description: "Python cho xử lý dữ liệu và dịch vụ backend. Linux và shell cho môi trường triển khai. C++ trong học tập." },
+    { title: "Network and Systems", description: "Nền tảng mạng theo nội dung CCNA, thực hành Cisco Packet Tracer và tìm hiểu pfSense." },
+    { title: "DevOps và công cụ", description: "Terraform, Docker, Kubernetes, Helm, Jenkins, GitHub Actions và Argo CD. Prometheus và Grafana để quan sát. Postman để kiểm thử API." }
   ],
   en: [
-    { title: "Cloud: AWS, Azure", description: "Done in practice. Built AWS EKS infrastructure in the CMS DevOps Platform project; deploying Azure services as an intern at HPT." },
-    { title: "Containers and Kubernetes", description: "Done in practice." },
-    { title: "Monitoring and logging", description: "Done in practice." },
-    { title: "Infrastructure as Code: Terraform", description: "Studied and practised." },
-    { title: "CI/CD", description: "Studied." },
-    { title: "Security in DevOps", description: "Studied." },
-    { title: "Networking and systems", description: "My major. Studied and done in practice: Cisco network infrastructure built in Packet Tracer." },
-    { title: "Linux and Python", description: "Linux: studied, used in practice, my strongest. Python: studied and used in practice." },
-    { title: "Learning next", description: "Get truly solid on the DevOps skills I have studied, then move on to AIOps." }
+    { title: "Cloud Platform · AWS", description: "EC2, S3, Lambda, DynamoDB, CloudWatch and AWS CDK. The CMS capstone uses EKS, ECR, ALB and RDS PostgreSQL. The sales pipeline uses S3 events to trigger Lambda for CSV processing." },
+    { title: "Cloud Platform · Azure", description: "Azure API Management, Azure Functions, Microsoft Entra ID and Application Insights in Partner Data Gateway. Microsoft Foundry, Microsoft Fabric and Power Automate during my internship." },
+    { title: "Languages and operating systems", description: "Python for data processing and backend services. Linux and shell for deployment environments. C++ in coursework." },
+    { title: "Network and Systems", description: "CCNA networking fundamentals, Cisco Packet Tracer labs and pfSense study." },
+    { title: "DevOps and tools", description: "Terraform, Docker, Kubernetes, Helm, Jenkins, GitHub Actions and Argo CD. Prometheus and Grafana for observability. Postman for API testing." }
   ]
 };
 const certificates: Record<Locale, ProfileItem[]>={
@@ -245,36 +237,32 @@ const certificates: Record<Locale, ProfileItem[]>={
     { title: "Planned: a Linux certification or CEH", description: "Not taken yet. This stone is still blank." }
   ]
 };
-const direction: Record<Locale, ProfileItem[]>={
+const direction: Record<Locale, ProfileItem[]> = {
   vi: [
-    { title: "1–3 năm sau khi tốt nghiệp (06/2027)", description: "Hiểu rõ mọi mảng của nghề DevOps và các kỹ năng liên quan đến AI." },
-    { title: "Khoảng 3–5 năm kinh nghiệm", description: "Hướng tới vai trò lead trong ngành. Đây là định hướng, chưa phải kinh nghiệm." },
-    { title: "Học tiếp", description: "Dự định học Thạc sĩ một ngành STEM ở nước ngoài, và thi một chứng chỉ đánh giá năng lực đầu vào được các trường châu Âu ưa chuộng." },
-    { title: "Một ngôn ngữ nữa", description: "Mình thích đi đây đi đó, nên muốn học thêm tiếng Đức hoặc tiếng Ý, ngoài tiếng Anh." }
+    { title: "Chặng 1 · 1–3 năm sau tốt nghiệp", description: "Củng cố Linux, mạng, cloud và Kubernetes qua các bài toán triển khai thực tế. Tập trung vào CI/CD, hạ tầng dưới dạng mã, quan sát hệ thống và xử lý sự cố. Tìm hiểu cách vận hành ứng dụng AI trong môi trường có thể theo dõi và kiểm soát." },
+    { title: "Chặng 2 · 3–5 năm kinh nghiệm", description: "Hướng tới phụ trách trọn vòng đời của một hệ thống, từ thiết kế, phát hành đến vận hành. Từng bước học cách dẫn dắt kỹ thuật, chia sẻ kiến thức và hỗ trợ đồng đội." },
+    { title: "Định hướng học vấn", description: "Tìm hiểu chương trình thạc sĩ STEM ở nước ngoài và chuẩn bị cho các yêu cầu đầu vào phù hợp." },
+    { title: "Định hướng kỹ năng mềm", description: "Rèn cách trình bày quyết định kỹ thuật, viết tài liệu và phối hợp khi có sự cố. Tiếp tục cải thiện tiếng Anh và cân nhắc học thêm tiếng Đức hoặc tiếng Ý." }
   ],
   en: [
-    { title: "1–3 years after graduating (06/2027)", description: "Understand every part of DevOps well, along with AI-related skills." },
-    { title: "Around 3–5 years of experience", description: "Aim for a lead role. This is a direction, not experience." },
-    { title: "Further study", description: "Planning a STEM master's degree abroad, and an entrance aptitude test favoured by European universities." },
-    { title: "One more language", description: "I love travelling, so I want to learn German or Italian on top of English." }
+    { title: "Stage 1 · 1–3 years after graduation", description: "Strengthen my Linux, networking, cloud and Kubernetes foundations through real deployment work. Focus on CI/CD, infrastructure as code, observability and incident response while learning to operate AI applications." },
+    { title: "Stage 2 · 3–5 years of experience", description: "Work toward owning a system through design, delivery and operations. Gradually develop technical leadership through knowledge sharing and support for teammates." },
+    { title: "Further education", description: "Explore STEM master’s programmes abroad and prepare for the relevant admission requirements." },
+    { title: "Soft skills", description: "Practise explaining technical decisions, writing documentation and collaborating during incidents. Improve my English and consider learning German or Italian." }
   ]
 };
-const hobbies: Record<Locale, ProfileItem[]>={
+const hobbies: Record<Locale, ProfileItem[]> = {
   vi: [
-    { title: "Xe máy classic", description: "Mình thích đi đâu đó và chạy vòng vòng bằng một chiếc xe dáng classic. Vì vậy mới chọn GD110." },
-    { title: "Nhạc indie", description: "Hay nghe Minh Tốc & Lam; thích nhạc band của Chillies và Chớp." },
-    { title: "Piano", description: "Thích piano hơn guitar, nhưng muốn biết từng chút về mọi loại nhạc cụ." },
-    { title: "Biển", description: "Biển sóng đánh là tâm mình: trầm lặng, nhẹ nhàng, nhưng luôn chạy vì một điều gì đó. Tò mò mọi thứ, muốn khám phá những gì chưa biết, chưa thấy, và hiểu thật sâu từng vấn đề." },
-    { title: "Chó hơn mèo", description: "Vì chó rất trung thành." },
-    { title: "Tính cách", description: "Thích những khoảng một mình và tự sự với chính mình. Cố hết sức, rồi tự cười mình khi mắc lỗi; luôn nghiêm khắc với bản thân." }
+    { title: "Xe máy classic", description: "Mình thích cảm giác thong thả chạy qua những con đường mới bằng một chiếc xe dáng classic. Chiếc GD110 trong The Quiet Atlas gợi lại nhịp khám phá đó." },
+    { title: "Nhạc indie và piano", description: "Mình hay nghe Minh Tốc & Lam, Chillies và Chớp. Trong các nhạc cụ, piano là thứ mình muốn tìm hiểu sâu hơn, đồng thời vẫn tò mò về âm sắc của những nhạc cụ khác." },
+    { title: "Biển và những khoảng lặng", description: "Mình thích sự yên tĩnh của biển và nhịp đều của sóng. Những khoảng một mình cho mình thời gian suy nghĩ, tự nhìn lại và tiếp tục tìm hiểu những điều chưa biết." },
+    { title: "Tính cách", description: "Mình tò mò và thích hiểu nguyên nhân đằng sau một vấn đề. Mình thường tự đặt tiêu chuẩn cao, nhưng cũng biết cười với lỗi của mình và học từ chúng. Mình thích chó vì sự trung thành." }
   ],
   en: [
-    { title: "Classic motorbikes", description: "I like heading somewhere and riding around on a classic-style bike. That is why I chose the GD110." },
-    { title: "Indie music", description: "Often Minh Tốc & Lam; I love the band sound of Chillies and Chớp." },
-    { title: "Piano", description: "I prefer piano to guitar, but I want to know a little about every instrument." },
-    { title: "The sea", description: "Waves on the shore are how I feel inside: quiet and gentle, yet always running toward something. Curious about everything, wanting to explore what I have not known or seen, and to understand things deeply." },
-    { title: "Dogs over cats", description: "Because dogs are so loyal." },
-    { title: "Personality", description: "I like time alone and talking things through with myself. I give it everything, then laugh at myself when I get it wrong; I am always hard on myself." }
+    { title: "Classic motorbikes", description: "I enjoy taking an unfamiliar road at an unhurried pace on a classic-style bike. The GD110 in The Quiet Atlas carries that feeling of exploration." },
+    { title: "Indie music and piano", description: "I often listen to Minh Tốc & Lam, Chillies and Chớp. Piano is the instrument I most want to explore, and I am curious about the sounds of other instruments too." },
+    { title: "The sea and quiet moments", description: "I like the calm of the coast and the steady rhythm of waves. Time alone gives me room to reflect and follow my curiosity about things I have yet to understand." },
+    { title: "Personality", description: "I am curious and like understanding what causes a problem. I hold myself to a high standard, but I can laugh at my mistakes and learn from them. I like dogs for their loyalty." }
   ]
 };
 export const content=validateContent({
@@ -293,8 +281,8 @@ export const content=validateContent({
     // Duy cho phép nêu tên HPT (2026-11-04). Không ghi thời lượng.
     experience: [
       {
-        employer: "HPT",
-        title: "Cloud & DevOps Intern",
+        employer: "HPT Corporation",
+        title: "Cloud Engineer Intern",
         start: "2026-07",
         end: "present",
         summary: hptSummary[locale],

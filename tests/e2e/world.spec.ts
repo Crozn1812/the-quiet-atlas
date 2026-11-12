@@ -7,8 +7,8 @@ test.use({ viewport: { width: 1366, height: 800 } });
 // Same headroom as the other world specs: Enter World with software WebGL under parallel load takes ~15–20 s.
 test.describe.configure({ timeout: 90_000 });
 
-for (const { locale, leave } of LOCALES) {
-  test(`World /${locale}/: Enter World loads the world chunk; ${leave} tears it down`, async ({ page }) => {
+for (const { locale } of LOCALES) {
+  test(`World /${locale}/: Enter World loads the world chunk; Exit world tears it down`, async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const network = trackNetwork(page);
     await page.goto(`/${locale}/`);
@@ -27,8 +27,8 @@ for (const { locale, leave } of LOCALES) {
     await settle(page);
     expect((await network.worldChunks()).length, "world chunk downloaded after Enter World").toBeGreaterThan(0);
 
-    // ADR 0009: the HUD "Exit world" button replaces "Back to Welcome".
-    await page.locator(HUD).getByRole("button", { name: leave, exact: true }).click();
+    // ADR 0016: the HUD stays English for both page locales.
+    await page.locator(HUD).getByRole("button", { name: "Exit world", exact: true }).click();
     await expect(page.locator("canvas")).toHaveCount(0);
     await expect(page.locator("[data-world-chunk]")).toHaveCount(0);
     await expect(page.locator("[data-app-mode='welcome']")).toHaveCount(1);

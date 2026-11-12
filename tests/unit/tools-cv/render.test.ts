@@ -29,13 +29,15 @@ it("keeps confirmed sentences and omits incomplete sentences and unknown reposit
   expect(html).not.toContain("Repository:");
 });
 
-it("renders the CV phone and Fresher level from public content in both locales", () => {
+it("renders the CV phone, target role and final-year profile in both locales", () => {
   for (const locale of ["en", "vi"]) {
     const profile = content.profiles.find(p => p.locale === locale)!;
     expect(profile.phone).toBe("083 418 4916");
     const html = cvHtml(content, locale);
     expect(html).toContain("<p>083 418 4916</p>");
-    expect(html).toContain("CloudDevOps Engineer · Fresher");
+    expect(html).toContain("<p>CloudDevOps Engineer · Fresher</p>");
+    expect(html).toContain(profile.introduction);
+    expect(html).toContain("PTIT");
   }
 });
 
@@ -103,7 +105,7 @@ it("renders LinkedIn, the new PDG title, the HPT summary and no course code in b
 it("renders experience and education with the period in both CV locales", () => {
   const en = cvHtml(content, "en");
   expect(en).toContain("<h2>Experience</h2>");
-  expect(en).toContain("Cloud &amp; DevOps Intern · HPT");
+  expect(en).toContain("Cloud Engineer Intern · HPT Corporation");
   expect(en).toContain("<p>07/2026 – present</p>");
   expect(en).toContain("<h2>Education</h2>");
   expect(en).toContain("Posts and Telecommunications Institute of Technology (PTIT)");

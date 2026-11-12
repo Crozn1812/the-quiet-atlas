@@ -5,6 +5,7 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern } from "../foliage/ground";
+import { createFirstLightTree } from "../foliage/first-light-grove";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createStumpGeometry } from "../props/wood";
@@ -164,7 +165,6 @@ function stumpParts(seed: number, phase: number): Part[] {
   const legacy = inkFaces(collisionStump(phase), triangle => triangle < 24, true);
   const result = inkFaces(make(bark, barkColors), triangle => triangle % 12 === 0, true);
   result.forEach((part, i) => { part.collision = legacy[i]!.geometry; });
-  result.push({ geometry: make(cut, cutColors), surface: "cut", level: true });
   return result;
 }
 
@@ -446,6 +446,23 @@ export const createRootsScene: ZoneSceneFactory = context => {
   }
   const group = new Group();
   group.name = "roots";
+  const ancientGeometry = createFirstLightTree(1);
+  // Keep the tree inside the unchanged zone sphere even at offset sites.
+  const treeOrigin = new Vector3(side * (STUMP_X + 0.0864), ground + CUT_HEIGHT - 0.28, offsetZ);
+  const vertices = ancientGeometry.getAttribute("position");
+  const vertex = new Vector3();
+  let scale = 2.74;
+  while (Array.from({ length: vertices.count }, (_, i) =>
+    vertex.fromBufferAttribute(vertices, i).multiplyScalar(scale).add(treeOrigin).length())
+    .some(radius => radius > ZONE_BUDGET.radius)) scale *= 0.95;
+  ancientGeometry.scale(scale, scale, scale).translate(...treeOrigin.toArray());
+  ancientGeometry.computeVertexNormals();
+  const ancientMaterial = createPropMaterial("wood");
+  ancientMaterial.color.setRGB(1, 1, 1);
+  const ancientTree = new Mesh(ancientGeometry, ancientMaterial);
+  ancientTree.name = "roots-ancient-tree";
+  ancientTree.castShadow = true;
+  group.add(ancientTree);
   for (const [surface, batch] of batches) {
     const merged = mergeGeometries(batch, false)!;
     batch.forEach(part => part.dispose());
@@ -469,7 +486,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
     interactable: {
       position: new Vector3(side * INTERACT_X,
         context.heightAt(side * INTERACT_X, offsetZ) + INTERACT_HEIGHT, offsetZ),
-      label: { en: "The root stump", vi: "Gốc rễ" },
+      label: { en: "The ancient tree", vi: "Cây cổ thụ" },
     },
     // A still tableau: the thick roots and their tiny vines never move.
     update() {},

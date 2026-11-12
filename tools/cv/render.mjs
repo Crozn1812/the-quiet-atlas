@@ -24,7 +24,7 @@ export function cvHtml(content, locale) {
     <h1>${e(profile.name)}</h1>
     <p>${e(profile.role)} · ${e(profile.level)}</p>
     <p>${e(profile.introduction)}</p>
-    <p>${e(profile.email)}</p>
+    <p><a href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=${encodeURIComponent(profile.email)}">${e(profile.email)}</a></p>
     ${profile.phone !== "TBD" ? `<p>${e(profile.phone)}</p>` : ""}
     <p>GitHub: ${e(profile.githubUrl)} · LinkedIn: ${e(profile.linkedinUrl)}</p>
     ${profile.experience.length ? `<h2>${labels.experience}</h2>
@@ -39,6 +39,8 @@ export function cvHtml(content, locale) {
       <p>${e(x.program)}</p>
       <p>${labels.expected}: ${e(x.expectedGraduation)} · ${x.status === "graduated" ? labels.graduated : labels.inProgress}</p>
     </article>`).join("")}` : ""}
+    <h2>${locale === "vi" ? "Kỹ năng" : "Skills"}</h2>
+    ${profile.skills.map(item => `<p><strong>${e(item.title)}</strong> · ${e(item.description)}</p>`).join("")}
     <h2>${labels.projects}</h2>
     ${projects.map(p => `<article>
       <h3>${e(p.title)}${p.reviewStatus !== "approved" ? " · Draft" : ""}</h3>

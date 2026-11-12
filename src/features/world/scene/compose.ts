@@ -2,7 +2,7 @@ import { Color, CylinderGeometry, DirectionalLight, Fog, HemisphereLight, Mesh, 
 import type RAPIER from "@dimforge/rapier3d-compat";
 import { fogAt, paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
-import { bindFirstLightGround, createFirstLightGrove, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
+import { bindFirstLightGround, createFirstLightGrove, FIRST_LIGHT_SUN, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createForestR1Trees, forestR1Weight } from "../foliage/forest-r1";
 import { bindCoastR1Ground, createCoastR1Trees, isCoastR1Tree } from "../foliage/coast-r1";
@@ -44,10 +44,9 @@ const FOG_HORIZON = {
 };
 /** Sea mirror of the dusk sky; the bench's coast frame uses 0.35. */
 const SEA_SKY_MIX = 0.35;
-const FIRST_LIGHT_AIR = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.25);
-const FIRST_LIGHT_SKY = new Color(PALETTE.skyHigh).lerp(new Color(PALETTE.cloud), 0.25);
+const FIRST_LIGHT_AIR = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.sunGold), 0.20);
+const FIRST_LIGHT_SKY = new Color(PALETTE.skyHigh).lerp(new Color(PALETTE.indigo), 0.34);
 const FIRST_LIGHT_FILL = new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.12);
-const FIRST_LIGHT_SUN = new Vector3(-0.65, 0.7, 0.3).normalize();
 
 /** Replace the grade's sky/fog colours with the art direction's, blended by time of day (0 dawn → 1 dusk). */
 export function directGrade(grade: LightingGrade, timeOfDay: number, preset = WORLD_DIRECTION): LightingGrade {
@@ -72,25 +71,13 @@ import { bindTerrainDetail } from "../terrain/detail";
 import { nearestPath } from "../terrain/samples";
 import { TILE_SIZE, tileKey } from "../terrain/tiles";
 import { HEIGHT } from "../scene";
-import { waterLevelAt, worldHeight } from "../terrain/height";
+import { surfaceHeight, waterLevelAt } from "../terrain/height";
 import { createSpring } from "../terrain/spring";
 import { createRiverRibbon } from "../water/ribbon";
 import { createSea } from "../water/sea";
 import { createWaterMaterial } from "../water/material";
 
-/** Height on the rendered/Rapier triangles, including their diagonal and Float32 rounding. */
-export function surfaceHeight(x: number, z: number): number {
-  const step = 2;
-  const x0 = Math.floor(x / step) * step;
-  const z0 = Math.floor(z / step) * step;
-  const u = (x - x0) / step;
-  const v = (z - z0) / step;
-  const a = Math.fround(worldHeight(x0, z0));
-  const b = Math.fround(worldHeight(x0 + step, z0));
-  const c = Math.fround(worldHeight(x0, z0 + step));
-  const d = Math.fround(worldHeight(x0 + step, z0 + step));
-  return u + v <= 1 ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
-}
+export { surfaceHeight } from "../terrain/height";
 export function nearestSafePath(position: { x: number; z: number }): Vector3 {
   const path = nearestPath(position.x, position.z);
   return new Vector3(path.x, surfaceHeight(path.x, path.z) + HEIGHT + 0.02, path.z);
@@ -152,6 +139,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   scene.fog = fog;
   Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 0.5, far: 120 });
   sun.shadow.bias = -0.001;
+  sun.shadow.normalBias = 0.035;
   // Three's default PCF uses a five-tap disk; widen it without larger maps or extra passes.
   sun.shadow.radius = 2.5;
   const water = [createRiverRibbon(quality), createSea(quality), ...spring.surfaces];
@@ -394,7 +382,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
         const replacement = createFirstLightGrove(surfaceHeight, zoneBounds);
         const staged: RAPIER.Collider[] = [];
         try {
-          for (const tree of replacement.sites) staged.push(world.createCollider(RAPIER.ColliderDesc.cylinder(2.6 * tree.scale, 0.45)
+          for (const tree of replacement.sites) staged.push(world.createCollider(RAPIER.ColliderDesc.cylinder(2.6 * tree.scale, 0.52)
             .setTranslation(tree.x, tree.y + 2.6 * tree.scale, tree.z)));
         } catch (error) {
           for (const collider of staged) world.removeCollider(collider, true);
@@ -470,8 +458,9 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     grade.skyHorizon.lerp(FIRST_LIGHT_AIR, clearing);
     grade.hemiSky.lerp(FIRST_LIGHT_FILL, clearing * 0.7);
     grade.sunDirection.lerp(FIRST_LIGHT_SUN, clearing).normalize();
-    grade.sunIntensity += (2.0 - grade.sunIntensity) * clearing;
-    grade.hemiIntensity += (1.25 - grade.hemiIntensity) * clearing;
+    grade.sunColor.lerp(FIRST_LIGHT_FILL, clearing * 0.28);
+    grade.sunIntensity += (1.28 - grade.sunIntensity) * clearing;
+    grade.hemiIntensity += (0.64 - grade.hemiIntensity) * clearing;
     if (previousPosition) previousPosition.copy(player);
     else previousPosition = player.clone();
     sun.color.copy(grade.sunColor);
@@ -511,7 +500,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     for (const solid of spring.colliders) springColliders.push(world.createCollider(
       RAPIER.ColliderDesc.cylinder(solid.halfHeight, solid.radius)
         .setTranslation(solid.center.x, solid.center.y, solid.center.z)));
-    for (const tree of grove.sites) groveColliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(2.6 * tree.scale, 0.45)
+    for (const tree of grove.sites) groveColliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(2.6 * tree.scale, 0.52)
       .setTranslation(tree.x, tree.y + 2.6 * tree.scale, tree.z)));
     setQuality(quality); update(worldSpawn(), 0);
   } catch (error) { dispose(); throw error; }

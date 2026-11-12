@@ -3,6 +3,7 @@ import { projectStatusLabel } from "@/content/schema";
 import { messages } from "@/i18n/messages";
 import type { Locale } from "@/i18n/locales";
 import { ProjectEvidence, SourceLink } from "./ProjectLinks";
+import { ProjectDiagram } from "./ProjectDiagram";
 
 export function ProfileContent({ locale }: { locale: Locale }) {
   const p = content.profiles.find(p => p.locale === locale)!;
@@ -34,6 +35,7 @@ export function ProjectsContent({ locale }: { locale: Locale }) {
           </h3>
           <p>{projectStatusLabel(project)}</p>
           <p>{project.summary}</p>
+          <ProjectDiagram slug={project.slug} title={project.title} locale={locale} />
           <ProjectEvidence
             project={project}
           />

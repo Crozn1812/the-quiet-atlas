@@ -33,7 +33,7 @@ try {
   });
   for (const route of ["/en/", "/vi/", "/en/quick/", "/vi/quick/"]) {
     await page.goto(base + route);
-    await page.locator('a[href="/cv/"]').first().waitFor();
+    if (route.endsWith("/quick/")) await page.locator('section[aria-labelledby="contact"] a[href="/cv/"]').waitFor();
     const image = await page.locator('meta[property="og:image"]').getAttribute("content");
     const filename = path.join(root, new URL(image).pathname);
     const png = await fs.readFile(filename);
@@ -54,7 +54,7 @@ try {
   const fallback = await noJs.newPage();
   await fallback.goto(base + "/cv/");
   if (await fallback.locator("a[download]").count() !== 2) throw new Error("Missing no-JS downloads");
-  console.log("Welcome/Quick CV links, CV bilingual downloads, no-JS fallback, OG dimensions: verified");
+  console.log("Quick contact CV links, CV bilingual downloads, no-JS fallback, OG dimensions: verified");
 } finally {
   await browser?.close();
   await new Promise(resolve => server.close(resolve));

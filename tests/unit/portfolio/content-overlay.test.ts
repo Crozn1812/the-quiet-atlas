@@ -75,7 +75,7 @@ it("uses public profile/projects/journey/contact in every zone and never shows p
     for (const item of p.experience) expect(trail).toContain(item.employer);
     for (const item of p.education) expect(trail).toContain(item.institution);
     const postcard = renderToStaticMarkup(createElement(ZoneContent, { locale, data, zoneId: "last-postcard" }));
-    expect(postcard).toContain(`mailto:${p.email}`);
+    expect(postcard).toContain(`https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=${encodeURIComponent(p.email)}`);
     expect(postcard).toContain(`tel:${p.phone.replaceAll(" ", "")}`);
     expect(postcard).toContain(p.githubUrl);
     expect(postcard).toContain(p.linkedinUrl);

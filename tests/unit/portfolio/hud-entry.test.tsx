@@ -28,7 +28,7 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 
-it("adds the icon only in world, targets that container, follows setLocale and removes on exit/recovery", async () => {
+it("adds the icon only in world, targets that container, stays English and removes on exit/recovery", async () => {
   const dom = installJournalDOM();
   dom.window.matchMedia = () => Object.assign(new EventTarget(), { matches: true });
   root = createRoot(dom.shell as unknown as HTMLElement);
@@ -49,7 +49,7 @@ it("adds the icon only in world, targets that container, follows setLocale and r
   await act(async () => { icon()!.click(); });
   expect(toggle).toHaveBeenCalledOnce();
   await act(async () => { session.onLocale!("vi", messages.vi.world); });
-  expect(icon()!.textContent).toBe("Sổ Atlas");
+  expect(icon()!.textContent).toBe("Atlas Journal");
   await act(async () => { session.onLocale!("en", messages.en.world); });
   await act(async () => { button("Exit world").click(); });
   expect(icon()).toBeNull();

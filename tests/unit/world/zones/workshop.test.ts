@@ -467,7 +467,8 @@ describe("workshop bank set-piece", () => {
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
     // B2-203 replaces box wood/steps with shared grain/bevel/slab assets and adds bench tools.
-    expect(fingerprint).toBe("b5f8827c699e4a3fa58ffbadbf53ece49e0c8be657327eda63939e647209f614");
+    // RC-02 replaces abstract ink strokes with the readable skills board.
+    expect(fingerprint).toBe("bb17023b75b3f04a6c2a6ad567843563f721efff559ac93c2eb5687e16a542c7");
   });
 
   it("uses shared wood and slab assets and keeps every prop cluster below 2000 triangles", () => {

@@ -51,7 +51,7 @@ describe("content build contract", () => {
 describe("profile experience and education (ADR 0010)", () => {
   it("ships HPT and PTIT in both locales", () => {
     for (const p of content.profiles) {
-      expect(p.experience).toEqual([expect.objectContaining({ employer: "HPT", start: "2026-07", end: "present", evidence: [] })]);
+      expect(p.experience).toEqual([expect.objectContaining({ employer: "HPT Corporation", start: "2026-07", end: "present", evidence: [] })]);
       expect(p.experience[0]!.summary).not.toBe("TBD");
       expect(p.education).toEqual([expect.objectContaining({ expectedGraduation: "2027", status: "in-progress" })]);
     }
@@ -87,19 +87,22 @@ describe("profile experience and education (ADR 0010)", () => {
 });
 
 describe("L2-012 content from Duy's answers", () => {
-  it("ships the LinkedIn URL, a CloudDevOps Engineer intro of at most 25 words, and the HPT services", () => {
+  it("keeps the target role, PTIT introduction and HPT experience distinct", () => {
     for (const p of content.profiles) {
       expect(p.linkedinUrl).toBe("https://www.linkedin.com/in/nguyenhuubaoduy");
-      expect(p.introduction).toContain("CloudDevOps Engineer");
+      expect(p.introduction).toContain("PTIT");
+      expect(p.introduction).not.toMatch(/HPT|intern/i);
       expect(p.role).toBe("CloudDevOps Engineer");
-      expect(p.introduction.split(/\s+/).length).toBeLessThanOrEqual(25);
       expect(p.level).toBe("Fresher");
+      expect(p.introduction).toMatch(/cloud/i);
+      expect(p.experience[0]!.title).toBe("Cloud Engineer Intern");
       // Q-04: Duy approved every page on 2026-11-04.
       expect(p.reviewStatus).toBe("approved");
       expect(p.publicApproval).toBe(true);
       expect(p.experience[0]!.summary).toMatch(/API Management/);
       expect(p.experience[0]!.summary).toMatch(/Microsoft Fabric/);
       expect(p.experience[0]!.summary).toMatch(/Power Automate/);
+      expect(p.experience[0]!.summary).toMatch(/Microsoft Foundry/);
     }
   });
   it("marks every project completed and approved (Q-04), and renames only the PDG title", () => {

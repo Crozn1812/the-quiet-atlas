@@ -21,15 +21,45 @@ export function createRiderPose(character: Character) {
   const bones = new Map<string, Bone>();
   const skins: { mesh: SkinnedMesh; culled: boolean }[] = [];
   root.traverse(object => {
-    if (object instanceof Bone) bones.set(object.name, object);
+    if (object instanceof Bone) {
+      // GLTFLoader removes periods from track names.
+      const name = object.name.replace(/^(upper_arm|forearm|hand|thigh|shin|foot)([LR])$/, "$1.$2");
+      bones.set(name, object);
+    }
     if (object instanceof SkinnedMesh) skins.push({ mesh: object, culled: object.frustumCulled });
   });
   const rest = [...bones.values()].map(bone => ({ bone, position: bone.position.clone(), rotation: bone.quaternion.clone(), scale: bone.scale.clone() }));
   root.updateWorldMatrix(true, true);
   const rootInverse = root.getWorldQuaternion(new Quaternion()).invert();
-  const orientations = new Map(rest.map(({ bone }) => [bone.name, rootInverse.clone().multiply(bone.getWorldQuaternion(new Quaternion()))]));
+  const orientations = new Map([...bones].map(([name, bone]) => [name, rootInverse.clone().multiply(bone.getWorldQuaternion(new Quaternion()))]));
   const walkingRotation = root.quaternion.clone();
   let riding = false;
+  let transition: "mount" | "dismount" | undefined;
+  let elapsed = 0;
+  const duration = 0.65;
+  const fromPosition = new Vector3(), fromRotation = new Quaternion();
+  const seatPosition = new Vector3(), seatRotation = new Quaternion();
+  const standingPosition = new Vector3();
+  const fromBones = rest.map(() => ({ position: new Vector3(), rotation: new Quaternion() }));
+  const seatBones = rest.map(() => ({ position: new Vector3(), rotation: new Quaternion() }));
+  const standingBones = rest.map(() => ({ position: new Vector3(), rotation: new Quaternion() }));
+  function remember(bones: typeof fromBones) {
+    rest.forEach(({ bone }, i) => {
+      bones[i]!.position.copy(bone.position);
+      bones[i]!.rotation.copy(bone.quaternion);
+    });
+  }
+  function blendFrom(position: Vector3, rotation: Quaternion, bones: typeof fromBones, progress: number) {
+    const blend = progress * progress * (3 - 2 * progress);
+    root.position.lerp(position, 1 - blend);
+    root.position.y += Math.sin(Math.PI * blend) * 0.17;
+    root.quaternion.slerp(rotation, 1 - blend);
+    rest.forEach(({ bone }, i) => {
+      bone.position.lerp(bones[i]!.position, 1 - blend);
+      bone.quaternion.slerp(bones[i]!.rotation, 1 - blend);
+    });
+    root.updateWorldMatrix(true, true);
+  }
   const required = ["hips", "spine", "chest", "head", ...["L", "R"].flatMap(side =>
     ["upper_arm", "forearm", "hand", "thigh", "shin", "foot"].map(name => `${name}.${side}`))];
   const supported = required.every(name => bones.has(name));
@@ -68,18 +98,47 @@ export function createRiderPose(character: Character) {
   }
   return {
     supported,
-    update(state: Pick<VehicleState, "mode" | "speed">, frame: Object3D) {
+    get transitioning() { return transition !== undefined; },
+    update(state: Pick<VehicleState, "mode" | "speed">, frame: Object3D, dt = 0, reducedMotion = true) {
       if (character.disposed) return;
       if (state.mode !== "ride") {
         if (riding) {
+          transition = supported && !reducedMotion ? "dismount" : undefined;
+          elapsed = 0;
           restore(); character.mixer.update(0);
           root.quaternion.copy(walkingRotation);
+          if (transition === "dismount") {
+            standingPosition.copy(root.position);
+            remember(standingBones);
+          }
           for (const { mesh, culled } of skins) mesh.frustumCulled = culled;
         }
         riding = false;
+        if (transition === "dismount") {
+          // The previous frame still contains the interpolated rig. Start at the
+          // same upright endpoint every time, including the final frame.
+          root.position.copy(standingPosition);
+          root.quaternion.copy(walkingRotation);
+          rest.forEach(({ bone }, i) => {
+            bone.position.copy(standingBones[i]!.position);
+            bone.quaternion.copy(standingBones[i]!.rotation);
+          });
+          elapsed += dt;
+          if (reducedMotion || elapsed >= duration) {
+            transition = undefined;
+            root.updateWorldMatrix(true, true);
+          } else blendFrom(seatPosition, seatRotation, seatBones, elapsed / duration);
+        }
         return;
       }
-      if (!riding) walkingRotation.copy(root.quaternion);
+      if (!riding) {
+        walkingRotation.copy(root.quaternion);
+        transition = supported && !reducedMotion ? "mount" : undefined;
+        elapsed = 0;
+        fromPosition.copy(root.position);
+        fromRotation.copy(root.quaternion);
+        remember(fromBones);
+      }
       riding = true;
       root.visible = true;
       if (!supported) return;
@@ -105,6 +164,14 @@ export function createRiderPose(character: Character) {
           new Vector3(sign * .35, .5, .5));
       }
       root.updateWorldMatrix(true, true);
+      seatPosition.copy(root.position);
+      seatRotation.copy(root.quaternion);
+      remember(seatBones);
+      if (transition === "mount") {
+        elapsed += dt;
+        if (reducedMotion || elapsed >= duration) transition = undefined;
+        else blendFrom(fromPosition, fromRotation, fromBones, elapsed / duration);
+      }
     },
   };
 }
