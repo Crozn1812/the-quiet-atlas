@@ -50,7 +50,7 @@ export async function checkBudgets(directory = 'public/world') {
   }
   await visit(root);
   if (report.worldBytes > budgets.worldBytes) report.errors.push(`World: ${report.worldBytes} bytes > ${budgets.worldBytes}.`);
-  if (report.startBytes > budgets.startBytes) report.errors.push(`Start: ${report.startBytes} bytes > ${budgets.startBytes}.`);
+  if (budgets.startBytes !== null && report.startBytes > budgets.startBytes) report.errors.push(`Start: ${report.startBytes} bytes > ${budgets.startBytes}.`);
   if (report.worldBytes === 0) report.note = 'Directory is empty; no assets to check.';
   if (report.errors.length) report.status = 'FAIL';
   return report;

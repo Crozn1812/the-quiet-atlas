@@ -13,7 +13,7 @@ Chung cho mọi ticket:
   - không khí **tối, mờ sương** đúng bình minh (luma rừng khoảng 0,20–0,26).
 - **Tia nắng:** các vệt sáng thể tích mảnh **lọt qua khe lá, chiếu xiên từ trái sang phải**, lấp lánh nhẹ (lá rung). Không dùng một dải trắng to như bản dở.
 - **Suối First Light:** nhân vật **lội xuống được** (lòng suối nông, có collider đáy), có **vài con cá** bơi (instanced, rẻ).
-- **Ngân sách:** vào chơi ≤ 6 s; CPU ≤ main + 10 ms/s; tam giác High tăng ≤ 25 %.
+- **Ngân sách (ADR 0015):** không còn trần 8 MB; vào chơi ≤ 10 s (asset nặng nạp deferred); CPU ≤ main + 10 ms/s.
 
 ## VH-02: lái xe đúng hướng, ghi-đông xoay, lên/xuống xe (cổng 4512)
 - A rẽ trái, D rẽ phải (hiện đang ngược).

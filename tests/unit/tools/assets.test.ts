@@ -120,7 +120,7 @@ describe('asset pipeline CLIs', () => {
     const result = cli('check-budgets.mjs', [directory]);
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout).errors).toEqual([
-      'World: 30000001 bytes > 30000000.', 'Start: 8000001 bytes > 8000000.',
+      'World: 30000001 bytes > 30000000.', // ADR 0015: no start cap
     ]);
   });
 

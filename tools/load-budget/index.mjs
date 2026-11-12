@@ -13,7 +13,7 @@ export const BUDGETS = Object.freeze({
   initialTotalBytes: 1024 * 1024, // Welcome/Quick initial transfer ≤ 1 MB compressed (CV excluded)
   initialJsBytes: 150 * 1024, // of which JS ≤ 150 KB gzip
   forbidden3dBeforeEnter: 0, // 0 requests GLB / game texture / physics WASM / world chunk before Enter World
-  worldToPlayableBytes: 8 * 1024 * 1024, // 3D resources from Enter World to player controllable ≤ 8 MB compressed
+  worldToPlayableBytes: null, // ADR 0015 (Duy 2026-11-12): no byte cap from Enter World to playable; reported only
   timeToPlayableMs: 10_000, // ≤ 10 s, 10 Mbps / RTT 100 ms, worst of 3 cold loads
 });
 
@@ -142,7 +142,7 @@ export function evaluateWorld(requests, timing, budgets = BUDGETS) {
     summary,
     timeMs,
     gates: [
-      gate("world-bytes", "3D bytes Enter World → playable", summary.total, budgets.worldToPlayableBytes, "bytes", playable && summary.total <= budgets.worldToPlayableBytes),
+      gate("world-bytes", "3D bytes Enter World → playable", summary.total, budgets.worldToPlayableBytes, "bytes", playable && (budgets.worldToPlayableBytes === null || summary.total <= budgets.worldToPlayableBytes)),
       gate("time-to-playable", "Time to playable", timeMs, budgets.timeToPlayableMs, "ms", playable && timeMs <= budgets.timeToPlayableMs),
     ],
   };

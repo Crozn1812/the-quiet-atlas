@@ -120,9 +120,9 @@ describe("evaluateWorld (§8 rows 3 and time to playable)", () => {
     expect(r.gates.map((g) => g.status)).toEqual(["PASS", "PASS"]);
   });
 
-  it("fails over 8 MB or over 10 s", () => {
+  it("reports bytes without a cap (ADR 0015) and still fails over 10 s", () => {
     const r = evaluateWorld(requests, { clickMs: 1_000, playableMs: 12_000 });
-    expect(r.gates.map((g) => g.status)).toEqual(["FAIL", "FAIL"]);
+    expect(r.gates.map((g) => g.status)).toEqual(["PASS", "FAIL"]);
   });
 
   it("fails when the player never became controllable", () => {
