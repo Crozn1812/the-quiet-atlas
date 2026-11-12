@@ -5,6 +5,7 @@ export interface AmbienceMix {
   readonly wind: number;
   readonly birds: number;
   readonly sea: number;
+  readonly chime?: number;
 }
 
 export interface AmbienceInputs {
@@ -14,6 +15,8 @@ export interface AmbienceInputs {
   readonly zoneBiome: Biome;
   /** Same normalized dawn (0) to dusk (1) value as timeOfDayAt. */
   readonly timeOfDay: number;
+  /** World-space metres to the forgotten-sound wind chime landmark. */
+  readonly distanceToChime?: number;
 }
 
 /** NaN is silent; infinities and finite values clamp to the unit range. */
@@ -24,6 +27,16 @@ export function clampUnit(value: number): number {
 function proximity(distance: number, range: number): number {
   if (Number.isNaN(distance)) return 0;
   const t = clampUnit(1 - Math.max(0, distance) / range);
+  return t * t * (3 - 2 * t);
+}
+
+/** Chimes are audible within ~18 m, clearest within 4 m, silent further away. */
+function chimeProximity(distance: number | undefined): number {
+  if (distance === undefined || Number.isNaN(distance)) return 0;
+  const d = Math.max(0, distance);
+  if (d >= 18) return 0;
+  if (d <= 4) return 1;
+  const t = (18 - d) / (18 - 4);
   return t * t * (3 - 2 * t);
 }
 
@@ -38,5 +51,6 @@ export function ambienceMixAt(inputs: AmbienceInputs): AmbienceMix {
     // The strict forest gate also cancels queued chirps when leaving a forest.
     birds: forest ? 0.2 + 0.55 * dawn : 0,
     sea: proximity(inputs.distanceToSea, 70) * (coast ? 0.95 : 0.3),
+    chime: chimeProximity(inputs.distanceToChime),
   };
 }

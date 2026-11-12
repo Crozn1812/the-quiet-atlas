@@ -2,6 +2,8 @@ import { clampUnit, type AmbienceMix } from "./mix";
 
 export const MIX_RAMP_SECONDS = 1.5;
 export const DEFAULT_MASTER_VOLUME = 0.35;
+/** Pentatonic scale frequencies (C6, D6, E6, G6, A6, C7) for wind chime synthesis. */
+export const CHIME_SCALE = [1046.5, 1174.66, 1318.51, 1567.98, 1760.0, 2093.0] as const;
 
 export interface Ambience {
   setMix(mix: AmbienceMix): void;
@@ -59,6 +61,7 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
   const channels = {
     stream: own(context.createGain()), wind: own(context.createGain()),
     birds: own(context.createGain()), sea: own(context.createGain()),
+    chime: own(context.createGain()),
   };
   const fades = Object.fromEntries(Object.entries(channels).map(([key, node]) => {
     node.connect(master);
@@ -155,12 +158,93 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
     oscillator.stop(start + duration);
   }
 
+  const chimeRandom = randomFromSeed(seed ^ 0x7c41);
+  let chime: {
+    carrier: OscillatorNode;
+    modulator: OscillatorNode;
+    modGain: GainNode;
+    envelope: GainNode;
+  } | undefined;
+  let chimeEnabled = false;
+
+  function releaseChime(stop: boolean) {
+    if (!chime) return;
+    const { carrier, modulator, modGain, envelope } = chime;
+    chime = undefined;
+    carrier.onended = null;
+    if (stop) {
+      carrier.stop(context.currentTime);
+      modulator.stop(context.currentTime);
+    }
+    carrier.disconnect();
+    modulator.disconnect();
+    modGain.disconnect();
+    envelope.disconnect();
+    sources.delete(carrier);
+    sources.delete(modulator);
+    nodes.delete(carrier);
+    nodes.delete(modulator);
+    nodes.delete(modGain);
+    nodes.delete(envelope);
+  }
+
+  function scheduleChime() {
+    if (disposed || !chimeEnabled || chime) return;
+    // Sparse, unmetered metal chimes spaced 0.8–4 s apart.
+    const interval = 0.8 + chimeRandom() * 3.2;
+    const start = context.currentTime + interval;
+    const duration = 1.2 + chimeRandom() * 1.0;
+    const pitch = CHIME_SCALE[Math.floor(chimeRandom() * CHIME_SCALE.length)]!;
+
+    const carrier = ownSource(context.createOscillator());
+    const modulator = ownSource(context.createOscillator());
+    const modGain = own(context.createGain());
+    const envelope = own(context.createGain());
+
+    chime = { carrier, modulator, modGain, envelope };
+
+    carrier.type = "sine";
+    carrier.frequency.setValueAtTime(pitch, start);
+
+    modulator.type = "sine";
+    modulator.frequency.setValueAtTime(pitch * 2.76, start);
+    modGain.gain.setValueAtTime(pitch * 0.45, start);
+    modGain.gain.linearRampToValueAtTime(0, start + 0.1);
+
+    modulator.connect(modGain);
+    modGain.connect(carrier.frequency);
+
+    envelope.gain.setValueAtTime(0, context.currentTime);
+    envelope.gain.setValueAtTime(0, start);
+    // Envelope attack >= 30 ms to prevent pops/clicks; peak <= 0.5 master volume.
+    envelope.gain.linearRampToValueAtTime(0.24, start + 0.035);
+    envelope.gain.linearRampToValueAtTime(0, start + duration);
+
+    carrier.connect(envelope);
+    envelope.connect(channels.chime);
+
+    carrier.onended = () => {
+      if (chime?.carrier !== carrier) return;
+      releaseChime(false);
+      scheduleChime();
+    };
+
+    carrier.start(start);
+    carrier.stop(start + duration);
+    modulator.start(start);
+    modulator.stop(start + duration);
+  }
+
   return {
     setMix(mix: AmbienceMix) {
-      for (const key of Object.keys(channels) as (keyof AmbienceMix)[]) fades[key](mix[key]);
+      for (const key of Object.keys(channels) as (keyof AmbienceMix)[]) fades[key](mix[key] ?? 0);
       birdsEnabled = clampUnit(mix.birds) > 0;
       if (birdsEnabled) scheduleBird();
       else releaseBird(true);
+
+      chimeEnabled = clampUnit(mix.chime ?? 0) > 0;
+      if (chimeEnabled) scheduleChime();
+      else releaseChime(true);
     },
     setMasterVolume: masterFade,
     dispose() {
@@ -168,6 +252,8 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
       disposed = true;
       birdsEnabled = false;
       releaseBird(true);
+      chimeEnabled = false;
+      releaseChime(true);
       for (const source of sources) {
         source.onended = null;
         source.stop(context.currentTime);

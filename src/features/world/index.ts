@@ -541,6 +541,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (!canSimulate(state) || now - lastAmbience < 250) return;
     lastAmbience = now;
     const { x, y, z } = physics.position;
+    const chimeTarget = SECRETS.find(secret => secret.id === "forgotten-sound")?.position;
     container.dispatchEvent(new CustomEvent("tqa:ambience", {
       bubbles: false,
       detail: ambienceMixAt({
@@ -549,6 +550,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         distanceToSea: Math.hypot(Math.max(0, z + 880), Math.max(0, y - HEIGHT - waterLevelAt(z))),
         zoneBiome: nearestZone().biome,
         timeOfDay: timeOfDayAt(nearestPath(x, z).t),
+        distanceToChime: chimeTarget
+          ? Math.hypot(x - chimeTarget.x, y - HEIGHT - chimeTarget.y, z - chimeTarget.z)
+          : Infinity,
       }),
     }));
   }

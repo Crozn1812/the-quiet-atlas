@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAmbience, DEFAULT_MASTER_VOLUME, MIX_RAMP_SECONDS } from "../../../src/features/audio/ambience";
+import { createAmbience, CHIME_SCALE, DEFAULT_MASTER_VOLUME, MIX_RAMP_SECONDS } from "../../../src/features/audio/ambience";
 import { createAudioController } from "../../../src/features/audio/controller";
 import { ambienceMixAt, type AmbienceInputs, type AmbienceMix } from "../../../src/features/audio/mix";
 
@@ -69,12 +69,23 @@ class FakeContext {
   close = vi.fn(async () => { this.state = "closed"; });
   asAudio() { return this as unknown as AudioContext; }
   gains() { return this.nodes.filter(node => node.kind === "gain"); }
-  birds() { return this.nodes.filter(node => node.kind === "oscillator" && node.onended); }
+  birds() {
+    return this.nodes.filter(node => node.kind === "oscillator" && node.onended && node.frequency.events.some(e => e.kind === "ramp"));
+  }
+  chimes() {
+    return this.nodes.filter(node => node.kind === "oscillator" && node.onended && !node.frequency.events.some(e => e.kind === "ramp"));
+  }
   finishBird() {
     const bird = this.birds()[0]!;
     this.currentTime = bird.stop.mock.calls[0]![0];
     bird.onended!();
     return bird;
+  }
+  finishChime() {
+    const chime = this.chimes()[0]!;
+    this.currentTime = chime.stop.mock.calls[0]![0];
+    chime.onended!();
+    return chime;
   }
 }
 
@@ -87,8 +98,8 @@ const hill: AmbienceInputs = {
 const coast: AmbienceInputs = {
   distanceToRiver: 100, distanceToSea: 0, zoneBiome: "coast-dusk", timeOfDay: 1,
 };
-const quiet: AmbienceMix = { stream: 0, wind: 0, birds: 0, sea: 0 };
-const full: AmbienceMix = { stream: 1, wind: 1, birds: 1, sea: 1 };
+const quiet: AmbienceMix = { stream: 0, wind: 0, birds: 0, sea: 0, chime: 0 };
+const full: AmbienceMix = { stream: 1, wind: 1, birds: 1, sea: 1, chime: 1 };
 
 function installContext() {
   const instances: FakeContext[] = [];
@@ -135,6 +146,34 @@ describe("pure ambience mix", () => {
       }
     }
   });
+
+  it("attenuates chime with distance (0 at >= 18 m, monotonically increasing closer, NaN -> 0)", () => {
+    // Zero at >= 18 m
+    expect(ambienceMixAt({ ...forest, distanceToChime: 18 }).chime).toBe(0);
+    expect(ambienceMixAt({ ...forest, distanceToChime: 18.01 }).chime).toBe(0);
+    expect(ambienceMixAt({ ...forest, distanceToChime: 100 }).chime).toBe(0);
+    expect(ambienceMixAt({ ...forest, distanceToChime: Infinity }).chime).toBe(0);
+
+    // Full / clearest within 4 m
+    expect(ambienceMixAt({ ...forest, distanceToChime: 4 }).chime).toBe(1);
+    expect(ambienceMixAt({ ...forest, distanceToChime: 2 }).chime).toBe(1);
+    expect(ambienceMixAt({ ...forest, distanceToChime: 0 }).chime).toBe(1);
+
+    // Monotonically increases when approaching (distance decreasing)
+    for (let distance = 0; distance < 30; distance += 0.5) {
+      const further = ambienceMixAt({ ...forest, distanceToChime: distance + 0.5 }).chime!;
+      const closer = ambienceMixAt({ ...forest, distanceToChime: distance }).chime!;
+      expect(closer).toBeGreaterThanOrEqual(further);
+    }
+
+    // NaN and undefined default to 0
+    expect(ambienceMixAt({ ...forest, distanceToChime: NaN }).chime).toBe(0);
+    expect(ambienceMixAt({ ...forest, distanceToChime: undefined }).chime).toBe(0);
+
+    // Pure position check: carries no secret discovery state or progress
+    const atSecret = ambienceMixAt({ ...forest, distanceToChime: 2 });
+    expect(atSecret.chime).toBe(1);
+  });
 });
 
 describe("synthesized graph", () => {
@@ -161,7 +200,7 @@ describe("synthesized graph", () => {
     expect(period).toBeLessThanOrEqual(9);
     expect(context.gains()[0]!.gain.events[0]!.value).toBe(DEFAULT_MASTER_VOLUME);
     expect(context.gains()[0]!.connections).toEqual([context.destination]);
-    expect(context.gains().slice(1, 5).every(node => node.connections[0] === context.gains()[0])).toBe(true);
+    expect(context.gains().slice(1, 6).every(node => node.connections[0] === context.gains()[0])).toBe(true);
     ambience.dispose();
   });
 
@@ -170,16 +209,17 @@ describe("synthesized graph", () => {
     const ambience = createAmbience(context.asAudio());
     ambience.setMix(full);
     ambience.setMasterVolume(2);
-    for (const node of context.gains().slice(0, 5)) {
+    for (const node of context.gains().slice(0, 6)) {
       const ramp = node.gain.events.find(event => event.kind === "ramp")!;
       expect(ramp.value).toBe(1);
       expect(ramp.time - context.currentTime).toBeGreaterThanOrEqual(1.5);
     }
     context.currentTime += 2;
-    ambience.setMix({ stream: -5, wind: NaN, birds: 0, sea: Infinity });
+    ambience.setMix({ stream: -5, wind: NaN, birds: 0, sea: Infinity, chime: 0 });
     ambience.setMasterVolume(NaN);
     expect(context.gains().slice(0, 4).map(node => node.gain.events.at(-1)!.value)).toEqual([0, 0, 0, 0]);
     expect(context.gains()[4]!.gain.events.at(-1)!.value).toBe(1);
+    expect(context.gains()[5]!.gain.events.at(-1)!.value).toBe(0);
     ambience.dispose();
   });
 
@@ -273,6 +313,92 @@ describe("synthesized graph", () => {
     }
     expect(schedule(123)).toEqual(schedule(123));
     expect(schedule(124)).not.toEqual(schedule(123));
+  });
+
+  it("does not schedule chimes when mix = 0, and cancels queued chime on transition to 0", () => {
+    const context = new FakeContext();
+    const ambience = createAmbience(context.asAudio());
+    ambience.setMix(quiet);
+    expect(context.chimes()).toHaveLength(0);
+
+    ambience.setMix({ ...quiet, chime: 0.5 });
+    expect(context.chimes()).toHaveLength(1);
+    const chime = context.chimes()[0]!;
+    const staleCallback = chime.onended!;
+    expect(chime.type).toBe("sine");
+    // Inter-note interval is 0.8–4 s
+    expect(chime.start.mock.calls[0]![0] - context.currentTime).toBeGreaterThanOrEqual(0.8);
+    expect(chime.start.mock.calls[0]![0] - context.currentTime).toBeLessThanOrEqual(4.0);
+
+    // Transitioning mix to 0 cancels the active chime and stops scheduling
+    ambience.setMix({ ...quiet, chime: 0 });
+    expect(chime.stop).toHaveBeenLastCalledWith(context.currentTime);
+    expect(chime.disconnect).toHaveBeenCalledOnce();
+    expect(context.chimes()).toHaveLength(0);
+
+    staleCallback();
+    expect(context.chimes()).toHaveLength(0);
+    ambience.dispose();
+  });
+
+  it("produces deterministic chime schedule from seed and selects notes from pentatonic scale", () => {
+    function scheduleChimes(seed: number) {
+      const context = new FakeContext();
+      const ambience = createAmbience(context.asAudio(), { seed });
+      ambience.setMix({ ...quiet, chime: 1 });
+      const events = [];
+      for (let i = 0; i < 5; i++) {
+        const chime = context.chimes()[0]!;
+        expect(context.chimes()).toHaveLength(1);
+        const pitch = chime.frequency.events[0]?.value;
+        expect(CHIME_SCALE).toContain(pitch);
+        events.push({
+          start: chime.start.mock.calls[0],
+          stop: chime.stop.mock.calls[0],
+          pitch,
+        });
+        context.finishChime();
+        expect(chime.disconnect).toHaveBeenCalledOnce();
+      }
+      ambience.dispose();
+      return events;
+    }
+    expect(scheduleChimes(42)).toEqual(scheduleChimes(42));
+    expect(scheduleChimes(43)).not.toEqual(scheduleChimes(42));
+  });
+
+  it("releases all chime nodes on dispose or mute", () => {
+    for (const method of ["mute", "dispose"] as const) {
+      const context = new FakeContext();
+      const ambience = createAmbience(context.asAudio());
+      ambience.setMix({ ...quiet, chime: 1 });
+      expect(context.chimes()).toHaveLength(1);
+      const queuedChime = context.chimes()[0]!;
+      const ended = queuedChime.onended!;
+      ambience[method]();
+      expect(queuedChime.stop).toHaveBeenLastCalledWith(context.currentTime);
+      expect(queuedChime.disconnect).toHaveBeenCalledOnce();
+      expect(context.chimes()).toHaveLength(0);
+      ended();
+      expect(context.chimes()).toHaveLength(0);
+    }
+  });
+
+  it("enforces chime envelope attack >= 30 ms and volume peak <= 0.5", () => {
+    const context = new FakeContext();
+    const ambience = createAmbience(context.asAudio());
+    ambience.setMix({ ...quiet, chime: 1 });
+    const chimeOsc = context.chimes()[0]!;
+    const chimeChannel = context.gains()[5];
+    const envelope = context.gains().find(g => g.connections.includes(chimeChannel!))!;
+    expect(envelope).toBeDefined();
+    const ramps = envelope.gain.events.filter(e => e.kind === "ramp");
+    expect(ramps.length).toBeGreaterThanOrEqual(2);
+    const attackRamp = ramps[0]!;
+    const startTime = chimeOsc.start.mock.calls[0]![0];
+    expect(attackRamp.time - startTime).toBeGreaterThanOrEqual(0.03);
+    expect(attackRamp.value).toBeLessThanOrEqual(0.5);
+    ambience.dispose();
   });
 });
 
