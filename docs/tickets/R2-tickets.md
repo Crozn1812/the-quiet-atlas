@@ -93,3 +93,8 @@ Từ camera chơi chỉ thấy **một cột thân thẳng, đen**; không thấ
 - **Bảng sơ đồ kỹ năng:** cột riêng cạnh lối đi, quay về phía lối đi, chữ đọc được ở khoảng cách chơi (chữ cao ≥ 24 px trên khung 1600×900). Nội dung theo nhóm kỹ năng mới (UI-05 đã merge: AWS, Azure, Languages, Network and Systems, Tools).
 - Được dùng **Blender MCP** (đã cấu hình cho Codex) hoặc script Blender để dựng GLB; ngân sách theo ADR 0015 (không còn trần 6 000 tam giác cứng; giữ dưới khoảng 25 000 tam giác và nạp deferred).
 - Tự chụp bằng `node tools/review/wide-shots.mjs <base> roots <out>` cùng `ingame-shots` ở High.
+
+### MS-01: Lead trả lời (vòng 1)
+- **Được xoá/sửa thêm:** `src/features/mascot/*` (shape, follow, hints), các selector mascot trong `src/app/portfolio.css` và `src/features/interaction/lean.ts`, `src/i18n/zone-hints.ts` (mới), test liên quan.
+- Gợi ý HUD trong world **chỉ tiếng Anh** (ADR 0016), không làm bản Việt.
+- Test đầy đủ bị timeout do máy đang chạy nhiều worker. Chạy lại bằng `bash tools/lead/gate.sh .` (đã có rerun khi timeout), và e2e world `--workers=2`.
