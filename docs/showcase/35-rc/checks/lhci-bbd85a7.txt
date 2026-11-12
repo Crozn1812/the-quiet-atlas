@@ -1,0 +1,40 @@
+CDP preflight PASS: Edg/157.0.4341.42; Lighthouse uses existing Edge; thresholds/runs unchanged
+✅  .lighthouseci/ directory writable
+✅  Configuration file found
+✅  Chrome installation found
+Healthcheck passed!
+
+Running Lighthouse 5 time(s) on http://127.0.0.1:4175/en/
+Run #1...done.
+Run #2...done.
+Run #3...done.
+Run #4...done.
+Run #5...done.
+Running Lighthouse 5 time(s) on http://127.0.0.1:4175/en/quick/
+Run #1...done.
+Run #2...done.
+Run #3...done.
+Run #4...done.
+Run #5...done.
+Running Lighthouse 5 time(s) on http://127.0.0.1:4175/en/projects/cms-devops-platform-aws-eks/
+Run #1...done.
+Run #2...done.
+Run #3...done.
+Run #4...done.
+Run #5...done.
+Done running Lighthouse!
+
+node : Checking assertions against 3 URL(s), 15 total run(s)
+At line:2 char:1
++ node coverage/rc-scratch/lhci-cdp.mjs *> coverage/rc-lhci-cdp-bbd85a7 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Checking assert...15 total run(s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+All results processed!
+
+Dumping 15 reports to disk at D:\tqa-worktrees\RC-01\test-results\lhci...
+Done writing reports to disk.
+
+Done running autorun.

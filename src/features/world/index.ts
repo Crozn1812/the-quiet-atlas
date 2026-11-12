@@ -6,7 +6,7 @@ import { createInteraction, ZONE_IDS, type InteractionTarget, type ZoneId } from
 import { SIGNPOSTS, arrivalPoint } from "../navigation/signposts";
 import { createTeleport, MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../navigation/teleport";
 import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
-import { clampZoom, wrapYaw, springArm, INITIAL_ZOOM, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
+import { clampZoom, wrapYaw, springArm, ensureCameraBounds, filterCameraCandidates, INITIAL_ZOOM, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
@@ -384,7 +384,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let drag: { id: number; x: number } | undefined;
   const raycaster = new Raycaster();
   zones.forEach(zone => zone.group.traverse(object => { if ((object as Mesh).isMesh) zoneMeshes.push(object as Mesh); }));
-  const cameraObstacles = () => [...composed.collisionMeshes, ...zoneMeshes, ...props.map(prop => prop.mesh), ...secretMeshes, ...coastRailing.cameraObstacles];
+  const cameraObstacles = (includeSignposts = true) => [...composed.collisionMeshes, ...zoneMeshes,
+    ...(includeSignposts ? props.map(prop => prop.mesh) : []), ...secretMeshes, ...coastRailing.cameraObstacles];
   const sightRay = new Raycaster();
   interactionTargets.push(...contentTargets, ...props, ...secretTargets, vehicleTarget);
   if (coastRailing.target) interactionTargets.push(coastRailing.target);
@@ -453,9 +454,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   mascotHint.setAttribute("aria-live", "polite");
   mascotHint.setAttribute("aria-atomic", "true");
   Object.assign(mascotHint.style, {
-    position: "fixed", left: "50%", bottom: "8.5rem", transform: "translateX(-50%)",
-    width: "max-content", maxWidth: "calc(100% - 2rem)", textAlign: "center",
-    fontSize: ".875rem", color: PALETTE.ink, pointerEvents: "none", zIndex: "1",
+    position: "fixed", left: "50%", bottom: "13rem", transform: "translateX(-50%)",
+    width: "max-content", maxWidth: "calc(100% - 2rem)", textAlign: "center", boxSizing: "border-box",
+    fontSize: ".875rem", color: PALETTE.ink, background: PALETTE.paper,
+    padding: ".35rem .65rem", borderRadius: ".25rem", pointerEvents: "none", zIndex: "1",
   });
   container.appendChild(mascotHint);
   function clearMascotHint() {
@@ -478,6 +480,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const journeyContainer = container as HTMLElement & { __tqaJourney?: {
     position(): { x: number; y: number; z: number };
     cameraYaw(): number;
+    cameraDistance(): number;
     lookoutPosition(): { x: number; y: number; z: number } | undefined;
     zone(): string | null;
     goTo(zoneId: string): Promise<void>;
@@ -487,6 +490,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
     cameraYaw: () => yaw,
+    cameraDistance: () => camera.position.distanceTo(physics.position),
     lookoutPosition: () => coastRailing.target ? { ...coastRailing.target.position } : undefined,
     zone: () => {
       const zone = nearestZone();
@@ -518,12 +522,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         container.removeEventListener("tqa:teleport-end", ended);
       }
     },
-    /** QA only: stand on a secret and interact with it, as walking there and pressing E would. */
+    /** QA only: stand at a secret and interact; solid landmarks need a reachable approach. */
     visitSecret: (id: string) => {
       const secret = SECRETS.find(entry => entry.id === id);
       if (!secret) throw new Error(`Invalid journey secret: ${id}`);
       if (disposed || cinematicLocked() || contextLost || teleport.inputLocked) throw new Error("Journey secret unavailable");
       const position = new Vector3(secret.position.x, secret.position.y + HEIGHT, secret.position.z);
+      // The bench centre is solid. A real walker stops beside it, so QA must not
+      // put the actor through its seat when recording the ending's close shot.
+      if (secret.landmark === "bench") {
+        position.x += 1.8;
+        position.y = surfaceHeight(position.x, position.z) + HEIGHT;
+      }
       composed.update(position, 0);
       physics.teleport(position);
       state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
@@ -1014,7 +1024,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // B2-238: geometry the character stands inside (a landmark arch or mirror) starts within this
     // range; counting it collapsed the arm to zero and put the near plane inside the mesh (black frame).
     raycaster.near = CAMERA_IGNORE_INSIDE;
-    const hit = raycaster.intersectObjects(cameraObstacles())[0];
+    // A narrow sign just behind an arrival point must not collapse the arm into the
+    // character. Signs retain interaction/line-of-sight ownership; walls, rocks,
+    // trunks and railings still retract the camera normally.
+    const obstacles = filterCameraCandidates(cameraObstacles(false), raycaster);
+    ensureCameraBounds(obstacles);
+    const hit = raycaster.intersectObjects(obstacles)[0];
     raycaster.near = 0;
     arm = springArm(arm, distance, hit?.distance, dt);
     camera.position.copy(target).addScaledVector(direction, arm);

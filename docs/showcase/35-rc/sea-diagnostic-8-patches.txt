@@ -1,0 +1,18 @@
+confidence-direct {
+  replaced: [
+    'float shoreZ = mix(shoreA, shoreB, shoreSample - float(shoreIndex));',
+    'float slope = (shoreB - shoreA)',
+    'float shoreDistance = (shoreZ - vWaterWorld.z) / sqrt(1.0 + distanceSlope * distanceSlope);',
+    'float shoreValid = 1.0 - smoothstep(9999.0, 10000.0, max(shoreA, shoreB));',
+    'float offshore = mix(1000.0, shoreDistance, shoreValid);',
+    'float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * uHasShore;',
+    '(1.0 - smoothstep(2.0, 12.0, offshore)) * uHasShore',
+    'reflection *= mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore));',
+    'mix(0.35, 1.0, smoothstep(12.0, 40.0, offshore));',
+    'brush) * 0.6 * uHasShore;'
+  ]
+}
+all-offshore {
+  replaced: [ 'float offshore = mix(1000.0, shoreDistance, shoreValid);' ]
+}
+docs/showcase/35-rc/sea-diagnostic-8

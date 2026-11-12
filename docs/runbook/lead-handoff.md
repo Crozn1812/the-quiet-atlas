@@ -1,12 +1,19 @@
-# RC-01 — hoàn tất lần 3, bàn giao Claude-Lead
+# RC-01 — bàn giao RC đã kiểm (2026-11-10)
 
-Nguồn đã kiểm `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`; bằng chứng/hướng dẫn đã commit `1cfda44de4e8447c1d02ba94e197f050291e4b2a` tại clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`. [Bàn giao đầy đủ](../../../tqa-worktrees/RC-01/docs/runbook/lead-handoff.md) · [Showcase](../../../tqa-worktrees/RC-01/docs/showcase/35-rc/README.md) · [Duy test](../../../tqa-worktrees/RC-01/docs/playtest/rc-guide.md).
+**Nguồn RC:** `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`, clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`. [Showcase, ảnh và video](../showcase/35-rc/README.md) · [Audit/log](../showcase/35-rc/audit.md) · [Duy chạy và chấm](../playtest/rc-guide.md).
 
-Đủ gate máy dev: strict1759unit, e2e153/1534worker, loadworst4653,10ms/world2128915B, Lighthouse15mobile/slow4G/CPU4×, CPU ABBA2mỗi bản deltaScript/TaskFL+3,5/+5;Roots−15/−17;Workshop−11/−12ms/s, CV/tài nguyên/renderPASS. Duyệt8High+15cinematic, Art/QA12front; videoQA45s đã decode/seek/xem. T08/T09 NOT RUN; T10/Duy DEFERRED.
+- Build, lint 0 warning, typecheck, **1759/1759 unit PASS**; full e2e **153/153 PASS**, 4 worker, exit 0. Các phép kiểm đều trên nguồn RC này.
+- Load-budget VI/EN, 3 tải lạnh mỗi locale: worst **4653,10 ms**, world **2.128.915 B**; kiểm riêng mốc RC 6000 ms/8 MiB PASS. Lighthouse **15/15** report, profile mobile/simulate slow 4G/CPU 4× gốc được kiểm trong từng report, assertions gốc PASS; worst LCP 2350,23 ms/TBT 49 ms/CLS 0,018288, accessibility 100. CV, bundle, license và asset PASS.
+- CPU harness gốc Balanced/1500 ms warm-up/W 4 s, ABBA hai lượt mỗi bản: delta Script/Task First Light **+3,5/+5**, Roots **−15/−17**, Workshop **−11/−12 ms/s**: PASS trần +10. Baseline export `144a02c` có world source giống main `3bb0752`, git diff đã kiểm. Giữ mọi FAIL cũ; diagnostic 15 s không dùng thay gate.
+- Lead đã mở từng ảnh đủ 8 khu High và 15 ảnh intro/ending; Art/QA mở 12 Welcome/Quick VI/EN desktop/mobile cuối. Max luma delta 0,001. Slideshow ảnh QA **45,00 s**, 1280×720, WebM; đã decode/seek/xem khung, không gọi là video gameplay. Chạy tuyến phím thật và UI140 đã có từ lượt trước, không làm lại.
+- T08/T09 Iris Xe **NOT RUN**; T10/điểm người chơi **DEFERRED** cho Duy. P3 còn lại và giới hạn kiểm mẫu ghi trong audit; bảng chấm vẫn trống.
+- Main HEAD `d00bf20` (chỉ thêm tài liệu, runtime như `3bb0752`), `.git` chỉ đọc, **chưa merge/push**. Theo chỉ dẫn Claude-Lead 10/11 06:50: Codex được chốt DONE bằng hash trong clone sau đủ gate; Claude-Lead `git fetch D:/tqa-worktrees/RC-01 lane/RC-01`, duyệt/merge main. Không cần Codex tự merge trong môi trường này.
+- Bằng chứng/tài liệu được commit sau nguồn RC, **không đổi runtime/assets/dependency**. Các checkpoint “đang làm” bên dưới là lịch sử đã xử lý; không khởi động lại ticket/đo đã hoàn tất.
 
-Main `d00bf20` chưa merge runtime RC; ngoại lệ Lead06:50 cho phép DONE hashclone để Claude-Lead fetch/duyệt/merge. Không push/cloud/credential. Chỉ có tài liệu trạng thái được cập nhật tại main; mã/assets/test nằm trong clone. Các checkpoint “đang làm” phía dưới là lịch sử đã xử lý, không làm lại.
+Lỗi môi trường đã xử lý: e2e lần đầu đủ 153 ok nhưng treo teardown server Windows; chạy lại dùng server ngoài exit 0. Lighthouse lần launcher đầu không fetch được CDP, taskkill cũng bị từ chối; chạy lại bằng Edge do Playwright quản lý, attach CDP loopback 9333, giữ nguyên profile/15 runs/assertions. Giữ log FAIL/BLOCKED gốc trong showcase.
 
-# Bàn giao UX/UI — 2026-11-08
+
+# Bàn giao UX/UI — 2026-11-08 (lịch sử)
 
 **Duy yêu cầu bàn giao lại cho Claude.** Bản tiếp nhận đầy đủ: [claude-handoff-2026-11-08.md](claude-handoff-2026-11-08.md). Codex đã chuẩn bị tài liệu, chờ Duy gọi Claude tiếp nhận; chưa xác nhận Claude đã đọc. Không còn lịch heartbeat tự chạy.
 
@@ -50,17 +57,22 @@ Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/t
 
 ### RC-01 đang làm
 
-#### Lần 3 — đang tiếp tục tại clone, nguồn `4d627b1`
+#### Lần 3 — tiếp tục 2026-11-10, nguồn `4d627b1`
 
-##### Cập nhật ưu tiên lần3 — `bbd85a7`, đọc checkpoint clone
+##### Checkpoint mới nhất lần3 — ứng viên `bbd85a7`
 
-- Nguồn `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1` gồm RC21/RC22. Build/target26unit/strictgate1759PASS; **CPU harness gốc ABBA2mỗi bản PASS**: deltaScript/Task FirstLight+3,5/+5, Roots−15/−17, Workshop−11/−12ms/s. `perf/cpu-final-summary.json` giữ4log và provenancebaselineworldmain3bb.
-- Lead đã mở đủ8Highafter-bbd, luma maxdelta0,001; chuỗi kiểm cuối đang chạy session17459 trong clone. Đọc coverage/rc-*-bbd85a7.log và clonehandoff trước khi chạy lại. Còn renderintro/endingbbd, full e2e4, load≤6s/8MB, Lighthouse, CV và commit báo cáo. Không làm lại UI140/journey. ChưaDONE.
+- RC21 `ccd9145`: bỏ Vector3 tạm và sửa sparse filter, gate1755PASS; CPU vẫnFAIL, giữ log. RC22 `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`: cache world-sphere mặc định trước raycast; targeted26/26PASS, buildPASS, strictgate1759/1759PASS. Không còn runtime/test/tools/public diff ngoài commit.
+- **CPU bbd PASS** bằng harness gốc không đổi: ABBA2mỗi bản Balanced1500mswarm/4sW; deltaScript/Task FL+3,5/+5, Roots−15/−17, Workshop−11/−12ms/s. Đã kiểm worldsource baselineexport144a02c giốngmain3bb0752 bằng gitdiff; `perf/cpu-final-summary.json` và4logbbd giữ đủ. CácFAILtrước không sửa hồi tố; diagnostic15s không dùng thaygate.
+- Fullchain đang chạy session17459: gate đãPASS → High8after-bbd85a7 → visual-bbd85a7 introfull/endingHigh → e2e4worker reuse4185 → loadbudget gzip4174 → Lighthouseexternal4175 → checkCV. Đọc coverage/rc-*-bbd85a7.log trước khi chạy lại. LH log riêng có tên rc-lhci-bbd85a7.log. Runtime đã build, server4185 đọc out mới.
+- Renderccd15ảnhHigh0errors đãxong: visual-ccd9145/results.json; rootmở introafter/ending00500/26000/after, khôngwedge/xuyênghế, HUDsạch. Sauchain phải mở đủ8Highbbd vàảnhintro/endingbbd, luma+groundhue; đọc loadJSON6coldruns đểkiểm trầnRC6000ms riêng (CLIchỉgate10000ms).
+- Chưa DONE. Còn loggatescuối/bằngchứng, audit/checklist/status/guide/handoff đồngbộ và commitshowcase. Không push; main.git chỉđọc, ClaudeLead fetch/duyệt/merge theo ngoạilệ06:50.
 
-- Đọc checkpoint lần3 trong `D:/tqa-worktrees/RC-01/docs/runbook/lead-handoff.md` và log clone để tiếp tục; không làm lại UI140/journey. Nguồn hiện `4d627b1c3831a6b6b86545cdda499a545524a677`.
-- Strictgate1753/1753 và build trên4d PASS; bundle/license/assets lần3 PASS. Lead đã mở8High `after/`, maxdelta luma0,001; mở intro4khung và ending-source-final (hết wedge rõ, actor ngoài ghế), hint-final4caseVI/EN PASS.
-- E2E4worker153/153 dòngok nhưng treo teardown server Windows, CHƯA suitePASS. Đã dừng riêng runner/server của lượt; sẽ rerun dùng E2E_PORT4185/reuse server ngoài để tránh taskkill. CPU ABBA3 chuẩn vẫn FAIL Roots; diagnostic15swarmupABBA đang chạy để ghiFPS/CPUframe, không thay ngưỡng.
-- Còn full e2e exit0, load≤6s/8MB, LHCI, CPU và báo cáo/commitbằngchứng cuối. Chưa DONE/push. Chỉ dẫn Claude06:50 bên dưới vẫn áp dụng: cloneđủgate thì DONEhashclone cho Claude review/merge.
+- Không làm lại UI140 và journey. Clone `D:/tqa-worktrees/RC-01`, nguồn `4d627b1c3831a6b6b86545cdda499a545524a677`. Build và strict gate của nguồn này đã có log tại showcase35/checks: 1753/1753 unit PASS. Bundle/license/assets PASS trong lần3.
+- Lead đã mở đủ8 ảnh `after/`, luma so `before/` max0,001; ground hue giữ nguyên trừ LastPostcard61→62. Đã mở4 ảnh intro-final1500/4000/7000/10000, ending-source-final00500/04000/14000/26000/after và hint-finalVI1600/EN1366. Ending hết wedge rõ và actor ngoài ghế; ảnh after ending có HUD cũ, hint-final4case trên4d xác nhận sửa RC20.
+- Full e2e4worker có153/153 dòngok nhưng treo teardown server Windows, CHƯA ghi suitePASS. Giữ coverage/rc-e2e-4d627b1.log. Đã dừng chính runner44108/server40936 của lượt này. Chạy lại với E2E_PORT4185, dùng server ngoài có sẵn để tránh Playwright taskkill. Không thay assertion hay bỏ test.
+- CPU ABBA lần3 chuẩn ở perf/cpu-run3-*.txt: còn FAIL, đặc biệt Roots (189/197 baseline,244/244 RC Script ms/s). Diagnostic ABBA15s warmup đang chạy session57861, ghi FPS/CPUframe để tìm nguyên nhân; không đổi trầnms/s. Browser/perf phải chạy lần lượt.
+- Server candidate4185 session55541, baseline4186 session41381. Chưa full e2e exit0/load/LHCI cuối. Agent cpu_review chỉ cập nhật audit/checklist/README; root giữ STATUS/handoff. Chưa commit bằng chứng, không push.
+- Chỉ dẫn Claude-Lead mới nhất trong handoff main (10/11 06:50): sau khi clone đủ gate, được ghi DONE hashclone để Claude fetch/review/merge main; không bắt buộc Codex tự merge khi .gitmain chỉđọc. CPU phải ≤main+10ms/s hoặc ghi rõ sốđo/lýdo chờ Duy, không tự miễn gate.
 
 - Lần 1, 2026-11-09: base main 3bb0752. KHÔNG làm lại RC-02 capture và lượt journey đã hoàn thành.
 - Môi trường từ chối ghi .git repo chính (git worktree add lỗi RC-01.lock Permission denied). Đã tạo clone độc lập D:/tqa-worktrees/RC-01, lane/RC-01, không phải worktree được đăng ký. Code/asset/bằng chứng ở clone; chưa merge main, chưa push.
@@ -89,21 +101,9 @@ Ngưỡng Claude nâng lên **97 %** tuần. Codex chạy như Lead theo `docs/t
 - RC12 mở rộng quad không đủ sửa tam giác biển. Đã cô lập vào shader shoreline (constant offshore loại dải), đang thử sửa có bằng chứng trước/sau; chưa duyệt ending. Debug `__rcDebug` trong index.ts là tạm, phải bỏ trước chốt nguồn/build/gate cuối.
 - Audit/checklist/README và guide đã cập nhật trong clone; toàn bộ gate RC cuối, High after/luma, render ending, e2e4, load ≤6s/8MB và Lighthouse vẫn chờ chốt nguồn. Đọc bản clone để tiếp tục nếu phiên này dừng giữa chừng.
 
-##### Checkpoint mới nhất lần 2: nguồn `6cb4b91`
+Bằng chứng/hướng dẫn đã commit: `1cfda44de4e8447c1d02ba94e197f050291e4b2a`. Git diff runtime/assets/dependency từ nguồn RC rỗng; không chạy lại gate chỉ vì thay tài liệu. Main `d00bf20` chỉ thêm tài liệu so với baseline runtime `3bb0752`.
 
-- RC14 shader đã sửa và unit nước/biển 99/99 PASS; RC15 `09b30e0`, RC16 `9eba0e1`. Debug `__rcDebug` đã bỏ. Runtime/tests/tools/public sạch theo git diff trên `6cb4b918edd7131af9699958a3ad5e8f97b6f4b1`.
-- Build cuối trên hash này exit0 (`coverage/rc-build-final.log`). Strict gate đang chạy; đọc `coverage/rc-gate-final.log` và `coverage/rc-gate-tmp/` trước khi quyết định chạy lại. Clone có hai server4185(candidate),4186(baseline world main trong coverage/rc-baseline-out).
-- Sau gate: CPU ABBA2 từng bản, High8 after+luma/ground-hue, intro+ending High từ source cuối, full e2e4, load-budget, LHCI. Đừng làm lại UI140/journey.
-- 370 PNG UI/Welcome đã nén WebP90 nguyên kích thước (199,1MB→32,7MB); raw+SHA256 ở coverage/rc-raw-screenshots. before/camera/ending giữ nguyên. Scratch .tmp đã chuyển coverage/rc-run1-scratch và coverage/rc-scratch để không lint nhầm. Báo cáo cuối chưa chốt, chưa merge, không ghi DONE.
-
-##### Checkpoint tiếp theo lần 2: ứng viên `d2067a2` (ưu tiên đọc)
-
-- Nguồn `d2067a234af698b2b542f435e02762f57f323ccb` tại clone RC-01. RC14 sửa tiếp `3bdbd0c` (bỏ guard pigment nhị phân gây wedge, khoảng cách tới endpoint thật); Lead đã mở ending-source-final/e-26000.png, e-00500.png, e-after.png: biển không còn cạnh tam giác rõ, actor ngoài ghế. Runtime world source3bdb; RC20 `aea54d1` sửa gợi ý mascot chồng chip E, chưa browser probe.
-- RC17 `9a20e57` skip alpha đúng1 khi batch không che; RC18 `fb00637` tránh object tạm cho legacy crowns. CPU trên30e90 trước17/18 FAIL Workshop +20/+21ms/s, giữ perf/cpu-final-*.txt. Đang đo ABBA2 trên d206 (perf/cpu-d2067a2-*.txt), chưa kết luận.
-- RC19 d206: chỉ chụp lại Quiet Shore/Last Postcard và hero0 vì shader biển đổi, không làm lại6postcard còn lại. Đã mở2postcard+hero1920; license PASS. Final coast manifest/coast-final; hero/welcome-final-candidates.
-- **Build cuối và strict gate d206 PASS**: lint0warning/typecheck/unit1753/1753,154files. coverage/rc-build-final.log, rc-gate-final.log, rc-gate-tmp. checks/ trong showcase đã sao log hiện tại. Lượt6cb FAIL1749/1750 do water-streak evaluator biếncũ được giữ perf/gate-6cb4b91-fail.txt; sửa test30e90 gate1750PASS cũng được giữ checks/*30e90bd.txt. Không sửa hồi tố FAIL.
-- Còn: kết luận CPU d206; TQA_QUALITY=high ingame-shots8 after+luma/ground-hue; intro cuối; coverage/rc-scratch/hint-layout.mjs (4caseVI/EN1600/1366, text thật, geometry+contrast). Sau đó full e2e4workers, load-budget≤6s/8MB, LHCI, checkCV/bundle/licenses/assets trên d206. Các full suite này CHƯA CHẠY ở lần2.
-- Chưa cập nhật audit/checklist/PROJECT_STATUS cuối, chưa commit toàn bộ showcase. `.git` main vẫn chỉ đọc nên merge BLOCKED, không ghi DONE/push. Không làm lại UI140 và journey đã xong. Trước khi chạy lại phép đo hãy đọc log/current clone và kiểm tra process đang chạy.
+## Chỉ dẫn Lead gốc từ main d00bf20 (lịch sử, CPU nay đã xử lý)
 
 ##### Lead (Claude) 2026-11-10 06:50 — cách merge khi `.git` main chỉ đọc
 

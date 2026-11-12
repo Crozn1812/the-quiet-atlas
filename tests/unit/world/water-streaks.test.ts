@@ -79,10 +79,11 @@ it("uses the same warped field for sea detail and advects without periodic lane/
   try {
     const source = material.fragmentShader;
     const body = source.slice(source.indexOf("// Begin sea ripple scalars."), source.indexOf("// End sea ripple scalars."));
-    const evaluate = new Function("vWaterWorld", "uTime", "offshore", "uHasShore", "rippleDistanceFade", "mix", "smoothstep", "fract",
+    // RC-14 supplies continuous shore confidence to this unchanged noise field.
+    const evaluate = new Function("vWaterWorld", "uTime", "offshore", "shoreInfluence", "rippleDistanceFade", "mix", "smoothstep", "fract",
       waterNoiseFunctions(source) + body.replace(/\bfloat\s+/g, "let ") + "return seaStroke;");
-    const sample = (x: number, y: number, time: number, offshore = 1, fade = 1) =>
-      evaluate({ x, z: y }, time, offshore, 1, fade, mix, smoothstep, fract) as number;
+    const sample = (x: number, y: number, time: number, offshore = 1, fade = 1, shoreInfluence = 1) =>
+      evaluate({ x, z: y }, time, offshore, shoreInfluence, fade, mix, smoothstep, fract) as number;
     for (const block of [body, source.slice(source.indexOf("float across ="), source.indexOf("float riverBrush"))]) {
       expect(block).not.toMatch(/\b(sin|cos|fract)\(/);
     }
@@ -91,6 +92,7 @@ it("uses the same warped field for sea detail and advects without periodic lane/
       const value = sample(x, y, 0);
       expect(sample(x, y + 0.5, 10)).toBeCloseTo(value, 10);
       expect(sample(x, y, 0, 30)).toBeCloseTo(value * 0.05, 12);
+      expect(sample(x, y, 0, 1, 1, 0)).toBeCloseTo(value * 0.05, 12);
       expect(sample(x, y, 0, 1, 0)).toBe(0);
     }
     expect(source).toContain("float x = across * 9.0;");

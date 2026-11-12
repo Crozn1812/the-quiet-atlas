@@ -29,7 +29,7 @@ for (const p of content.projects) {
   });
 }
 pages.push({ key: "cv", locale: "en", title: "CV · EN / VI", description: "The Quiet Atlas" });
-const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "msedge" });
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? (process.env.CI ? "chrome" : "msedge") });
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   await page.route("**/*", route => route.abort());

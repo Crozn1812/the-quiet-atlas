@@ -1,0 +1,8 @@
+ingame-first-light.png	0.339
+ingame-horizon.png	0.376
+ingame-last-postcard.png	0.339
+ingame-milestones.png	0.357
+ingame-old-trail.png	0.405
+ingame-quiet-shore.png	0.310
+ingame-roots.png	0.386
+ingame-workshop.png	0.401

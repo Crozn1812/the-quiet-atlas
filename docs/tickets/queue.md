@@ -103,6 +103,12 @@ Gate cuối main `7774ae8`: unit 1697/1697, full e2e 151/151, load-budget EN/VI 
 | B2-126b | Horizon vòng 3, test trên địa hình thật |
 | B2-130 | Bờ suối răng cưa dưới Milestones/Horizon (Lead đã thử 1 cách, chưa đạt; xem ghi chú trong thẻ) |
 
+## RC-01 — review để Claude-Lead merge (2026-11-10)
+
+| ID | Trạng thái | Bàn giao |
+|---|---|---|
+| RC-01, các ticket con RC-02…RC-22 | review | Clone `D:/tqa-worktrees/RC-01`, `lane/RC-01`, nguồn RC `bbd85a7`; đủ gate/render máy dev, chưa merge do `.git` main chỉ đọc. [Kết quả](../showcase/35-rc/audit.md), [hướng dẫn Duy](../playtest/rc-guide.md). Claude-Lead fetch/duyệt/merge theo handoff; không push |
+
 ## Tiếp theo (todo)
 
 | ID | Việc | Phụ thuộc |

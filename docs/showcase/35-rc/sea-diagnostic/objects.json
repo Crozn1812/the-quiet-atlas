@@ -1,0 +1,467 @@
+[
+  {
+    "name": "first-light-clearing",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "workshop",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "roots",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "rocky-shore",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-road",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "path-bridges",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "far-landscape",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {
+      "TOON": ""
+    }
+  },
+  {
+    "name": "first-light-authored-grove",
+    "type": "Group",
+    "visible": false
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "position-graded-sky",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {}
+  },
+  {
+    "name": "coast-mountain-mist",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {}
+  },
+  {
+    "name": "",
+    "type": "DirectionalLight",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Object3D",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "HemisphereLight",
+    "visible": true
+  },
+  {
+    "name": "painted-river-balanced",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {
+      "SKY_REFLECTION": 0.22,
+      "WATER_REFLECTION": 1,
+      "WATER_FLOW": 1,
+      "WATER_RIPPLES": 1
+    }
+  },
+  {
+    "name": "painted-sea-balanced",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {
+      "SKY_REFLECTION": 0.5,
+      "WATER_REFLECTION": 1,
+      "SEA_WATER": 1,
+      "WATER_FLOW": 1,
+      "WATER_RIPPLES": 1
+    }
+  },
+  {
+    "name": "spring-cleft-pool",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {
+      "SKY_REFLECTION": 0.22,
+      "WATER_REFLECTION": 1,
+      "WATER_FLOW": 1,
+      "WATER_RIPPLES": 1
+    }
+  },
+  {
+    "name": "spring-cleft-flow",
+    "type": "Mesh",
+    "visible": true,
+    "defines": {
+      "SKY_REFLECTION": 0.22,
+      "WATER_REFLECTION": 1,
+      "WATER_FLOW": 1,
+      "WATER_RIPPLES": 1
+    }
+  },
+  {
+    "name": "first-light-spring",
+    "type": "Group",
+    "visible": false
+  },
+  {
+    "name": "coast-railing",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "teleport-first-light",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-workshop",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-roots",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-milestones",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-old-trail",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-horizon",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-quiet-shore",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "teleport-last-postcard",
+    "type": "Mesh",
+    "visible": true
+  },
+  {
+    "name": "vine-arch-mirror",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "wind-chime",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "faint-trail",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "bench",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "vehicle_view",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "mascot",
+    "type": "Group",
+    "visible": false
+  },
+  {
+    "name": "forest-sun-shafts",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "milestones-hillside",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "old-trail",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "horizon-overlook",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "quiet-shore",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "last-postcard",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "ground-details",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  },
+  {
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true
+  }
+]

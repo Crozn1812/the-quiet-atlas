@@ -1,0 +1,138 @@
+[
+  {
+    "zone": "first-light",
+    "bytes": 32620,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      3,
+      2.5,
+      9,
+      0,
+      0,
+      -6
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "roots",
+    "bytes": 50256,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      10,
+      2.3,
+      6,
+      4,
+      1.1,
+      0
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "workshop",
+    "bytes": 50410,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      3,
+      2,
+      9,
+      4,
+      1.2,
+      -2
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "milestones",
+    "bytes": 51244,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      -8,
+      2.8,
+      8,
+      -3,
+      2.2,
+      -3
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "old-trail",
+    "bytes": 47342,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      4,
+      2.5,
+      8,
+      0,
+      0,
+      -12
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "horizon",
+    "bytes": 44508,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      -6,
+      2,
+      7,
+      4,
+      0,
+      -10
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "quiet-shore",
+    "bytes": 37520,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      6,
+      2,
+      6,
+      -3,
+      0,
+      -12
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  },
+  {
+    "zone": "last-postcard",
+    "bytes": 21926,
+    "width": 960,
+    "height": 640,
+    "quality": "high",
+    "view": [
+      -7,
+      2,
+      6,
+      2,
+      0,
+      -9
+    ],
+    "source": "http://127.0.0.1:4185",
+    "visualApproval": "pending"
+  }
+]

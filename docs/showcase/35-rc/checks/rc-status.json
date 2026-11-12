@@ -1,0 +1,62 @@
+{
+  "sourceCommit": "bbd85a7c336aa025f11f42d40a07ea8bdbea83f1",
+  "branch": "lane/RC-01",
+  "checkedAt": "2026-11-10T02:10:05.614Z",
+  "build": "PASS",
+  "strictGate": {
+    "status": "PASS",
+    "unit": 1759
+  },
+  "e2e": {
+    "status": "PASS",
+    "tests": 153,
+    "workers": 4
+  },
+  "load": {
+    "status": "PASS",
+    "runs": 6,
+    "limitMs": 6000,
+    "worstMs": 4653.099853515625,
+    "worldBytes": 2128915
+  },
+  "lighthouse": {
+    "status": "PASS",
+    "reports": 15,
+    "profile": "mobile/simulate slow4G CPU4x, original median-run assertions"
+  },
+  "cv": "PASS",
+  "bundle": "PASS",
+  "licenses": "PASS",
+  "assets": "PASS",
+  "cpu": {
+    "status": "PASS",
+    "method": "unchanged1500ms/4sW ABBA2each",
+    "summary": "../perf/cpu-final-summary.json"
+  },
+  "render": {
+    "status": "PASS",
+    "leadOpened": {
+      "worldHigh": 8,
+      "cinematicHigh": 15
+    },
+    "artQaOpened": {
+      "front": 12
+    }
+  },
+  "video": {
+    "status": "PASS",
+    "durationSeconds": 45.004199,
+    "file": "rc-preview-bbd85a7.webm"
+  },
+  "referenceLaptopT08T09": "NOT RUN",
+  "humanT10Playtest": "DEFERRED",
+  "mainMerge": {
+    "status": "BLOCKED",
+    "reason": "Main .git read-only; Claude-Lead fetch/review/merge per latest handoff",
+    "mainHead": "d00bf20",
+    "runtimeEquivalentTo": "3bb0752"
+  },
+  "push": "NOT RUN",
+  "limits": "Image review is sampled; viewport snapshots do not replace human/audio/phone/laptop testing; earlier FAIL/BLOCKED evidence retained",
+  "evidenceCommit": "1cfda44de4e8447c1d02ba94e197f050291e4b2a"
+}

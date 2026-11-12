@@ -19,7 +19,7 @@ for (const url of Object.values(files)) {
   }
 }
 const content = readContent();
-const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "msedge" });
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? (process.env.CI ? "chrome" : "msedge") });
 try {
   const page = await browser.newPage();
   await page.route("**/*", route => route.abort());

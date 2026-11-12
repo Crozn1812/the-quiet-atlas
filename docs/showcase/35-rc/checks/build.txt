@@ -1,0 +1,64 @@
+$ node tools/build.mjs
+▲ Next.js 16.4.4 (Turbopack)
+✓ Running next.config.ts took 22ms
+- Experiments (use with caution):
+  ✓ globalNotFound
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 265ms
+  Running TypeScript ...
+  Finished TypeScript in 1942ms ...
+  Collecting page data using 12 workers ...
+  Generating static pages using 12 workers (0/22) ...
+  Generating static pages using 12 workers (5/22) 
+  Generating static pages using 12 workers (10/22) 
+  Generating static pages using 12 workers (16/22) 
+✓ Generating static pages using 12 workers (22/22) in 516ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├   /[locale]
+│ ├ ● /en
+│ └ ● /vi
+├   /[locale]/privacy
+│ ├ ● /en/privacy
+│ └ ● /vi/privacy
+├   /[locale]/projects/[slug]
+│ ├ ● /en/projects/cms-devops-platform-aws-eks
+│ ├ ● /en/projects/partner-data-gateway-azure
+│ ├ ● /en/projects/insighthub-rag
+│ └ ● [+5 more paths]
+├   /[locale]/quick
+│ ├ ● /en/quick
+│ └ ● /vi/quick
+├   /[locale]/world-content.json
+│ ├ ● /en/world-content.json
+│ └ ● /vi/world-content.json
+├ ○ /cv
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
+
+cv-nguyen-huu-bao-duy-en-2026-11-09.pdf: 38487 bytes; Title=CV; Author/Creator/Producer/dates cleared
+cv-nguyen-huu-bao-duy-vi-2026-11-09.pdf: 44805 bytes; Title=CV; Author/Creator/Producer/dates cleared
+D:\tqa-worktrees\RC-01\out\og\entry.png: 19291 bytes
+D:\tqa-worktrees\RC-01\out\og\en-welcome.png: 24410 bytes
+D:\tqa-worktrees\RC-01\out\og\en-quick.png: 23526 bytes
+D:\tqa-worktrees\RC-01\out\og\en-privacy.png: 20947 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-welcome.png: 25251 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-quick.png: 24355 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-privacy.png: 21824 bytes
+D:\tqa-worktrees\RC-01\out\og\en-projects-cms-devops-platform-aws-eks.png: 52606 bytes
+D:\tqa-worktrees\RC-01\out\og\en-projects-partner-data-gateway-azure.png: 63550 bytes
+D:\tqa-worktrees\RC-01\out\og\en-projects-insighthub-rag.png: 53680 bytes
+D:\tqa-worktrees\RC-01\out\og\en-projects-aws-sales-data-pipeline.png: 51248 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-projects-cms-devops-platform-aws-eks.png: 49491 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-projects-partner-data-gateway-azure.png: 63421 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-projects-insighthub-rag.png: 50262 bytes
+D:\tqa-worktrees\RC-01\out\og\vi-projects-aws-sales-data-pipeline.png: 51231 bytes
+D:\tqa-worktrees\RC-01\out\og\cv.png: 15749 bytes

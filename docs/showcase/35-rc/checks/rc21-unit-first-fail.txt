@@ -1,0 +1,34 @@
+
+ RUN  v5.1.0 D:/tqa-worktrees/RC-01
+
+ ❯ tests/unit/world/nearby-crowns.test.ts (3 tests | 1 failed) 66ms
+   × preserves strict radius/endpoints, zero-length lines, non-finite values and sparse slots 3ms
+node : 
+At line:2 char:1
++ node node_modules/vitest/vitest.mjs run tests/unit/world/nearby-crown ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/world/nearby-crowns.test.ts > preserves strict radius/endpoints, zero-length lines, non-finite 
+values and sparse slots
+TypeError: Cannot read properties of undefined (reading 'x')
+ ❯ selectNearbyOccludingCrowns src/features/world/camera.ts:61:25
+     59|   for (let i = 0; i < trees.length; i++) {
+     60|     const tree = trees[i]!;
+     61|     if (Math.hypot(tree.x - camera.x, tree.z - camera.z) <= 24) {
+       |                         ^
+     62|       nearby.push(tree);
+     63|       slots.push(i);
+ ❯ tests/unit/world/nearby-crowns.test.ts:99:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 4 passed (5)
+   Start at  08:31:02
+   Duration  233ms (tests 49%, import 27%, transform 19%, setup 3%, worker 2%)
+

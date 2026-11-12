@@ -1,0 +1,95 @@
+{
+  "sourceCommit": "bbd85a7c336aa025f11f42d40a07ea8bdbea83f1",
+  "file": "rc-preview-bbd85a7.webm",
+  "bytes": 4196770,
+  "sha256": "47de87ec15d7e4ee11f373485d53ce173d09711be327d1934026ebf151d2e7e4",
+  "method": "Canvas captureStream + Edge MediaRecorder (ffmpeg not available); slideshow of saved QA images, not gameplay video",
+  "mime": "video/webm;codecs=vp9",
+  "recordedMs": 45101.40000003576,
+  "dimensions": {
+    "width": 1280,
+    "height": 720
+  },
+  "decoded": {
+    "width": 1280,
+    "height": 720,
+    "seekTime": 7.5,
+    "durationSeconds": 45.004199,
+    "error": null
+  },
+  "slides": [
+    [
+      "front-bbd85a7/vi-desktop-welcome.png",
+      "Welcome · VI"
+    ],
+    [
+      "after-bbd85a7/ingame-first-light.png",
+      "first-light"
+    ],
+    [
+      "after-bbd85a7/ingame-workshop.png",
+      "workshop"
+    ],
+    [
+      "after-bbd85a7/ingame-roots.png",
+      "roots"
+    ],
+    [
+      "after-bbd85a7/ingame-milestones.png",
+      "milestones"
+    ],
+    [
+      "after-bbd85a7/ingame-old-trail.png",
+      "old-trail"
+    ],
+    [
+      "after-bbd85a7/ingame-horizon.png",
+      "horizon"
+    ],
+    [
+      "after-bbd85a7/ingame-quiet-shore.png",
+      "quiet-shore"
+    ],
+    [
+      "after-bbd85a7/ingame-last-postcard.png",
+      "last-postcard"
+    ],
+    [
+      "visual-bbd85a7/intro-01500.png",
+      "Cảnh mở đầu"
+    ],
+    [
+      "visual-bbd85a7/ending-26000.png",
+      "Cảnh kết"
+    ],
+    [
+      "visual-bbd85a7/ending-after.png",
+      "Sau cảnh kết"
+    ],
+    [
+      "ui-audit/vi-overlay-workshop-key-e.webp",
+      "Overlay · Workshop (audit d761a62)"
+    ],
+    [
+      "ui-audit/vi-journal.webp",
+      "Sổ Atlas (audit d761a62)"
+    ],
+    [
+      "ui-audit/vi-bike-cruise.webp",
+      "GD110 (audit d761a62)"
+    ],
+    [
+      "front-bbd85a7/en-desktop-quick.png",
+      "Quick Portfolio · EN"
+    ],
+    [
+      "front-bbd85a7/vi-mobile-390-welcome.png",
+      "Mobile · Welcome"
+    ],
+    [
+      "front-bbd85a7/vi-mobile-390-quick.png",
+      "Mobile · Quick"
+    ]
+  ],
+  "status": "PASS"
+}

@@ -8,8 +8,6 @@ import { MENU_TRIGGER } from "../e2e/helpers";
 
 export const OUT_DIR = path.resolve(process.cwd(), "test-results", "frame-budget");
 export const MACHINE_LABEL = process.env.PERF_MACHINE_LABEL ?? "desktop dGPU RTX 3060";
-/** ADR 0007: RAM confirmed by the owner (2026-11-04). os.totalmem() is recorded next to it. */
-export const MACHINE_RAM = "32 GB (ADR 0007)";
 
 export type Quality = "low" | "balanced" | "high";
 
@@ -34,12 +32,13 @@ export async function machineInfo(browser: Browser, page: Page) {
       userAgent: navigator.userAgent,
     };
   });
+  const totalMemGB = Number((os.totalmem() / 1024 ** 3).toFixed(1));
   return {
     label: MACHINE_LABEL,
     os: `${os.type()} ${os.release()} (${os.version()}) ${os.arch()}`,
     cpu: `${os.cpus()[0]?.model ?? "n/a"} × ${os.cpus().length} logical`,
-    ram: MACHINE_RAM,
-    osTotalMemGB: Number((os.totalmem() / 1024 ** 3).toFixed(1)),
+    ram: `${totalMemGB} GiB (OS-reported usable memory)`,
+    osTotalMemGB: totalMemGB,
     browser: `${browser.browserType().name()} channel ${process.env.PLAYWRIGHT_CHANNEL || "msedge"} ${browser.version()}`,
     headless: false,
     power,
@@ -48,22 +47,31 @@ export async function machineInfo(browser: Browser, page: Page) {
   };
 }
 
-/** Opens the world menu, selects `quality` in the <select> (manual choice disables adaptive quality), closes it. */
+/** Selects the menu radio through real input, pinning quality before the measurement starts. */
 export async function selectQuality(page: Page, world: Locator, quality: Quality) {
   // ADR 0009: the menu trigger lives in the bottom-left HUD.
   await page.locator(MENU_TRIGGER).click();
   const dialog = page.locator(".world-menu dialog");
   await expect(dialog).toHaveAttribute("open", "");
+  const choice = dialog.locator(`input[type="radio"][name="world-menu-quality"][value="${quality}"]`);
+  // check() on an already checked radio emits no change. Switch away first so the requested
+  // choice always sends the manual-quality event that disables adaptive quality (before warm-up).
+  if (await choice.isChecked()) {
+    const alternate = quality === "low" ? "balanced" : "low";
+    await dialog.locator(`input[type="radio"][name="world-menu-quality"][value="${alternate}"]`).check();
+    await expect(world).toHaveAttribute("data-world-quality", alternate);
+  }
   await world.evaluate(element => {
     const w = window as unknown as { __tqaSetQuality: unknown[] };
     w.__tqaSetQuality = [];
-    element.addEventListener("tqa:set-quality", event => void w.__tqaSetQuality.push((event as CustomEvent).detail?.quality));
+    element.addEventListener("tqa:set-quality", event => void w.__tqaSetQuality.push((event as CustomEvent).detail?.quality), { once: true });
   });
-  await dialog.getByRole("combobox", { name: "Quality" }).selectOption(quality);
+  await choice.check();
+  await expect(choice).toBeChecked();
   await expect(world).toHaveAttribute("data-world-quality", quality);
   // A manual tqa:set-quality must reach the world (also when the value was already selected) so adaptive quality is off.
   expect(await page.evaluate(() => (window as unknown as { __tqaSetQuality: unknown[] }).__tqaSetQuality)).toEqual([quality]);
-  await dialog.getByRole("button", { name: "× Close" }).click();
+  await dialog.getByRole("button", { name: /^× / }).click();
   await expect(dialog).not.toHaveAttribute("open", "");
   await world.focus();
   await expect(world).toHaveAttribute("data-world-paused", "false");

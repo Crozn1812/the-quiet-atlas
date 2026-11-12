@@ -1,0 +1,142 @@
+{
+  "sourceCommit": "4d627b1c3831a6b6b86545cdda499a545524a677",
+  "method": "Real initial mascot and interaction messages captured as soon as intro/canvas is ready; no text/timer override",
+  "rows": [
+    {
+      "mascot": "Nhấn E ở cuốn sổ cạnh khúc gỗ, rồi theo dòng suối.",
+      "prompt": "E — Lời chào đầu",
+      "a": {
+        "x": 620.25,
+        "y": 661.8125,
+        "width": 359.5,
+        "height": 30.1875,
+        "top": 661.8125,
+        "right": 979.75,
+        "bottom": 692,
+        "left": 620.25
+      },
+      "b": {
+        "x": 709.3671875,
+        "y": 700.3125,
+        "width": 181.265625,
+        "height": 45.6875,
+        "top": 700.3125,
+        "right": 890.6328125,
+        "bottom": 746,
+        "left": 709.3671875
+      },
+      "overlap": false,
+      "contrast": 11.74481131429978,
+      "keysVisible": true,
+      "pointerEvents": "none",
+      "locale": "vi",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "status": "PASS"
+    },
+    {
+      "mascot": "Nhấn E ở cuốn sổ cạnh khúc gỗ, rồi theo dòng suối.",
+      "prompt": "E — Lời chào đầu",
+      "a": {
+        "x": 503.25,
+        "y": 561.8125,
+        "width": 359.5,
+        "height": 30.1875,
+        "top": 561.8125,
+        "right": 862.75,
+        "bottom": 592,
+        "left": 503.25
+      },
+      "b": {
+        "x": 592.65625,
+        "y": 600.484375,
+        "width": 180.6875,
+        "height": 45.59375,
+        "top": 600.484375,
+        "right": 773.34375,
+        "bottom": 646.078125,
+        "left": 592.65625
+      },
+      "overlap": false,
+      "contrast": 11.74481131429978,
+      "keysVisible": true,
+      "pointerEvents": "none",
+      "locale": "vi",
+      "viewport": {
+        "width": 1366,
+        "height": 800
+      },
+      "status": "PASS"
+    },
+    {
+      "mascot": "Press E at the notebook by the log, then follow the stream.",
+      "prompt": "E — A first hello",
+      "a": {
+        "x": 597.03125,
+        "y": 661.8125,
+        "width": 405.9375,
+        "height": 30.1875,
+        "top": 661.8125,
+        "right": 1002.96875,
+        "bottom": 692,
+        "left": 597.03125
+      },
+      "b": {
+        "x": 714.9453125,
+        "y": 700.3125,
+        "width": 170.109375,
+        "height": 45.6875,
+        "top": 700.3125,
+        "right": 885.0546875,
+        "bottom": 746,
+        "left": 714.9453125
+      },
+      "overlap": false,
+      "contrast": 11.74481131429978,
+      "keysVisible": true,
+      "pointerEvents": "none",
+      "locale": "en",
+      "viewport": {
+        "width": 1600,
+        "height": 900
+      },
+      "status": "PASS"
+    },
+    {
+      "mascot": "Press E at the notebook by the log, then follow the stream.",
+      "prompt": "E — A first hello",
+      "a": {
+        "x": 480.03125,
+        "y": 561.8125,
+        "width": 405.9375,
+        "height": 30.1875,
+        "top": 561.8125,
+        "right": 885.96875,
+        "bottom": 592,
+        "left": 480.03125
+      },
+      "b": {
+        "x": 598.21875,
+        "y": 600.484375,
+        "width": 169.5625,
+        "height": 45.59375,
+        "top": 600.484375,
+        "right": 767.78125,
+        "bottom": 646.078125,
+        "left": 598.21875
+      },
+      "overlap": false,
+      "contrast": 11.74481131429978,
+      "keysVisible": true,
+      "pointerEvents": "none",
+      "locale": "en",
+      "viewport": {
+        "width": 1366,
+        "height": 800
+      },
+      "status": "PASS"
+    }
+  ]
+}

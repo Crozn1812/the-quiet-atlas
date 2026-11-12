@@ -8,6 +8,8 @@ import { SEA_INLAND_OVERLAP } from "./bounds";
 import { createWaterSurface, type WaterSurface } from "./surface";
 
 export const SEA_SIZE = 800;
+/** Render coverage exceeds the 2 km cinematic view; shore sampling keeps its original 800 m span. */
+export const SEA_RENDER_SIZE = 6000;
 // 250 m: B2-152b's bay reaches z ≈ −680 (mouth −900). Land north of it is above sea level, so the plane stays hidden.
 export { SEA_INLAND_OVERLAP } from "./bounds";
 
@@ -50,12 +52,13 @@ function shoreValidity(left: number, near: number, shore: readonly number[]): nu
 /** Hide the near edge beneath land; the terrain/sea intersection draws the shore. */
 export function createSea(quality: Quality, options: Pick<WaterMaterialOptions, "sunDirection"> = {}): WaterSurface {
   const mouth = riverPointAt(1);
-  const left = mouth.x - SEA_SIZE / 2;
-  const right = mouth.x + SEA_SIZE / 2;
-  const far = mouth.z - SEA_SIZE;
+  const shoreLeft = mouth.x - SEA_SIZE / 2;
+  const left = mouth.x - SEA_RENDER_SIZE / 2;
+  const right = mouth.x + SEA_RENDER_SIZE / 2;
+  const far = mouth.z - SEA_RENDER_SIZE;
   const near = mouth.z + SEA_INLAND_OVERLAP;
   const distance = riverLength();
-  const shore = sampleShoreline(left, near);
+  const shore = sampleShoreline(shoreLeft, near);
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute([
     left, WATER_LEVEL, near, right, WATER_LEVEL, near,
@@ -71,6 +74,6 @@ export function createSea(quality: Quality, options: Pick<WaterMaterialOptions, 
   geometry.computeBoundingSphere();
   return createWaterSurface(geometry, createWaterMaterial(quality, {
     ...options, surface: "sea", skyMix: 1,
-    shoreline: { minX: left, width: SEA_SIZE, z: shore, valid: shoreValidity(left, near, shore) },
+    shoreline: { minX: shoreLeft, width: SEA_SIZE, z: shore, valid: shoreValidity(shoreLeft, near, shore) },
   }));
 }

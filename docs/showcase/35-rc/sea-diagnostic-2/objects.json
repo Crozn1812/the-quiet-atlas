@@ -1,0 +1,2121 @@
+[
+  {
+    "index": 0,
+    "name": "first-light-clearing",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "first-light-wood",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-paper",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-green",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-stone",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-sun",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-ink",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-flower",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-petal",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "name": "workshop",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "workshop-hanging-sprig",
+        "type": "Group"
+      },
+      {
+        "name": "workshop-roof",
+        "type": "Mesh",
+        "material": "workshop-roof"
+      },
+      {
+        "name": "workshop-ink",
+        "type": "Mesh",
+        "material": "workshop-ink"
+      },
+      {
+        "name": "workshop-wood",
+        "type": "Mesh",
+        "material": "workshop-wood"
+      },
+      {
+        "name": "workshop-paper",
+        "type": "Mesh",
+        "material": "workshop-paper"
+      },
+      {
+        "name": "workshop-flower",
+        "type": "Mesh",
+        "material": "workshop-flower"
+      },
+      {
+        "name": "workshop-moss",
+        "type": "Mesh",
+        "material": "workshop-moss"
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "name": "roots",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "roots-wood",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "roots-ink",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "roots-cut",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "roots-moss",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "roots-node",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "roots-vine",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "roots-flower",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "name": "rocky-shore",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "shore-pebbles",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "shore-boulders-and-cairns",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 4,
+    "name": "coast-road",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-asphalt-and-markings",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-bollards",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-utility-poles",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-utility-wires",
+        "type": "LineSegments",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 5,
+    "name": "path-bridges",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "bridge-transverse-timbers",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "bridge-posts-and-bowed-handrails",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "bridge-edge-moss",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "waymarks",
+        "type": "Group"
+      }
+    ]
+  },
+  {
+    "index": 6,
+    "name": "far-landscape",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 7,
+    "name": "first-light-authored-grove",
+    "type": "Group",
+    "visible": false,
+    "childNames": [
+      {
+        "name": "first-light-grove-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-grove-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-grove-trees-2",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "first-light-authored-understorey",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 8,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terrain-tile",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 9,
+    "name": "position-graded-sky",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 10,
+    "name": "coast-mountain-mist",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 11,
+    "name": "",
+    "type": "DirectionalLight",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 12,
+    "name": "",
+    "type": "Object3D",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 13,
+    "name": "",
+    "type": "HemisphereLight",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 14,
+    "name": "painted-river-balanced",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 15,
+    "name": "painted-sea-balanced",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 16,
+    "name": "spring-cleft-pool",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 17,
+    "name": "spring-cleft-flow",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 18,
+    "name": "first-light-spring",
+    "type": "Group",
+    "visible": false,
+    "childNames": [
+      {
+        "name": "spring-mossy-cliff",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 19,
+    "name": "coast-railing",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-railing-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-railing-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-railing-2",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "terminal-coastal-bank",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 20,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "Scene",
+        "type": "Group"
+      }
+    ]
+  },
+  {
+    "index": 21,
+    "name": "teleport-first-light",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 22,
+    "name": "teleport-workshop",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 23,
+    "name": "teleport-roots",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 24,
+    "name": "teleport-milestones",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 25,
+    "name": "teleport-old-trail",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 26,
+    "name": "teleport-horizon",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 27,
+    "name": "teleport-quiet-shore",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 28,
+    "name": "teleport-last-postcard",
+    "type": "Mesh",
+    "visible": true,
+    "childNames": []
+  },
+  {
+    "index": 29,
+    "name": "vine-arch-mirror",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "wood",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "mirror",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "vine",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "leaf",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "flower",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 30,
+    "name": "wind-chime",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "chimes",
+        "type": "Group"
+      },
+      {
+        "name": "wood",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 31,
+    "name": "faint-trail",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "stone",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 32,
+    "name": "bench",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "seat",
+        "type": "Group"
+      },
+      {
+        "name": "fence",
+        "type": "Group"
+      }
+    ]
+  },
+  {
+    "index": 33,
+    "name": "vehicle_view",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "gd110",
+        "type": "Group"
+      }
+    ]
+  },
+  {
+    "index": 34,
+    "name": "mascot",
+    "type": "Group",
+    "visible": false,
+    "childNames": [
+      {
+        "name": "droplet",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "leaf-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "leaf-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "halo",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 35,
+    "name": "forest-sun-shafts",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-path-sun",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 36,
+    "name": "milestones-hillside",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "milestones-weathered",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "milestones-future",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "milestones-ink",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "milestones-needles",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "milestones-flower",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 37,
+    "name": "old-trail",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "weathered-trail-timber",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "moss-washes",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "old-trail-r1-tree",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "trail-edge-stones",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "storm-lantern-pivot",
+        "type": "Group"
+      }
+    ]
+  },
+  {
+    "index": 38,
+    "name": "horizon-overlook",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "horizon-rotor-0",
+        "type": "Group"
+      },
+      {
+        "name": "horizon-rotor-1",
+        "type": "Group"
+      },
+      {
+        "name": "horizon-natural",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "horizon-iron",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "horizon-paint",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "horizon-lens",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "horizon-white",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 39,
+    "name": "quiet-shore",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "porch",
+        "type": "Group"
+      },
+      {
+        "name": "piano",
+        "type": "Group"
+      },
+      {
+        "name": "piano-stool",
+        "type": "Group"
+      },
+      {
+        "name": "porch-bench",
+        "type": "Group"
+      },
+      {
+        "name": "dog",
+        "type": "Group"
+      },
+      {
+        "name": "fence-0",
+        "type": "Group"
+      },
+      {
+        "name": "fence-2",
+        "type": "Group"
+      },
+      {
+        "name": "fence-4",
+        "type": "Group"
+      },
+      {
+        "name": "quiet-shore-wood",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "quiet-shore-leaf",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "quiet-shore-roof",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "quiet-shore-ink",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "quiet-shore-piano",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "quiet-shore-cream",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "quiet-shore-guitar",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 40,
+    "name": "last-postcard",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "shore-lantern",
+        "type": "Group"
+      },
+      {
+        "name": "last-postcard-paper",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "last-postcard-wood",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "last-postcard-ink",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "last-postcard-flower",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "last-postcard-forestDeep",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "last-postcard-forestLight",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "last-postcard-water",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 41,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 42,
+    "name": "ground-details",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "ground-fern",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "ground-bush",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "ground-wood-stone",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "ground-grass-litter",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 43,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 44,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 45,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 46,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 47,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 48,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 49,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 50,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 51,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 52,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 53,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 54,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 55,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 56,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 57,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 58,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 59,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 60,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 61,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 62,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 63,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 64,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 65,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 66,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 67,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 68,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 69,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 70,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 71,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 72,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 73,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 74,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 75,
+    "name": "",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 76,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 77,
+    "name": "coast-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "coast-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "coast-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 78,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 79,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 80,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 81,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 82,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 83,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 84,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 85,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  },
+  {
+    "index": 86,
+    "name": "forest-r1-trees",
+    "type": "Group",
+    "visible": true,
+    "childNames": [
+      {
+        "name": "forest-r1-trees-0",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-1",
+        "type": "Mesh",
+        "material": ""
+      },
+      {
+        "name": "forest-r1-trees-2",
+        "type": "Mesh",
+        "material": ""
+      }
+    ]
+  }
+]

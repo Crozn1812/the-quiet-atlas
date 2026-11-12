@@ -114,18 +114,35 @@ const fragmentShader = /* glsl */ `
       int shoreIndex = int(min(floor(shoreSample), ${(SEA_SHORE_SAMPLES - 2).toFixed(1)}));
       float shoreA = uShoreZ[shoreIndex];
       float shoreB = uShoreZ[shoreIndex + 1];
-      float shoreZ = mix(shoreA, shoreB, shoreSample - float(shoreIndex));
-      float slope = (shoreB - shoreA) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)} / uShoreBounds.y;
-      // Headland secants in z(x) are not local shore normals: bound their reach
-      // so shallow-colour columns cannot project hundreds of metres offshore.
-      float distanceSlope = clamp(slope, -1.0, 1.0);
-      // B2-240: secants across a submerged inlet or the far side of a headland are
-      // marked invalid (sentinel z) and have no shore influence; valid ones keep the
-      // signed offshore distance, so the shallow band stays on the water side only.
-      float shoreDistance = (shoreZ - vWaterWorld.z) / sqrt(1.0 + distanceSlope * distanceSlope);
-      float shoreValid = 1.0 - smoothstep(9999.0, 10000.0, max(shoreA, shoreB));
-      float offshore = mix(1000.0, shoreDistance, shoreValid);
-      float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * uHasShore;
+      float validA = 1.0 - smoothstep(9999.0, 10000.0, shoreA);
+      float validB = 1.0 - smoothstep(9999.0, 10000.0, shoreB);
+      float weight = shoreSample - float(shoreIndex);
+      float shoreValid = min(validA, validB);
+      // Unsafe samples encode a break in the coast, not a distant shoreline.
+      // Use the real endpoint beside a break; never interpolate the sentinel Z.
+      float safeA = mix(shoreB, shoreA, validA);
+      float safeB = mix(shoreA, shoreB, validB);
+      float shoreZ = mix(safeA, safeB, weight);
+      float shoreWidth = uShoreBounds.y / ${(SEA_SHORE_SAMPLES - 1).toFixed(1)};
+      float shoreDeltaZ = safeB - safeA;
+      // Beside a break the only known coast is the valid endpoint, not a new
+      // horizontal segment extending across the rejected inlet.
+      float segmentWidth = shoreWidth * shoreValid;
+      float shoreDx = vWaterWorld.x - (uShoreBounds.x
+        + (float(shoreIndex) + (1.0 - validA) * validB) * shoreWidth);
+      float shoreDz = vWaterWorld.z - safeA;
+      // A finite segment cannot paint shallows along an infinite inland secant.
+      float projection = clamp((shoreDx * segmentWidth + shoreDz * shoreDeltaZ)
+        / max(segmentWidth * segmentWidth + shoreDeltaZ * shoreDeltaZ, 0.000001), 0.0, 1.0);
+      float nearestDx = shoreDx - projection * segmentWidth;
+      float nearestDz = shoreDz - projection * shoreDeltaZ;
+      float offshore = sqrt(nearestDx * nearestDx + nearestDz * nearestDz);
+      float slope = shoreDeltaZ / shoreWidth;
+      // Blend influence itself at a break. Mixing the distance with 1000 m
+      // squeezed its colour/reflection transition into a visible diagonal wedge.
+      float shoreInfluence = mix(validA, validB, smoothstep(0.0, 1.0, weight))
+        * smoothstep(0.0, 0.04, shoreZ - vWaterWorld.z) * uHasShore;
+      float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * shoreInfluence;
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
     float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));
@@ -160,7 +177,7 @@ const fragmentShader = /* glsl */ `
       float swell = waterField(vWaterWorld.x, vWaterWorld.z - uTime * 0.05) - 0.5;
       float crossSwell = waterField(vWaterWorld.x + 0.11, vWaterWorld.z - uTime * 0.05) - 0.5;
       // Begin sea ripple scalars. The broad sunset wash below remains sky reflection.
-      float seaDetail = mix(0.05, 1.0, (1.0 - smoothstep(2.0, 12.0, offshore)) * uHasShore);
+      float seaDetail = mix(0.05, 1.0, (1.0 - smoothstep(2.0, 12.0, offshore)) * shoreInfluence);
       float seaStroke = waterStreak(vWaterWorld.x, vWaterWorld.z - uTime * 0.05)
         * seaDetail * rippleDistanceFade;
       // End sea ripple scalars.
@@ -187,7 +204,7 @@ const fragmentShader = /* glsl */ `
         reflection = max(reflection, 0.07) * mix(0.8, 1.0, smoothstep(0.0, 0.4, uSkyMix));
       #endif
       #ifdef SEA_WATER
-        reflection *= mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore));
+        reflection *= mix(1.0, mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore)), shoreInfluence);
         // A restrained sky veil offshore opens into the actual sky at the horizon.
         // Elevation only: no azimuth lobes or alternating camera-centred bands.
         reflection *= mix(0.18, 2.0, smoothstep(0.995, 1.0, grazing));
@@ -229,7 +246,7 @@ const fragmentShader = /* glsl */ `
         float sunsetLowSun = smoothstep(0.0, 0.08, uSunDirection.y)
           * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
         float sunsetPigment = 0.12 * sunsetFacing * sunsetDownview * sunsetRange
-          * sunsetLowSun * mix(0.35, 1.0, smoothstep(12.0, 40.0, offshore));
+          * sunsetLowSun * mix(1.0, mix(0.35, 1.0, smoothstep(12.0, 40.0, offshore)), shoreInfluence);
         // End sea sunset pigment scalars.
         color = mix(color, uSunWashColor, sunsetPigment);
       #endif
@@ -280,7 +297,7 @@ const fragmentShader = /* glsl */ `
       float foamWidth = clamp(fwidth(offshore) * 0.8, 0.2, 0.3);
       float foam = 1.0 - smoothstep(foamWidth * 0.3, foamWidth, abs(offshore - foamDistance));
       foam *= 1.0 - smoothstep(0.5, 0.6, offshore);
-      foam *= smoothstep(0.0, 0.04, offshore) * smoothstep(0.48, 0.58, brush) * 0.6 * uHasShore;
+      foam *= smoothstep(0.0, 0.04, offshore) * smoothstep(0.48, 0.58, brush) * 0.6 * shoreInfluence * shoreValid;
       // Where the sampled coast turns back on itself (bay corners, spits) z(x) jumps between samples: no foam there.
       foam *= 1.0 - smoothstep(SEA_FOAM_MAX_SLOPE * 0.5, SEA_FOAM_MAX_SLOPE, abs(slope));
       color = mix(color, uPaperColor, foam);

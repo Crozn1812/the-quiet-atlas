@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Matrix4, Mesh, Ray, Sphere, Vector3, type BufferGeometry, type Raycaster } from "three";
 import type { Trees } from "./terrain";
 
 export const MIN_ZOOM = 4;
@@ -13,6 +13,60 @@ export const WHEEL_ZOOM_SPEED = 0.01;
 export const wrapYaw = (yaw: number) => ((yaw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 export const clampZoom = (distance: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, distance));
 
+/** Static camera/LoS colliders only: let Three reject empty local bounds before triangle traversal.
+ * Existing authored bounds and custom raycast functions stay untouched. Object transforms
+ * may animate; a geometry whose vertex positions change must refresh its own bounds. */
+export function ensureCameraBounds(obstacles: readonly Mesh[]): void {
+  for (const mesh of obstacles) if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+}
+
+type CameraSphereCache = {
+  geometry: BufferGeometry;
+  local: Sphere;
+  matrix: Matrix4;
+  world: Sphere;
+};
+const cameraSphereCaches = new WeakMap<Mesh, CameraSphereCache>();
+
+/** Cache only the world-sphere rejection already performed by default leaf Mesh.raycast.
+ * Custom/recursive/instanced/skinned picking keeps full ownership of its bounds.
+ * Like Mesh.raycast, this reads current matrixWorld and authored geometry bounds;
+ * position-buffer edits must update their geometry bounds before either path. */
+export function filterCameraCandidates(obstacles: readonly Mesh[], raycaster: Raycaster): Mesh[] {
+  const candidates: Mesh[] = [];
+  const ray = new Ray().copy(raycaster.ray).recast(raycaster.near);
+  const hit = new Vector3();
+  const reachSquared = (raycaster.far - raycaster.near) ** 2;
+  for (const mesh of obstacles) {
+    const special = mesh as Mesh & { isInstancedMesh?: boolean; isSkinnedMesh?: boolean };
+    if (mesh.raycast !== Mesh.prototype.raycast || mesh.children.length > 0
+      || special.isInstancedMesh || special.isSkinnedMesh || mesh.material === undefined) {
+      candidates.push(mesh);
+      continue;
+    }
+    const geometry = mesh.geometry;
+    if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
+    const local = geometry.boundingSphere!;
+    let cache = cameraSphereCaches.get(mesh);
+    if (!cache) {
+      cache = { geometry, local: local.clone(), matrix: mesh.matrixWorld.clone(),
+        world: local.clone().applyMatrix4(mesh.matrixWorld) };
+      cameraSphereCaches.set(mesh, cache);
+    } else if (cache.geometry !== geometry || !cache.local.equals(local) || !cache.matrix.equals(mesh.matrixWorld)) {
+      cache.geometry = geometry;
+      cache.local.copy(local);
+      cache.matrix.copy(mesh.matrixWorld);
+      cache.world.copy(local).applyMatrix4(mesh.matrixWorld);
+    }
+    if (!cache.world.containsPoint(ray.origin)) {
+      if (ray.intersectSphere(cache.world, hit) === null) continue;
+      if (ray.origin.distanceToSquared(hit) > reachSquared) continue;
+    }
+    candidates.push(mesh);
+  }
+  return candidates;
+}
+
 /** Retract immediately for safety; damp only extension so interpolation cannot cross a wall. */
 export function springArm(previous: number, desired: number, hit: number | undefined, dt: number) {
   const safe = Math.max(0, Math.min(desired, hit === undefined ? desired : hit - CAMERA_CLEARANCE));
@@ -22,15 +76,41 @@ export function springArm(previous: number, desired: number, hit: number | undef
 /** Conservative crown spheres against three character sight lines (feet, torso, head). */
 export function selectOccludingCrowns(trees: Trees, camera: Vector3, player: Vector3): number[] {
   const selected: number[] = [];
+  // Match Vector3.add/sub/dot/lengthSq/distanceTo operation order, including
+  // sqrt and strict endpoints. Avoid temporary vectors for each tree/sight line.
+  const sx = (player.x + 0) - camera.x;
+  const sz = (player.z + 0) - camera.z;
   trees.forEach((tree, index) => {
-    const center = new Vector3(tree.x, tree.y + tree.height, tree.z);
-    const blocked = [-0.65, 0, 0.65].some(offset => {
-      const end = player.clone().add(new Vector3(0, offset, 0));
-      const segment = end.sub(camera);
-      const t = center.clone().sub(camera).dot(segment) / segment.lengthSq();
-      return t > 0 && t < 1 && camera.clone().addScaledVector(segment, t).distanceTo(center) < 2.1;
-    });
-    if (blocked) selected.push(index);
+    const cx = tree.x, cy = tree.y + tree.height, cz = tree.z;
+    const dx = cx - camera.x, dy = cy - camera.y, dz = cz - camera.z;
+    for (let line = -1; line <= 1; line++) {
+      const sy = (player.y + line * 0.65) - camera.y;
+      const t = (dx * sx + dy * sy + dz * sz) / (sx * sx + sy * sy + sz * sz);
+      if (!(t > 0 && t < 1)) continue;
+      const ex = (camera.x + sx * t) - cx;
+      const ey = (camera.y + sy * t) - cy;
+      const ez = (camera.z + sz * t) - cz;
+      if (Math.sqrt(ex * ex + ey * ey + ez * ez) < 2.1) {
+        selected.push(index);
+        break;
+      }
+    }
   });
   return selected;
+}
+
+/** Preserve the legacy 24 m filter and slot mapping without a temporary object per tree. */
+export function selectNearbyOccludingCrowns(trees: Trees, camera: Vector3, player: Vector3): number[] {
+  const nearby: Trees = [];
+  const slots: number[] = [];
+  for (let i = 0; i < trees.length; i++) {
+    const tree = trees[i]!;
+    // RC18's indexed filter must keep map/filter's sparse-array behaviour.
+    if (!tree) continue;
+    if (Math.hypot(tree.x - camera.x, tree.z - camera.z) <= 24) {
+      nearby.push(tree);
+      slots.push(i);
+    }
+  }
+  return selectOccludingCrowns(nearby, camera, player).map(index => slots[index]!);
 }

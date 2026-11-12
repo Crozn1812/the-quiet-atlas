@@ -1,0 +1,1515 @@
+{
+  "startedAt": "2026-11-09T15:27:45.226Z",
+  "base": "http://127.0.0.1:4185",
+  "viewport": "1600x900",
+  "browser": "157.0.4341.42",
+  "status": "FAIL",
+  "method": "Headed Edge; goTo/visitSecret/nearVehicle are QA hooks; E/menu/vehicle/railing use real inputs. Full keyboard journey is separate. Screenshots require human visual review.",
+  "steps": [
+    {
+      "id": "intro-full",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:27:45.668Z",
+      "detail": {
+        "mode": "full",
+        "loadingMode": "loading",
+        "loadingText": "Đang tải thế giới…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "vi-intro-full.webp",
+      "endedAt": "2026-11-09T15:28:17.507Z"
+    },
+    {
+      "id": "exit-after-full-intro",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:17.507Z",
+      "screenshot": "vi-exit-after-full-intro.webp",
+      "endedAt": "2026-11-09T15:28:17.806Z"
+    },
+    {
+      "id": "intro-skip-real",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:17.806Z",
+      "detail": {
+        "mode": "skip",
+        "loadingMode": "loading",
+        "loadingText": "Đang tải thế giới…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "vi-intro-skip-real.webp",
+      "endedAt": "2026-11-09T15:28:26.679Z"
+    },
+    {
+      "id": "zone-first-light-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:26.679Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "first-light",
+        "position": {
+          "x": 8.997187614440918,
+          "y": 8.20897102355957,
+          "z": -0.12724675238132477
+        }
+      },
+      "screenshot": "vi-zone-first-light-high.webp",
+      "endedAt": "2026-11-09T15:28:29.928Z"
+    },
+    {
+      "id": "overlay-first-light-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:29.929Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — Lời chào đầu",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-first-light-key-e.webp",
+      "endedAt": "2026-11-09T15:28:31.345Z"
+    },
+    {
+      "id": "overlay-first-light-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:31.346Z",
+      "screenshot": "vi-overlay-first-light-close.webp",
+      "endedAt": "2026-11-09T15:28:31.625Z"
+    },
+    {
+      "id": "zone-workshop-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:31.625Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "workshop",
+        "position": {
+          "x": 57.71809768676758,
+          "y": 7.152338981628418,
+          "z": -132.1659698486328
+        }
+      },
+      "screenshot": "vi-zone-workshop-high.webp",
+      "endedAt": "2026-11-09T15:28:35.010Z"
+    },
+    {
+      "id": "overlay-workshop-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:35.010Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 3,
+        "hint": "E — Bàn thợ cạnh suối",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-workshop-key-e.webp",
+      "endedAt": "2026-11-09T15:28:36.644Z"
+    },
+    {
+      "id": "overlay-workshop-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:36.645Z",
+      "screenshot": "vi-overlay-workshop-close.webp",
+      "endedAt": "2026-11-09T15:28:37.005Z"
+    },
+    {
+      "id": "zone-roots-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:37.006Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "roots",
+        "position": {
+          "x": 21.03185272216797,
+          "y": 6.819667816162109,
+          "z": -173.35482788085938
+        }
+      },
+      "screenshot": "vi-zone-roots-high.webp",
+      "endedAt": "2026-11-09T15:28:40.041Z"
+    },
+    {
+      "id": "overlay-roots-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:40.042Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — Gốc rễ",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-roots-key-e.webp",
+      "endedAt": "2026-11-09T15:28:41.416Z"
+    },
+    {
+      "id": "overlay-roots-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:41.416Z",
+      "screenshot": "vi-overlay-roots-close.webp",
+      "endedAt": "2026-11-09T15:28:41.767Z"
+    },
+    {
+      "id": "zone-milestones-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:28:41.768Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "milestones",
+        "position": {
+          "x": -16.91104507446289,
+          "y": 6.553685665130615,
+          "z": -205.79647827148438
+        }
+      },
+      "screenshot": "vi-zone-milestones-high.webp",
+      "endedAt": "2026-11-09T15:28:44.776Z"
+    },
+    {
+      "id": "overlay-milestones-key-e",
+      "locale": "vi",
+      "status": "FAIL",
+      "startedAt": "2026-11-09T15:28:44.776Z",
+      "error": "Error: No content hint after real-key approach at milestones; last hint=. No synthetic content fallback used.",
+      "screenshot": "vi-overlay-milestones-key-e.webp",
+      "endedAt": "2026-11-09T15:29:05.599Z"
+    },
+    {
+      "id": "overlay-milestones-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:05.600Z",
+      "screenshot": "vi-overlay-milestones-close.webp",
+      "endedAt": "2026-11-09T15:29:05.947Z"
+    },
+    {
+      "id": "zone-old-trail-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:05.948Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "old-trail",
+        "position": {
+          "x": 10.716480255126953,
+          "y": 4.671377182006836,
+          "z": -442.1573486328125
+        }
+      },
+      "screenshot": "vi-zone-old-trail-high.webp",
+      "endedAt": "2026-11-09T15:29:09.455Z"
+    },
+    {
+      "id": "overlay-old-trail-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:09.455Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — Cột mốc đường cũ",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-old-trail-key-e.webp",
+      "endedAt": "2026-11-09T15:29:10.814Z"
+    },
+    {
+      "id": "overlay-old-trail-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:10.814Z",
+      "screenshot": "vi-overlay-old-trail-close.webp",
+      "endedAt": "2026-11-09T15:29:11.247Z"
+    },
+    {
+      "id": "zone-horizon-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:11.247Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "horizon",
+        "position": {
+          "x": 47.72416687011719,
+          "y": 3.041001558303833,
+          "z": -646.13818359375
+        }
+      },
+      "screenshot": "vi-zone-horizon-high.webp",
+      "endedAt": "2026-11-09T15:29:15.249Z"
+    },
+    {
+      "id": "overlay-horizon-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:15.249Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 3,
+        "hint": "E — Ống nhòm nhìn ra biển",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-horizon-key-e.webp",
+      "endedAt": "2026-11-09T15:29:16.869Z"
+    },
+    {
+      "id": "overlay-horizon-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:16.870Z",
+      "screenshot": "vi-overlay-horizon-close.webp",
+      "endedAt": "2026-11-09T15:29:17.259Z"
+    },
+    {
+      "id": "zone-quiet-shore-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:17.260Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "quiet-shore",
+        "position": {
+          "x": 26.75743293762207,
+          "y": 1.952019214630127,
+          "z": -778.3305053710938
+        }
+      },
+      "screenshot": "vi-zone-quiet-shore-high.webp",
+      "endedAt": "2026-11-09T15:29:20.249Z"
+    },
+    {
+      "id": "overlay-quiet-shore-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:20.250Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 7,
+        "right": 3,
+        "hint": "E — Piano trên hiên hướng biển",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-quiet-shore-key-e.webp",
+      "endedAt": "2026-11-09T15:29:27.553Z"
+    },
+    {
+      "id": "overlay-quiet-shore-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:27.554Z",
+      "screenshot": "vi-overlay-quiet-shore-close.webp",
+      "endedAt": "2026-11-09T15:29:27.873Z"
+    },
+    {
+      "id": "zone-last-postcard-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:27.874Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "last-postcard",
+        "position": {
+          "x": 7.9608564376831055,
+          "y": 1.688770055770874,
+          "z": -895.9990844726562
+        }
+      },
+      "screenshot": "vi-zone-last-postcard-high.webp",
+      "endedAt": "2026-11-09T15:29:30.546Z"
+    },
+    {
+      "id": "overlay-last-postcard-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:30.547Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — Hộp thư cuối đường",
+        "openedBy": "real E"
+      },
+      "screenshot": "vi-overlay-last-postcard-key-e.webp",
+      "endedAt": "2026-11-09T15:29:31.976Z"
+    },
+    {
+      "id": "overlay-last-postcard-close",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:31.977Z",
+      "screenshot": "vi-overlay-last-postcard-close.webp",
+      "endedAt": "2026-11-09T15:29:32.168Z"
+    },
+    {
+      "id": "journal",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:32.168Z",
+      "screenshot": "vi-journal.webp",
+      "endedAt": "2026-11-09T15:29:32.711Z"
+    },
+    {
+      "id": "menu-quality-low",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:32.712Z",
+      "screenshot": "vi-menu-quality-low.webp",
+      "endedAt": "2026-11-09T15:29:34.193Z"
+    },
+    {
+      "id": "menu-quality-balanced",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:34.194Z",
+      "screenshot": "vi-menu-quality-balanced.webp",
+      "endedAt": "2026-11-09T15:29:34.506Z"
+    },
+    {
+      "id": "menu-quality-high",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:34.507Z",
+      "screenshot": "vi-menu-quality-high.webp",
+      "endedAt": "2026-11-09T15:29:34.790Z"
+    },
+    {
+      "id": "menu-reduced-motion",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:34.791Z",
+      "screenshot": "vi-menu-reduced-motion.webp",
+      "endedAt": "2026-11-09T15:29:35.073Z"
+    },
+    {
+      "id": "menu-sound",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:35.074Z",
+      "detail": {
+        "audibleSound": "manual review required"
+      },
+      "screenshot": "vi-menu-sound.webp",
+      "endedAt": "2026-11-09T15:29:35.492Z"
+    },
+    {
+      "id": "menu-language",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:35.493Z",
+      "screenshot": "vi-menu-language.webp",
+      "endedAt": "2026-11-09T15:29:35.784Z"
+    },
+    {
+      "id": "chooser-key-e",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:35.785Z",
+      "screenshot": "vi-chooser-key-e.webp",
+      "endedAt": "2026-11-09T15:29:40.122Z"
+    },
+    {
+      "id": "bike-mount",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:40.123Z",
+      "screenshot": "vi-bike-mount.webp",
+      "endedAt": "2026-11-09T15:29:40.556Z"
+    },
+    {
+      "id": "bike-manual-movement",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:40.557Z",
+      "detail": {
+        "before": {
+          "x": 11.691105842590332,
+          "y": 8.187533378601074,
+          "z": -0.9578453898429871
+        },
+        "after": {
+          "x": 18.417024612426758,
+          "y": 8.102580070495605,
+          "z": -12.546379089355469
+        },
+        "metres": 13.398958788024329
+      },
+      "screenshot": "vi-bike-manual-movement.webp",
+      "endedAt": "2026-11-09T15:29:43.699Z"
+    },
+    {
+      "id": "bike-cruise",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:43.700Z",
+      "detail": {
+        "before": {
+          "x": 18.89899253845215,
+          "y": 8.09675121307373,
+          "z": -13.319986343383789
+        },
+        "after": {
+          "x": 26.056312561035156,
+          "y": 8.007877349853516,
+          "z": -24.336027145385742
+        },
+        "metres": 13.136985379341771
+      },
+      "screenshot": "vi-bike-cruise.webp",
+      "endedAt": "2026-11-09T15:29:46.353Z"
+    },
+    {
+      "id": "bike-brake",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:46.354Z",
+      "detail": {
+        "drift": 0
+      },
+      "screenshot": "vi-bike-brake.webp",
+      "endedAt": "2026-11-09T15:29:50.633Z"
+    },
+    {
+      "id": "bike-dismount",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:50.633Z",
+      "screenshot": "vi-bike-dismount.webp",
+      "endedAt": "2026-11-09T15:29:50.780Z"
+    },
+    {
+      "id": "secret-page-not-yet",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:50.781Z",
+      "detail": {
+        "method": "QA visitSecret; early page must not trigger ending"
+      },
+      "screenshot": "vi-secret-page-not-yet.webp",
+      "endedAt": "2026-11-09T15:29:52.631Z"
+    },
+    {
+      "id": "secret-reflection",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:52.632Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "reflection",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          }
+        ]
+      },
+      "screenshot": "vi-secret-reflection.webp",
+      "endedAt": "2026-11-09T15:29:54.365Z"
+    },
+    {
+      "id": "secret-forgotten-sound",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:54.365Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "forgotten-sound",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          }
+        ]
+      },
+      "screenshot": "vi-secret-forgotten-sound.webp",
+      "endedAt": "2026-11-09T15:29:55.309Z"
+    },
+    {
+      "id": "secret-unmarked-road",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:55.310Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unmarked-road",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          }
+        ]
+      },
+      "screenshot": "vi-secret-unmarked-road.webp",
+      "endedAt": "2026-11-09T15:29:56.876Z"
+    },
+    {
+      "id": "secret-unwritten-page",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:56.876Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unwritten-page",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          },
+          {
+            "id": "unwritten-page",
+            "count": 4
+          }
+        ]
+      },
+      "screenshot": "vi-secret-unwritten-page.webp",
+      "endedAt": "2026-11-09T15:29:58.296Z"
+    },
+    {
+      "id": "ending-full",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:29:58.296Z",
+      "screenshot": "vi-ending-full.webp",
+      "endedAt": "2026-11-09T15:30:34.582Z"
+    },
+    {
+      "id": "railing-real-key-approach",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:34.583Z",
+      "screenshot": "vi-railing-real-key-approach.webp",
+      "endedAt": "2026-11-09T15:30:39.423Z"
+    },
+    {
+      "id": "railing-exit",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:39.424Z",
+      "screenshot": "vi-railing-exit.webp",
+      "endedAt": "2026-11-09T15:30:39.534Z"
+    },
+    {
+      "id": "exit-world",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:39.534Z",
+      "screenshot": "vi-exit-world.webp",
+      "endedAt": "2026-11-09T15:30:39.812Z"
+    },
+    {
+      "id": "desktop-welcome",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:39.813Z",
+      "screenshot": "vi-desktop-welcome.webp",
+      "endedAt": "2026-11-09T15:30:40.123Z"
+    },
+    {
+      "id": "desktop-quick",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.123Z",
+      "screenshot": "vi-desktop-quick.webp",
+      "endedAt": "2026-11-09T15:30:40.241Z"
+    },
+    {
+      "id": "cv-links",
+      "locale": "vi",
+      "status": "FAIL",
+      "startedAt": "2026-11-09T15:30:40.241Z",
+      "error": "Error: CV PDF link present on Quick\n\nexpect(received).toBeGreaterThan(expected)\n\nExpected: > 0\nReceived:   0",
+      "screenshot": "vi-cv-links.webp",
+      "endedAt": "2026-11-09T15:30:40.293Z"
+    },
+    {
+      "id": "case-links-present",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.295Z",
+      "detail": {
+        "links": [
+          "http://127.0.0.1:4185/vi/projects/cms-devops-platform-aws-eks/",
+          "http://127.0.0.1:4185/vi/projects/partner-data-gateway-azure/",
+          "http://127.0.0.1:4185/vi/projects/insighthub-rag/",
+          "http://127.0.0.1:4185/vi/projects/aws-sales-data-pipeline/"
+        ]
+      },
+      "screenshot": "vi-case-links-present.webp",
+      "endedAt": "2026-11-09T15:30:40.332Z"
+    },
+    {
+      "id": "case-study-1",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.333Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/cms-devops-platform-aws-eks/"
+      },
+      "screenshot": "vi-case-study-1.webp",
+      "endedAt": "2026-11-09T15:30:40.451Z"
+    },
+    {
+      "id": "case-study-2",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.452Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/partner-data-gateway-azure/"
+      },
+      "screenshot": "vi-case-study-2.webp",
+      "endedAt": "2026-11-09T15:30:40.572Z"
+    },
+    {
+      "id": "case-study-3",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.573Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/insighthub-rag/"
+      },
+      "screenshot": "vi-case-study-3.webp",
+      "endedAt": "2026-11-09T15:30:40.687Z"
+    },
+    {
+      "id": "case-study-4",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.687Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/vi/projects/aws-sales-data-pipeline/"
+      },
+      "screenshot": "vi-case-study-4.webp",
+      "endedAt": "2026-11-09T15:30:40.799Z"
+    },
+    {
+      "id": "uncaught-errors",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.800Z",
+      "detail": {
+        "errors": []
+      },
+      "screenshot": "vi-uncaught-errors.webp",
+      "endedAt": "2026-11-09T15:30:40.846Z"
+    },
+    {
+      "id": "mobile-390-welcome",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:40.971Z",
+      "screenshot": "vi-mobile-390-welcome.webp",
+      "endedAt": "2026-11-09T15:30:41.140Z"
+    },
+    {
+      "id": "mobile-390-quick",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:41.141Z",
+      "screenshot": "vi-mobile-390-quick.webp",
+      "endedAt": "2026-11-09T15:30:41.261Z"
+    },
+    {
+      "id": "mobile-320-welcome",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:41.391Z",
+      "screenshot": "vi-mobile-320-welcome.webp",
+      "endedAt": "2026-11-09T15:30:41.541Z"
+    },
+    {
+      "id": "mobile-320-quick",
+      "locale": "vi",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:41.542Z",
+      "screenshot": "vi-mobile-320-quick.webp",
+      "endedAt": "2026-11-09T15:30:41.661Z"
+    },
+    {
+      "id": "intro-full",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:30:41.788Z",
+      "detail": {
+        "mode": "full",
+        "loadingMode": "loading",
+        "loadingText": "Loading the world…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "en-intro-full.webp",
+      "endedAt": "2026-11-09T15:31:12.515Z"
+    },
+    {
+      "id": "exit-after-full-intro",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:12.515Z",
+      "screenshot": "en-exit-after-full-intro.webp",
+      "endedAt": "2026-11-09T15:31:12.789Z"
+    },
+    {
+      "id": "intro-skip-real",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:12.790Z",
+      "detail": {
+        "mode": "skip",
+        "loadingMode": "loading",
+        "loadingText": "Loading the world…",
+        "loadingObserved": true,
+        "skipHookUsed": false
+      },
+      "screenshot": "en-intro-skip-real.webp",
+      "endedAt": "2026-11-09T15:31:21.016Z"
+    },
+    {
+      "id": "zone-first-light-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:21.017Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "first-light",
+        "position": {
+          "x": 8.997187614440918,
+          "y": 8.20906925201416,
+          "z": -0.12724615633487701
+        }
+      },
+      "screenshot": "en-zone-first-light-high.webp",
+      "endedAt": "2026-11-09T15:31:23.868Z"
+    },
+    {
+      "id": "overlay-first-light-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:23.869Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — A first hello",
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-first-light-key-e.webp",
+      "endedAt": "2026-11-09T15:31:25.277Z"
+    },
+    {
+      "id": "overlay-first-light-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:25.278Z",
+      "screenshot": "en-overlay-first-light-close.webp",
+      "endedAt": "2026-11-09T15:31:25.493Z"
+    },
+    {
+      "id": "zone-workshop-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:25.493Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "workshop",
+        "position": {
+          "x": 57.71809768676758,
+          "y": 7.152439117431641,
+          "z": -132.1659698486328
+        }
+      },
+      "screenshot": "en-zone-workshop-high.webp",
+      "endedAt": "2026-11-09T15:31:28.535Z"
+    },
+    {
+      "id": "overlay-workshop-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:28.536Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — Workbench by the stream",
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-workshop-key-e.webp",
+      "endedAt": "2026-11-09T15:31:29.880Z"
+    },
+    {
+      "id": "overlay-workshop-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:29.880Z",
+      "screenshot": "en-overlay-workshop-close.webp",
+      "endedAt": "2026-11-09T15:31:30.149Z"
+    },
+    {
+      "id": "zone-roots-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:30.149Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "roots",
+        "position": {
+          "x": 21.03185272216797,
+          "y": 6.819567680358887,
+          "z": -173.35482788085938
+        }
+      },
+      "screenshot": "en-zone-roots-high.webp",
+      "endedAt": "2026-11-09T15:31:33.046Z"
+    },
+    {
+      "id": "overlay-roots-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:33.046Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — The root stump",
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-roots-key-e.webp",
+      "endedAt": "2026-11-09T15:31:34.407Z"
+    },
+    {
+      "id": "overlay-roots-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:34.408Z",
+      "screenshot": "en-overlay-roots-close.webp",
+      "endedAt": "2026-11-09T15:31:34.688Z"
+    },
+    {
+      "id": "zone-milestones-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:34.689Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "milestones",
+        "position": {
+          "x": -16.91104507446289,
+          "y": 6.553685665130615,
+          "z": -205.79647827148438
+        }
+      },
+      "screenshot": "en-zone-milestones-high.webp",
+      "endedAt": "2026-11-09T15:31:37.578Z"
+    },
+    {
+      "id": "overlay-milestones-key-e",
+      "locale": "en",
+      "status": "FAIL",
+      "startedAt": "2026-11-09T15:31:37.579Z",
+      "error": "Error: No content hint after real-key approach at milestones; last hint=. No synthetic content fallback used.",
+      "screenshot": "en-overlay-milestones-key-e.webp",
+      "endedAt": "2026-11-09T15:31:58.598Z"
+    },
+    {
+      "id": "overlay-milestones-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:58.599Z",
+      "screenshot": "en-overlay-milestones-close.webp",
+      "endedAt": "2026-11-09T15:31:58.886Z"
+    },
+    {
+      "id": "zone-old-trail-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:31:58.887Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "old-trail",
+        "position": {
+          "x": 10.716480255126953,
+          "y": 4.6714863777160645,
+          "z": -442.1573486328125
+        }
+      },
+      "screenshot": "en-zone-old-trail-high.webp",
+      "endedAt": "2026-11-09T15:32:02.156Z"
+    },
+    {
+      "id": "overlay-old-trail-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:02.157Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 3,
+        "hint": "E — Old trail marker",
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-old-trail-key-e.webp",
+      "endedAt": "2026-11-09T15:32:03.706Z"
+    },
+    {
+      "id": "overlay-old-trail-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:03.707Z",
+      "screenshot": "en-overlay-old-trail-close.webp",
+      "endedAt": "2026-11-09T15:32:04.036Z"
+    },
+    {
+      "id": "zone-horizon-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:04.037Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "horizon",
+        "position": {
+          "x": 47.72416687011719,
+          "y": 3.041001558303833,
+          "z": -646.13818359375
+        }
+      },
+      "screenshot": "en-zone-horizon-high.webp",
+      "endedAt": "2026-11-09T15:32:07.648Z"
+    },
+    {
+      "id": "overlay-horizon-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:07.649Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 0,
+        "hint": "E — Sea-facing viewer",
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-horizon-key-e.webp",
+      "endedAt": "2026-11-09T15:32:09.019Z"
+    },
+    {
+      "id": "overlay-horizon-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:09.020Z",
+      "screenshot": "en-overlay-horizon-close.webp",
+      "endedAt": "2026-11-09T15:32:09.315Z"
+    },
+    {
+      "id": "zone-quiet-shore-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:09.316Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "quiet-shore",
+        "position": {
+          "x": 26.75743293762207,
+          "y": 1.952019214630127,
+          "z": -778.3305053710938
+        }
+      },
+      "screenshot": "en-zone-quiet-shore-high.webp",
+      "endedAt": "2026-11-09T15:32:12.187Z"
+    },
+    {
+      "id": "overlay-quiet-shore-key-e",
+      "locale": "en",
+      "status": "FAIL",
+      "startedAt": "2026-11-09T15:32:12.188Z",
+      "error": "Error: No content hint after real-key approach at quiet-shore; last hint=. No synthetic content fallback used.",
+      "screenshot": "en-overlay-quiet-shore-key-e.webp",
+      "endedAt": "2026-11-09T15:32:33.035Z"
+    },
+    {
+      "id": "overlay-quiet-shore-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:33.036Z",
+      "screenshot": "en-overlay-quiet-shore-close.webp",
+      "endedAt": "2026-11-09T15:32:33.253Z"
+    },
+    {
+      "id": "zone-last-postcard-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:33.253Z",
+      "detail": {
+        "travel": "QA goTo",
+        "zone": "last-postcard",
+        "position": {
+          "x": 7.960856914520264,
+          "y": 1.6888712644577026,
+          "z": -895.9990844726562
+        }
+      },
+      "screenshot": "en-zone-last-postcard-high.webp",
+      "endedAt": "2026-11-09T15:32:35.884Z"
+    },
+    {
+      "id": "overlay-last-postcard-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:35.884Z",
+      "detail": {
+        "approach": "real WASD search",
+        "forward": 4,
+        "right": 3,
+        "hint": "E — The last mailbox",
+        "openedBy": "real E"
+      },
+      "screenshot": "en-overlay-last-postcard-key-e.webp",
+      "endedAt": "2026-11-09T15:32:37.525Z"
+    },
+    {
+      "id": "overlay-last-postcard-close",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:37.526Z",
+      "screenshot": "en-overlay-last-postcard-close.webp",
+      "endedAt": "2026-11-09T15:32:37.685Z"
+    },
+    {
+      "id": "journal",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:37.685Z",
+      "screenshot": "en-journal.webp",
+      "endedAt": "2026-11-09T15:32:38.184Z"
+    },
+    {
+      "id": "menu-quality-low",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:38.185Z",
+      "screenshot": "en-menu-quality-low.webp",
+      "endedAt": "2026-11-09T15:32:38.656Z"
+    },
+    {
+      "id": "menu-quality-balanced",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:38.657Z",
+      "screenshot": "en-menu-quality-balanced.webp",
+      "endedAt": "2026-11-09T15:32:38.924Z"
+    },
+    {
+      "id": "menu-quality-high",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:38.924Z",
+      "screenshot": "en-menu-quality-high.webp",
+      "endedAt": "2026-11-09T15:32:39.147Z"
+    },
+    {
+      "id": "menu-reduced-motion",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:39.148Z",
+      "screenshot": "en-menu-reduced-motion.webp",
+      "endedAt": "2026-11-09T15:32:39.341Z"
+    },
+    {
+      "id": "menu-sound",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:39.341Z",
+      "detail": {
+        "audibleSound": "manual review required"
+      },
+      "screenshot": "en-menu-sound.webp",
+      "endedAt": "2026-11-09T15:32:39.542Z"
+    },
+    {
+      "id": "menu-language",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:39.542Z",
+      "screenshot": "en-menu-language.webp",
+      "endedAt": "2026-11-09T15:32:39.777Z"
+    },
+    {
+      "id": "chooser-key-e",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:39.778Z",
+      "screenshot": "en-chooser-key-e.webp",
+      "endedAt": "2026-11-09T15:32:43.747Z"
+    },
+    {
+      "id": "bike-mount",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:43.748Z",
+      "screenshot": "en-bike-mount.webp",
+      "endedAt": "2026-11-09T15:32:44.167Z"
+    },
+    {
+      "id": "bike-manual-movement",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:44.167Z",
+      "detail": {
+        "before": {
+          "x": 11.691105842590332,
+          "y": 8.187533378601074,
+          "z": -0.9578453898429871
+        },
+        "after": {
+          "x": 18.417024612426758,
+          "y": 8.102580070495605,
+          "z": -12.546379089355469
+        },
+        "metres": 13.398958788024329
+      },
+      "screenshot": "en-bike-manual-movement.webp",
+      "endedAt": "2026-11-09T15:32:47.308Z"
+    },
+    {
+      "id": "bike-cruise",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:47.309Z",
+      "detail": {
+        "before": {
+          "x": 18.89899253845215,
+          "y": 8.09675121307373,
+          "z": -13.319986343383789
+        },
+        "after": {
+          "x": 26.056312561035156,
+          "y": 8.007877349853516,
+          "z": -24.336027145385742
+        },
+        "metres": 13.136985379341771
+      },
+      "screenshot": "en-bike-cruise.webp",
+      "endedAt": "2026-11-09T15:32:49.964Z"
+    },
+    {
+      "id": "bike-brake",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:49.965Z",
+      "detail": {
+        "drift": 0
+      },
+      "screenshot": "en-bike-brake.webp",
+      "endedAt": "2026-11-09T15:32:54.254Z"
+    },
+    {
+      "id": "bike-dismount",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:54.254Z",
+      "screenshot": "en-bike-dismount.webp",
+      "endedAt": "2026-11-09T15:32:54.409Z"
+    },
+    {
+      "id": "secret-page-not-yet",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:54.410Z",
+      "detail": {
+        "method": "QA visitSecret; early page must not trigger ending"
+      },
+      "screenshot": "en-secret-page-not-yet.webp",
+      "endedAt": "2026-11-09T15:32:56.243Z"
+    },
+    {
+      "id": "secret-reflection",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:56.244Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "reflection",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          }
+        ]
+      },
+      "screenshot": "en-secret-reflection.webp",
+      "endedAt": "2026-11-09T15:32:57.944Z"
+    },
+    {
+      "id": "secret-forgotten-sound",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:57.945Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "forgotten-sound",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          }
+        ]
+      },
+      "screenshot": "en-secret-forgotten-sound.webp",
+      "endedAt": "2026-11-09T15:32:58.876Z"
+    },
+    {
+      "id": "secret-unmarked-road",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:32:58.876Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unmarked-road",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          }
+        ]
+      },
+      "screenshot": "en-secret-unmarked-road.webp",
+      "endedAt": "2026-11-09T15:33:00.494Z"
+    },
+    {
+      "id": "secret-unwritten-page",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:00.495Z",
+      "detail": {
+        "method": "QA visitSecret",
+        "id": "unwritten-page",
+        "discoveries": [
+          {
+            "id": "reflection",
+            "count": 1
+          },
+          {
+            "id": "forgotten-sound",
+            "count": 2
+          },
+          {
+            "id": "unmarked-road",
+            "count": 3
+          },
+          {
+            "id": "unwritten-page",
+            "count": 4
+          }
+        ]
+      },
+      "screenshot": "en-secret-unwritten-page.webp",
+      "endedAt": "2026-11-09T15:33:02.075Z"
+    },
+    {
+      "id": "ending-full",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:02.076Z",
+      "screenshot": "en-ending-full.webp",
+      "endedAt": "2026-11-09T15:33:38.384Z"
+    },
+    {
+      "id": "railing-real-key-approach",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:38.385Z",
+      "screenshot": "en-railing-real-key-approach.webp",
+      "endedAt": "2026-11-09T15:33:43.156Z"
+    },
+    {
+      "id": "railing-exit",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:43.157Z",
+      "screenshot": "en-railing-exit.webp",
+      "endedAt": "2026-11-09T15:33:43.262Z"
+    },
+    {
+      "id": "exit-world",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:43.262Z",
+      "screenshot": "en-exit-world.webp",
+      "endedAt": "2026-11-09T15:33:43.566Z"
+    },
+    {
+      "id": "desktop-welcome",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:43.567Z",
+      "screenshot": "en-desktop-welcome.webp",
+      "endedAt": "2026-11-09T15:33:43.874Z"
+    },
+    {
+      "id": "desktop-quick",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:43.875Z",
+      "screenshot": "en-desktop-quick.webp",
+      "endedAt": "2026-11-09T15:33:43.994Z"
+    },
+    {
+      "id": "cv-links",
+      "locale": "en",
+      "status": "FAIL",
+      "startedAt": "2026-11-09T15:33:43.995Z",
+      "error": "Error: CV PDF link present on Quick\n\nexpect(received).toBeGreaterThan(expected)\n\nExpected: > 0\nReceived:   0",
+      "screenshot": "en-cv-links.webp",
+      "endedAt": "2026-11-09T15:33:44.054Z"
+    },
+    {
+      "id": "case-links-present",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.056Z",
+      "detail": {
+        "links": [
+          "http://127.0.0.1:4185/en/projects/cms-devops-platform-aws-eks/",
+          "http://127.0.0.1:4185/en/projects/partner-data-gateway-azure/",
+          "http://127.0.0.1:4185/en/projects/insighthub-rag/",
+          "http://127.0.0.1:4185/en/projects/aws-sales-data-pipeline/"
+        ]
+      },
+      "screenshot": "en-case-links-present.webp",
+      "endedAt": "2026-11-09T15:33:44.088Z"
+    },
+    {
+      "id": "case-study-1",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.089Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/cms-devops-platform-aws-eks/"
+      },
+      "screenshot": "en-case-study-1.webp",
+      "endedAt": "2026-11-09T15:33:44.201Z"
+    },
+    {
+      "id": "case-study-2",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.201Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/partner-data-gateway-azure/"
+      },
+      "screenshot": "en-case-study-2.webp",
+      "endedAt": "2026-11-09T15:33:44.310Z"
+    },
+    {
+      "id": "case-study-3",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.311Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/insighthub-rag/"
+      },
+      "screenshot": "en-case-study-3.webp",
+      "endedAt": "2026-11-09T15:33:44.420Z"
+    },
+    {
+      "id": "case-study-4",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.421Z",
+      "detail": {
+        "href": "http://127.0.0.1:4185/en/projects/aws-sales-data-pipeline/"
+      },
+      "screenshot": "en-case-study-4.webp",
+      "endedAt": "2026-11-09T15:33:44.529Z"
+    },
+    {
+      "id": "uncaught-errors",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.530Z",
+      "detail": {
+        "errors": []
+      },
+      "screenshot": "en-uncaught-errors.webp",
+      "endedAt": "2026-11-09T15:33:44.579Z"
+    },
+    {
+      "id": "mobile-390-welcome",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.700Z",
+      "screenshot": "en-mobile-390-welcome.webp",
+      "endedAt": "2026-11-09T15:33:44.843Z"
+    },
+    {
+      "id": "mobile-390-quick",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:44.844Z",
+      "screenshot": "en-mobile-390-quick.webp",
+      "endedAt": "2026-11-09T15:33:44.950Z"
+    },
+    {
+      "id": "mobile-320-welcome",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:45.087Z",
+      "screenshot": "en-mobile-320-welcome.webp",
+      "endedAt": "2026-11-09T15:33:45.223Z"
+    },
+    {
+      "id": "mobile-320-quick",
+      "locale": "en",
+      "status": "PASS",
+      "startedAt": "2026-11-09T15:33:45.223Z",
+      "screenshot": "en-mobile-320-quick.webp",
+      "endedAt": "2026-11-09T15:33:45.327Z"
+    }
+  ],
+  "endedAt": "2026-11-09T15:33:45.336Z"
+}

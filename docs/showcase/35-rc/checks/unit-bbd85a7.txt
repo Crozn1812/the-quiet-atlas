@@ -1,0 +1,143 @@
+
+ RUN  v5.1.0 D:/tqa-worktrees/RC-01
+
+B2-181 High quiet-shore composer: 89143 triangles, 54 mesh draws; water=2050 triangles, 2 draws (unchanged)
+Low downward sunward surface luma=0.1908-0.2883 (not frame luma)
+Balanced downward sunward surface luma=0.1908-0.2883 (not frame luma)
+High downward sunward surface luma=0.1908-0.2883 (not frame luma)
+Low t=0.93: maximum sea luma=0.1738
+Balanced t=0.93: maximum sea luma=0.1738
+High t=0.93: maximum sea luma=0.1738
+Low projected road/wide: longest bright ray=14.85 m
+Balanced projected road/wide: longest bright ray=14.85 m
+High projected road/wide: longest bright ray=14.85 m
+Low Last Postcard: 71550 samples, display luma 0.1307-0.2915, azimuth swing 0.1249
+Balanced Last Postcard: 71550 samples, display luma 0.1307-0.2915, azimuth swing 0.1249
+B2-225 High spawn triangles: 177129
+High Last Postcard: 71550 samples, display luma 0.1307-0.2915, azimuth swing 0.1249
+Nearshore displayed chroma reduction >= 67.3%
+B2-194 240 m / High: trees=1801; triangles=736223 -> 894407; active mesh draws=1058 -> 1058; broadleaf=467/tree, pine=594/tree (includes rooted wood and unchanged 42-triangle trunk)
+B2-170 species: deep broadleaf=89.25% (995); rim pine=67.39% (46)
+B2-170 canopy density side=0: 3.39x; near=65, far=70
+B2-170 canopy density side=1: 3.54x; near=91, far=89
+B2-182b resident world / High / t=0.15: triangles=162922 -> 146362; increase=-10.164%
+B2-170 overhead: 26/72 path samples; 8 distinct 10 m segments; shoulder trees=48
+B2-182b resident world / High / t=0.86: triangles=95539 -> 89143; increase=-6.695%
+B2-182b resident world / High / t=0.93: triangles=89347 -> 83634; increase=-6.394%
+B2-170 240 m / High: trees=1676 -> 1801; mesh instances=3602; draws=1186 -> 1058; slots=10
+B2-206 High world t=0: 232077 -> 232463 triangles; horizon delta=386
+B2-206 High world t=0.9: 200021 -> 200407 triangles; horizon delta=386
+B2-206 Node construction median (25 builds): 2.261 ms
+B2-182b bark: ramp linear luma=0.02–0.05; ACES+sRGB=0.154–0.195 (exposure=1)
+B2-191b seed=300: needle silhouette min=43.95% (192x192, 8 views)
+B2-191b seed=301: needle silhouette min=40.30% (192x192, 8 views)
+B2-191b seed=302: needle silhouette min=39.18% (192x192, 8 views)
+B2-191 construction median: 0.098 -> 0.361 ms
+R1-C High first-light: triangles 115098->115098; draws 49->49; geometry/instance bytes 8279888->8319092
+R1-C High horizon: triangles 89969->87912; draws 61->60; geometry/instance bytes 6658162->6846286
+R1-C High quiet-shore: triangles 105038->89143; draws 59->54; geometry/instance bytes 6257280->6637760
+R1-C High last-postcard: triangles 63878->53032; draws 33->28; geometry/instance bytes 5397934->5624172
+B2-241 triangles: 51200 -> 49616; draws: 1 -> 1; crowns: 476
+B2-194 High streamed scene (same submitted instances, colour pass, unchanged trunks/broadleaves): t=0: 115110 -> 115098; t=0.1: 125762 -> 125750; t=0.2: 141250 -> 141234; t=0.3: 118362 -> 118342; t=0.4: 97834 -> 97802; t=0.6: 84406 -> 84366; t=0.85: 84111 -> 85219; t=1: 53044 -> 53032
+B2-239 CPU maximum plane/mean step luma=0.01979 (path step 0.005)
+B2-182b CPU t=0.15/0.86/0.93: min backlit display luma=0.2533; front-lit ratio=0.0000; leaf linear floor=0.0750
+B2-207: [["quiet-shore-wood",2804],["quiet-shore-leaf",301],["quiet-shore-roof",240],["quiet-shore-ink",620],["quiet-shore-piano",636],["quiet-shore-cream",276],["quiet-shore-guitar",588]]; props=[["porch",1460],["piano",744],["piano-stool",204],["porch-bench",380],["dog",304],["fence-0",420],["fence-2",192],["fence-4",420]]; contract unchanged
+B2-182b actual wood pigment=0.0984–0.1677; max wood display=0.1952 < min shaded leaf=0.2456; translucency wood=off
+B2-183 wind: peak=0.08000 m; period=4–7 s; reducedMotion=0 m; wood=0 m
+B2-183 triangles/tree: pine/300=174->594, pine/301=218->594, pine/302=262->594, broadleaf/600=467->467, broadleaf/602=467->467; mesh slots=10->10; extra passes=0
+B2-212: 900 triangles, 2 draws; build 9.10 ms; variants 60/260 triangles
+B2-189 GD110: triangles=2604 -> 7452; draws=3 -> 1; size XYZ=0.780046 x 1.252260 x 1.592365 m; Node median (31 builds)=4.84 ms
+B2-212 High spawn snapshot (composer, all zones, dressing, far landscape): 231547 -> 232447 triangles (+0.389%)
+Low forest t=0: water luma <= 0.0369, downward <= 0.0328, ground=0.0769
+Low forest t=0.02: water luma <= 0.0369, downward <= 0.0328, ground=0.0654
+Low forest t=0.15: water luma <= 0.0369, downward <= 0.0328, ground=0.0652
+Balanced forest t=0: water luma <= 0.0369, downward <= 0.0328, ground=0.0769
+Balanced forest t=0.02: water luma <= 0.0369, downward <= 0.0328, ground=0.0654
+Balanced forest t=0.15: water luma <= 0.0369, downward <= 0.0328, ground=0.0652
+High forest t=0: water luma <= 0.0369, downward <= 0.0328, ground=0.0769
+High forest t=0.02: water luma <= 0.0369, downward <= 0.0328, ground=0.0654
+B2-189 procedural world / High / spawn: triangles=235355 -> 240203; increase=2.060% (limit=25%)
+High forest t=0.15: water luma <= 0.0369, downward <= 0.0328, ground=0.0652
+Low road t=0.86: stream=0.0612–0.0750, asphalt=0.1047
+Balanced road t=0.86: stream=0.0612–0.0750, asphalt=0.1047
+High road t=0.86: stream=0.0611–0.0750, asphalt=0.1047
+River width=4, origin=100: linear std=0.0062, linear mean change=-0.30%, display luma std=0.0122, mean change=-0.14%
+River width=4, origin=400: linear std=0.0062, linear mean change=-0.31%, display luma std=0.0122, mean change=-0.15%
+River width=4, origin=800: linear std=0.0063, linear mean change=-0.12%, display luma std=0.0124, mean change=-0.06%
+River width=6, origin=100: linear std=0.0044, linear mean change=-0.06%, display luma std=0.0083, mean change=-0.16%
+River width=6, origin=400: linear std=0.0044, linear mean change=-0.11%, display luma std=0.0084, mean change=-0.19%
+River width=6, origin=800: linear std=0.0044, linear mean change=-0.18%, display luma std=0.0084, mean change=-0.22%
+River width=8, origin=100: linear std=0.0031, linear mean change=-0.12%, display luma std=0.0059, mean change=-0.19%
+River width=8, origin=400: linear std=0.0030, linear mean change=-0.15%, display luma std=0.0058, mean change=-0.21%
+River width=8, origin=800: linear std=0.0031, linear mean change=-0.27%, display luma std=0.0059, mean change=-0.26%
+Low dawn distance=5, width=4: chroma=0.1025, std=0.0084
+Low dawn distance=5, width=6: chroma=0.1022, std=0.0058
+Low dawn distance=5, width=8: chroma=0.1007, std=0.0042
+Low dawn distance=10, width=4: chroma=0.0899, std=0.0077
+Low dawn distance=10, width=6: chroma=0.0892, std=0.0054
+Low dawn distance=10, width=8: chroma=0.0876, std=0.0039
+Low dawn distance=20, width=4: chroma=0.0800, std=0.0072
+Low dawn distance=20, width=6: chroma=0.0790, std=0.0050
+Low dawn distance=20, width=8: chroma=0.0774, std=0.0035
+Balanced dawn distance=5, width=4: chroma=0.1025, std=0.0084
+Balanced dawn distance=5, width=6: chroma=0.1022, std=0.0058
+Balanced dawn distance=5, width=8: chroma=0.1007, std=0.0042
+Balanced dawn distance=10, width=4: chroma=0.0899, std=0.0077
+Balanced dawn distance=10, width=6: chroma=0.0892, std=0.0054
+Balanced dawn distance=10, width=8: chroma=0.0876, std=0.0039
+Balanced dawn distance=20, width=4: chroma=0.0800, std=0.0072
+Balanced dawn distance=20, width=6: chroma=0.0790, std=0.0050
+Balanced dawn distance=20, width=8: chroma=0.0774, std=0.0035
+High dawn distance=5, width=4: chroma=0.1025, std=0.0084
+High dawn distance=5, width=6: chroma=0.1022, std=0.0058
+High dawn distance=5, width=8: chroma=0.1007, std=0.0042
+High dawn distance=10, width=4: chroma=0.0899, std=0.0077
+High dawn distance=10, width=6: chroma=0.0892, std=0.0054
+High dawn distance=10, width=8: chroma=0.0876, std=0.0039
+High dawn distance=20, width=4: chroma=0.0800, std=0.0072
+High dawn distance=20, width=6: chroma=0.0790, std=0.0050
+High dawn distance=20, width=8: chroma=0.0774, std=0.0035
+B2-159 grid phase=0: 314/353 = 88.95%; instances=1801/3551; canopy=248
+B2-159 grid phase=5: 330/366 = 90.16%; instances=1801/3551; canopy=248
+B2-159 instances: 2046 -> 1801; old cap=2841, +25% cap=3551; active mesh draws: 1246 -> 1058
+B2-159 far shoulder (200-260 m): 6 trees
+B2-159 aligned rows=0
+grass-field Node update (informational): p95=0.933ms max=0.941ms (85 frames)
+B2-218 underside/top unit-ramp luma=0.80
+B2-182b crown 600: round normals >=100.0%; joined=14/14
+B2-182b crown 602: round normals >=100.0%; joined=14/14
+B2-182b crown 604: round normals >=100.0%; joined=14/14
+B2-213 silhouette discard/transitions (9 rings): 0.324/18, 0.408/20, 0.427/16, 0.347/18, 0.391/26, 0.381/12, 0.384/20, 0.481/16, 0.319/12
+B2-213 unit-ramp luma sigma=0.05211; max delta/0.1mm=0.00083
+B2-213 triangles/tree=594,594,594,467,467; mesh slots=10; added passes=0; attribute slots with fade=15
+B2-218 underside/top unit-ramp luma=0.80
+B2-182b geometry SHA256 (rounded crowns/bark/limb budget): cee4f69ff9f28785f3d4edca234d256b9027811cd89c77c046ead5729f2cf310, f0a0630af34dd85a87be35c65d396fbaef3ddbb1fe59f705587a7f476386de0b, f4b845c1812e78e1d0a5233b3852d7675cc5c0f9f96d521ab64b860765fa9cd9
+B2-218 silhouette discard/transitions (9 rings): 0.462/26, 0.413/28, 0.350/24, 0.381/28, 0.484/32, 0.448/24, 0.350/24, 0.362/30, 0.389/40
+B2-218 unit-ramp luma sigma=0.07252; max delta/0.1mm=0.00144
+B2-213 triangles/tree=594,594,594,467,467; mesh slots=10; added passes=0; attribute slots with fade=15
+noise origin=-80: area=11.11%, peak=0.1200, far/near=0.000, longest=1.26m
+noise origin=100: area=9.01%, peak=0.1200, far/near=0.000, longest=1.11m
+noise origin=400: area=9.48%, peak=0.1200, far/near=0.000, longest=1.32m
+noise origin=800: area=9.51%, peak=0.1200, far/near=0.000, longest=1.20m
+field origin=-80: max |autocorrelation|=0.0613
+streak origin=-80: max |autocorrelation|=0.0381
+field origin=100: max |autocorrelation|=0.0543
+streak origin=100: max |autocorrelation|=0.0305
+field origin=400: max |autocorrelation|=0.0809
+streak origin=400: max |autocorrelation|=0.0385
+field origin=800: max |autocorrelation|=0.0260
+streak origin=800: max |autocorrelation|=0.0285
+G-02 submitted triangles/tree: 594/594/594/467/467 -> 594/594/594/467/467; slots=10 -> 10; extra passes=0
+B2-198 construction median: 0.672 -> 0.364 ms; crown=425 triangles; limbs=3
+B2-196 trail canopy: count=48; height=13.16–13.62 m; bark lean=1.19–1.75 deg; nearest leaf/path=0.00 m
+B2-196 240 m / High: trees=1801; triangles=894407; pine=594/594/594; broadleaf=467/467; mesh slots=10
+B2-216 CPU t=0.15/0.93: min shadow linear luma=0.0325; max front-lit ratio=1.0407; rim <=10%
+
+ Test Files  155 passed (155)
+      Tests  1759 passed (1759)
+   Start at  08:43:29
+   Duration  75.81s (tests 92%, import 8%)
+
+    Isolate  155 workers spawned · ~101ms startup each (spawn + environment, per file)
+             at least ~3.82s faster with isolate: false — reuses workers across files instead of one per file
+

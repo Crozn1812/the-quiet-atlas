@@ -1,16 +1,30 @@
 # PROJECT_STATUS — The Quiet Atlas
 
-## RC-01 đã chốt trong clone — lần 3, 2026-11-10
+**Điều phối mới nhất (10/11):** Codex làm Lead + thi công RC-01 để Duy test toàn bộ. [Showcase 35 và audit](showcase/35-rc/README.md) · [Hướng dẫn test 20–30 phút](playtest/rc-guide.md). Clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`; main hiện `d00bf20` (thêm tài liệu từ `3bb0752`, runtime chưa chứa RC), chưa push. `.git` main chỉ đọc: Claude-Lead sẽ fetch/duyệt/merge clone khi đủ gate theo [handoff](runbook/lead-handoff.md).
 
-Nguồn RC đã kiểm `bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`; bằng chứng/hướng dẫn commit `1cfda44de4e8447c1d02ba94e197f050291e4b2a` trên `lane/RC-01`, clone `D:/tqa-worktrees/RC-01`. [Showcase](../../tqa-worktrees/RC-01/docs/showcase/35-rc/README.md) · [Hướng dẫn test 20–30 phút](../../tqa-worktrees/RC-01/docs/playtest/rc-guide.md) · [Audit/log](../../tqa-worktrees/RC-01/docs/showcase/35-rc/audit.md).
+## RC-01 — đủ gate để Duy test local (2026-11-10)
 
-PASS: build/strict gate1759unit, full e2e153/153 (4 worker), CPU ABBA trần+10, sáu tải lạnh worst4,653s/2.128.915B, Lighthouse15lượt, CV/bundle/license/assets và duyệt8High+15cinematic+12Welcome/Quick. SlideshowQA45s có trong showcase. T08/T09 IrisXe NOT RUN, T10/playtest Duy DEFERRED; bảng chấm trống.
+R1 đã được nhân rộng trên main trước đợt này. Đã chụp lại 8 postcard và Welcome từ world R1; sửa build đủ CV/OG, ẩn nội dung nháp công khai, bố cục CV, camera bị biển chỉ đường kéo sát người, shader tạo wedge ngoài biển, vị trí hook QA cạnh ghế và gợi ý mascot chồng nút E. RC-10/11/15/16/17/18/21 giảm công việc mỗi frame, giữ ngưỡng hiệu năng. Không tạo nội dung/chứng chỉ/URL mới, không chạm cloud/credential.
 
-Main HEAD `d00bf20` vẫn chưa có runtime RC (chỉ thêm tài liệu so với `3bb0752`), chưa push. Theo ngoại lệ Lead06:50, Claude-Lead fetch/duyệt/merge clone. Các phần phía dưới giữ lịch sử trước RC; không dùng làm trạng thái mới nhất.
+- Audit Edge VI/EN 1600×900 + mobile giả lập390/320: 140/140 assertion PASS trên `d761a62`; đi bộ phím thật 367,91 s /1098,12 m /0 kẹt, 8 khu, không teleport/Shift. Đây là bằng chứng có phạm vi, không thay T10/playtest thật.
+- Nguồn `4d627b1`: build, strict gate1753/1753 và full e2e153/153 (4 worker,3,3 phút) PASS. Lượt e2e đầu treo teardown server Windows được giữ; lượt dùng server ngoài exit0. Bundle/license/assets PASS. Lead đã mở8High, luma maxdelta0,001, intro4khung và ending sau sửa.
+- RC nguồn đã kiểm: **`bbd85a7c336aa025f11f42d40a07ea8bdbea83f1`**. RC-21 bỏ Vector3 tạm và sửa sparse filter RC-18; RC-22 cache world sphere cho Mesh.raycast mặc định, giữ custom/recursive/instanced/skinned. Build, lint 0 warning, typecheck và strict gate **1759/1759 unit PASS**.
+- CPU harness gốc trên `bbd85a7`, ABBA hai lượt mỗi bản Balanced: **PASS**. Delta Script/Task First Light+3,5/+5; Roots−15/−17; Workshop−11/−12 ms/s, trần+10. [Bốn log và số đo](showcase/35-rc/perf/cpu-final-summary.json). Baseline export144a02c có world source giống main3bb0752 (gitdiff đã kiểm). Các FAIL trước, gồm4d vàccd, giữ nguyên; diagnostic15s chỉ bổ sung, không dùng thay phép đo chuẩn.
+- T08/T09 Iris Xe **NOT RUN**; T10/điểm1–5/âm thanh nghe thật/mobile thật **DEFERRED** cho Duy. [Runbook Iris Xe](runbook/t08-iris-xe.md).
 
-**Điều phối mới nhất:** Duy yêu cầu bàn giao cho Claude; xem [bản bàn giao 08/11](runbook/claude-handoff-2026-11-08.md). Codex đã lưu toàn bộ mã/bằng chứng và dừng thi công, chờ Duy gọi Claude tiếp nhận. Mẫu First Light R1 vẫn chờ duyệt, chưa merge.
+| Kiểm trên RC nguồn `bbd85a7` | Kết quả và bằng chứng |
+|---|---|
+| Full e2e, 4 worker | **153/153 PASS**, 3,3 phút, exit0; [log](showcase/35-rc/checks/e2e-bbd85a7.txt) |
+| Load-budget, 3 tải lạnh mỗi locale EN/VI | **PASS mốc RC ≤6 s /8MiB**, worst EN4,621 s /VI4,653 s; world2.128.915 B; [sáu lượt và kiểm trần6s](showcase/35-rc/checks/load-rc-summary.json) |
+| Lighthouse 3 URL ×5 lượt | **PASS**, profile mobile/simulate slow4G/CPU4× được kiểm trong cả15 report. Worst LCP2350,23 ms, TBT49 ms, CLS0,01829; [tổng hợp và report gốc](showcase/35-rc/checks/lighthouse-summary.json) |
+| CV / bundle / license / asset budget | **PASS**; [CV](showcase/35-rc/checks/cv-bbd85a7.txt), [bundle](showcase/35-rc/checks/bundle-bbd85a7.txt), [license](showcase/35-rc/checks/licenses-bbd85a7.txt), [asset](showcase/35-rc/checks/assets-bbd85a7.txt) |
+| Render | Lead mở từng ảnh đủ8 khu High và15 ảnh intro/ending; luma lệch max0,001. Art/QA mở12 ảnh Welcome/Quick VI/EN desktop/mobile cuối; [gallery và giới hạn](showcase/35-rc/audit.md) |
 
-> Cập nhật lần cuối: 2026-11-08 (đợt 31: UX/UI, e2e 151/151, unit 1697/1697, tải lạnh và Lighthouse PASS trên main `7774ae8`).
+Lượt Lighthouse đầu không tạo được báo cáo do kết nối browser debug; log BLOCKED được giữ. Lượt sau dùng Edge do Playwright quản lý qua CDP local, server gzip ngoài, không đổi profile/runs/assertions; exit0. Lượt e2e đầu treo teardown và các CPU FAIL cũng giữ nguyên theo nguồn, không ghi lại thành PASS.
+
+Việc tiếp theo: Claude-Lead fetch nhánh clone, duyệt/merge main theo ngoại lệ handoff; Duy chạy [lộ trình và bảng điểm](playtest/rc-guide.md), đo Iris Xe riêng. Bằng chứng được commit sau mã nguồn, không thay runtime/assets/dependency của `bbd85a7`. Không push.
+
+> Phần dưới giữ lịch sử đợt31 ngày08/11; trạng thái đang làm nằm ở mục RC-01 phía trên.
 
 **Phản hồi mới của Duy (08/11): hình ảnh/UX/UI chưa đạt yêu cầu, chưa nghiệm thu.** Gate PASS ở đợt 31 chỉ là kết quả kỹ thuật. Bản mẫu **The First Light R1** đã sẵn sàng để Duy chấm gu tại `D:/tqa-worktrees/FirstLight-R1` (`lane/FirstLight-R1`): source `56d29d5`, báo cáo bổ sung `720e48e`. **Chưa merge mẫu lên main, chưa mở rộng sang 7 khu khác.** [Ảnh trước/sau và báo cáo mẫu](showcase/32-first-light-prototype/README.md).
 
@@ -43,7 +57,7 @@ Lượt e2e đầu 149 PASS / 2 FAIL và CPU không pin quality bị lệch vẫ
 | Track | Mốc | Trạng thái |
 |---|---|---|
 | A — Portfolio | **A1** xong ở local (nội dung đã duyệt, CI xanh). **A2 mở lại** (2026-11-05): credit 100 USD đã có (hạn 2027-05-05), tên miền `nhbduy.id.vn` đã mua | A2 chờ Duy: MFA + user hằng ngày (Q-20), Budgets (`aws-budgets.md`), nameserver (Q-38). Lead không chạm cloud |
-| B — World | B1 (P01-A…F) xong ở local; **B2 + B3 làm ở local trước A2** (ADR 0012) | Đang làm: B2 công đoạn 1–4 (ánh sáng, asset, art bible khoá, cảnh chuẩn T10) |
+| B — World | **RC-01 đủ gate máy dev** trên clone `lane/RC-01`, nguồn `bbd85a7`; chờ Claude-Lead duyệt/merge main | Duy test trải nghiệm/T10 và đo T08/T09 Iris Xe; chưa có kết quả người thật/laptop |
 
 ## Đã có
 

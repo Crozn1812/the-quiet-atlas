@@ -11,7 +11,7 @@ import {
   createWaterMaterial, SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES, SEA_WAVE_PERIOD, type WaterMaterial,
 } from "../../../src/features/world/water/material";
 import { WATER_LEVEL } from "../../../src/features/world/water/ribbon";
-import { createSea, SEA_SIZE } from "../../../src/features/world/water/sea";
+import { createSea, SEA_RENDER_SIZE } from "../../../src/features/world/water/sea";
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -80,14 +80,14 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
 
 function seaPigment(material: WaterMaterial, point: Vector3) {
   const uniform = material.uniforms;
-  const { offshore, shallows } = scalars(material, "float shoreSample =", "color = mix(uDeepColor", {
+  const { offshore, shallows, shoreInfluence, slope } = scalars(material, "float shoreSample =", "color = mix(uDeepColor", {
     vWaterWorld: point,
     uShoreBounds: uniform.uShoreBounds!.value,
     uShoreZ: uniform.uShoreZ!.value,
     uHasShore: uniform.uHasShore!.value,
-  }, ["offshore", "shallows"]);
+  }, ["offshore", "shallows", "shoreInfluence", "slope"]);
   const color = (uniform.uDeepColor!.value as Color).clone().lerp(uniform.uEdgeColor!.value, shallows!);
-  return { color, offshore: offshore!, shallows: shallows! };
+  return { color, offshore: offshore!, shallows: shallows!, shoreInfluence: shoreInfluence!, slope: slope! };
 }
 
 function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: number, phase: number,
@@ -99,9 +99,9 @@ function washAt(material: WaterMaterial, alongSun: number, signedAcrossSun: numb
     }, ["washStrength", "washWidth", "core", "glimmer", "washMarks", "distanceFade"]);
 }
 
-function sunsetAt(material: WaterMaterial, skyAlignment: number, grazing: number, horizonRange: number, offshore = 100, cameraDownTilt = 0) {
+function sunsetAt(material: WaterMaterial, skyAlignment: number, grazing: number, horizonRange: number, offshore = 100, cameraDownTilt = 0, shoreInfluence = 1) {
   return scalars(material, "// Begin sea sunset pigment scalars.", "// End sea sunset pigment scalars.", {
-    skyAlignment, grazing, horizonRange, offshore, cameraDownTilt, sunElevation: material.uniforms.uSunDirection!.value.y,
+    skyAlignment, grazing, horizonRange, offshore, cameraDownTilt, shoreInfluence, sunElevation: material.uniforms.uSunDirection!.value.y,
   }, ["sunsetPigment"]).sunsetPigment!;
 }
 
@@ -111,7 +111,7 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3, came
   const uniform = material.uniforms;
   const time = uniform.uTime!.value as number;
   const phase = time * Number((2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10));
-  const { color, offshore } = seaPigment(material, point);
+  const { color, offshore, shoreInfluence } = seaPigment(material, point);
   expect(offshore).toBeGreaterThan(5);
   const skyMix = uniform.uSkyMix!.value as number;
   const { field } = waterNoiseSampler(material.fragmentShader);
@@ -119,14 +119,14 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3, came
   const crossSwell = field(point.x + 0.11, point.z - time * 0.05) - 0.5;
   const { seaStroke } = scalars(material, "// Begin sea ripple scalars.", "// End sea ripple scalars.", {
     vWaterWorld: point, uTime: time, phase, offshore, uHasShore: uniform.uHasShore!.value,
-    rippleDistanceFade: 1 - smoothstep(15, 40, point.distanceTo(camera)),
+    rippleDistanceFade: 1 - smoothstep(15, 40, point.distanceTo(camera)), shoreInfluence,
   }, ["seaStroke"]);
   color.lerp(uniform.uPaperColor!.value, 0.00875).multiplyScalar(1 + 0.24 * seaStroke!);
   if (material.defines.WATER_REFLECTION) {
     const normal = new Vector3(crossSwell * 0.006 * seaStroke!, 1, swell * 0.006 * seaStroke!).normalize();
     const grazing = 1 - Math.max(0, Math.min(1, normal.dot(camera.clone().sub(point).normalize())));
     const { reflection } = scalars(material, "float fresnel =", "color = mix(color, uSkyHorizon", {
-      grazing, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: skyMix, offshore,
+      grazing, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: skyMix, offshore, shoreInfluence,
     }, ["reflection"]);
     color.lerp(uniform.uSkyHorizon!.value, reflection!);
     const horizonRay = new Vector2(point.x - camera.x, point.z - camera.z);
@@ -139,7 +139,7 @@ function seaColor(material: WaterMaterial, point: Vector3, camera: Vector3, came
       color[channel] += (uniform.uDeepColor!.value[channel] - uniform.uSkyHorizon!.value[channel]) * coolReflection!;
     }
     color.lerp(uniform.uSunWashColor!.value,
-      sunsetAt(material, skyAlignment, grazing, horizonRay.length(), offshore, cameraDownTilt));
+      sunsetAt(material, skyAlignment, grazing, horizonRay.length(), offshore, cameraDownTilt, shoreInfluence));
   }
   const sun = uniform.uSunDirection!.value as Vector3;
   const axis = new Vector2(sun.x, sun.z).normalize();
@@ -296,7 +296,7 @@ describe("road-view sunset sea", () => {
     try {
       const reflectionAt = (grazing: number, offshore: number) => scalars(material,
         "float fresnel =", "color = mix(color, uSkyHorizon", {
-          grazing, offshore, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: 1,
+          grazing, offshore, shoreInfluence: 1, SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: 1,
         }, ["reflection"]).reflection!;
       expect(reflectionAt(0, 300)).toBe(0);
       expect(reflectionAt(1, 300)).toBeGreaterThan(reflectionAt(0.5, 300));
@@ -505,7 +505,9 @@ describe("road-view sunset sea", () => {
             for (const distance of [5, 40, 80, 160, 300]) {
               const point = new Vector3(x, WATER_LEVEL, -800 + (x + 400) * slope - distance * Math.sqrt(1 + slope * slope));
               const pigment = seaPigment(material, point);
-              expect(pigment.offshore).toBeCloseTo(distance, 8);
+              // The perpendicular foot may fall beyond this finite sample segment.
+              expect(pigment.offshore).toBeGreaterThanOrEqual(distance - 1e-8);
+              expect(pigment.offshore).toBeLessThanOrEqual(distance * Math.sqrt(1 + slope * slope) + 1e-8);
               expect(pigment.shallows).toBeLessThanOrEqual(previousWeight);
               previousWeight = pigment.shallows;
               if (distance === 5) expect(pigment.color).toEqual(material.uniforms.uEdgeColor!.value);
@@ -533,7 +535,7 @@ describe("road-view sunset sea", () => {
       const foam = (slope: number, phase: number) => scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
         "color = mix(color, uPaperColor, foam)", {
           phase, offshore: 0.26 + 0.04 * Math.cos(phase),
-          offshorePixelWidth: 0.05, brush: 1, uHasShore: 1, slope,
+          offshorePixelWidth: 0.05, brush: 1, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope,
         }, ["foam", "foamDistance"]);
       expect(SEA_WAVE_PERIOD).toBe(8);
       for (let i = 0; i <= 16; i++) {
@@ -558,7 +560,7 @@ describe("road-view sunset sea", () => {
             for (const offshore of [5, 5.001, 6.001, 10, 40, 300, 800]) {
               const sample = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
                 "color = mix(color, uPaperColor, foam)", {
-                  phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, slope,
+                  phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope,
                 }, ["foam", "foamWidth"]);
               expect(sample.foam).toBe(0);
               expect(sample.foamWidth).toBeLessThanOrEqual(0.45);
@@ -584,7 +586,7 @@ describe("road-view sunset sea", () => {
       expect(floatCount).toBeLessThanOrEqual(140);
       expect(sea.mesh.material.fragmentShader).not.toMatch(/sampler|texture\s*\(/);
       expect(sea.mesh.geometry.index!.count / 3).toBe(2);
-      expect(sea.mesh.geometry.boundingBox!.getSize(new Vector3()).x).toBe(SEA_SIZE);
+      expect(sea.mesh.geometry.boundingBox!.getSize(new Vector3()).x).toBe(SEA_RENDER_SIZE);
     } finally { sea.dispose(); }
   });
 });
@@ -600,14 +602,14 @@ describe("B2-219 foam support and coverage", () => {
           const offshore = (i + 0.5) / 80 * 0.6;
           const brush = 0.5 + 0.5 * Math.sin(j / 80 * Math.PI * 2);
           const sample = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
-            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush, uHasShore: 1, slope: 0}, ["foam"]);
+            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope: 0}, ["foam"]);
           covered += Number(sample.foam! > 0.01); samples++;
         }
         expect(covered / samples).toBeGreaterThanOrEqual(0.3);
         expect(covered / samples).toBeLessThanOrEqual(0.7);
         for (const offshore of [-1, 0, 0.6, 0.601, 1]) {
           expect(scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
-            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, slope: 0}, ["foam"]).foam).toBe(0);
+            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope: 0}, ["foam"]).foam).toBe(0);
         }
       }
     } finally { material.dispose(); }
@@ -691,14 +693,26 @@ describe("B2-229b dusk sea without fan bands", () => {
                 const angle = degrees * Math.PI / 180;
                 const point = camera.clone().add(new Vector3(Math.sin(angle) * distance, -8, -Math.cos(angle) * distance));
                 if (!sea.mesh.geometry.boundingBox!.containsPoint(point) || worldHeight(point.x, point.z) >= WATER_LEVEL) continue;
-                // Select far water independently of the shader's slope correction:
-                // otherwise the old erroneous shallows would be excluded from the test.
+                // Select far water independently using finite shoreline geometry.
+                // Sentinel values denote a missing endpoint, not a shore 100 km away.
                 const bounds = material.uniforms.uShoreBounds!.value as Vector2;
                 const coast = material.uniforms.uShoreZ!.value as number[];
                 const sample = Math.max(0, Math.min(1, (point.x - bounds.x) / bounds.y)) * (SEA_SHORE_SAMPLES - 1);
                 const index = Math.min(Math.floor(sample), SEA_SHORE_SAMPLES - 2);
-                const shoreZ = mix(coast[index]!, coast[index + 1]!, sample - index);
-                if (shoreZ - point.z < 60) continue;
+                const step = bounds.y / (SEA_SHORE_SAMPLES - 1);
+                const knownA = coast[index]! < 9999;
+                const knownB = coast[index + 1]! < 9999;
+                const endpoints = [
+                  ...(knownA ? [new Vector3(bounds.x + index * step, WATER_LEVEL, coast[index]!)] : []),
+                  ...(knownB ? [new Vector3(bounds.x + (index + 1) * step, WATER_LEVEL, coast[index + 1]!)] : []),
+                ];
+                if (endpoints.length) {
+                  const a = endpoints[0]!, b = endpoints.at(-1)!;
+                  const direction = b.clone().sub(a);
+                  const closest = a.clone().addScaledVector(direction, Math.max(0, Math.min(1,
+                    point.clone().sub(a).dot(direction) / Math.max(direction.lengthSq(), 1e-12))));
+                  if (closest.distanceTo(point) < 60) continue;
+                }
                 const pigment = seaPigment(material, point);
                 // Glints stay within +/-12 degrees; the broad reflected sunset remains.
                 const delta = Math.atan2(Math.sin(angle - sunAngle), Math.cos(angle - sunAngle));
@@ -778,6 +792,100 @@ describe("B2-229b dusk sea without fan bands", () => {
           for (const channel of ["r", "g", "b"] as const) expect(color[channel]).toBeCloseTo(sky[channel], 3);
         }
       }
+    } finally { material.dispose(); }
+  });
+});
+
+
+// RC-14: test the shader scalars at a real coast break, not an injected distance.
+describe("RC-14 finite shore influence", () => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s reflection and pigment continuous at a coast break without inventing an inlet edge", quality => {
+    const valid = Array<number>(SEA_SHORE_SAMPLES).fill(1);
+    valid[50] = 0;
+    const material = createWaterMaterial(quality, { surface: "sea", shoreline: {
+      minX: 0, width: 800, z: Array<number>(SEA_SHORE_SAMPLES).fill(-800), valid,
+    } });
+    const reflect = (point: Vector3) => {
+      const pigment = seaPigment(material, point);
+      return scalars(material, "float fresnel =", "color = mix(color, uSkyHorizon", {
+        grazing: 0.9, offshore: pigment.offshore, shoreInfluence: pigment.shoreInfluence,
+        SKY_REFLECTION: Number(material.defines.SKY_REFLECTION), uSkyMix: 1,
+      }, ["reflection"]).reflection!;
+    };
+    try {
+      const spacing = 800 / (SEA_SHORE_SAMPLES - 1);
+      for (const index of [49.1, 49.5, 49.9, 50.1, 50.5, 50.9]) {
+        const x = index * spacing;
+        const endpointX = (index < 50 ? 49 : 51) * spacing;
+        for (const dz of [5, 40, 60, 300]) {
+          const point = new Vector3(x, 0, -800 - dz);
+          const pigment = seaPigment(material, point);
+          expect(pigment.offshore).toBeCloseTo(Math.hypot(x - endpointX, dz), 7);
+          if (pigment.offshore >= 40) expect(pigment.shallows).toBe(0);
+        }
+      }
+      // The old validity guard jumped from a physical distance to 1000 m here.
+      for (const index of [49, 50, 51]) {
+        const x = index * spacing;
+        const a = reflect(new Vector3(x - 1e-4, 0, -860));
+        const b = reflect(new Vector3(x + 1e-4, 0, -860));
+        expect(Math.abs(a - b)).toBeLessThan(1e-4);
+        const nearA = seaPigment(material, new Vector3(x - 1e-4, 0, -805));
+        const nearB = seaPigment(material, new Vector3(x + 1e-4, 0, -805));
+        expect(Math.abs(nearA.shallows - nearB.shallows)).toBeLessThan(1e-4);
+      }
+      for (const x of [49.1, 49.5, 49.9, 50.1, 50.5, 50.9].map(i => i * spacing)) {
+        const point = new Vector3(x, 0, -800.26);
+        const pigment = seaPigment(material, point);
+        // Beside a break, colour may fade around the real endpoint within40m;
+        // the unknown secant still cannot draw foam.
+        expect(pigment.shallows).toBeGreaterThanOrEqual(0);
+        expect(pigment.shallows).toBeLessThanOrEqual(pigment.shoreInfluence);
+        const shore = scalars(material, "float shoreSample =", "color = mix(uDeepColor", {
+          vWaterWorld: point, uShoreBounds: material.uniforms.uShoreBounds!.value,
+          uShoreZ: material.uniforms.uShoreZ!.value, uHasShore: 1,
+        }, ["shoreValid"]);
+        expect(shore.shoreValid).toBe(0);
+        const foam = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+          "color = mix(color, uPaperColor, foam)", {
+            phase: 0, offshore: pigment.offshore, offshorePixelWidth: 0.05, brush: 1,
+            uHasShore: 1, shoreValid: shore.shoreValid, shoreInfluence: pigment.shoreInfluence, slope: pigment.slope,
+          }, ["foam"]).foam;
+        expect(foam).toBe(0);
+      }
+    } finally { material.dispose(); }
+  });
+
+  it("rejects inland water effects and uses the finite segment rather than an infinite steep secant", () => {
+    const material = createWaterMaterial("High", { surface: "sea", shoreline: {
+      minX: 0, width: 800,
+      z: Array.from({ length: SEA_SHORE_SAMPLES }, (_, i) => -800 + i * 800 / (SEA_SHORE_SAMPLES - 1) * 10),
+    } });
+    try {
+      const inland = seaPigment(material, new Vector3(300, 0, 2300));
+      expect(inland.shoreInfluence).toBe(0);
+      expect(inland.shallows).toBe(0);
+      const point = new Vector3(300, 0, 1950);
+      const pigment = seaPigment(material, point);
+      // The infinite line is only 24.88 m away; the finite local segment is >180 m away.
+      expect(pigment.offshore).toBeGreaterThan(180);
+      expect(pigment.shallows).toBe(0);
+      const shore = scalars(material, "float shoreSample =", "color = mix(uDeepColor", {
+        // A flat coast makes this inland point exactly 0.3 m from the segment,
+        // the foam peak at phase0. Omitting the water-side gate would light it.
+        vWaterWorld: new Vector3(300, 0, -799.7), uShoreBounds: material.uniforms.uShoreBounds!.value,
+        uShoreZ: Array<number>(SEA_SHORE_SAMPLES).fill(-800), uHasShore: 1,
+      }, ["offshore", "shoreInfluence", "shoreValid", "slope"]);
+      expect(shore.shoreInfluence).toBe(0);
+      expect(shore.offshore).toBeCloseTo(0.3, 8);
+      expect(shore.shoreValid).toBe(1);
+      expect(shore.slope).toBe(0);
+      const foam = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+        "color = mix(color, uPaperColor, foam)", { phase: 0, offshore: shore.offshore,
+          offshorePixelWidth: 0.05, brush: 1, uHasShore: 1,
+          shoreValid: shore.shoreValid, shoreInfluence: shore.shoreInfluence, slope: shore.slope,
+        }, ["foam"]).foam;
+      expect(foam).toBe(0);
     } finally { material.dispose(); }
   });
 });

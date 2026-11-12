@@ -42,6 +42,14 @@ try {
   await page.goto(base + "/cv/");
   await page.locator("a[download]").first().waitFor();
   if (await page.locator("a[download]").count() !== 2) throw new Error("Missing downloads");
+  for (const href of await page.locator("a[download]").evaluateAll(links => links.map(link => link.getAttribute("href")))) {
+    const response = await page.request.get(base + href);
+    const bytes = await response.body();
+    if (!response.ok() || !response.headers()["content-type"]?.includes("application/pdf")
+      || bytes.subarray(0, 5).toString() !== "%PDF-") {
+      throw new Error(`Broken CV download: ${href} (${response.status()})`);
+    }
+  }
   const noJs = await browser.newContext({ javaScriptEnabled: false });
   const fallback = await noJs.newPage();
   await fallback.goto(base + "/cv/");

@@ -353,7 +353,7 @@ it("reads the test flag without changing it and enters done immediately", async 
   expect(camera().position.distanceTo(harness.firstPose!.position)).toBe(0);
 });
 
-type Journey = { position(): { x: number; y: number; z: number }; cameraYaw(): number; zone(): string | null };
+type Journey = { position(): { x: number; y: number; z: number }; cameraYaw(): number; cameraDistance(): number; visitSecret(id: string): boolean; zone(): string | null };
 const journey = () => (container as Element & { __tqaJourney?: Journey }).__tqaJourney;
 
 it.each([undefined, false])("does not install journey observation with flag %s", async flag => {
@@ -370,7 +370,9 @@ it("exposes live journey snapshots and yaw without allowing controller mutation"
   win.__tqaSkipIntro = true;
   await mount();
   const hook = journey()!;
-  expect(Object.keys(hook).sort()).toEqual(["cameraYaw", "goTo", "lookoutPosition", "nearVehicle", "position", "visitSecret", "zone"]);
+  expect(Object.keys(hook).sort()).toEqual(["cameraDistance", "cameraYaw", "goTo", "lookoutPosition", "nearVehicle", "position", "visitSecret", "zone"]);
+  expect(Number.isFinite(hook.cameraDistance())).toBe(true);
+  expect(hook.cameraDistance()).toBeGreaterThanOrEqual(0);
   expect(Object.isFrozen(hook)).toBe(true);
   expect(hook.position()).toEqual({ x: position().x, y: position().y, z: position().z });
   const snapshot = hook.position();
@@ -386,6 +388,20 @@ it("exposes live journey snapshots and yaw without allowing controller mutation"
   advance();
   expect(hook.cameraYaw()).toBeGreaterThan(yaw);
   expect(win.__tqaJourney).toBe(true);
+});
+
+it("places the secret QA approach outside the solid bench rather than through its seat", async () => {
+  win.__tqaJourney = true;
+  win.__tqaSkipIntro = true;
+  await mount();
+  const { SECRETS } = await import("../../../src/features/story/secrets");
+  const bench = SECRETS.find(secret => secret.id === "unwritten-page")!;
+  journey()!.visitSecret(bench.id);
+  const approach = journey()!.position();
+  // Bench half-width 1.1m + player radius .35m; the QA position must be outside it.
+  expect(approach.x - bench.position.x).toBeCloseTo(1.8);
+  expect(approach.z).toBe(bench.position.z);
+  expect(Math.hypot(approach.x - bench.position.x, approach.z - bench.position.z)).toBeLessThan(bench.radius);
 });
 
 it("removes the journey hook on idempotent cleanup and can mount it again", async () => {
