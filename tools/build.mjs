@@ -11,7 +11,8 @@ const date = process.env.CV_VERSION_DATE ?? new Date().toISOString().slice(0, 10
 cvFiles(date);
 const env = { ...process.env, CV_VERSION_DATE: date };
 for (const args of [
-  [require.resolve("next/dist/bin/next"), "build"],
+  // NEXT_BUILD_WEBPACK=1: WASM SWC + webpack when Windows Application Control blocks the native SWC binary.
+  [require.resolve("next/dist/bin/next"), "build", ...(process.env.NEXT_BUILD_WEBPACK ? ["--webpack"] : [])],
   ["tools/cv/index.mjs"],
   ["tools/og/index.mjs"],
 ]) {
