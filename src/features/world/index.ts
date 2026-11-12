@@ -52,9 +52,7 @@ import { createRiderPose } from "./character/ride";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
 import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
-import { createMascotMesh } from "../mascot/shape";
-import { createMascotFollowState, stepMascotFollow } from "../mascot/follow";
-import { createMascotHints, MASCOT_HINTS } from "../mascot/hints";
+import { ZONE_HINTS } from "../../i18n/zone-hints";
 import { ambienceMixAt } from "../audio/mix";
 import { updateFoliageWind } from "./foliage/instances";
 
@@ -369,28 +367,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   container.dataset.worldTeleport = "idle";
   state = { ...state, position: { ...physics.position }, sessionProgress: { ...state.sessionProgress, lastSafePosition: { ...physics.position } } };
   let yaw = Math.atan2(7, 9);
-  let mascotEnabled = true;
-  const mascot = createMascotMesh();
-  mascot.visible = false;
-  scene.add(mascot);
-  container.dataset.worldMascot = "on";
-  const mascotForward = new Vector3();
-  function mascotInput(teleported = false) {
-    const forward = vehicle.mode === "ride" ? corridor.tangentAt(vehicle.s) : player.getWorldDirection(mascotForward);
-    return {
-      playerPosition: { x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z },
-      heading: Math.atan2(-forward.x, -forward.z),
-      terrainHeight: surfaceHeight,
-      reducedMotion,
-      teleported,
-    };
-  }
-  let mascotFollow = createMascotFollowState(mascotInput());
-  mascot.position.copy(mascotFollow.position);
-  const mascotHints = createMascotHints();
-  let mascotTime = 0;
-  let mascotHintZone: ZoneId | undefined;
-  let mascotHintTimer: ReturnType<typeof setTimeout> | undefined;
   let lastAmbience = -Infinity;
   let zoom = INITIAL_ZOOM;
   let arm = INITIAL_ZOOM;
@@ -426,14 +402,20 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       vehicle = result.state;
       unsafeStop = false;
       physics.teleport(vehicleTarget.position);
-      updateMascot(0, true);
       clear();
       publishVehicle();
       interaction.update();
       return true;
     },
     hint() {
-      if (!cameraEnabled() || vehicle.mode !== "ride") return undefined;
+      if (!cameraEnabled()) return undefined;
+      if (vehicle.mode !== "ride") {
+        // Keep nearby actionable prompts first; zone guidance uses the same HUD line.
+        if (container.dataset.worldHint) return undefined;
+        const zone = nearestZone();
+        return Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius
+          ? ZONE_HINTS[zone.id] : undefined;
+      }
       if (nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z })) return WORLD_COPY[locale].secretHint;
       return unsafeStop ? dismountReason ? DISMOUNT_COPY[locale][dismountReason] : WORLD_COPY[locale].vehicleUnsafe
         : `${VEHICLE_LABELS[locale].getOff} · ${VEHICLE_LABELS[locale].cruise}`;
@@ -463,29 +445,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       state = sessionReducer(state, { type: "visitZone", zoneId });
     },
   });
-  // Adjacent to the interaction line, with no focusable content or input interception.
-  const mascotHint = document.createElement("div");
-  mascotHint.dataset.worldMascotHint = "true";
-  mascotHint.setAttribute("aria-live", "polite");
-  mascotHint.setAttribute("aria-atomic", "true");
-  Object.assign(mascotHint.style, {
-    position: "fixed", left: "50%", bottom: "13rem", transform: "translateX(-50%)",
-    width: "max-content", maxWidth: "calc(100% - 2rem)", textAlign: "center", boxSizing: "border-box",
-    fontSize: ".875rem", color: PALETTE.ink, background: PALETTE.paper,
-    padding: ".35rem .65rem", borderRadius: ".25rem", pointerEvents: "none", zIndex: "1",
-  });
-  container.appendChild(mascotHint);
-  function clearMascotHint() {
-    clearTimeout(mascotHintTimer);
-    mascotHintTimer = undefined;
-    mascotHintZone = undefined;
-    mascotHint.textContent = "";
-  }
-  function updateMascot(dt: number, snap = false) {
-    mascot.visible = mascotEnabled && !cinematicLocked();
-    mascotFollow = stepMascotFollow(mascotFollow, mascotInput(snap), dt);
-    mascot.position.copy(mascotFollow.position);
-  }
   function nearestZone() {
     return ZONES.reduce((nearest, zone) =>
       Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z)
@@ -577,27 +536,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   if (journey) {
     container.dataset.worldPostcard = "ready";
     container.addEventListener("tqa:postcard", onPostcard);
-  }
-  function updateMascotHint(dt: number) {
-    if (canSimulate(state)) mascotTime += dt;
-    if (cinematicLocked()) { clearMascotHint(); return; }
-    const zone = nearestZone();
-    const zoneId = Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius ? zone.id : null;
-    const eligible = cameraEnabled();
-    if (!mascotEnabled || !eligible || mascotHintZone !== zoneId) clearMascotHint();
-    const hint = mascotHints.update({ zoneId, locale, now: mascotTime, enabled: mascotEnabled, eligible });
-    if (!hint) return;
-    mascotHintZone = hint.zoneId;
-    mascotHint.textContent = hint.text;
-    mascotHintTimer = setTimeout(clearMascotHint, 6000);
-  }
-  function setMascot(event: Event) {
-    const enabled = (event as CustomEvent).detail?.enabled;
-    if (typeof enabled !== "boolean") return;
-    mascotEnabled = enabled;
-    container.dataset.worldMascot = enabled ? "on" : "off";
-    updateMascot(0, enabled);
-    if (!enabled) clearMascotHint();
   }
   function publishAmbience(now: number) {
     if (!canSimulate(state) || now - lastAmbience < 250) return;
@@ -736,7 +674,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       vehicle = result.state;
       physics.teleport(safe);
       player.position.copy(safe);
-      updateMascot(0, true);
       state = sessionReducer({ ...state, position: { ...safe } }, { type: "safePosition", position: safe });
       clear();
     }
@@ -754,7 +691,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     vehicle = parkedVehicle;
     unsafeStop = false;
     publishVehicle(0, true);
-    updateMascot(0, true);
   }
   function driveVehicle(dt: number) {
     const obstacles = solidBounds(0.85);
@@ -808,7 +744,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       publishVehicle();
     }
     state = sessionReducer(state, { type: "pause", reason, paused });
-    if (paused) clearMascotHint();
     metricStart = 0;
     metricFrames = 0;
     clear({ type: reason === "windowBlur" ? "blur" : "hidden" });
@@ -881,7 +816,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     composed.update(safe, 0);
     state = sessionReducer(state, { type: "safePosition", position: safe });
     state = locomotion.recover(state);
-    updateMascot(0, true);
     clear();
   }
   function click(event: MouseEvent) {
@@ -952,7 +886,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (cinematicUI) cinematicUI.skip.textContent = WORLD_COPY[locale].skip;
     // Locale changes only relabel the toggle; the poem stays in the language the reader chose.
     if (feedback.textContent && story.lastFeedback) renderPoem();
-    if (mascotHintZone) mascotHint.textContent = MASCOT_HINTS[mascotHintZone][locale];
     if (metrics) metrics.textContent = "";
     interaction.update();
   }
@@ -1019,7 +952,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       arm = zoom;
       locomotion.reset();
       player.position.copy(physics.position);
-      updateMascot(0, true);
       updateCamera(0);
     }
     if (teleportCover) teleportCover.style.opacity = String(teleport.opacity);
@@ -1130,7 +1062,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       gpu.domElement.focus({ preventScroll: true });
       interaction.update();
       publishIntro("done");
-      updateMascot(0, true);
     }
   }
   function skipCinematic() {
@@ -1187,8 +1118,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // Direction R shows the full forest and sky, without the legacy paper corridor.
     paper.setCorridor(WORLD_DIRECTION === STYLE_PRESETS.R ? null : introCorridor(physics.position), TERRAIN_RADIUS);
     applyIntro(intro.start());
-    updateMascot(0);
-    clearMascotHint();
     const active = document.activeElement;
     if (!active || active === document.body || active === gpu.domElement) skip.focus({ preventScroll: true });
     interaction.update();
@@ -1223,8 +1152,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     composed.setPreload(INTRO_PRELOAD_M);
     publishEnding("playing");
     applyEnding(ending.start());
-    updateMascot(0);
-    clearMascotHint();
     interaction.update();
   }
   function applyEnding(pose: EndingFrame) {
@@ -1239,7 +1166,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     physics.teleport(position);
     state = sessionReducer({ ...state, position: { ...position } }, { type: "safePosition", position });
     player.position.copy(physics.position);
-    updateMascot(0, true);
     story = storyReducer(story, { type: "finishEnding", valid: true });
     clear();
     removeCinematicUI();
@@ -1301,7 +1227,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     vehicle = cancelCruise(vehicle, "ui-open");
     publishVehicle();
     clear();
-    clearMascotHint();
     publishState();
     interaction.update();
     container.dispatchEvent(new CustomEvent("tqa:world-error", {
@@ -1365,8 +1290,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       }
       applyIntro(introFrame);
     }
-    updateMascot(canSimulate(state) ? dt : 0);
-    updateMascotHint(canSimulate(state) ? dt : 0);
     for (const zone of zones) zone.update?.(animDt, reducedMotion);
     dressing?.update(animDt, reducedMotion);
     updateFoliageWind(composed.foliageMeshes, animDt, reducedMotion);
@@ -1443,18 +1366,15 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       teleport = next;
       if (teleportCover) teleportCover.dataset.worldTeleportCover = teleport.effect;
     }
-    updateMascot(0, true);
   };
   if (window.__tqaSkipIntro === true) {
     intro.skip();
     publishIntro("done");
-    updateMascot(0, true);
   }
   container.addEventListener("tqa:return-to-path", returnToPath);
   container.addEventListener("tqa:pause", externalPause);
   container.addEventListener("tqa:set-quality", setQuality);
   container.addEventListener("tqa:set-locale", setLocale);
-  container.addEventListener("tqa:set-mascot", setMascot);
   container.addEventListener("tqa:set-motion", setMotion);
   container.addEventListener(TELEPORT_TO_EVENT, teleportTo);
   container.addEventListener(TELEPORT_CANCEL_EVENT, cancelTeleport);
@@ -1517,10 +1437,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     translate.removeEventListener("pointerenter", holdPoem);
     translate.removeEventListener("focus", holdPoem);
     translate.remove();
-    clearMascotHint();
-    mascotHint.remove();
-    mascot.dispose();
-    delete container.dataset.worldMascot;
     delete container.dataset.worldEnding;
     delete container.dataset.worldIntro;
     delete container.dataset.worldBuild;
@@ -1536,7 +1452,6 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.removeEventListener("tqa:pause", externalPause);
     container.removeEventListener("tqa:set-quality", setQuality);
     container.removeEventListener("tqa:set-locale", setLocale);
-    container.removeEventListener("tqa:set-mascot", setMascot);
     container.removeEventListener("tqa:set-motion", setMotion);
     delete container.dataset.worldMotion;
     delete container.dataset.worldLocale;

@@ -637,9 +637,6 @@ nav[aria-label="Language"] ul {
 .world-viewport > p[aria-live]:empty {
   display: none;
 }
-.world-viewport > [data-world-mascot-hint]:empty {
-  display: none;
-}
 /* Q-32: a found secret answers with one of Duy's four-line poems. The card sits above the "E —" hint (5.5rem) and the
    language button sits inside its lower edge. */
 .world-viewport > p[data-world-story-feedback] {

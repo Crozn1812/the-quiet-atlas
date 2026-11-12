@@ -74,7 +74,7 @@ function installSound(enabled = false) {
   return { hud, onClick };
 }
 
-it.each(["en", "vi"])("renders all eleven menu items in the specified order in %s", async locale => {
+it.each(["en", "vi"])("renders all ten menu items in the specified order in %s", async locale => {
   installSound();
   await mount(locale);
   const groups = menu().children.slice(1);
@@ -82,7 +82,7 @@ it.each(["en", "vi"])("renders all eleven menu items in the specified order in %
   expect(groups.map(node => node.querySelector("h3")!.textContent)).toEqual(locale === "vi" ? ["Hành trình", "Cài đặt", "Khác"] : ["Journey", "Settings", "Other"]);
   const items = groups.flatMap(node => node.children.filter(child => child.tagName !== "H3"));
   expect(items.map(node => node.tagName)).toEqual([
-    "BUTTON", "BUTTON", "FIELDSET", "BUTTON", "BUTTON", "BUTTON", "FIELDSET", "DETAILS", "A", "BUTTON", "BUTTON",
+    "BUTTON", "BUTTON", "FIELDSET", "BUTTON", "BUTTON", "FIELDSET", "DETAILS", "A", "BUTTON", "BUTTON",
   ]);
   const labels = items.map(node => {
     if (node.tagName === "LABEL") return node.querySelector("span")!.textContent;
@@ -91,10 +91,10 @@ it.each(["en", "vi"])("renders all eleven menu items in the specified order in %
     return node.textContent;
   });
   expect(labels).toEqual(locale === "vi" ? [
-    "Sổ Atlas", "Quay về đường", "Chất lượng", "Âm thanh: Tắt", "Giảm chuyển động: Tắt", "Mascot: Bật",
+    "Sổ Atlas", "Quay về đường", "Chất lượng", "Âm thanh: Tắt", "Giảm chuyển động: Tắt",
     "Ngôn ngữ", "Bảng phím", "Mở Quick Portfolio", "Rời world", "× Đóng",
   ] : [
-    "Atlas Journal", "Return to path", "Quality", "Sound: Off", "Reduced motion: Off", "Mascot: On",
+    "Atlas Journal", "Return to path", "Quality", "Sound: Off", "Reduced motion: Off",
     "Language", "Keyboard controls", "Open Quick Portfolio", "Exit world", "× Close",
   ]);
 });

@@ -34,8 +34,7 @@ export function createRailingLookout(options: {
   function hideHud() {
     style ??= document.createElement("style");
     style.textContent = `.world-entry:has([data-world-lean="on"]) .world-hud,
-      [data-world-lean="on"] [data-world-interaction-hint], [data-world-lean="on"] [data-hud-keys],
-      [data-world-lean="on"] [data-world-mascot-hint] { visibility:hidden; pointer-events:none; }`;
+      [data-world-lean="on"] [data-world-interaction-hint], [data-world-lean="on"] [data-hud-keys] { visibility:hidden; pointer-events:none; }`;
     container.appendChild(style);
   }
   const right = new Vector3(-forward.z, 0, forward.x);

@@ -6,7 +6,6 @@ import {
 } from "three";
 import { paletteColor, WORLD_DIRECTION } from "../../src/features/world/art/direction";
 import { PALETTE } from "../../src/features/world/art/palette";
-import { createMascotMesh } from "../../src/features/mascot/shape";
 import { createRampMaterial } from "../../src/features/world/materials/ramp";
 import { createPaperPass } from "../../src/features/world/post/paper";
 import { createProp } from "../../src/features/world/props";
@@ -49,7 +48,7 @@ function shadows(object: Object3D) {
   return object;
 }
 function floor(object: Object3D) {
-  // Props are centred on their bounding box; landmarks/GD110/mascot already stand on y = 0.
+  // Props are centred on their bounding box; landmarks/GD110 already stand on y = 0.
   if (object instanceof Mesh) {
     object.geometry.computeBoundingBox();
     object.position.y = -object.geometry.boundingBox!.min.y;
@@ -64,13 +63,11 @@ const lineUp: { id: string; object: Object3D; x: number }[] = [
   { id: "signpost", object: createProp("signpost"), x: 2.5 },
   { id: "desk", object: createProp("desk"), x: 5 },
   { id: "gd110", object: createGd110(), x: 8.5 },
-  { id: "mascot", object: createMascotMesh(), x: 11.5 },
 ];
 const group = new Group();
 for (const item of lineUp) {
   const object = shadows(floor(item.object));
   object.position.x = item.x;
-  if (item.id === "mascot") object.position.y = 1.2;
   if (item.id === "gd110") object.rotation.y = -Math.PI / 2.6;
   group.add(object);
 }
@@ -79,8 +76,8 @@ scene.add(group);
 const view = new URLSearchParams(location.search).get("view");
 const focus = lineUp.find(item => item.id === view);
 const camera = new PerspectiveCamera(focus ? 35 : 32, window.innerWidth / window.innerHeight, 0.1, 200);
-const target = focus ? new Vector3(focus.x, focus.id === "trail" ? 0.2 : focus.id === "mascot" ? 1.35 : 0.9, focus.id === "trail" ? -4 : 0) : new Vector3(0, 0.9, 0);
-const offset = focus?.id === "mascot" ? new Vector3(0.6, 0.3, 1.6) : focus?.id === "trail" ? new Vector3(3, 3.5, 4) : new Vector3(2.4, 1.6, 5.2);
+const target = focus ? new Vector3(focus.x, focus.id === "trail" ? 0.2 : 0.9, focus.id === "trail" ? -4 : 0) : new Vector3(0, 0.9, 0);
+const offset = focus?.id === "trail" ? new Vector3(3, 3.5, 4) : new Vector3(2.4, 1.6, 5.2);
 camera.position.copy(target).add(focus ? offset : new Vector3(0, 3.6, 27));
 camera.lookAt(target);
 

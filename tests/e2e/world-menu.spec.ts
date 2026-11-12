@@ -33,6 +33,9 @@ test("T07 menu: Esc opens (paused, focus on title), Tab/Shift+Tab stay inside, E
 
   await page.keyboard.press("Escape");
   await expect(dialog(page)).toHaveAttribute("open", "");
+  await expect(dialog(page).getByRole("button", { name: /Mascot/i })).toHaveCount(0);
+  await expect(world.locator("[data-world-mascot-hint]")).toHaveCount(0);
+  await expect(world).not.toHaveAttribute("data-world-mascot", /.+/);
   await expect(world).toHaveAttribute("data-world-paused", "true");
   await expect(title(page)).toBeFocused();
 

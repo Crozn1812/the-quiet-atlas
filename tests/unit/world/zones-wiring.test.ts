@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { InstancedMesh, Matrix4, Mesh, PerspectiveCamera, Scene, Vector3 } from "three";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { ZONE_IDS } from "../../../src/features/interaction/targets";
+import { ZONE_HINTS } from "../../../src/i18n/zone-hints";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { placeZoneScenes, zoneFoliageBounds, createZoneEntryTracker, SPAWN_ZONE_IDS } from "../../../src/features/world/zones";
 import { createMeshPhysics } from "../../../src/features/world/scene/mesh-physics";
@@ -145,7 +146,31 @@ it("places eight groups at anchors, aims +Z along the path and opens every local
   expect(opened.every(event => !event.bubbles)).toBe(true);
 });
 
-it("freezes all eight zone updates on pause, overrides OS motion for zones/water/idle/mascot, and disposes once", async () => {
+it("keeps English zone guidance across locale changes in the HUD, yields to nearby interactions and hides while paused or outside zones", async () => {
+  const clock = deferredClock();
+  await mount(); vi.advanceTimersByTime(16); clock.paint(); vi.runAllTimers(); tick();
+  const hint = () => container.children.find(child => "data-world-interaction-hint" in child.attributes)!;
+  for (const zone of ZONES) {
+    // Stay inside the zone but beyond the reach of its interactable set-piece.
+    position().set(zone.position.x + zone.radius - 1, 100 + HEIGHT, zone.position.z);
+    tick();
+    for (const locale of ["en", "vi"] as const) {
+      send(container, "tqa:set-locale", { locale });
+      expect(hint().textContent).toBe(ZONE_HINTS[zone.id]);
+    }
+  }
+  send(container, "tqa:pause", { reason: "overlay", paused: true });
+  expect(hint().textContent).toBe("");
+  send(container, "tqa:pause", { reason: "overlay", paused: false });
+  expect(hint().textContent).toBe(ZONE_HINTS["last-postcard"]);
+  position().set(5000, 100 + HEIGHT, 5000); tick();
+  expect(hint().textContent).toBe("");
+  const zone = h.zones[0]!;
+  position().copy(zone.target.position); tick();
+  expect(hint().textContent).toBe("E — " + zone.interactable.label.vi);
+});
+
+it("freezes all eight zone updates on pause, overrides OS motion for zones/water/idle, and disposes once", async () => {
   const clock = deferredClock();
   await mount(); vi.advanceTimersByTime(16); clock.paint(); vi.runAllTimers(); tick(); tick();
   expect(h.zones.every(zone => vi.mocked(zone.update!).mock.lastCall![0] > 0)).toBe(true);
@@ -155,10 +180,11 @@ it("freezes all eight zone updates on pause, overrides OS motion for zones/water
   expect(container.dataset.worldMotion).toBe("reduced"); expect(h.reduced).toHaveBeenLastCalledWith(true); expect(h.idleMotion).toHaveBeenLastCalledWith(true);
   send(container, "tqa:pause", { reason: "overlay", paused: false }); tick();
   expect(h.zones.every(zone => vi.mocked(zone.update!).mock.lastCall![1])).toBe(true);
-  const mascot = (h.scene as Scene).getObjectByName("mascot")!;
-  const still = mascot.position.clone(); tick(); tick(); expect(mascot.position).toEqual(still);
   send(container, "tqa:set-motion", { reduced: false }); tick();
-  expect(container.dataset.worldMotion).toBe("full"); expect(mascot.position.distanceTo(still)).toBeGreaterThan(0);
+  expect(container.dataset.worldMotion).toBe("full");
+  expect(h.reduced).toHaveBeenLastCalledWith(false);
+  expect(h.idleMotion).toHaveBeenLastCalledWith(false);
+  expect(h.zones.every(zone => vi.mocked(zone.update!).mock.lastCall![1] === false)).toBe(true);
   media.matches = true; send(media, "change"); expect(container.dataset.worldMotion).toBe("full");
   for (const reduced of [undefined, null, 1, "true"]) send(container, "tqa:set-motion", { reduced });
   expect(container.dataset.worldMotion).toBe("full");

@@ -131,22 +131,6 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   }
   translations.push(syncMotion);
 
-  let mascotEnabled = container.getAttribute("data-world-mascot") !== "off";
-  const mascotLabel = () => `Mascot: ${mascotEnabled ? copy.on : copy.off}`;
-  const mascotToggle = button(mascotLabel, () => {
-    mascotEnabled = !mascotEnabled;
-    syncMascot();
-    container.dispatchEvent(new CustomEvent("tqa:set-mascot", {
-      bubbles: false,
-      detail: { enabled: mascotEnabled },
-    }));
-  });
-  function syncMascot() {
-    mascotToggle.textContent = mascotLabel();
-    mascotToggle.setAttribute("aria-pressed", String(mascotEnabled));
-  }
-  translations.push(syncMascot);
-
   {
     const languages = document.createElement("fieldset");
     const legend = document.createElement("legend");
