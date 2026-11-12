@@ -1,0 +1,25 @@
+# Antigravity (Gemini) làm nhân công song song
+
+Duy đã cài Antigravity và cấp toàn quyền (2026-11-12). Claude không điều khiển Antigravity trực tiếp được (không có CLI/API trong môi trường này), nên:
+
+1. Claude-Lead tạo worktree riêng `D:/tqa-worktrees/AG-<ticket>` (nhánh `lane/AG-<ticket>`) và ticket trong `docs/tickets/`.
+2. Duy mở Antigravity → **Open Folder** đúng worktree đó → dán lời nhắn bên dưới (đổi `<ticket>`).
+3. Xong, Duy nhắn Claude "AG-<ticket> xong". Claude build, chạy e2e, xem ảnh, rồi merge hoặc trả lại.
+
+## Lời nhắn mẫu để dán vào Antigravity
+
+```
+Bạn là thợ thi công cho dự án The Quiet Atlas, làm trong thư mục này (một git worktree riêng).
+Đọc và làm đúng: docs/tickets/_common-b2.md, docs/tickets/_graphics-common.md, docs/tickets/R2-tickets.md (mục Chung + mục <ticket>), docs/tickets/R2-playtest-feedback.md.
+Luật: chỉ sửa file trong mục "Được sửa"; không push, không commit; không đổi package.json/lockfile; không tải asset không rõ giấy phép (Poly Haven CC0 được, ghi vào assets/LICENSES.csv); chữ trong world chỉ tiếng Anh.
+Build: NEXT_TEST_WASM_DIR="C:\Users\PC-LP\AppData\Local\next-swc\wasm\package" NEXT_BUILD_WEBPACK=1 pnpm build
+Kiểm: pnpm lint, pnpm typecheck, pnpm test phải exit 0; chụp ảnh khu bằng: node tools/serve-out/index.mjs out --port <cổng ticket> rồi TQA_QUALITY=high node tools/review/ingame-shots.mjs <thư-mục-ảnh> http://127.0.0.1:<cổng> vi
+Xong thì viết bàn giao vào tools/review/AG-<ticket>-handoff.md: file đã sửa, kết quả lệnh, đường dẫn ảnh, việc chưa làm.
+```
+
+## Đang giao
+
+| Worktree | Ticket | Cổng |
+|---|---|---|
+| `D:/tqa-worktrees/AG-WS-02` | WS-02 cổng đình làng có lửa (Workshop) | 4518 |
+| `D:/tqa-worktrees/AG-MS-02` | MS-02 tượng đá Duy đang ghép (Milestones) | 4517 |
