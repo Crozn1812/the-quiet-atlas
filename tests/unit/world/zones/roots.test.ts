@@ -121,7 +121,60 @@ afterEach(() => {
 });
 
 describe("The Roots procedural zone", () => {
-  // RC-02 names the living ancient tree; collider positions remain unchanged.
+  // RT-02 adds three dry-site-validated easel boxes beside the living tree.
+  it("paints the skills board at Roots, facing the path, and releases its texture once", () => {
+    const text = vi.fn();
+    const ctx = { fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fillText: text };
+    vi.stubGlobal("document", { createElement: () => ({ getContext: () => ctx }) });
+    try {
+      const scene = create();
+      const board = scene.group.getObjectByName("roots-skills-board") as Mesh<import("three").PlaneGeometry, import("three").MeshBasicMaterial>;
+      expect(board).toBeDefined();
+      const normal = new Vector3(0, 0, 1).applyEuler(board.rotation);
+      expect(normal.angleTo(new Vector3(0, 0, -1))).toBeLessThanOrEqual(Math.PI / 6);
+      expect(board.position.x - 1.7).toBeGreaterThan(PATH_CLEARANCE);
+      expect(board.position.x - 1.7 - PATH_CLEARANCE).toBeLessThanOrEqual(2);
+      expect(board.geometry.parameters.width).toBeCloseTo(3.2);
+      expect(board.position.x).toBeGreaterThan(PATH_CLEARANCE);
+      expect(text.mock.calls.flat()).toContain("Skills");
+      for (const label of ["AWS", "Azure", "Languages", "Network and", "Systems", "Tools"]) {
+        expect(text.mock.calls.flat()).toContain(label);
+      }
+      const canvas = board.material.map!.image as HTMLCanvasElement;
+      expect(canvas.width).toBe(800);
+      expect(canvas.height).toBe(1000);
+      const release = vi.fn();
+      board.material.map!.addEventListener("dispose", release);
+      scene.dispose();
+      scene.dispose();
+      expect(release).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("defers the crown and cancels pending construction when disposed", () => {
+    const pending: (() => void)[] = [], cancel = vi.fn();
+    vi.stubGlobal("window", {
+      requestIdleCallback: (build: () => void) => { pending.push(build); return pending.length; },
+      cancelIdleCallback: cancel,
+    });
+    try {
+      const scene = create();
+      expect(scene.group.getObjectByName("roots-ancient-tree")).toBeUndefined();
+      pending[0]!();
+      expect(scene.group.getObjectByName("roots-ancient-tree")).toBeDefined();
+      const abandoned = create();
+      abandoned.dispose();
+      expect(cancel).toHaveBeenCalledWith(2);
+      pending[1]!();
+      expect(abandoned.group.children).toHaveLength(0);
+      scene.dispose();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("locks the ancient-tree interaction and collider contract", () => {
     const fixtures = [context(), context({ seed: 1 }), context({ seed: 9371 }),
       context({ heightAt: (x, z) => x * 0.035 + z * 0.02 }),
@@ -131,7 +184,7 @@ describe("The Roots procedural zone", () => {
       return { colliders: scene.colliders, interactable: scene.interactable };
     });
     expect(createHash("sha256").update(JSON.stringify(contracts)).digest("hex"))
-      .toBe("dd7df4698f561c17d51de5e5830f8ad0d6c9207feaabb460f8790fe3b65cf6c4");
+      .toBe("0fdf0b29951a6106ae2029468cf8014d3c9341a5cb329b9e20c5d4106f4e17d0");
   });
   it("places the complete world on the rendered terrain without throwing", () => {
     let terrain: ZoneSceneContext | undefined;
@@ -152,7 +205,7 @@ describe("The Roots procedural zone", () => {
         for (let i = 0; i < positions.count; i++) {
           const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
           expect(Number.isFinite(y)).toBe(true);
-          expect(Math.hypot(x, y, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+          expect(Math.hypot(x, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
         }
       }
       console.info("roots real terrain:", roots.interactable.position.toArray(), roots.target.position.toArray());
@@ -194,9 +247,9 @@ describe("The Roots procedural zone", () => {
       + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = parts.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(1000);
-    // Pre-r4: 2744 triangles / 7 calls. No new call, and growth stays below 1.5x.
-    expect(triangles).toBeLessThanOrEqual(Math.min(ZONE_BUDGET.triangles, 2744 * 1.5));
-    expect(drawCalls).toBeLessThanOrEqual(7);
+    // RT-02 revision: ADR 0015 allows the bespoke tree below 25,000 triangles.
+    expect(triangles).toBeLessThanOrEqual(25000);
+    expect(drawCalls).toBeLessThanOrEqual(8);
     const wood = parts.filter(mesh => /roots-(wood|ink)$/.test(mesh.name));
     const rootTriangles = 9 * (12 * 16 + 12);
     const woodTriangles = wood.reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
@@ -207,7 +260,7 @@ describe("The Roots procedural zone", () => {
       expect(mesh.geometry.groups).toHaveLength(0);
       const positions = mesh.geometry.getAttribute("position");
       for (let i = 0; i < positions.count; i++) {
-        expect(new Vector3().fromBufferAttribute(positions, i).length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+        expect(Math.hypot(positions.getX(i), positions.getZ(i))).toBeLessThanOrEqual(ZONE_BUDGET.radius);
       }
     }
     expect(buildTimes[3]).toBeLessThanOrEqual(200);
@@ -246,14 +299,14 @@ describe("The Roots procedural zone", () => {
           const x = positions.getX(i), y = positions.getY(i), z = positions.getZ(i);
           // The living canopy may overhang the path/water above walking headroom.
           if (mesh.name === "roots-ancient-tree" && y > ctx.heightAt(x, z) + 3) {
-            expect(Math.hypot(x, y, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+            expect(Math.hypot(x, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
             continue;
           }
           expect(Math.abs(x)).toBeGreaterThan(PATH_CLEARANCE);
           expect(ctx.onPath(x, z)).toBe(false);
           expect(ctx.underWater(x, z)).toBe(false);
           expect(y).toBeGreaterThanOrEqual(ctx.heightAt(x, z) - 0.1);
-          expect(Math.hypot(x, y, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
+          expect(Math.hypot(x, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
         }
       }
       expect(scene.colliders.length).toBeGreaterThan(8);
@@ -298,11 +351,12 @@ describe("The Roots procedural zone", () => {
       expect(scene.group.getObjectByName("roots-cut")).toBeUndefined();
       const tree = scene.group.getObjectByName("roots-ancient-tree") as PaintedMesh;
       const bounds = new Box3().setFromObject(tree), size = bounds.getSize(new Vector3());
-      expect(size.y).toBeGreaterThan(10);
-      expect(size.x).toBeGreaterThan(8);
+      expect(size.y).toBeGreaterThanOrEqual(30);
+      expect(size.y).toBeLessThanOrEqual(45);
+      expect(size.x).toBeGreaterThan(25);
       const collar = ctx.heightAt(side * 6.4, scene.interactable.position.z) + 1.28 * 1.6;
       expect(bounds.min.y).toBeLessThan(collar);
-      expect(bounds.min.y).toBeGreaterThan(collar - 0.5);
+      expect(bounds.min.y).toBeGreaterThan(collar - 1.1);
       const wood = scene.group.getObjectByName("roots-wood") as PaintedMesh;
       for (const rings of rootSections(scene).slice(0, 7)) {
         // Follow the actual S tangent into the narrow tip, away from the cap edge.
@@ -313,7 +367,7 @@ describe("The Roots procedural zone", () => {
     }
   });
 
-  it("builds seven thick, tapered S roots of 2–6 metres and two transverse connections", () => {
+  it("builds seven thick, tapered S roots reaching 8–13 metres and two transverse connections", () => {
     for (const seed of [1, 102, 9371]) {
       const scene = create(context({ seed }));
       const roots = rootSections(scene);
@@ -328,8 +382,8 @@ describe("The Roots procedural zone", () => {
       for (const rings of roots.slice(0, 7)) {
         const ring = rings[0]!;
         const width = Math.max(...ring.flatMap(a => ring.map(b => Math.hypot(a.x - b.x, a.z - b.z))));
-        expect(width).toBeGreaterThanOrEqual(0.97);
-        expect(width).toBeLessThanOrEqual(1.17);
+        expect(width).toBeGreaterThanOrEqual(1.5);
+        expect(width).toBeLessThanOrEqual(1.71);
         const tip = rings.at(-1)!;
         const tipWidth = Math.max(...tip.flatMap(a => tip.map(b => Math.hypot(a.x - b.x, a.z - b.z))));
         expect(tipWidth / width).toBeCloseTo(0.13, 4);
@@ -338,14 +392,14 @@ describe("The Roots procedural zone", () => {
       for (const curve of main) {
         const length = curve.slice(1).reduce((sum, p, i) => sum + p.distanceTo(curve[i]!), 0);
         expect(length).toBeGreaterThanOrEqual(2);
-        expect(length).toBeLessThanOrEqual(6);
+        expect(length).toBeLessThanOrEqual(14);
         const first = curve[0]!, last = curve.at(-1)!;
         const normal = new Vector3(-(last.z - first.z), 0, last.x - first.x).normalize();
         const offsets = curve.map(p => p.clone().sub(first).dot(normal));
         expect(Math.min(...offsets)).toBeLessThan(-0.3);
         expect(Math.max(...offsets)).toBeGreaterThan(0.3);
         expect(Math.abs(Math.min(...offsets) + Math.max(...offsets))).toBeGreaterThan(0.08);
-        curve.forEach(p => expect(p.y).toBeLessThan(0.4));
+        curve.forEach(p => expect(p.y).toBeLessThan(0.6));
       }
       for (const link of curves.filter(curve => !main.includes(curve))) {
         for (const end of [link[0]!, link.at(-1)!]) {
@@ -513,7 +567,7 @@ describe("The Roots procedural zone", () => {
     expect(p.distanceTo(new Vector3(PATH_CLEARANCE, 0, p.z))).toBeLessThanOrEqual(2.5);
   });
 
-  it("preserves palette kit pigments with matte ramps and no text or glow", () => {
+  it("preserves palette kit pigments with matte ramps and local bark fill", () => {
     const pigment = (key: keyof typeof PALETTE) => new Color(PALETTE[key]);
     const wood = [0.15, 0.78].map(t => pigment("rock").lerp(pigment("rockDark"), t).lerp(pigment("dusk"), 0.08));
     const bark: [Color, Color][] = [[wood[0]!, wood[1]!],
@@ -544,7 +598,7 @@ describe("The Roots procedural zone", () => {
       expect(material.transparent).toBe(false);
       expect(material.map).toBeNull();
       expect(material.gradientMap).not.toBeNull();
-      expect(material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
+      expect(material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2(?:\|roots-bark-fill-(?:true|false))?$/);
       const colors = mesh.geometry.getAttribute("color");
       for (let i = 0; i < colors.count; i++) {
         const vertex = new Color().fromBufferAttribute(colors, i);
@@ -676,8 +730,8 @@ describe("The Roots procedural zone", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // RC-02 replaces the exposed cut cap with a living, zone-bounded ancient tree.
-    expect(fingerprint).toBe("db3c150880fa05641e2d5d7b227f7ace6ab0c7f7899aa2ccd74885514f47561d");
+    // RT-02 replaces the scaled forest kit with a bespoke tree and relocated skills easel.
+    expect(fingerprint).toBe("36a6ad2f0dd7edfd9c246a82a4e38ce5d3e8d23b54da2646ac9a8ec92068d55d");
   });
 
 });

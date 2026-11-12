@@ -1,10 +1,11 @@
 import { CanvasTexture, DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry, SRGBColorSpace } from "three";
+import { PALETTE } from "../art/palette";
 
-export function createLettering(width: number, height: number, paint: (ctx: CanvasRenderingContext2D) => void, transparent = true) {
+export function createLettering(width: number, height: number, paint: (ctx: CanvasRenderingContext2D) => void, transparent = true, resolution: readonly [number, number] = [512, 256]) {
   if (typeof document === "undefined") return undefined;
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 256;
+  canvas.width = resolution[0];
+  canvas.height = resolution[1];
   const ctx = canvas.getContext?.("2d");
   if (!ctx) return undefined;
   paint(ctx);
@@ -27,30 +28,31 @@ export function createSignLabel(label: string) {
 }
 
 export function createSkillsBoard() {
-  return createLettering(0.90, 0.90, ctx => {
-    ctx.fillStyle = "#f5f2ea";
-    ctx.fillRect(0, 0, 512, 256);
-    ctx.strokeStyle = "#5e8c6a";
-    ctx.lineWidth = 3;
-    const branches = [[115, 48], [396, 48], [115, 204], [396, 204]] as const;
-    for (const [x, y] of branches) {
-      ctx.beginPath(); ctx.moveTo(256, 128); ctx.lineTo(x, y); ctx.stroke();
-    }
+  return createLettering(3.2, 4, ctx => {
+    ctx.fillStyle = PALETTE.paper;
+    ctx.fillRect(0, 0, 800, 1000);
+    ctx.strokeStyle = PALETTE.forestLight;
+    ctx.lineWidth = 5;
+    // A single branching stem keeps the five groups legible from the approach.
+    ctx.beginPath(); ctx.moveTo(45, 85); ctx.lineTo(45, 865); ctx.stroke();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const node = (x: number, y: number, title: string, details: string) => {
-      ctx.fillStyle = "#e0e9dc";
-      ctx.fillRect(x - 105, y - 27, 210, 54);
-      ctx.fillStyle = "#203e35";
-      ctx.font = "bold 27px sans-serif";
-      ctx.fillText(title, x, y - 9);
-      ctx.font = "21px sans-serif";
-      ctx.fillText(details, x, y + 13, 196);
+    const node = (y: number, title: string, subtitle?: string) => {
+      ctx.beginPath(); ctx.moveTo(45, y); ctx.lineTo(95, y); ctx.stroke();
+      ctx.fillStyle = PALETTE.mist;
+      ctx.fillRect(95, y - (subtitle ? 112 : 65), 680, subtitle ? 224 : 130);
+      ctx.fillStyle = PALETTE.ink;
+      ctx.font = "bold 108px sans-serif";
+      ctx.fillText(title, 435, y - (subtitle ? 55 : 0), 650);
+      if (subtitle) ctx.fillText(subtitle, 435, y + 55, 650);
     };
-    node(115, 48, "AWS", "EKS · S3 · Lambda");
-    node(396, 48, "Azure", "APIM · Functions · Foundry");
-    node(115, 204, "Delivery", "Terraform · Jenkins · Argo CD");
-    node(396, 204, "Data & RAG", "Python · Redis · pgvector");
-    node(256, 128, "Project skills", "Cloud · DevOps · Data");
-  }, false);
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = "bold 68px sans-serif";
+    ctx.fillText("Skills", 435, 60);
+    node(190, "AWS");
+    node(355, "Azure");
+    node(520, "Languages");
+    node(685, "Tools");
+    node(865, "Network and", "Systems");
+  }, false, [800, 1000]);
 }

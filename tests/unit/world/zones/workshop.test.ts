@@ -305,13 +305,13 @@ describe("workshop bank set-piece", () => {
     expect(area(flower) / parts.reduce((total, mesh) => total + area(mesh), 0)).toBeLessThan(0.001);
   });
 
-  it("reads as an open three-bay gate with clear sightlines, a usable bench and a paper sketch on an easel", () => {
+  it("reads as an open three-bay gate with clear sightlines, a usable bench and no former skills easel", () => {
     const scene = create();
     const wood = meshes(scene).filter(mesh => mesh.name === "workshop-wood");
     const ray = (origin: Vector3, direction: Vector3) => new Raycaster(origin, direction).intersectObjects(wood)[0];
     expect(Math.abs(ray(new Vector3(-4.75, 2, 0), new Vector3(0, -1, 0))!.point.y - 1.005)).toBeLessThan(0.035);
     const paper = meshes(scene).find(mesh => mesh.name === "workshop-paper")!;
-    expect(new Raycaster(new Vector3(-3, 1.43, -4.25), new Vector3(-1, 0, 0)).intersectObject(paper)[0]).toBeDefined();
+    expect(new Raycaster(new Vector3(-3, 1.43, -4.25), new Vector3(-1, 0, 0)).intersectObject(paper)[0]).toBeUndefined();
     // Sightline through the central bay from the path is completely clear of walls
     const eye = new Vector3(-2.6, 1.6, 0.8);
     const through = new Raycaster(eye, new Vector3(-1, 0, 0), 0, 4.0).intersectObjects(wood);
@@ -505,8 +505,9 @@ describe("workshop bank set-piece", () => {
     })).digest("hex");
     // B2-203 replaces box wood/steps with shared grain/bevel/slab assets and adds bench tools.
     // RC-02 replaces abstract ink strokes with the readable skills board.
+    // RT-02 moves the skills easel and its collider to Roots.
     // WS-02 replaces the mono-pitch shed with an 8–12 m communal gate (cổng đình làng) and burning fire braziers.
-    expect(fingerprint).toBe("cb15e34bd4f646e8e02faad4929d505e70010f44b0cadb62a4221a790a179054");
+    expect(fingerprint).toBe("3cee5fa2d7aa19acb698788fcafd82989a67ab4cb582b32518296de4d3fa2d8e");
   });
 
   it("uses shared wood and slab assets and keeps every prop cluster below 2000 triangles", () => {
@@ -527,11 +528,11 @@ describe("workshop bank set-piece", () => {
     expect(rocks).toHaveBeenCalledTimes(15);
   });
 
-  it("locks the WS-02 communal gate collider and interaction contract", () => {
+  it("locks the WS-02 communal gate contract after RT-02 removes the easel", () => {
     const scene = create();
     expect(createHash("sha256").update(JSON.stringify({
       colliders: scene.colliders, interactable: scene.interactable,
-    })).digest("hex")).toBe("7dcfcee5171cd981e0599c728ba47db83f6a0ecba98e9580e818a5b9fb1462c0");
+    })).digest("hex")).toBe("b91040ae99ee8b3dc49ab0cdfffbb6a9e928e0c1175931201ba742451f06ba11");
   });
 
   it("exposes real joints between crate boards and embeds the slabs on sloping ground", () => {

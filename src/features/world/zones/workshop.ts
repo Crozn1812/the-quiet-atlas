@@ -6,7 +6,6 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
-import { createSkillsBoard } from "../props/lettering";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
@@ -15,7 +14,7 @@ type Point = readonly [number, number, number];
 type Surface = "wood" | "roof" | "moss" | "paper" | "ink" | "stone" | "flower";
 type Footprint = readonly [number, number, number, number];
 
-/** Include curved roof eaves, braziers, workbench and easel within the validated dry bank footprint. */
+/** Include curved roof eaves, braziers and workbench within the validated dry bank footprint. */
 const SITE: Footprint = [-8.05, -3.15, -5.25, 4.6];
 const SAMPLE_SPACING = 0.2;
 
@@ -276,46 +275,6 @@ function buildFlameTongue(
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   return geometry;
-}
-
-/**
- * Isolated helper for the Skills Board easel beside the gate.
- * Kept standalone so ticket RT-02 can easily extract / migrate it to Roots.
- */
-export function createWorkshopSkillsBoard(options: {
-  group: Group;
-  side: number;
-  easelPos: Point;
-  highest: (bounds: Footprint) => number;
-  beamBox: (size: Point, center: Point) => void;
-  box: (surface: Surface, size: Point, center: Point) => void;
-  collider: (size: Point, center: Point) => void;
-  upright: (x: number, z: number, top: number, width: number, depth?: number) => void;
-  point: (x: number, y: number, z: number) => Vector3;
-}): { dispose: () => void } | null {
-  const { group, side, easelPos, highest, beamBox, box, collider, upright, point } = options;
-  const [easelX, , easelZ] = easelPos;
-  const easelY = highest([easelX - 0.45, easelX + 0.45, easelZ - 0.65, easelZ + 0.65]);
-
-  for (const z of [easelZ - 0.47, easelZ + 0.47]) upright(easelX, z, easelY + 1.93, 0.065);
-  upright(easelX - 0.37, easelZ, easelY + 1.55, 0.07);
-  beamBox([0.2, 0.08, 1.16], [easelX, easelY + 0.83, easelZ]);
-  beamBox([0.07, 1.12, 1.08], [easelX, easelY + 1.43, easelZ]);
-  box("paper", [0.014, 0.94, 0.93], [easelX + 0.046, easelY + 1.43, easelZ]);
-
-  const skillsBoard = createSkillsBoard();
-  if (skillsBoard) {
-    skillsBoard.mesh.rotation.y = side === 1 ? Math.PI / 2 : -Math.PI / 2;
-    skillsBoard.mesh.position.copy(point(easelX + 0.08, easelY + 1.43, easelZ));
-    group.add(skillsBoard.mesh);
-  }
-  collider([0.65, 2, 1.2], [easelX - 0.13, easelY + 1, easelZ]);
-
-  return {
-    dispose() {
-      skillsBoard?.dispose();
-    },
-  };
 }
 
 /** Landward first: the stream is normally on local +X at this point on the route. */
@@ -692,13 +651,6 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   collider([0.65, 0.23, 0.65], [ropeX, ropeY + 0.115, ropeZ]);
   add(new OctahedronGeometry(0.06, 0).translate(ropeX + 0.28, ropeY + 0.17, ropeZ), "flower");
 
-  // 6. EASEL BESIDE WORKBENCH (isolated helper for clean extraction in RT-02).
-  cluster = "making-of";
-  const easelBoard = createWorkshopSkillsBoard({
-    group, side, easelPos: [-4.85, 0, -4.25],
-    highest, beamBox, box, collider, upright, point,
-  });
-
   // 7. ROOF MOSS & GROUNDED FERNS around the pillars.
   cluster = "moss-sprig-ground";
   for (const tier of roofTiers) {
@@ -785,7 +737,6 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
       disposed = true;
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
-      easelBoard?.dispose();
       group.removeFromParent();
       group.clear();
     },

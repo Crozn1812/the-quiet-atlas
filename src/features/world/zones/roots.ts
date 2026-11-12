@@ -1,11 +1,11 @@
 import {
-  BufferGeometry, CatmullRomCurve3, Color, Float32BufferAttribute, Group,
-  IcosahedronGeometry, Mesh, Vector3,
+  BoxGeometry, BufferGeometry, CatmullRomCurve3, Color, Float32BufferAttribute, Group,
+  IcosahedronGeometry, Mesh, TubeGeometry, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern } from "../foliage/ground";
-import { createFirstLightTree } from "../foliage/first-light-grove";
+import { createSkillsBoard } from "../props/lettering";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createStumpGeometry } from "../props/wood";
@@ -30,7 +30,7 @@ const BANK_SETBACK = 3;
 const STUMP_RADIUS = 1.65 * 1.045 * STUMP_SCALE;
 const MAX_GRADE = 0.4;
 // Buttress roots stand well above the grass, then disappear into the soil.
-const ROOT_RADIUS = 0.58;
+const ROOT_RADIUS = 0.85;
 const ROOT_STEPS = 12;
 const SOIL_DEPTH = 0.05;
 
@@ -231,15 +231,15 @@ function makeParts(seed: number): Part[] {
   // Begin beneath the enlarged rim so both S bends emerge beyond the stump.
   // The road-facing tips turn along the verge, a metre clear.
   const ends = [
-    [-0.65, -3.5], [-0.7, 3.6], [1.5, 5], [4.6, 3.8],
-    [5.9, 0.6], [4.4, -3.7], [1, -5.1],
+    [-0.65, -8.5], [-0.7, 8.6], [3, 10], [9.2, 7.6],
+    [12, 0.6], [8.8, -7.4], [2, -10.2],
   ] as const;
   const arms: Vector3[][] = [];
   ends.forEach(([x, z], i) => {
     const end = new Vector3(x, 0, z);
     const start = end.clone().normalize().multiplyScalar(2.2);
     const normal = new Vector3(-end.z, 0, end.x).normalize();
-    const bend = (0.95 + Math.sin(phase + i * 1.7) * 0.07) * (i % 2 ? -1 : 1);
+    const bend = (1.45 + Math.sin(phase + i * 1.7) * 0.07) * (i % 2 ? -1 : 1);
     const points = [start,
       start.clone().lerp(end, 0.3).addScaledVector(normal, bend),
       start.clone().lerp(end, 0.7).addScaledVector(normal, -bend * 0.72), end];
@@ -344,6 +344,103 @@ function fits(parts: Part[], placement: Placement, context: ZoneSceneContext): b
   return true;
 }
 
+/** Pigment-coloured fill only on Roots bark, independent of the shared scene lights. */
+function addBarkFill(material: MeshToonMaterial, masked = false) {
+  const compile = material.onBeforeCompile;
+  const key = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    compile(shader, renderer);
+    if (masked) {
+      shader.vertexShader = shader.vertexShader
+        .replace("#include <common>", "#include <common>\nattribute float barkFill; varying float vBarkFill;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvBarkFill = barkFill;");
+      shader.fragmentShader = "varying float vBarkFill;\n" + shader.fragmentShader;
+    }
+    shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>",
+      `outgoingLight += diffuseColor.rgb * 0.45 * ${masked ? "vBarkFill" : "1.0"};\n#include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => key() + `|roots-bark-fill-${masked}`;
+}
+
+/** Static, vertex-painted scaffold with twisted forks and three overlapping crowns.
+ * Height is independent of the horizontal streaming radius; no per-frame work. */
+function createAncientTree(seed: number): BufferGeometry {
+  const pieces: BufferGeometry[] = [];
+  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.18).lerp(new Color(PALETTE.dusk), 0.12);
+  const phase = (seed >>> 0) / 4294967296 * Math.PI * 2;
+  function paint(source: BufferGeometry, color: Color, barkFill = 0) {
+    const part = source.index ? source.toNonIndexed() : source;
+    if (part !== source) source.dispose();
+    part.deleteAttribute("uv");
+    const p = part.getAttribute("position"), colors: number[] = [];
+    for (let i = 0; i < p.count; i++) {
+      const wash = 0.88 + Math.sin(p.getX(i) * 1.7 + p.getY(i) * 0.9 + phase) * 0.09;
+      colors.push(color.r * wash, color.g * wash, color.b * wash);
+    }
+    part.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    part.setAttribute("barkFill", new Float32BufferAttribute(new Array(p.count).fill(barkFill), 1));
+    pieces.push(part);
+  }
+  function limb(points: Vector3[], radius: number, steps: number, sides = 8) {
+    const curve = new CatmullRomCurve3(points);
+    const part = new TubeGeometry(curve, steps, radius, sides, false);
+    const p = part.getAttribute("position");
+    for (let ring = 0; ring <= steps; ring++) {
+      const t = ring / steps, center = curve.getPoint(t);
+      for (let j = 0; j <= sides; j++) {
+        const i = ring * (sides + 1) + j;
+        const v = new Vector3().fromBufferAttribute(p, i).sub(center).multiplyScalar(1 - t * 0.86).add(center);
+        p.setXYZ(i, v.x, v.y, v.z);
+      }
+    }
+    paint(part, bark, 1);
+    const painted = pieces.at(-1)!, colors = painted.getAttribute("color");
+    const vertices = painted.getAttribute("position");
+    for (let i = 0; i < colors.count; i++) {
+      const y = vertices.getY(i);
+      const seam = Math.sin(Math.atan2(vertices.getZ(i), vertices.getX(i)) * 3 + y * 0.65);
+      if (seam > 0.45 && y < 12) {
+        const tint = new Color().fromBufferAttribute(colors, i).lerp(new Color(PALETTE.forestLight), 0.35);
+        colors.setXYZ(i, tint.r, tint.g, tint.b);
+      }
+    }
+  }
+  // Interwoven buttresses open into great forks at 6–9 m, inside the playing view.
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2 + phase;
+    const point = (r: number, y: number, turn = 0) => new Vector3(
+      Math.cos(a + turn) * r + 0.8, y, Math.sin(a + turn) * r);
+    limb([point(2.1, 0), point(1.35, 3, 0.7), point(1.8, 7, 1.3),
+      point(5.8, 10, 1.8), point(9.5, 14, 2.1)], 1.85, 18, 10);
+  }
+  limb([new Vector3(0.8, 0, 0), new Vector3(-0.9, 6, 0.8), new Vector3(1.8, 14, -1),
+    new Vector3(-0.8, 24, 0.6), new Vector3(0, 32, 0)], 2.2, 20, 10);
+  for (let tier = 0; tier < 3; tier++) {
+    for (let i = 0; i < 7; i++) {
+      const angle = i * Math.PI * 2 / 7 + tier * 0.72 + phase;
+      const reach = 12.8 - tier * 2.7, y = 5.5 + tier * 8.5;
+      const radial = (r: number, h: number, turn = 0) => new Vector3(Math.cos(angle + turn) * r, h, Math.sin(angle + turn) * r);
+      const fork = radial(reach * 0.7, y + 2.5, 0.3), tip = radial(reach, y + 6, 0.65);
+      limb([radial(0.3, y), radial(reach * 0.38, y + 0.5, -0.3), fork, tip], 1.15 - tier * 0.2, 12);
+      limb([fork, radial(reach * 0.85, y + 5, -0.12), radial(reach * 0.98, y + 7, -0.3)], 0.45, 6);
+      for (let lobe = 0; lobe < 4; lobe++) {
+        const at = radial(reach * (0.6 + lobe * 0.13), y + 8 + (lobe % 2) * 1.2, 0.2 + lobe * 0.25);
+        paint(new IcosahedronGeometry(1, 1).scale(5.2 - tier * 0.6, 3.1, 4.3 - tier * 0.3)
+          .rotateY(angle + lobe).translate(at.x, at.y, at.z),
+        new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.forestLight), 0.25 + lobe * 0.13));
+      }
+      if (tier === 0 && i % 2 === 0) {
+        const end = radial(reach * 0.85, 3.2, 0.65);
+        limb([tip, tip.clone().lerp(end, 0.5).add(new Vector3(0.6, 0, -0.3)), end], 0.12, 8, 5);
+      }
+    }
+  }
+  const merged = mergeGeometries(pieces, false)!;
+  pieces.forEach(part => part.dispose());
+  merged.computeVertexNormals();
+  return merged;
+}
+
 export const createRootsScene: ZoneSceneFactory = context => {
   // Neighbouring candidates overlap; reuse pure terrain samples during this build only.
   const heights = new Map<string, number>();
@@ -355,10 +452,18 @@ export const createRootsScene: ZoneSceneFactory = context => {
     return h;
   } };
   const parts = makeParts(context.seed);
+  const boardX = -1.9, boardZ = -6;
+  // Include the easel in the same dry-site and path-clearance validation as the roots.
+  for (const x of [boardX - 1.45, boardX + 1.45]) {
+    parts.unshift({ geometry: new BoxGeometry(0.18, 4.9, 0.18).toNonIndexed()
+      .translate(x, 2.4, boardZ), surface: "wood", solid: true });
+  }
+  parts.unshift({ geometry: new BoxGeometry(3.4, 4.2, 0.16).toNonIndexed()
+    .translate(boardX, 2.9, boardZ), surface: "wood", solid: true });
   let placement: Placement | undefined;
   // The approach end offers a broad shoulder on the authored terrain. Prefer it
   // after the origin so repeated world mounts do not exhaust the bank-side sites.
-  for (const z of [0, -20, -5, 5, -10, 10, -15, 15, 20]) {
+  for (const z of [0, -15.5, 15.5, -20, -5, 5, -10, 10, -15, 15, 20]) {
     for (const side of [1, -1]) {
       const candidate = { side, z };
       if (fits(parts, candidate, context)) { placement = candidate; break; }
@@ -446,23 +551,50 @@ export const createRootsScene: ZoneSceneFactory = context => {
   }
   const group = new Group();
   group.name = "roots";
-  const ancientGeometry = createFirstLightTree(1);
-  // Keep the tree inside the unchanged zone sphere even at offset sites.
-  const treeOrigin = new Vector3(side * (STUMP_X + 0.0864), ground + CUT_HEIGHT - 0.28, offsetZ);
-  const vertices = ancientGeometry.getAttribute("position");
-  const vertex = new Vector3();
-  let scale = 2.74;
-  while (Array.from({ length: vertices.count }, (_, i) =>
-    vertex.fromBufferAttribute(vertices, i).multiplyScalar(scale).add(treeOrigin).length())
-    .some(radius => radius > ZONE_BUDGET.radius)) scale *= 0.95;
-  ancientGeometry.scale(scale, scale, scale).translate(...treeOrigin.toArray());
-  ancientGeometry.computeVertexNormals();
-  const ancientMaterial = createPropMaterial("wood");
-  ancientMaterial.color.setRGB(1, 1, 1);
-  const ancientTree = new Mesh(ancientGeometry, ancientMaterial);
-  ancientTree.name = "roots-ancient-tree";
-  ancientTree.castShadow = true;
-  group.add(ancientTree);
+  let disposed = false;
+  const buildTree = () => {
+    if (disposed) return;
+    const ancientGeometry = createAncientTree(context.seed);
+    const localPositions = ancientGeometry.getAttribute("position");
+    for (let i = 0; i < localPositions.count; i++) {
+      if (localPositions.getY(i) < 1.3) localPositions.setX(i, Math.max(-2.7, localPositions.getX(i)));
+    }
+    // A half-turn mirrors the road-facing silhouette without reversing winding.
+    ancientGeometry.scale(side, 1, side);
+    ancientGeometry.translate(side * (STUMP_X + 0.0864), ground + CUT_HEIGHT - 0.28, offsetZ);
+    const crownPositions = ancientGeometry.getAttribute("position");
+    for (let i = 0; i < crownPositions.count; i++) {
+      const x = crownPositions.getX(i), z = crownPositions.getZ(i);
+      const scale = Math.min(1, (ZONE_BUDGET.radius - 0.2) / Math.hypot(x, z));
+      crownPositions.setXYZ(i, x * scale, crownPositions.getY(i), z * scale);
+    }
+    ancientGeometry.computeVertexNormals();
+    const ancientMaterial = createPropMaterial("wood");
+    ancientMaterial.color.setRGB(1, 1, 1);
+    addBarkFill(ancientMaterial, true);
+    const ancientTree = new Mesh(ancientGeometry, ancientMaterial);
+    ancientTree.name = "roots-ancient-tree";
+    ancientTree.castShadow = true;
+    group.add(ancientTree);
+  };
+  // Keep the detailed crown out of the synchronous spawn build and cancel it on teardown.
+  let cancelTree = () => {};
+  if (typeof window === "undefined") buildTree();
+  else if (window.requestIdleCallback) {
+    const id = window.requestIdleCallback(buildTree, { timeout: 1500 });
+    cancelTree = () => window.cancelIdleCallback(id);
+  } else {
+    const id = setTimeout(buildTree, 50);
+    cancelTree = () => clearTimeout(id);
+  }
+  const skillsBoard = createSkillsBoard();
+  if (skillsBoard) {
+    skillsBoard.mesh.name = "roots-skills-board";
+    skillsBoard.mesh.rotation.y = Math.PI;
+    skillsBoard.mesh.position.set(side * (STUMP_X + boardX),
+      context.heightAt(side * (STUMP_X + boardX), offsetZ + boardZ) + 2.9, offsetZ + boardZ - 0.095);
+    group.add(skillsBoard.mesh);
+  }
   for (const [surface, batch] of batches) {
     const merged = mergeGeometries(batch, false)!;
     batch.forEach(part => part.dispose());
@@ -474,13 +606,13 @@ export const createRootsScene: ZoneSceneFactory = context => {
     if (surface === "flower") material.color.set(PALETTE.flower);
     // Kit pigments are already in linear vertex colors; avoid a second material tint.
     if (["wood", "ink", "cut", "node"].includes(surface)) material.color.setRGB(1, 1, 1);
+    if (surface === "wood" || surface === "ink" || surface === "moss") addBarkFill(material);
     const mesh = new Mesh(merged, material);
     mesh.name = `roots-${surface}`;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
   }
-  let disposed = false;
   return {
     zoneId: "roots", group, colliders,
     interactable: {
@@ -493,9 +625,11 @@ export const createRootsScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      cancelTree();
       for (const child of group.children) {
-        if (child instanceof Mesh) { child.geometry.dispose(); child.material.dispose(); }
+        if (child instanceof Mesh && child !== skillsBoard?.mesh) { child.geometry.dispose(); child.material.dispose(); }
       }
+      skillsBoard?.dispose();
       group.clear();
     },
   };
