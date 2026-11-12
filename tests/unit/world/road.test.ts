@@ -16,12 +16,13 @@ import {
 import {
   WIRE_HEIGHT, WIRE_OFFSETS, WIRE_SAG, WIRE_SEGMENTS, wireAnchor,
 } from "../../../src/features/world/road/posts";
-import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS } from "../../../src/features/world/road/road";
-import { asphaltColorAt, roadBandOffsetAt } from "../../../src/features/world/road/surface";
+import { createCoastRoad, ROAD_BANDS, ROAD_SEGMENTS, ROAD_TERMINAL_ROW, ROAD_CELL_LENGTH } from "../../../src/features/world/road/road";
+import { asphaltColorAt, roadBandOffsetAt, roadEntranceCoverage } from "../../../src/features/world/road/surface";
 import { lightingAt } from "../../../src/features/world/sky/grade";
-import { surfaceHeight, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
+import { createSurfaceSampler, waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 
+const surfaceHeight = createSurfaceSampler();
 const luma = (c: Color) => c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
 const smoothstep = (a: number, b: number, x: number) => {
   const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -89,11 +90,42 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
   });
   afterAll(() => road.dispose());
 
-  it("follows pathPointAt only on t=0.80–1, tapers at the start and keeps full width at the final barrier", () => {
+  it("covers the blunt entrance in dirt, with irregular asphalt fingers over 18 m", () => {
+    const samples: number[] = [];
+    for (let distance = 0; distance <= ROAD_TAPER_LENGTH; distance += 1) {
+      const t = ROAD_START + distance / pathLength();
+      const { point, right } = roadFrameAt(t);
+      for (const offset of [-2.5, -1, 0, 1, 2.5]) {
+        const p = point.clone().addScaledVector(right, offset);
+        const coverage = roadEntranceCoverage(p.x, p.z, offset, t);
+        if (distance === 0) expect(coverage).toBe(0);
+        if (distance === ROAD_TAPER_LENGTH) expect(coverage).toBe(1);
+        if (distance === 9) samples.push(coverage);
+      }
+    }
+    expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(.2);
+  });
+
+  it("keeps the last 8 m of asphalt within 3 cm of the actual walking triangles", () => {
+    const position = surface.geometry.getAttribute("position");
+    const { point: end } = roadFrameAt(1);
+    for (let i = 0; i < position.count; i += 3) {
+      const [a, b, c] = [0, 1, 2].map(j => new Vector3().fromBufferAttribute(position, i + j)) as [Vector3, Vector3, Vector3];
+      for (let u = 0; u <= 4; u++) for (let v = 0; v <= 4 - u; v++) {
+        const p = a.clone().multiplyScalar(u / 4).addScaledVector(b, v / 4).addScaledVector(c, 1 - (u + v) / 4);
+        if (Math.hypot(p.x - end.x, p.z - end.z) > 8) continue;
+        const clearance = p.y - surfaceHeight(p.x, p.z);
+        expect(clearance).toBeGreaterThan(.005);
+        expect(clearance).toBeLessThan(.03);
+      }
+    }
+  });
+
+  it("follows pathPointAt only on t=0.80–1, keeps a blunt full-width entrance and final barrier", () => {
     const position = surface.geometry.getAttribute("position");
     const bands = ROAD_BANDS.length - 1;
     const point = (row: number, band: number) => new Vector3().fromBufferAttribute(position, row * bands * 6 + band * 6);
-    for (let row = 0; row < ROAD_SEGMENTS; row++) {
+    for (let row = 0; row < ROAD_TERMINAL_ROW; row++) {
       const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
       const center = pathPointAt(t);
       const first = point(row, ROAD_BANDS.indexOf(-2.5));
@@ -111,13 +143,12 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       }
     }
     const end = pathPointAt(1);
-    for (let band = 0; band < bands; band++) {
-      const vertex = new Vector3().fromBufferAttribute(position, (ROAD_SEGMENTS - 1) * bands * 6 + band * 6 + 2);
-      expect(Math.hypot(vertex.x - end.x, vertex.z - end.z)).toBeCloseTo(Math.abs(roadBandOffsetAt(ROAD_BANDS[band]!, 1)), 4);
-    }
+    const endVertices = Array.from({ length: position.count }, (_, i) => new Vector3().fromBufferAttribute(position, i))
+      .filter(p => Math.abs(p.z - end.z) < .001);
+    expect(Math.max(...endVertices.map(p => p.x)) - Math.min(...endVertices.map(p => p.x))).toBeGreaterThan(6);
     expect(roadWidthAt(0.79)).toBe(0);
     expect(roadWidthAt(1.01)).toBe(0);
-    expect(roadWidthAt(ROAD_START)).toBe(0);
+    expect(roadWidthAt(ROAD_START)).toBe(5);
     expect(roadWidthAt(ROAD_END)).toBe(5);
     for (const distance of [0.01, 0.1, 1, 3, 6, 9, 12]) {
       const start = roadWidthAt(ROAD_START + distance / pathLength());
@@ -125,7 +156,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       expect(endWidth).toBe(5);
       expect(start).toBeGreaterThan(0);
       expect(start).toBeLessThanOrEqual(5);
-      if (distance === 0.01) expect(start).toBeLessThan(0.00002);
+      expect(start).toBe(5);
     }
   });
 
@@ -137,8 +168,9 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     expect(material.gradientMap!.magFilter).toBe(material.gradientMap!.minFilter);
     const color = surface.geometry.getAttribute("color"), position = surface.geometry.getAttribute("position");
     let worn = 0, intact = 0;
-    for (let row = 0; row < ROAD_SEGMENTS; row++) {
+    for (let row = 0; row < ROAD_TERMINAL_ROW; row++) {
       const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
+      if ((t - ROAD_START) * pathLength() < ROAD_TAPER_LENGTH) continue;
       let yellow = 0, white = 0;
       for (let band = 0; band < ROAD_BANDS.length - 1; band++) {
         const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
@@ -173,7 +205,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     const material = surface.material as MeshToonMaterial;
     const bands = ROAD_BANDS.length - 1;
     const widthSamples = new Set<number>();
-    for (let row = 0; row < ROAD_SEGMENTS; row++) {
+    for (let row = 0; row < ROAD_TERMINAL_ROW; row++) {
       const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
       const { point: center, right } = roadFrameAt(t);
       for (const side of [-1, 1]) {
@@ -213,7 +245,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
     const shade = shadedColor(material);
     const colors = surface.geometry.getAttribute("color"), normals = surface.geometry.getAttribute("normal");
     let minimum = Infinity, maximum = 0;
-    for (let row = 0; row < ROAD_SEGMENTS; row++) {
+    for (let row = 0; row < ROAD_TERMINAL_ROW; row++) {
       const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
       for (let band = 0; band < ROAD_BANDS.length - 1; band++) {
         const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
@@ -236,7 +268,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
 
   it("adds wheel wear and darker patches without colour seams between asphalt cells", () => {
     let patches = 0;
-    for (let row = 1; row < ROAD_SEGMENTS; row++) {
+    for (let row = 1; row < ROAD_TERMINAL_ROW; row++) {
       const t = ROAD_START + (ROAD_END - ROAD_START) * row / ROAD_SEGMENTS;
       const { x, z } = pathPointAt(t);
       const plain = luma(asphaltColorAt(x, z, 1.1));
@@ -252,7 +284,7 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
       const middle = Math.abs((ROAD_BANDS[band]! + ROAD_BANDS[band + 1]!) / 2);
       return middle < 2.5 && middle > 0.06 && !(middle > 2.1 && middle < 2.2);
     };
-    for (let row = 0; row < ROAD_SEGMENTS - 1; row++) for (let band = 0; band < bands; band++) {
+    for (let row = Math.ceil(ROAD_TAPER_LENGTH / ROAD_CELL_LENGTH) + 1; row < ROAD_TERMINAL_ROW - 1; row++) for (let band = 0; band < bands; band++) {
       if (!asphaltBand(band)) continue;
       const start = (row * bands + band) * 6;
       expect(new Color().fromBufferAttribute(colors, start + 2))

@@ -1,7 +1,7 @@
 import { Color } from "three";
 import { PALETTE } from "../art/palette";
 import { pathLength } from "../layout/path";
-import { ROAD_START, ROAD_WIDTH, roadRandomAt, roadWidthAt } from "./layout";
+import { ROAD_START, ROAD_TAPER_LENGTH, ROAD_WIDTH, roadRandomAt, roadWidthAt } from "./layout";
 
 export const CENTER_LINE_WIDTH = 0.12;
 export const EDGE_LINE_WIDTH = 0.1;
@@ -24,7 +24,7 @@ function noise(x: number, z: number, scale: number): number {
   return a * (1 - v) + b * v;
 }
 
-/** Full-width shoulders wander between 0.68 and 0.92 m; only the inland start tapers. */
+/** Full-width shoulders wander between 0.68 and 0.92 m; the entrance keeps its full width. */
 export function roadBandOffsetAt(offset: number, t: number): number {
   const taper = roadWidthAt(t) / ROAD_WIDTH;
   const distance = Math.abs(offset);
@@ -42,7 +42,18 @@ export function asphaltColorAt(x: number, z: number, offset: number): Color {
   return asphalt.clone().multiplyScalar(0.98 + 0.04 * noise(x, z, 0.7) + 0.085 * wheel - 0.075 * patch);
 }
 
-export function roadSurfaceColorAt(x: number, z: number, offset: number, middle: number): Color {
+/** Broken asphalt edge and soil fingers disappear over an 18 m approach.
+ * Fade colour, never collapse the carriageway to a pointed triangle.
+ */
+export function roadEntranceCoverage(x: number, z: number, offset: number, t: number): number {
+  const station = (t - ROAD_START) * pathLength();
+  const progress = clamp(station / ROAD_TAPER_LENGTH);
+  const edge = clamp((Math.abs(offset) - 1.4) / 1.1);
+  const fingers = noise(x, z, 1.8) * 0.32 + noise(x, z, .3) * .1 + edge * .3;
+  return smooth((progress - fingers) / .28);
+}
+
+export function roadSurfaceColorAt(x: number, z: number, offset: number, middle: number, t = 1): Color {
   if (Math.abs(middle) > ROAD_WIDTH / 2) {
     const across = clamp((Math.abs(offset) - ROAD_WIDTH / 2) / SHOULDER_WIDTH);
     const grit = noise(x, z, 0.23);
@@ -54,8 +65,9 @@ export function roadSurfaceColorAt(x: number, z: number, offset: number, middle:
   const ground = asphaltColorAt(x, z, offset);
   const pigment = Math.abs(middle) < CENTER_LINE_WIDTH / 2 ? "laneYellow"
     : Math.abs(middle) > 2.1 && Math.abs(middle) < 2.1 + EDGE_LINE_WIDTH ? "laneWhite" : undefined;
-  if (!pigment) return ground;
   // Sparse, softly bounded wear keeps the paint readable without cutting holes in it.
   const wear = smooth((noise(x + (pigment === "laneWhite" ? 19 : 0), z, 2.4) - 0.57) / 0.22);
-  return new Color(PALETTE[pigment]).lerp(ground, wear * 0.2);
+  const painted = pigment ? new Color(PALETTE[pigment]).lerp(ground, wear * 0.2) : ground;
+  const dirt = rock.clone().lerp(sand, .45 + .2 * noise(x, z, .4));
+  return dirt.lerp(painted, roadEntranceCoverage(x, z, offset, t));
 }

@@ -5,6 +5,8 @@ import type { Character } from "../world/character/runtime";
 import type { WorldLocale } from "../world/copy";
 import { HEIGHT } from "../world/scene";
 import { RAIL_HEIGHT } from "../world/road/railing";
+import { ROAD_LIFT } from "../world/road/layout";
+import { surfaceHeight } from "../world/terrain/height";
 import { isInputTarget, type KeyEventLike } from "./input";
 import { pickTarget, type InteractionTarget } from "./targets";
 
@@ -57,6 +59,10 @@ export function createRailingLookout(options: {
     begin() {
       if (disposed || active || !target || !options.enabled() || !pickTarget(options.player(), [target], .9)) return false;
       stand.set(target.position.x, target.position.y, target.position.z);
+      // The hint sits comfortably behind the collider; step into the authored
+      // leaning pose only after E, keeping the hands within the rig's reach.
+      stand.addScaledVector(forward, .4);
+      stand.y = surfaceHeight(stand.x, stand.z) + ROAD_LIFT + HEIGHT;
       contacts.forEach((contact, i) => contact.copy(stand).addScaledVector(forward, .45)
         .addScaledVector(right, (i ? -1 : 1) * .27).add(new Vector3(0, RAIL_HEIGHT - HEIGHT, 0)));
       view.copy(stand).addScaledVector(forward, -4.2).addScaledVector(right, -1.1).add(new Vector3(0, .65, 0));

@@ -13,6 +13,9 @@ describe("RD-01 coastal railing", () => {
     expect(bays).toHaveLength(3);
     expect(bays[0]!.a.distanceTo(bays[2]!.b)).toBeGreaterThanOrEqual(7.2);
     for (let i = 1; i < bays.length; i++) expect(bays[i - 1]!.b.distanceTo(bays[i]!.a)).toBeLessThan(1e-8);
+    const side = rail.layout.filter(bay => !bay.terminal);
+    expect(side.at(-1)!.b.distanceTo(bays.at(-1)!.b)).toBeLessThan(1e-8);
+    for (const bay of bays) expect(bay.a.y).toBeCloseTo(bay.b.y, 8);
     expect(rail.layout.filter(bay => !bay.terminal).length).toBeGreaterThan(5);
     for (const bay of rail.layout.filter(bay => !bay.terminal)) {
       const mid = bay.a.clone().lerp(bay.b, .5);

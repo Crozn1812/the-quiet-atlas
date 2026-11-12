@@ -4,6 +4,9 @@ import { createRailingLookout } from "../../../src/features/interaction/lean";
 import { createCharacter } from "../../../src/features/world/character/runtime";
 import { createCoastRailing } from "../../../src/features/world/road/railing";
 import { createInteraction } from "../../../src/features/interaction/targets";
+import { surfaceHeight } from "../../../src/features/world/terrain/height";
+import { HEIGHT } from "../../../src/features/world/scene";
+import { ROAD_LIFT } from "../../../src/features/world/road/layout";
 
 afterEach(() => vi.unstubAllGlobals());
 function setup() {
@@ -30,6 +33,17 @@ function setup() {
 }
 
 describe("RD-01 keyboard lookout", () => {
+  it("steps from the reachable hint to the rail while keeping feet on the road", () => {
+    const s = setup();
+    const hint = s.position.clone();
+    expect(s.lookout.begin()).toBe(true);
+    expect(Math.hypot(s.position.x - hint.x, s.position.z - hint.z)).toBeCloseTo(.4);
+    expect(s.position.y - HEIGHT).toBeCloseTo(surfaceHeight(s.position.x, s.position.z) + ROAD_LIFT);
+    expect(s.lookout.keydown({ code: "KeyE" })).toBe(true);
+    expect(s.lookout.begin()).toBe(true);
+    expect(Math.hypot(s.position.x - hint.x, s.position.z - hint.z)).toBeCloseTo(.4);
+    s.dispose();
+  });
   it.each(["KeyE", "Escape", "KeyW", "KeyA", "KeyS", "KeyD"])("enters with nearest-target E and exits with %s", code => {
     const s = setup();
     const interaction = createInteraction({ container: s.container as unknown as HTMLElement, targets: [s.target],

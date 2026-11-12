@@ -10,7 +10,7 @@ export const ROAD_END = 1;
 export const ROAD_WIDTH = 5;
 // A thin painted surface over the same ground triangles that support the player.
 export const ROAD_LIFT = 0.025;
-export const ROAD_TAPER_LENGTH = 12;
+export const ROAD_TAPER_LENGTH = 18;
 export const POST_SPACING = 11;
 export const POLE_SPACING = 45;
 export const POST_RADIUS = 0.17;
@@ -46,10 +46,7 @@ export function roadFrameAt(t: number) {
 }
 
 export function roadWidthAt(t: number): number {
-  if (t > ROAD_END) return 0;
-  const distance = (t - ROAD_START) * pathLength();
-  const blend = Math.max(0, Math.min(1, distance / ROAD_TAPER_LENGTH));
-  return ROAD_WIDTH * blend * blend * (3 - 2 * blend);
+  return t < ROAD_START || t > ROAD_END ? 0 : ROAD_WIDTH;
 }
 
 /** Stateless position seed: adding/removing another prop cannot change an instance. */

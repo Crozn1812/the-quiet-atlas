@@ -50,13 +50,13 @@ export function createRailingLayout() {
   return bays;
 }
 
-function bayGeometry(variant: number) {
+function bayGeometry() {
   const builder = roadGeometryBuilder();
   // A timber/steel coastal fence: matte grey double beams, white posts, tiny faded red bands.
   for (const y of [.65, RAIL_HEIGHT]) {
     builder.add(new BoxGeometry(1.015, .12, .12).translate(0, y - .06, 0), "rock");
   }
-  builder.add(new BoxGeometry(.055, 1.18 + variant * .008, RAIL_DEPTH).translate(-.49, .46, 0), "laneWhite");
+  builder.add(new BoxGeometry(.055, 1.18, RAIL_DEPTH).translate(-.5, .59, 0), "laneWhite");
   builder.add(new BoxGeometry(.057, .09, RAIL_DEPTH + .002).translate(-.49, .94, 0), "vermilion");
   // Pale wash, using only locked palette pigments.
   const geometry = builder.finish();
@@ -79,7 +79,7 @@ export function createCoastRailing(protectedTargets: readonly InteractionTarget[
   });
   const meshes = [0, 1, 2].map(variant => {
     const items = colliders.filter((_, i) => i % 3 === variant);
-    const mesh = new InstancedMesh(bayGeometry(variant), material, items.length);
+    const mesh = new InstancedMesh(bayGeometry(), material, items.length);
     mesh.name = `coast-railing-${variant}`;
     items.forEach(({ center, size, yaw, rise }, i) => {
       transform.position.copy(center).add(new Vector3(0, -.6, 0));
@@ -123,7 +123,7 @@ export function createCoastRailing(protectedTargets: readonly InteractionTarget[
   const { point, right, yaw } = roadFrameAt(1);
   const forward = new Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
   const candidates = [-2.85, 2.85, 0].map(offset => {
-    const p = point.clone().addScaledVector(right, offset).addScaledVector(forward, -.45);
+    const p = point.clone().addScaledVector(right, offset).addScaledVector(forward, -.85);
     p.y = surfaceHeight(p.x, p.z) + ROAD_LIFT + HEIGHT;
     return p;
   });
