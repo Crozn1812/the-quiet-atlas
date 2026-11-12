@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
+import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, PointLight, Raycaster, Scene, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import * as rockKit from "../../../../src/features/world/props/rocks";
@@ -144,35 +144,45 @@ describe("workshop bank set-piece", () => {
     expect(sightline.intersectObjects(meshes(scene))).toHaveLength(0);
   });
 
-  it("grounds separate bench legs and shed posts on a gentle slope while keeping the roof straight", () => {
+  it("grounds separate bench legs and gate columns on a gentle slope while curving the 8–12 m communal roof", () => {
     const context = { ...flat, heightAt: (x: number, z: number) => x * 0.035 + z * 0.02 };
     const scene = create(context);
     const wood = meshes(scene).filter(mesh => mesh.name === "workshop-wood");
-    for (const x of [-5.08, -4.42, -3.65]) {
-      const zs = x === -3.65 ? [-2.95, 2.95] : [-1.5, 1.5];
-      for (const z of zs) {
+    for (const x of [-5.08, -4.42]) {
+      for (const z of [-1.3, 1.3]) {
         const foot = context.heightAt(x, z);
         const hit = new Raycaster(new Vector3(x, foot - 0.5, z), new Vector3(0, 1, 0)).intersectObjects(wood)[0];
         expect(hit?.point.y).toBeCloseTo(foot - 0.04, 5);
       }
     }
-    const roof = meshes(scene).find(mesh => mesh.name === "workshop-roof")!;
-    const heights = [-7, -6, -5, -4].map(x => new Raycaster(new Vector3(x, 8, 0), new Vector3(0, -1, 0)).intersectObject(roof)[0]!.point.y);
-    for (let i = 1; i < heights.length; i++) {
-      const degrees = Math.atan(heights[i]! - heights[i - 1]!) * 180 / Math.PI;
-      expect(degrees).toBeGreaterThanOrEqual(15);
-      expect(degrees).toBeLessThanOrEqual(20);
-      // Shared weathered boards bow slightly; the overall mono-pitch stays straight.
-      expect(Math.abs((heights[i]! - heights[i - 1]!) - (heights[1]! - heights[0]!))).toBeLessThan(0.02);
+    for (const [x, z] of [[-5.64, -0.50], [-4.44, 1.47], [-6.66, 0.13], [-5.46, 2.09], [-6.22, -1.43], [-3.86, 2.41]] as const) {
+      const foot = context.heightAt(x, z);
+      const hit = new Raycaster(new Vector3(x, foot - 0.5, z), new Vector3(0, 1, 0)).intersectObjects(wood)[0];
+      expect(hit?.point.y).toBeCloseTo(foot - 0.04, 2);
     }
+    const roof = meshes(scene).find(mesh => mesh.name === "workshop-roof")!;
+    const roofBounds = new Box3().setFromObject(roof);
+    const gateHeight = roofBounds.max.y - context.heightAt(-5.55, 0.8);
+    expect(gateHeight).toBeGreaterThanOrEqual(8);
+    expect(gateHeight).toBeLessThanOrEqual(12);
+    const roofAt = (x: number, z: number) =>
+      new Raycaster(new Vector3(x, 14, z), new Vector3(0, -1, 0)).intersectObject(roof)[0]!.point.y;
+    // Two-slope curved roof peaks along the central ridge and curves down toward both eaves.
+    const ridgeY = roofAt(-5.55, 0.8);
+    expect(ridgeY).toBeGreaterThan(roofAt(-5.55 + 0.85, 0.8 - 0.52) + 0.4);
+    expect(ridgeY).toBeGreaterThan(roofAt(-5.55 - 0.85, 0.8 + 0.52) + 0.4);
+    // Upturned đầu đao corners rise above the mid-eave height.
+    expect(roofBounds.max.y).toBeGreaterThan(ridgeY - 0.5);
     const moss = meshes(scene).find(mesh => mesh.name === "workshop-moss")!;
     expect(moss.material.color.getHex()).toBe(new Color(PALETTE.forestDeep).getHex());
-    for (const [x, z] of [[-6.9, 1.65], [-6.3, -2.1]]) {
-      const ray = new Raycaster(new Vector3(x!, 8, z!), new Vector3(0, -1, 0));
-      const roofTop = ray.intersectObject(roof)[0]!.point.y;
-      const mossTop = ray.intersectObject(moss)[0]!.point.y;
-      expect(mossTop - roofTop).toBeGreaterThan(0.02);
-      expect(mossTop - roofTop).toBeLessThan(0.1);
+    for (const [x, z] of [[-5.55, 0.8], [-6.5, 0.3]]) {
+      const ray = new Raycaster(new Vector3(x!, 14, z!), new Vector3(0, -1, 0));
+      const roofHit = ray.intersectObject(roof)[0];
+      const mossHit = ray.intersectObject(moss).find(hit => roofHit && hit.point.y > roofHit.point.y);
+      if (roofHit && mossHit) {
+        expect(mossHit.point.y - roofHit.point.y).toBeGreaterThan(0.015);
+        expect(mossHit.point.y - roofHit.point.y).toBeLessThan(0.12);
+      }
     }
   });
 
@@ -187,27 +197,30 @@ describe("workshop bank set-piece", () => {
     for (let ix = 0; ix < 48; ix++) for (let iz = 0; iz < 72; iz++) {
       const x = bounds.min.x + (ix + 0.5) / 48 * (bounds.max.x - bounds.min.x);
       const z = bounds.min.z + (iz + 0.5) / 72 * (bounds.max.z - bounds.min.z);
-      const ray = new Raycaster(new Vector3(x, 8, z), new Vector3(0, -1, 0));
+      const ray = new Raycaster(new Vector3(x, 14, z), new Vector3(0, -1, 0));
       const roofHit = ray.intersectObject(roof)[0];
       const mossHit = ray.intersectObject(moss)[0];
       if (!roofHit) continue;
       roofSamples++;
       if (mossHit && mossHit.point.y > roofHit.point.y + 0.015) visibleMossSamples++;
     }
-    expect(roofSamples).toBeGreaterThan(3000);
+    expect(roofSamples).toBeGreaterThan(1500);
     expect(visibleMossSamples / roofSamples).toBeGreaterThanOrEqual(0.25);
     console.info(`Workshop visible roof moss: ${(100 * visibleMossSamples / roofSamples).toFixed(1)}%`);
   });
 
-  it("has one broad ink inner wall visible through the open front behind the tools", () => {
+  it("has completely open and see-through bays without any blocking rear or side walls", () => {
     const parts = meshes(create());
-    const ink = parts.find(mesh => mesh.name === "workshop-ink")!;
-    expect(ink.material.color.getHex()).toBe(new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3).getHex());
-    // Several rays across the upper rear wall must see ink before wood or the bank.
-    for (const z of [-2.4, -1.2, 0, 1.2, 2.4]) {
-      const hit = new Raycaster(new Vector3(-2.8, 2.05, z), new Vector3(-1, 0, 0)).intersectObjects(parts)[0];
-      expect(hit?.object).toBe(ink);
-      expect(hit!.point.x).toBeCloseTo(-7.5225, 4);
+    const wood = parts.filter(mesh => mesh.name === "workshop-wood");
+    // Rays fired through each of the 3 bays at human eye height (y = 1.6) pass through without hitting walls.
+    const yaw = 0.55;
+    const dirV = new Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    const dirU = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    for (const u of [-1.7, 0, 1.7]) {
+      const origin = new Vector3(-5.55, 1.6, 0.8).addScaledVector(dirU, u).addScaledVector(dirV, 1.5);
+      const hit = new Raycaster(origin, dirV.clone().negate(), 0, 3.5).intersectObjects(wood)[0];
+      // Walkways are clear: no wall hits
+      expect(hit).toBeUndefined();
     }
   });
 
@@ -292,15 +305,17 @@ describe("workshop bank set-piece", () => {
     expect(area(flower) / parts.reduce((total, mesh) => total + area(mesh), 0)).toBeLessThan(0.001);
   });
 
-  it("reads as three walls, an open front, a usable bench and a paper sketch on an easel", () => {
+  it("reads as an open three-bay gate with clear sightlines, a usable bench and a paper sketch on an easel", () => {
     const scene = create();
     const wood = meshes(scene).filter(mesh => mesh.name === "workshop-wood");
     const ray = (origin: Vector3, direction: Vector3) => new Raycaster(origin, direction).intersectObjects(wood)[0];
-    expect(Math.abs(ray(new Vector3(-2.8, 2.1, 0.3), new Vector3(-1, 0, 0))!.point.x + 7.59)).toBeLessThan(0.06);
-    for (const sign of [-1, 1]) expect(Math.abs(ray(new Vector3(-6, 1.7, 0), new Vector3(0, 0, sign))!.point.z - sign * 2.89)).toBeLessThan(0.06);
     expect(Math.abs(ray(new Vector3(-4.75, 2, 0), new Vector3(0, -1, 0))!.point.y - 1.005)).toBeLessThan(0.035);
     const paper = meshes(scene).find(mesh => mesh.name === "workshop-paper")!;
     expect(new Raycaster(new Vector3(-3, 1.43, -4.25), new Vector3(-1, 0, 0)).intersectObject(paper)[0]).toBeDefined();
+    // Sightline through the central bay from the path is completely clear of walls
+    const eye = new Vector3(-2.6, 1.6, 0.8);
+    const through = new Raycaster(eye, new Vector3(-1, 0, 0), 0, 4.0).intersectObjects(wood);
+    expect(through.every(hit => hit.point.y > 2.8 || Math.abs(hit.point.z - 0.8) > 0.8)).toBe(true);
   });
 
   it("stops the descending stone steps before water and does not place submerged props", () => {
@@ -317,16 +332,23 @@ describe("workshop bank set-piece", () => {
     expect([3.15, 3.82, 4.49].map(top)).toEqual(expect.arrayContaining([expect.closeTo(0.36), expect.closeTo(0.26), expect.closeTo(0.16)]));
   });
 
-  it("preserves kit palette pigments and uses neutral washes on other surfaces, without lettering", () => {
+  it("preserves kit palette pigments, warms columns near the fire and uses neutral washes on other surfaces, without lettering", () => {
     const colors = {
       wood: new Color(0xffffff),
-      roof: new Color(PALETTE.rockDark),
+      roof: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.vermilion), 0.34).lerp(new Color(PALETTE.dusk), 0.1),
       moss: new Color(PALETTE.forestDeep),
       paper: new Color(PALETTE.cloud), ink: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.indigo), 0.3),
       stone: new Color(0xffffff),
       flower: new Color(PALETTE.flower),
     };
-    for (const mesh of meshes(create())) {
+    const scene = create();
+    const fireLights = scene.group.children.filter((child): child is PointLight => child instanceof PointLight);
+    expect(fireLights).toHaveLength(2);
+    for (const light of fireLights) {
+      expect(light.intensity).toBeGreaterThan(1.5);
+      expect(light.distance).toBeGreaterThanOrEqual(6);
+    }
+    for (const mesh of meshes(scene)) {
       expect(mesh.name).not.toMatch(/text|logo/i);
       expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
       const pigment = mesh.material.name.replace("workshop-", "") as keyof typeof colors;
@@ -346,14 +368,24 @@ describe("workshop bank set-piece", () => {
             p.clone().sub(a).dot(ab) / ab.lengthSq()))));
         };
         const attribute = mesh.geometry.getAttribute("color");
+        const positions = mesh.geometry.getAttribute("position");
+        let warmColumnVertices = 0;
         for (let i = 0; i < attribute.count; i++) {
           const p = new Vector3().fromBufferAttribute(attribute, i);
+          const pos = new Vector3().fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld);
           const distance = pigment === "stone" ? Math.min(...stoneColors.map(c => c.distanceTo(p)))
             : Math.min(distanceToSegment(p, endpoints[0]!, endpoints[1]!),
               distanceToSegment(p, vector(rope.clone().multiplyScalar(0.91)), vector(rope)));
-          expect(distance).toBeLessThan(1e-6);
+          const nearFire = [[-5.45, -0.25], [-4.03, 2.05], [-5.64, 0.51], [-4.44, 2.47]]
+            .some(([fx, fz]) => Math.hypot(pos.x - fx!, pos.z - fz!) < 2.2);
+          if (pigment === "stone" || !nearFire) {
+            expect(distance).toBeLessThan(1e-6);
+          } else if (nearFire && pos.y > 1.2 && pos.y < 3.8) {
+            if (distance > 0.02 && p.x > p.z) warmColumnVertices++;
+          }
           expect(p.dot(new Vector3(0.2126, 0.7152, 0.0722))).toBeGreaterThanOrEqual(0.06);
         }
+        if (pigment === "wood") expect(warmColumnVertices).toBeGreaterThan(20);
         continue;
       }
       const paper = new Vector3(...new Color(PALETTE.paper).toArray());
@@ -404,17 +436,22 @@ describe("workshop bank set-piece", () => {
     expect(scene.interactable.label).toEqual({ en: "Workbench by the stream", vi: "Bàn thợ cạnh suối" });
   });
 
-  it("moves only the small sprig slowly and freezes every transform in reduced motion", () => {
+  it("animates the burning fire braziers and torches and freezes every transform in reduced motion", () => {
     const scene = create();
     const before = transforms(scene);
     const staticTransforms = meshes(scene).filter(mesh => mesh.parent === scene.group).map(mesh => ({ mesh, matrix: mesh.matrixWorld.toArray() }));
+    const leftLight = scene.group.getObjectByName("workshop-fire-light-left") as PointLight;
+    const initialIntensity = leftLight.intensity;
     for (let i = 0; i < 100; i++) scene.update!(1 / 60, true);
     expect(transforms(scene)).toEqual(before);
+    expect(leftLight.intensity).toBe(initialIntensity);
     scene.update!(1 / 60, false);
     const moved = transforms(scene);
     expect(moved).not.toEqual(before);
-    const sprig = scene.group.getObjectByName("workshop-hanging-sprig")!;
-    expect(Math.abs(sprig.rotation.z)).toBeLessThan(0.001);
+    const fire = scene.group.getObjectByName("workshop-fire")!;
+    expect(Math.abs(fire.rotation.z)).toBeGreaterThan(0);
+    expect(Math.abs(fire.rotation.z)).toBeLessThan(0.03);
+    expect(leftLight.intensity).not.toBe(initialIntensity);
     staticTransforms.forEach(({ mesh, matrix }) => expect(mesh.matrixWorld.toArray()).toEqual(matrix));
     for (let i = 0; i < 100; i++) scene.update!(1, true);
     expect(transforms(scene)).toEqual(moved);
@@ -468,7 +505,8 @@ describe("workshop bank set-piece", () => {
     })).digest("hex");
     // B2-203 replaces box wood/steps with shared grain/bevel/slab assets and adds bench tools.
     // RC-02 replaces abstract ink strokes with the readable skills board.
-    expect(fingerprint).toBe("bb17023b75b3f04a6c2a6ad567843563f721efff559ac93c2eb5687e16a542c7");
+    // WS-02 replaces the mono-pitch shed with an 8–12 m communal gate (cổng đình làng) and burning fire braziers.
+    expect(fingerprint).toBe("cb15e34bd4f646e8e02faad4929d505e70010f44b0cadb62a4221a790a179054");
   });
 
   it("uses shared wood and slab assets and keeps every prop cluster below 2000 triangles", () => {
@@ -489,11 +527,11 @@ describe("workshop bank set-piece", () => {
     expect(rocks).toHaveBeenCalledTimes(15);
   });
 
-  it("preserves the pre-ticket collider and interaction contract exactly", () => {
+  it("locks the WS-02 communal gate collider and interaction contract", () => {
     const scene = create();
     expect(createHash("sha256").update(JSON.stringify({
       colliders: scene.colliders, interactable: scene.interactable,
-    })).digest("hex")).toBe("949882038074a11ecd256330f42779ba06759b51411ab2d445d8f3bf1e693d0a");
+    })).digest("hex")).toBe("7dcfcee5171cd981e0599c728ba47db83f6a0ecba98e9580e818a5b9fb1462c0");
   });
 
   it("exposes real joints between crate boards and embeds the slabs on sloping ground", () => {
