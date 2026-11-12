@@ -381,7 +381,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   interactionTargets.push(...contentTargets, ...props, ...secretTargets, vehicleTarget);
   if (coastRailing.target) interactionTargets.push(coastRailing.target);
   const lookout = createRailingLookout({
-    container, character, camera, target: coastRailing.target, forward: coastRailing.forward,
+    container, character, camera, target: coastRailing.target, forward: coastRailing.forward, targets: interactionTargets,
     player: () => physics.position,
     moveTo(position) { physics.teleport(position); state = { ...state, position: { ...position } }; },
     enabled: () => canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !contextLost && vehicle.mode === "walk",
@@ -394,7 +394,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     player: () => physics.position,
     enabled: cameraEnabled,
     discover,
-    lookout: () => lookout.begin(),
+    lookout: target => lookout.begin(target),
     ride() {
       if (!cameraEnabled() || rider.transitioning) return false;
       const result = mount(vehicle, Math.hypot(physics.position.x - vehicleTarget.position.x, physics.position.z - vehicleTarget.position.z));
@@ -436,7 +436,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       sightRay.set(physics.position, direction.clone().normalize());
       sightRay.far = Math.max(0, direction.length() - 0.01);
       const ownSecret = secretTargets.find(secret => secret.id === target.id)?.root;
-      const ownZone = zones.find(zone => zone.target.id === target.id);
+      const ownZone = zones.find(zone => zone.target.id === target.id || (target.kind === "lookout" && zone.zoneId === target.zoneId));
       const blockers = cameraObstacles().filter(mesh => !props.some(prop => prop.id === target.id && prop.mesh === mesh)
         && !ownSecret?.getObjectById(mesh.id) && !ownZone?.group.getObjectById(mesh.id) && !ownZone?.boxes.includes(mesh as typeof ownZone.boxes[number]));
       return sightRay.intersectObjects(blockers).length === 0;
@@ -455,7 +455,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     position(): { x: number; y: number; z: number };
     cameraYaw(): number;
     cameraDistance(): number;
-    lookoutPosition(): { x: number; y: number; z: number } | undefined;
+    lookoutPosition(zoneId?: string): { x: number; y: number; z: number } | undefined;
     zone(): string | null;
     goTo(zoneId: string): Promise<void>;
     visitSecret(id: string): boolean;
@@ -465,7 +465,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
     cameraYaw: () => yaw,
     cameraDistance: () => camera.position.distanceTo(physics.position),
-    lookoutPosition: () => coastRailing.target ? { ...coastRailing.target.position } : undefined,
+    lookoutPosition: (zoneId?: string) => lookout.positionFor(zoneId),
     zone: () => {
       const zone = nearestZone();
       return Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius ? zone.id : null;
@@ -1282,7 +1282,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       introFrame = intro.tick(canSimulate(state) && wasPlaying ? dt : 0);
     } else if (ending?.inputLocked) {
       if (canSimulate(state)) applyEnding(ending.tick(dt));
-    } else updateCamera(animDt);
+    } else if (!lookout.active) updateCamera(animDt);
     lookout.update(animDt);
     interaction.update();
     composed.update(physics.position, 0);

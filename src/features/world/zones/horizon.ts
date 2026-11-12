@@ -1,14 +1,20 @@
 import {
   Box3, BufferGeometry, CircleGeometry, Color, CylinderGeometry, Float32BufferAttribute,
-  Group, Matrix4, Mesh, Ray, Vector3, type MeshToonMaterial,
+  Group, Matrix4, Mesh, Quaternion, Ray, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { HORIZON_BENCH_COPY } from "../../../i18n/railing";
+import { ZONE_IDS, type InteractionTarget } from "../../interaction/targets";
 import { PALETTE } from "../art/palette";
+import { ZONES } from "../layout/zones";
 import { deferBakedBatch, type BakedBatchPart } from "../props/batched";
 import type { PropAsset } from "../props/deferred";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createBenchGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
+import { HEIGHT } from "../scene";
+import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt } from "../terrain/height";
+import { nearestPath } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
 type Surface = "natural" | "paint" | "white" | "iron" | "lens";
@@ -198,8 +204,7 @@ function builder(root: Group, context: ZoneSceneContext) {
   };
 }
 
-/** The viewer and seat face local +X (seaward). No text, glow, or moving foreground props. */
-export const createHorizonScene: ZoneSceneFactory = context => {
+export function horizonSites(context: ZoneSceneContext) {
   // Keep the viewer 2.05 m from the corridor edge, within E range even at ground level.
   const viewer = siteFor(context, [0, 2, -2, 4, -4].map(z => [4.65, z] as const), 0.6, 0.5);
   const bench = siteFor(context, [[6.4, viewer[1] - 3], [6.4, viewer[1] + 3]], 0.45, 1.15);
@@ -207,7 +212,49 @@ export const createHorizonScene: ZoneSceneFactory = context => {
   const turbines = [
     siteFor(context, [[19.5, 9.5], [18.5, 12], [21, 4]], 2.6, 2.6),
     siteFor(context, [[23, -7], [22, -11], [21, -14]], 2.6, 2.6),
-  ];
+  ] as const;
+  return { viewer, bench, rail, turbines };
+}
+
+/** Resolve the Horizon bench interaction target and seated/standing frames in world space. */
+export function resolveHorizonBench(height: (x: number, z: number) => number) {
+  const layout = ZONES.find(zone => zone.id === "horizon")!;
+  const yaw = Math.atan2(layout.lookDirection.x, layout.lookDirection.z);
+  const anchor = new Vector3(layout.position.x, height(layout.position.x, layout.position.z), layout.position.z);
+  const rotation = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), yaw);
+  const resolve = (side: number) => {
+    const transform = new Matrix4().compose(anchor, rotation, new Vector3(side, 1, 1));
+    const worldPoint = (x: number, z: number) => new Vector3(x, 0, z).applyMatrix4(transform);
+    const { bench: [bx, bz] } = horizonSites({
+      heightAt(x, z) { const p = worldPoint(x, z); return height(p.x, p.z) - anchor.y; },
+      onPath(x, z) { const p = worldPoint(x, z); return Math.abs(x) <= PATH_CLEARANCE || nearestPath(p.x, p.z).distance <= PATH_WIDTH / 2; },
+      underWater(x, z) { const p = worldPoint(x, z); return height(p.x, p.z) <= waterLevelAt(p.z); },
+      seed: TERRAIN_SEED + ZONE_IDS.indexOf("horizon"),
+    });
+    const seatZ = bz - 0.2;
+    const stand = worldPoint(bx - 0.85, seatZ);
+    stand.y = height(stand.x, stand.z) + HEIGHT;
+    const seat = worldPoint(bx + 0.02, seatZ);
+    seat.y = height(seat.x, seat.z) + HEIGHT;
+    // Sea horizon at river mouth (x ~ -20, z ~ -900). Look seaward from the bench:
+    const forward = new Vector3(-20, 0, -900).sub(seat).setY(0).normalize();
+    const along = new Vector3(layout.lookDirection.x, 0, layout.lookDirection.z).normalize();
+    const target: InteractionTarget = {
+      id: "horizon-bench", kind: "lookout", zoneId: "horizon", position: stand.clone(), reach: 1.4,
+      label: { vi: HORIZON_BENCH_COPY.vi.label, en: HORIZON_BENCH_COPY.en.label },
+    };
+    return { target, stand, seat, forward, along };
+  };
+  try { return resolve(1); }
+  catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return resolve(-1);
+  }
+}
+
+/** The viewer and seat face local +X (seaward). No text, glow, or moving foreground props. */
+export const createHorizonScene: ZoneSceneFactory = context => {
+  const { viewer, bench, rail, turbines } = horizonSites(context);
   const group = new Group();
   group.name = "horizon-overlook";
   const build = builder(group, context), colliders: ZoneCollider[] = [], rotors: Group[] = [];

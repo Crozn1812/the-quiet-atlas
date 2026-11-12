@@ -1,12 +1,13 @@
 import { Quaternion, Vector3, type PerspectiveCamera } from "three";
-import { RAILING_COPY } from "../../i18n/railing";
-import { createLeaningPose } from "../world/character/lean";
+import { HORIZON_BENCH_COPY, RAILING_COPY } from "../../i18n/railing";
+import { createLeaningPose, createSittingPose } from "../world/character/lean";
 import type { Character } from "../world/character/runtime";
 import type { WorldLocale } from "../world/copy";
 import { HEIGHT } from "../world/scene";
 import { RAIL_HEIGHT } from "../world/road/railing";
 import { ROAD_LIFT } from "../world/road/layout";
 import { surfaceHeight } from "../world/terrain/height";
+import { resolveHorizonBench } from "../world/zones/horizon";
 import { isInputTarget, type KeyEventLike } from "./input";
 import { pickTarget, type InteractionTarget } from "./targets";
 
@@ -21,11 +22,15 @@ export function leanExitKey(code: string) { return code === "KeyE" || code === "
 export function createRailingLookout(options: {
   container: HTMLElement; character: Character; camera: PerspectiveCamera;
   target: InteractionTarget | undefined; forward: Vector3;
+  targets?: InteractionTarget[];
   player(): Vector3; moveTo(position: Vector3): void; enabled(): boolean;
   reducedMotion(): boolean; locale(): WorldLocale; clearInput(): void;
 }) {
   const { container, target, forward, camera } = options;
   const pose = createLeaningPose(options.character);
+  const sitPose = createSittingPose(options.character);
+  const bench = resolveHorizonBench(surfaceHeight);
+  options.targets?.push(bench.target);
   const status = document.createElement("output");
   status.setAttribute("role", "status");
   Object.assign(status.style, { position: "absolute", width: "1px", height: "1px", overflow: "hidden", clipPath: "inset(50%)" });
@@ -46,17 +51,63 @@ export function createRailingLookout(options: {
   const look = stand.clone().addScaledVector(new Vector3(.8, 0, -.6).add(forward).normalize(), 18)
     .add(new Vector3(0, .35, 0));
   const from = new Vector3(), fromRotation = new Quaternion(), last = new Vector3(), lastRotation = new Quaternion();
-  let active = false, disposed = false, elapsed = 0, blend = 0;
+  let active = false, mode: "rail" | "bench" | undefined, disposed = false, elapsed = 0, blend = 0;
   function cancel() {
     if (!active) return;
-    active = false; options.clearInput();
+    const wasBench = mode === "bench";
+    active = false; mode = undefined; options.clearInput();
     delete container.dataset.worldLean; status.textContent = "";
-    pose.update(false, forward, contacts, 0, true);
+    if (wasBench) {
+      const exitStand = bench.stand.clone();
+      exitStand.y = surfaceHeight(exitStand.x, exitStand.z) + HEIGHT;
+      options.moveTo(exitStand);
+      options.character.root.position.copy(exitStand);
+      sitPose.update(false, bench.forward, 0, true);
+    } else pose.update(false, forward, contacts, 0, true);
   }
   return {
     get active() { return active; },
-    begin() {
-      if (disposed || active || !target || !options.enabled() || !pickTarget(options.player(), [target], .9)) return false;
+    get mode() { return mode; },
+    benchTarget: bench.target,
+    positionFor(zoneId?: string) {
+      const p = options.player();
+      if (zoneId === "horizon" || (!zoneId && Math.hypot(p.x - bench.stand.x, p.z - bench.stand.z) < 35)) {
+        return { x: bench.target.position.x, y: bench.target.position.y, z: bench.target.position.z };
+      }
+      return target ? { x: target.position.x, y: target.position.y, z: target.position.z } : undefined;
+    },
+    begin(chosen?: InteractionTarget) {
+      if (disposed || active || !options.enabled()) return false;
+      const Candidates = chosen ? [chosen] : [bench.target, ...(target ? [target] : [])];
+      const picked = pickTarget(options.player(), Candidates, .9);
+      if (!picked) return false;
+      if (picked.id === bench.target.id) {
+        mode = "bench";
+        stand.copy(bench.seat);
+        stand.y = surfaceHeight(stand.x, stand.z) + HEIGHT;
+        const seatSurfaceY = surfaceHeight(stand.x, stand.z) + 0.45;
+        view.copy(stand).addScaledVector(bench.forward, -2.8);
+        // The hill rises behind the bench: keep the camera above the ground there, never inside the slope.
+        view.setY(Math.max(seatSurfaceY + 1.75, surfaceHeight(view.x, view.z) + 1.5));
+        look.copy(stand).addScaledVector(bench.forward, 25).setY(seatSurfaceY + 1.2);
+        active = true; elapsed = 0; blend = 0;
+        if (options.reducedMotion()) {
+          camera.position.copy(view); camera.lookAt(look);
+          from.copy(camera.position); fromRotation.copy(camera.quaternion);
+          last.copy(camera.position); lastRotation.copy(camera.quaternion);
+        } else {
+          from.copy(camera.position); fromRotation.copy(camera.quaternion);
+        }
+        options.clearInput(); options.moveTo(stand.clone());
+        options.character.root.position.copy(stand);
+        sitPose.update(true, bench.forward, 0, options.reducedMotion());
+        hideHud();
+        container.dataset.worldLean = "on";
+        status.textContent = HORIZON_BENCH_COPY[options.locale()].active;
+        return true;
+      }
+      if (!target || picked.id !== target.id) return false;
+      mode = "rail";
       stand.set(target.position.x, target.position.y, target.position.z);
       // The hint sits comfortably behind the collider; step into the authored
       // leaning pose only after E, keeping the hands within the rig's reach.
@@ -90,12 +141,17 @@ export function createRailingLookout(options: {
         elapsed += step; blend = reduced ? 1 : Math.min(1, blend + step / .8);
         const eased = blend * blend * (3 - 2 * blend);
         options.character.root.position.copy(options.player());
-        pose.update(true, forward, contacts, elapsed, reduced);
+        if (mode === "bench") sitPose.update(true, bench.forward, elapsed, reduced);
+        else pose.update(true, forward, contacts, elapsed, reduced);
         camera.position.copy(view); camera.lookAt(look);
-        camera.quaternion.slerpQuaternions(fromRotation, camera.quaternion.clone(), eased);
-        camera.position.lerpVectors(from, view, eased);
-        last.copy(camera.position); lastRotation.copy(camera.quaternion);
-        const announcement = RAILING_COPY[options.locale()].active;
+        if (reduced) {
+          last.copy(camera.position); lastRotation.copy(camera.quaternion);
+        } else {
+          camera.quaternion.slerpQuaternions(fromRotation, camera.quaternion.clone(), eased);
+          camera.position.lerpVectors(from, view, eased);
+          last.copy(camera.position); lastRotation.copy(camera.quaternion);
+        }
+        const announcement = (mode === "bench" ? HORIZON_BENCH_COPY : RAILING_COPY)[options.locale()].active;
         if (status.textContent !== announcement) status.textContent = announcement;
       } else if (blend > 0) {
         blend = reduced ? 0 : Math.max(0, blend - step / .6);

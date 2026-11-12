@@ -21,10 +21,17 @@ while [ ${#pending[@]} -gt 0 ]; do
       echo "$(date '+%F %T') $id DONE"; unset "pending[$id]"; continue
     fi
     if tail -c 4000 "$log" | grep -q "usage limit"; then
-      when=$(grep -o "try again at [^.]*" "$log" | tail -1 | sed 's/try again at //; s/^\(Nov\|Dec\|Jan\) [0-9a-z]*, [0-9]* //')
-      target=$(date -d "$when" +%s 2>/dev/null || echo $(( $(date +%s) + 3600 )))
-      # A bare clock time already past means tomorrow (e.g. "12:41 AM" seen at 23:12).
-      [ "$target" -lt "$(date +%s)" ] && target=$(( target + 86400 ))
+      when=$(grep -o "try again at [^.]*" "$log" | tail -1 | sed 's/try again at //')
+      full=$(echo "$when" | sed -E 's/([0-9]+)(st|nd|rd|th),?/\1/')
+      if echo "$when" | grep -qE "^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) " && target=$(date -d "$full" +%s 2>/dev/null); then
+        :  # dated: a past time means the quota is already back
+      else
+        clock=$(echo "$when" | sed -E 's/^[A-Za-z]+ [0-9a-z]+, [0-9]+ //')
+        target=$(date -d "$clock" +%s 2>/dev/null || echo $(( $(date +%s) + 3600 )))
+        # A bare clock time already past means tomorrow (e.g. "12:41 AM" seen at 23:12).
+        [ "$target" -lt "$(date +%s)" ] && target=$(( target + 86400 ))
+      fi
+      [ "$target" -lt "$(date +%s)" ] && target=$(date +%s)
       echo "$(date '+%F %T') $id QUOTA until $when"
       sleep $(( target - $(date +%s) + 120 ))
       echo "$(date '+%F %T') $id RESUME"

@@ -53,7 +53,7 @@ export function createInteraction(options: {
   chooseTeleport?: (from: ZoneId) => boolean;
   ride?: () => boolean;
   discover?: (id: string) => boolean;
-  lookout?: () => boolean;
+  lookout?: (target: InteractionTarget) => boolean;
   hint?: () => string | undefined;
 }) {
   const { container } = options;
@@ -72,13 +72,14 @@ export function createInteraction(options: {
     if (target) container.dataset.worldHint = target.zoneId;
     else delete container.dataset.worldHint;
     const locale = options.locale?.() ?? "en";
-    const text = options.hint?.() ?? (target?.kind === "lookout" ? RAILING_COPY[locale].hint
+    const text = options.hint?.() ?? (target?.kind === "lookout"
+      ? (target.label?.[locale] ? `E — ${target.label[locale]}` : RAILING_COPY[locale].hint)
       : target ? interactionHint(locale, target.zoneId, target.kind, target.label?.[locale]) : "");
     if (hint.textContent !== text) hint.textContent = text;
   }
   function open(target: InteractionTarget | null) {
     if (!target) return false;
-    if (target.kind === "lookout") return options.lookout?.() ?? false;
+    if (target.kind === "lookout") return options.lookout?.(target) ?? false;
     if (target.kind === "secret") return options.discover?.(target.id) ?? false;
     if (target.kind === "vehicle") return options.ride?.() ?? false;
     if (target.kind === "teleport") {

@@ -3,7 +3,7 @@ import { AnimationClip, Bone, Box3, Group, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { createCharacter } from "../../../src/features/world/character/runtime";
 import { createRiderPose, RIDE_CONTACTS } from "../../../src/features/world/character/ride";
-import { createLeaningPose } from "../../../src/features/world/character/lean";
+import { createLeaningPose, createSittingPose, SIT_CONTACTS } from "../../../src/features/world/character/lean";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { initialVehicle, mount, step, type VehicleCorridor } from "../../../src/features/vehicle/model";
 import { requestDismount, type DismountGround } from "../../../src/features/world/vehicle/dismount";
@@ -52,6 +52,38 @@ describe("RD-01 leaning pose", () => {
     }
     pose.update(false, forward, contacts, 0, true);
     expect(character.root.getObjectByName("spine")!.quaternion.equals(before)).toBe(true);
+    expect(character.root.rotation.y).toBeCloseTo(0);
+    character.dispose();
+  });
+});
+
+describe("HZ-02 sitting pose", () => {
+  it.each([false, true])("places the rig on the bench and restores standing transforms (loader names: %s)", sanitized => {
+    const character = rig();
+    if (sanitized) character.root.traverse(node => { node.name = node.name.replaceAll(".", ""); });
+    const pose = createSittingPose(character);
+    character.root.position.set(6.4, 2 + HEIGHT, -3.2);
+    const beforeHips = character.root.getObjectByName("hips")!.position.clone();
+    const beforeSpine = character.root.getObjectByName("spine")!.quaternion.clone();
+    const forward = new Vector3(1, 0, 0);
+    expect(pose.supported).toBe(true);
+    const local = (name: string) => character.root.worldToLocal(
+      character.root.getObjectByName(sanitized ? name.replaceAll(".", "") : name)!.getWorldPosition(new Vector3()),
+    );
+    pose.update(true, forward, 1.2, false);
+    const contacts = {
+      hips: SIT_CONTACTS.hips,
+      "hand.L": SIT_CONTACTS.leftHand, "hand.R": SIT_CONTACTS.rightHand,
+      "foot.L": SIT_CONTACTS.leftFoot, "foot.R": SIT_CONTACTS.rightFoot,
+    };
+    for (const [name, target] of Object.entries(contacts)) {
+      expect(local(name).distanceTo(target), name).toBeLessThan(.025);
+    }
+    expect(local("head").y).toBeGreaterThan(local("chest").y);
+    expect(local("chest").y).toBeGreaterThan(local("hips").y);
+    pose.update(false, forward, 0, true);
+    expect(character.root.getObjectByName("hips")!.position.equals(beforeHips)).toBe(true);
+    expect(character.root.getObjectByName("spine")!.quaternion.equals(beforeSpine)).toBe(true);
     expect(character.root.rotation.y).toBeCloseTo(0);
     character.dispose();
   });
