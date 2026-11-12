@@ -5,3 +5,4 @@
 - Tham chiếu art chỉ là cảm hứng (`docs/art-bible/taste.md`); không logo/thương hiệu.
 - Điều kiện xong: `pnpm lint` (0 warning), `pnpm typecheck`, `pnpm test` exit 0 — dán dòng tổng kết. **Được và nên** mở Edge local để tự kiểm tra hình (`pnpm build`, `node tools/serve-out/index.mjs out --port <cổng>`, `tools/review/*.mjs`) và chạy e2e liên quan khi ticket yêu cầu (`pnpm exec playwright test <spec>`). Lighthouse/full e2e để Lead. **Không commit** (Lead commit).
 - Bàn giao: danh sách file, output lệnh, giới hạn đã biết, cách Lead nối vào `index.ts` (đoạn code mẫu ≤ 15 dòng).
+- **Build từ 2026-11-12** (Windows Application Control chặn SWC native): `NEXT_TEST_WASM_DIR="C:\Users\PC-LP\AppData\Local\next-swc\wasm\package" NEXT_BUILD_WEBPACK=1 pnpm build`. Chỉ build **một lần** khi đã xong code, để không làm nghẽn máy (nhiều worker chạy song song).
