@@ -24,9 +24,20 @@ Kiểm: pnpm lint, pnpm typecheck, pnpm test phải exit 0; chụp ảnh khu b�
 Xong thì viết bàn giao vào tools/review/AG-<ticket>-handoff.md: file đã sửa, kết quả lệnh, đường dẫn ảnh, việc chưa làm.
 ```
 
+## Quota và model (2026-11-12)
+
+- Quota tính theo nhóm model (ô chọn model → View Usage). Gói Google AI Pro của Duy: `Gemini 4 Argon` hết lượt tuần lúc 22:33 ngày 12/11 (hồi 19/11 21:06).
+- Nhóm `Claude and GPT models`: Claude Opus 5.5 đốt hết khung 5 giờ và 84 % lượt tuần chỉ trong vài phút chạy 4 hội thoại. **Không dùng Opus cho việc thường.**
+- Model mặc định khi Argon hết: `Gemini 3.8 Flash` (nhóm Gemini Models). Đổi model theo từng hội thoại rồi nhắn "Tiếp tục …".
+- Không bật `Enable AI Credit Overages` (tốn tiền, quyền của Duy).
+- Sandbox của Antigravity hay chặn `pnpm build` và trình duyệt: Lead build, chụp ảnh, chạy e2e.
+
 ## Đang giao
 
-| Worktree | Ticket | Cổng |
-|---|---|---|
-| `D:/tqa-worktrees/AG-WS-02` | WS-02 cổng đình làng có lửa (Workshop) | 4518 |
-| `D:/tqa-worktrees/AG-MS-02` | MS-02 tượng đá Duy đang ghép (Milestones) | 4517 |
+| Worktree | Ticket | Cổng | Trạng thái |
+|---|---|---|---|
+| `AG-SC-01` | SC-01 bí mật to, huyền bí | 4515 | merged `4d76f65` (2 vòng) |
+| `AG-B2-091` | B2-091 tiếng chuông gió | 4521 | merged `7367882` |
+| `AG-WS-02` | WS-02 cổng đình làng có lửa | 4518 | merged `9cbbb86` (2 vòng) |
+| `AG-HZ-02` | HZ-02 ngồi ghế Horizon | 4519 | review |
+| `AG-MS-02` | MS-02 tượng đá Duy đang ghép | 4517 | trả lại vòng 1, đang sửa |
