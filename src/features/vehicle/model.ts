@@ -17,13 +17,15 @@ export interface VehicleState {
   readonly s: number;
   readonly lateral: number;
   readonly speed: number;
-  /** Radians, from +Z toward +X. Positive lateral is right of the tangent. */
+  /** Radians, from +Z toward +X. Positive lateral is the rider's left. */
   readonly heading: number;
 }
 
 export type CruiseCancelReason = "escape" | "c" | "ui-open" | "blur" | "brake";
 
 export interface VehicleInput {
+  /** Stop without crossing zero into reverse, including while rolling backwards. */
+  brake?: boolean;
   w?: boolean;
   s?: boolean;
   a?: boolean;
@@ -48,12 +50,14 @@ export const VEHICLE_LIMITS = {
   lateralSpeed: 2,
   corridorMargin: 0.5,
   mountDistance: 2,
-  dismountSpeed: 0.5,
+  dismountSpeed: 0.01,
   obstacleSlowDistance: 6,
   obstacleStopDistance: 2,
   maxFrameSeconds: 0.25,
   substepSeconds: 1 / 60,
 } as const;
+
+export const VEHICLE_TRANSITION_SECONDS = 1.2;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const approach = (value: number, target: number, change: number) =>
@@ -131,7 +135,7 @@ export function step(
   let next = state;
   if (input.escape) next = cancelCruise(next, "escape");
   if (input.c) next = cancelCruise(next, "c");
-  if (input.s) next = cancelCruise(next, "brake");
+  if (input.s || input.brake) next = cancelCruise(next, "brake");
   if (input.uiOpen) next = cancelCruise(next, "ui-open");
   if (input.blur) next = cancelCruise(next, "blur");
   if (input.uiOpen || input.blur || next.mode !== "ride") return next;
@@ -148,7 +152,9 @@ export function step(
     remaining = Math.max(0, remaining - h);
     let target = 0;
     let rate: number = VEHICLE_LIMITS.coastingDeceleration;
-    if (next.cruise) {
+    if (input.brake) {
+      rate = VEHICLE_LIMITS.braking;
+    } else if (next.cruise) {
       target = VEHICLE_LIMITS.cruiseSpeed * clamp(
         (distance - VEHICLE_LIMITS.obstacleStopDistance)
           / (VEHICLE_LIMITS.obstacleSlowDistance - VEHICLE_LIMITS.obstacleStopDistance), 0, 1,
@@ -175,7 +181,8 @@ export function step(
     const s = clamp(next.s + travel, 0, corridor.length);
     if ((s === 0 && speed < 0) || (s === corridor.length && speed > 0)) speed = 0;
     const limit = lateralLimit(corridor, s);
-    const steering = next.cruise || speed === 0 ? 0 : Number(!!input.d) - Number(!!input.a);
+    // Facing +Z, the rider's right is -X (forward cross up).
+    const steering = next.cruise || speed === 0 ? 0 : Number(!!input.a) - Number(!!input.d);
     const lateral = clamp(next.lateral + steering * VEHICLE_LIMITS.lateralSpeed * h, -limit, limit);
     const heading = tangentHeading(corridor, s)
       + (steering === 0 ? 0 : Math.atan2((lateral - next.lateral) / h, Math.abs(speed)));

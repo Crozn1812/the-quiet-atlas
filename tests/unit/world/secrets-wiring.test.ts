@@ -326,13 +326,16 @@ it.each([false, true])("finishes naturally, suspends while paused and supports r
   expect(skipButton()).toBeUndefined();
 });
 
-it("dismounts a rider before starting the ending", async () => {
+it("gives E dismount priority over a secret, then lets the standing player start the ending", async () => {
   await mount();
   discover("reflection"); discover("forgotten-sound"); discover("unmarked-road");
   const bike = scene().getObjectByName("vehicle_view")!;
   position().copy(bike.position).add(new Vector3(0, HEIGHT, 0));
   advance(); key("KeyE");
   expect(container.dataset.worldVehicle).toBe("manual");
+  discover("unwritten-page");
+  expect(container.dataset.worldVehicle).toBe("parked");
+  expect(container.dataset.worldEnding).toBe("idle");
   discover("unwritten-page");
   expect(container.dataset.worldEnding).toBe("playing");
   expect(container.dataset.worldVehicle).toBe("parked");

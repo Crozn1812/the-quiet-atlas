@@ -3,7 +3,7 @@ import { Box3, BoxGeometry, CylinderGeometry, Mesh, MeshBasicMaterial, Perspecti
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { HEIGHT } from "../../../src/features/world/scene";
-import { DISMOUNT_COPY } from "../../../src/features/world/vehicle/dismount";
+import { DISMOUNT_COPY, DISMOUNT_PENDING_COPY } from "../../../src/features/world/vehicle/dismount";
 import { WORLD_COPY } from "../../../src/features/world/copy";
 
 const harness = vi.hoisted(() => ({
@@ -341,9 +341,17 @@ it("keeps the rider aboard on wet, blocked or moving ground and localizes the fa
   harness.collisions.pop(); blocker.geometry.dispose(); blocker.material.dispose();
   key("KeyW"); drive(1); release("KeyW"); key("KeyE");
   expect(container.dataset.worldVehicle).toBe("manual");
-  expect(container.children.some(child => child.textContent === DISMOUNT_COPY.vi.moving)).toBe(true);
-  drive(3); key("KeyE");
+  expect(container.children.some(child => child.textContent === DISMOUNT_PENDING_COPY.vi)).toBe(true);
+  drive(3);
   expect(container.dataset.worldVehicle).toBe("parked");
+});
+
+it("keeps an unsafe-ground reason visible while the bike coasts after a failed exit", async () => {
+  await ride();
+  harness.wet = true;
+  key("KeyE");
+  key("KeyW"); drive(1); release("KeyW");
+  expect(container.children.some(child => child.textContent === DISMOUNT_COPY.en["unsafe-ground"])).toBe(true);
 });
 
 it("locks mounting during intro and teleport, then resets a ridden bike when travel starts", async () => {

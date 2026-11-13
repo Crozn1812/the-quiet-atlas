@@ -10,6 +10,7 @@ import { createRampMaterial } from "../materials/ramp";
 export const GD110_SCALE = 0.81;
 export const GD110_WHEEL_RADIUS = 0.30 * GD110_SCALE;
 export const GD110_WHEELBASE = 1.28 * GD110_SCALE;
+export const STEERING_PIVOT = new Vector3(0, .91, .43).multiplyScalar(GD110_SCALE);
 export const GD110_COLORS = {
   body: PALETTE.paper,
   ink: PALETTE.ink,
@@ -47,6 +48,14 @@ class Batch {
   }
 
   finish(): BufferGeometry {
+    const steeringParts = /^(front_fork|fork|fork_dust_boot|handlebar.*|grip|lever|mirror.*|round_mirror|headlamp_housing|round_headlamp|headlight|tote.*)$/;
+    for (const part of this.ranges) {
+      const frontFender = /^(fender|fender_stay)$/.test(part.name)
+        && this.positions[part.start * 3 + 2]! > 0;
+      if (!steeringParts.test(part.name) && !frontFender) continue;
+      part.bone = 3;
+      this.bones.fill(3, part.start, part.start + part.count);
+    }
     const geometry = new BufferGeometry();
     geometry.setAttribute("position", new Float32BufferAttribute(this.positions, 3));
     geometry.setAttribute("color", new Float32BufferAttribute(this.colors, 3));
@@ -330,6 +339,10 @@ export function createGd110(): Group {
   root.name = "chassis_root";
   group.add(root);
   const bones = [root];
+  const steering = new Bone();
+  steering.name = "steering";
+  steering.position.copy(STEERING_PIVOT);
+  group.add(steering);
   for (const [name, z] of [["rear_wheel", -.64], ["front_wheel", .64]] as const) {
     addWheel(body, z, bones.length);
     const wheel = new Bone();
@@ -338,14 +351,18 @@ export function createGd110(): Group {
     group.add(wheel);
     bones.push(wheel);
   }
+  // Preserve the authored axle coordinates while making yaw precede wheel roll.
+  steering.attach(bones[2]!);
+  bones.push(steering);
   const chassis = new SkinnedMesh(body.finish(), material);
   chassis.name = "chassis";
   group.add(chassis);
   group.updateMatrixWorld(true);
   chassis.bind(new Skeleton(bones));
-  // Wheels only rotate around X: this conservative rest envelope encloses every pose.
+  // Include the fork, mirrors and grips through the full steering sweep.
   chassis.boundingBox = chassis.geometry.boundingBox!.clone();
   chassis.boundingBox.min.y = 0;
+  chassis.boundingBox.expandByVector(new Vector3(.45, 0, .45));
   chassis.boundingSphere = chassis.boundingBox.getBoundingSphere(chassis.geometry.boundingSphere!.clone());
   // No shadow pass: the one-draw budget includes every vehicle render pass.
   group.traverse(node => { if (node instanceof Mesh) node.receiveShadow = true; });

@@ -25,6 +25,21 @@ afterEach(() => {
 });
 
 describe("GD110 detailed single batch", () => {
+  it("steers real grip and fork vertices with the front axle while leaving the tank fixed", () => {
+    const bike = makeBike(), mesh = batch(bike);
+    const steering = bike.getObjectByName("steering")!;
+    const pivot = steering.position.clone();
+    steering.rotation.y = -.32;
+    bike.updateMatrixWorld(true);
+    mesh.skeleton.update();
+    for (const name of ["grip", "front_fork", "spoke", "fuel_tank"]) {
+      const part = ranges(mesh).find(part => part.name === name && (name !== "spoke" || part.bone === 2))!;
+      const original = points(mesh, part)[0]!;
+      const expected = name === "fuel_tank" ? original : original.clone().sub(pivot)
+        .applyAxisAngle(new Vector3(0, 1, 0), -.32).add(pivot);
+      expect(mesh.getVertexPosition(part.start, new Vector3()).distanceTo(expected)).toBeLessThan(1e-6);
+    }
+  });
   it("retains every named part as real triangles in one opaque, ungrouped draw", () => {
     const mesh = batch(makeBike());
     const parts = ranges(mesh);
@@ -54,6 +69,7 @@ describe("GD110 detailed single batch", () => {
     const bike = makeBike(), mesh = batch(bike);
     for (const name of ["rear_wheel", "front_wheel"]) {
       const pivot = bike.getObjectByName(name)!;
+      const centre = pivot.getWorldPosition(new Vector3());
       const bone = mesh.skeleton.bones.indexOf(pivot as Bone);
       const wheelParts = ranges(mesh).filter(part => part.bone === bone);
       const spokes = wheelParts.filter(part => part.name === "spoke");
@@ -62,7 +78,7 @@ describe("GD110 detailed single batch", () => {
       for (const part of spokes) {
         const positions = points(mesh, part);
         expect(new Box3().setFromPoints(positions).getSize(new Vector3()).x).toBeLessThan(.03);
-        const radial = positions.map(p => Math.hypot(p.y - pivot.position.y, p.z - pivot.position.z));
+        const radial = positions.map(p => Math.hypot(p.y - centre.y, p.z - centre.z));
         expect(Math.min(...radial)).toBeLessThan(.055 * GD110_SCALE);
         expect(Math.max(...radial)).toBeGreaterThan(.20 * GD110_SCALE);
       }
@@ -75,7 +91,7 @@ describe("GD110 detailed single batch", () => {
       expect(bounds.max.y).toBeCloseTo(2 * GD110_WHEEL_RADIUS, 6);
       expect(bounds.getSize(new Vector3()).z).toBeCloseTo(2 * GD110_WHEEL_RADIUS, 6);
       const maxRadius = (name: string) => Math.max(...wheelParts.filter(part => part.name === name)
-        .flatMap(part => points(mesh, part)).map(p => Math.hypot(p.y - pivot.position.y, p.z - pivot.position.z)));
+        .flatMap(part => points(mesh, part)).map(p => Math.hypot(p.y - centre.y, p.z - centre.z)));
       expect(maxRadius("tire_tread")).toBeGreaterThan(maxRadius("wheel"));
       expect(maxRadius("tire_tread")).toBeLessThanOrEqual(GD110_WHEEL_RADIUS + 1e-7);
     }
@@ -126,11 +142,12 @@ describe("GD110 detailed single batch", () => {
       view.update({ ...state, s: state.s + GD110_WHEEL_RADIUS * .75 }, corridor, 1 / 60);
       parent.updateMatrixWorld(true);
       mesh.skeleton.update();
-      for (const wheel of mesh.skeleton.bones.slice(1)) {
+      for (const wheel of mesh.skeleton.bones.slice(1, 3)) {
         const boneIndex = mesh.skeleton.bones.indexOf(wheel);
         const part = ranges(mesh).find(part => part.bone === boneIndex && part.name === "spoke")!;
         const initial = new Vector3().fromBufferAttribute(attributes, part.start);
-        const expected = initial.clone().sub(wheel.position).applyAxisAngle(new Vector3(1, 0, 0), .75).add(wheel.position);
+        const centre = mesh.worldToLocal(wheel.getWorldPosition(new Vector3()));
+        const expected = initial.clone().sub(centre).applyAxisAngle(new Vector3(1, 0, 0), .75).add(centre);
         const actual = mesh.getVertexPosition(part.start, new Vector3());
         expect(actual.distanceTo(expected)).toBeLessThan(1e-6);
         expect(actual.distanceTo(initial)).toBeGreaterThan(.01);
@@ -147,7 +164,7 @@ describe("GD110 detailed single batch", () => {
       // Culling bounds must enclose rolling vertices, not just the rest pose.
       const envelope = mesh.boundingBox!.clone().expandByScalar(1e-6);
       for (const angle of [0, .2, 1, 2, 4, -1]) {
-        mesh.skeleton.bones.slice(1).forEach(wheel => { wheel.rotation.x = angle; });
+        mesh.skeleton.bones.slice(1, 3).forEach(wheel => { wheel.rotation.x = angle; });
         parent.updateMatrixWorld(true);
         for (let i = 0; i < attributes.count; i++) {
           const p = mesh.getVertexPosition(i, new Vector3());
@@ -173,6 +190,6 @@ describe("GD110 detailed single batch", () => {
     disposeGd110(a);
     disposeGd110(a);
     for (const spy of [texture, skeleton, geometry, material]) expect(spy).toHaveBeenCalledTimes(1);
-    expect(batch(b).skeleton.bones).toHaveLength(3);
+    expect(batch(b).skeleton.bones).toHaveLength(4);
   });
 });

@@ -1,5 +1,5 @@
 import { CylinderGeometry, Group, Mesh, MeshBasicMaterial } from "three";
-import { vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
+import { VEHICLE_TRANSITION_SECONDS, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
 import { createGd110, disposeGd110, GD110_WHEEL_RADIUS } from "./mesh";
 
 export const MAX_VEHICLE_LEAN = 12 * Math.PI / 180;
@@ -21,6 +21,7 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
   const bike = createGd110();
   group.add(bike);
   const standPivot = new Group();
+  standPivot.name = "kickstand";
   standPivot.position.set(0.15, 0.28, -0.16);
   const stand = new Mesh(new CylinderGeometry(0.012, 0.017, 0.30, 5),
     new MeshBasicMaterial({ color: 0x50483d }));
@@ -28,7 +29,9 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
   standPivot.add(stand);
   bike.add(standPivot);
   let standFold = 0;
+  let transitionSeconds = 0;
   const wheels = [bike.getObjectByName("rear_wheel")!, bike.getObjectByName("front_wheel")!];
+  const steering = bike.getObjectByName("steering")!;
   let previous: { state: VehicleState; corridor: VehicleCorridor } | undefined;
   let lean = 0;
   let disposed = false;
@@ -49,6 +52,9 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
       const heading = Math.atan2(tangent.x, tangent.z);
       group.position.set(position.x, surfaceHeight(position.x, position.z), position.z);
       group.rotation.y = heading;
+      const steer = state.mode === "ride" && Math.abs(state.speed) > .01
+        ? clamp(angleDelta(state.heading, heading), -.32, .32) : 0;
+      steering.rotation.y = steer;
 
       // Realized corridor travel, rather than speed * dt: stopped/clamped states
       // do not spin, and reverse rolls the wheels backwards. A new corridor or
@@ -67,11 +73,17 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
       if (!reducedMotion && state.mode === "ride" && to > from) {
         const a = corridor.tangentAt(from), b = corridor.tangentAt(to);
         const curvature = angleDelta(Math.atan2(b.x, b.z), Math.atan2(a.x, a.z)) / (to - from);
-        target = clamp(-Math.atan(state.speed * state.speed * curvature / 9.81), -MAX_VEHICLE_LEAN, MAX_VEHICLE_LEAN);
+        target = clamp(-Math.atan(state.speed * state.speed * curvature / 9.81) - steer * .3,
+          -MAX_VEHICLE_LEAN, MAX_VEHICLE_LEAN);
       }
       const seconds = Number.isFinite(dt) ? clamp(dt, 0, .25) : 0;
-      const standTarget = state.mode === "ride" ? 1 : 0;
-      standFold = reducedMotion ? standTarget : standFold + (standTarget - standFold) * Math.min(1, seconds * 6);
+      if (!previous) transitionSeconds = VEHICLE_TRANSITION_SECONDS;
+      else if (previous.state.mode !== state.mode) transitionSeconds = 0;
+      transitionSeconds += seconds;
+      const phase = transitionSeconds / VEHICLE_TRANSITION_SECONDS;
+      // Mount: settle onto the seat before kicking up. Dismount: park first.
+      const standTarget = state.mode === "ride" ? clamp((phase - .8) / .2, 0, 1) : 1 - clamp(phase / .25, 0, 1);
+      standFold = reducedMotion ? Number(state.mode === "ride") : previous ? standTarget : Number(state.mode === "ride");
       standPivot.rotation.x = standFold * 1.5;
       standPivot.rotation.z = 0.32 * (1 - standFold);
       lean = reducedMotion ? 0 : lean + (target - lean) * (1 - Math.exp(-8 * seconds));

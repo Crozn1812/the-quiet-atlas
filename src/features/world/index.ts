@@ -47,7 +47,8 @@ import { createSecretLandmark, disposeLandmark } from "./props/secrets";
 import type { WaterMaterial } from "./water/material";
 import { timeOfDayAt } from "./layout/lighting";
 import { createVehicleView } from "./vehicle/view";
-import { DISMOUNT_COPY, requestDismount } from "./vehicle/dismount";
+import { DISMOUNT_COPY, DISMOUNT_PENDING_COPY, requestDismount } from "./vehicle/dismount";
+import { createVehicleControls } from "./vehicle/controls";
 import { createRiderPose } from "./character/ride";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
@@ -321,6 +322,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   // Downstream and on the outer bank, clear of both First Light signs.
   const parkedVehicle = initialVehicle(corridor, 6, -2);
   let vehicle = parkedVehicle;
+  const vehicleControls = createVehicleControls();
   let unsafeStop = false;
   let dismountReason: keyof typeof DISMOUNT_COPY.en | undefined;
   scene.add(bike.group);
@@ -416,6 +418,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         return Math.hypot(physics.position.x - zone.position.x, physics.position.z - zone.position.z) <= zone.radius
           ? ZONE_HINTS[zone.id] : undefined;
       }
+      if (vehicleControls.dismountPending) return DISMOUNT_PENDING_COPY[locale];
       if (nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z })) return WORLD_COPY[locale].secretHint;
       return unsafeStop ? dismountReason ? DISMOUNT_COPY[locale][dismountReason] : WORLD_COPY[locale].vehicleUnsafe
         : `${VEHICLE_LABELS[locale].getOff} · ${VEHICLE_LABELS[locale].cruise}`;
@@ -460,10 +463,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     goTo(zoneId: string): Promise<void>;
     visitSecret(id: string): boolean;
     nearVehicle(): void;
+    rider(): ReturnType<typeof rider.snapshot>;
   } };
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
     cameraYaw: () => yaw,
+    rider: () => rider.snapshot(bike.riderFrame),
     cameraDistance: () => camera.position.distanceTo(physics.position),
     lookoutPosition: (zoneId?: string) => lookout.positionFor(zoneId),
     zone: () => {
@@ -665,7 +670,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     return nearest;
   }
   function getOffVehicle() {
-    if (rider.transitioning) return;
+    if (!vehicleControls.readyToDismount(vehicle, rider.transitioning)) return;
+    vehicleControls.finishDismount();
     const obstacles = solidBounds(0.4);
     const result = requestDismount(vehicle, corridor, {
       surfaceHeight, waterLevelAt, contains: point => composed.contains(point),
@@ -709,9 +715,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         from = to;
       }
     }
-    const proposal = stepVehicle(vehicle, corridor, dt, {
+    const proposal = stepVehicle(vehicle, corridor, dt, vehicleControls.input(vehicle, {
       w: keys.has("KeyW"), s: keys.has("KeyS"), a: keys.has("KeyA"), d: keys.has("KeyD"), obstacleAhead,
-    });
+    }));
     const before = physics.position.clone();
     from = groundPoint(before);
     const to = groundPoint(vehiclePosition(proposal, corridor));
@@ -728,11 +734,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       vehicle = { ...vehicle, speed: 0 };
     } else {
       vehicle = proposal;
-      if (distance > 0.001) unsafeStop = false;
     }
     state = { ...state, position: { ...physics.position } };
   }
   function clear(action: InputAction = { type: "clear" }) {
+    vehicleControls.reset();
     if (drag && gpu.domElement.hasPointerCapture(drag.id)) gpu.domElement.releasePointerCapture(drag.id);
     drag = undefined;
     keys = inputReducer(keys, action);
@@ -766,9 +772,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (vehicle.mode === "ride" && cameraEnabled() && !isInputTarget(event.target)) {
       if (event.code === "KeyE" && !event.repeat) {
         event.preventDefault();
-        const secret = nearestSecret({ x: physics.position.x, y: physics.position.y - HEIGHT, z: physics.position.z });
-        if (secret && discover(secret.id)) return;
+        vehicleControls.requestDismount();
+        vehicle = cancelCruise(vehicle, "brake");
         getOffVehicle();
+        interaction.update();
         return;
       }
       if (event.code === "KeyC" && !event.repeat) {
@@ -1277,6 +1284,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const animDt = canSimulate(state) ? dt : 0;
     animator.update(animDt, vehicle.mode === "ride" || rider.transitioning || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(animDt);
+    if (vehicleControls.dismountPending) getOffVehicle();
     let introFrame: IntroFrame | undefined;
     if (intro?.inputLocked) {
       introFrame = intro.tick(canSimulate(state) && wasPlaying ? dt : 0);

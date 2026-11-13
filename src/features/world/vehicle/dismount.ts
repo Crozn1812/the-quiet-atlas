@@ -7,6 +7,11 @@ export const DISMOUNT_COPY = {
   en: { moving: "Stop, then press E", "unsafe-ground": "No safe place to stand", "not-riding": "You are not riding" },
 } as const;
 
+export const DISMOUNT_PENDING_COPY = {
+  vi: "Đang dừng xe để xuống…",
+  en: "Stopping to step off…",
+} as const;
+
 export interface DismountGround {
   surfaceHeight(x: number, z: number): number;
   waterLevelAt(z: number): number;

@@ -51,7 +51,7 @@ describe("GD110 procedural mesh", () => {
       expect(draws).toBe(1);
       expect(parts.every(mesh => !mesh.castShadow)).toBe(true);
       expect(parts.every(mesh => !/logo|text/i.test(mesh.name))).toBe(true);
-      const bounds = new Box3().setFromObject(bike);
+      const bounds = new Box3().setFromObject(bike, true);
       const size = bounds.getSize(new Vector3());
       // Measured B2-189 input geometry, including mirrors, tote and fenders.
       for (const [actual, target] of [[size.z, 1.6351106167], [size.y, 1.2522599853], [size.x, .7800461352]]) {
@@ -61,12 +61,12 @@ describe("GD110 procedural mesh", () => {
       expect(bounds.min.y).toBeCloseTo(0, 6);
       const front = bike.getObjectByName("front_wheel")!;
       const rear = bike.getObjectByName("rear_wheel")!;
-      expect(front.parent).toBe(bike);
+      expect(front.parent).toBe(bike.getObjectByName("steering"));
       expect(rear.parent).toBe(bike);
-      expect(front.position.z - rear.position.z).toBeCloseTo(GD110_WHEELBASE);
+      expect(front.getWorldPosition(new Vector3()).z - rear.position.z).toBeCloseTo(GD110_WHEELBASE);
       for (const wheel of [front, rear]) {
         expect(wheel).toBeInstanceOf(Bone);
-        expect(wheel.position.y).toBe(GD110_WHEEL_RADIUS);
+        expect(wheel.getWorldPosition(new Vector3()).y).toBeCloseTo(GD110_WHEEL_RADIUS);
       }
     } finally { disposeGd110(bike); }
   });
@@ -110,6 +110,27 @@ describe("GD110 procedural mesh", () => {
 });
 
 describe("vehicle view", () => {
+  it("folds the stand after mounting and lowers it before stepping off; reduced motion snaps", () => {
+    const view = makeView();
+    const state = riding();
+    const parked = { ...state, mode: "walk" as const, speed: 0 };
+    const stand = view.group.getObjectByName("kickstand")!;
+    view.update(parked, straight, 0);
+    expect(stand.rotation.x).toBe(0);
+    view.update(state, straight, 0);
+    for (let i = 0; i < 9; i++) view.update(state, straight, .1);
+    expect(stand.rotation.x).toBe(0);
+    for (let i = 0; i < 4; i++) view.update(state, straight, .1);
+    expect(stand.rotation.x).toBeCloseTo(1.5);
+    view.update(parked, straight, 0);
+    view.update(parked, straight, .15);
+    expect(stand.rotation.x).toBeCloseTo(.75);
+    view.update(parked, straight, .15);
+    expect(stand.rotation.x).toBe(0);
+    view.setReducedMotion(true);
+    view.update(state, straight, 0);
+    expect(stand.rotation.x).toBe(1.5);
+  });
   it("uses vehiclePosition, injected terrain height and corridor heading instead of steering heading", () => {
     const corridor = curve(15);
     const height = vi.fn((x: number, z: number) => x * .2 + z * .1);
@@ -127,7 +148,7 @@ describe("vehicle view", () => {
     const state = riding(straight);
     view.update(state, straight, 1 / 60);
     const wheels = ["front_wheel", "rear_wheel"].map(name => view.group.getObjectByName(name)!);
-    expect(wheels.map(wheel => wheel.rotation.x)).toEqual([0, 0]);
+    wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(0));
     view.update({ ...state, s: 12 }, straight, .01);
     wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(2 / GD110_WHEEL_RADIUS));
     view.update({ ...state, s: 12, speed: 8 }, straight, 10);

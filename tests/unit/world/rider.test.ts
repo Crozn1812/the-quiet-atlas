@@ -7,6 +7,8 @@ import { createLeaningPose, createSittingPose, SIT_CONTACTS } from "../../../src
 import { HEIGHT } from "../../../src/features/world/scene";
 import { initialVehicle, mount, step, type VehicleCorridor } from "../../../src/features/vehicle/model";
 import { requestDismount, type DismountGround } from "../../../src/features/world/vehicle/dismount";
+import { createVehicleView } from "../../../src/features/world/vehicle/view";
+import { GD110_SCALE, STEERING_PIVOT } from "../../../src/features/world/vehicle/mesh";
 
 /** Read the shipped GLB's actual joint hierarchy and bind transforms, without a renderer/decoder. */
 function rig() {
@@ -90,6 +92,37 @@ describe("HZ-02 sitting pose", () => {
 });
 
 describe("D-23 mounted pose", () => {
+  it.each([1, 5, 8].flatMap(speed => (["a", "d"] as const).map(key => ({ speed, key }))))("keeps both hands on the rotating grips at $speed while steering $key", ({ speed, key }) => {
+    const character = rig(), pose = createRiderPose(character);
+    const view = createVehicleView({ surfaceHeight: () => 2 });
+    const state = step({ ...riding(), speed }, corridor, .1, { w: true, [key]: true });
+    view.update(state, corridor, .1);
+    pose.update(state, view.riderFrame);
+    const angle = view.riderFrame.getObjectByName("steering")!.rotation.y;
+    expect(Math.sign(angle)).toBe(key === "a" ? 1 : -1);
+    expect(Math.sign(view.riderFrame.rotation.z)).toBe(-Math.sign(angle));
+    for (const [name, contact] of [["hand.L", RIDE_CONTACTS.leftHand], ["hand.R", RIDE_CONTACTS.rightHand]] as const) {
+      const target = contact.clone().sub(STEERING_PIVOT).applyAxisAngle(new Vector3(0, 1, 0), angle).add(STEERING_PIVOT);
+      const actual = view.riderFrame.worldToLocal(character.root.getObjectByName(name)!.getWorldPosition(new Vector3()));
+      expect(actual.distanceTo(target), `${name} ${angle} ${actual.toArray()} -> ${target.toArray()}`).toBeLessThan(.025);
+    }
+    character.dispose(); view.dispose();
+  });
+
+  it("lifts a leg above the saddle, settles, and shortens a live reduced-motion transition", () => {
+    const character = rig(), pose = createRiderPose(character), frame = new Group();
+    character.root.position.set(.7, HEIGHT, -.3);
+    pose.update({ mode: "ride", speed: 0 }, frame, 0, false);
+    expect(pose.transitioning).toBe(true);
+    pose.update({ mode: "ride", speed: 0 }, frame, .6, false);
+    const foot = character.root.getObjectByName("foot.R")!.getWorldPosition(new Vector3());
+    expect(foot.y).toBeGreaterThan(.92 * GD110_SCALE);
+    pose.update({ mode: "ride", speed: 0 }, frame, 0, true);
+    expect(pose.transitioning).toBe(false);
+    expect(character.root.getObjectByName("foot.R")!.getWorldPosition(new Vector3())
+      .distanceTo(RIDE_CONTACTS.rightFoot)).toBeLessThan(.025);
+    character.dispose();
+  });
   it.each([false, true])("lands upright after stepping off a banked bike (reduced motion: %s)", reducedMotion => {
     const character = rig();
     const root = character.root;
@@ -112,9 +145,9 @@ describe("D-23 mounted pose", () => {
     pose.update({ mode: "walk", speed: 0 }, bike, 0, reducedMotion);
     expect(pose.transitioning).toBe(!reducedMotion);
     if (!reducedMotion) {
-      pose.update({ mode: "walk", speed: 0 }, bike, .45, false);
+      pose.update({ mode: "walk", speed: 0 }, bike, .95, false);
       expect(root.quaternion.angleTo(standingRotation)).toBeLessThan(.3);
-      pose.update({ mode: "walk", speed: 0 }, bike, .25, false);
+      pose.update({ mode: "walk", speed: 0 }, bike, .3, false);
     }
     expect(pose.transitioning).toBe(false);
     expect(root.position.distanceTo(destination)).toBeLessThan(1e-6);

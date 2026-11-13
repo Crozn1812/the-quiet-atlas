@@ -1,6 +1,6 @@
 import { Bone, Object3D, Quaternion, SkinnedMesh, Vector3 } from "three";
-import type { VehicleState } from "../../vehicle/model";
-import { GD110_SCALE } from "../vehicle/mesh";
+import { VEHICLE_TRANSITION_SECONDS, type VehicleState } from "../../vehicle/model";
+import { GD110_SCALE, STEERING_PIVOT } from "../vehicle/mesh";
 import type { Character } from "./runtime";
 
 const point = (x: number, y: number, z: number) => new Vector3(x, y, z).multiplyScalar(GD110_SCALE);
@@ -36,7 +36,11 @@ export function createRiderPose(character: Character) {
   let riding = false;
   let transition: "mount" | "dismount" | undefined;
   let elapsed = 0;
-  const duration = 0.65;
+  const duration = VEHICLE_TRANSITION_SECONDS;
+  const up = new Vector3(0, 1, 0);
+  const handTarget = new Vector3();
+  const swingFoot = new Vector3();
+  let exitSide = 1;
   const fromPosition = new Vector3(), fromRotation = new Quaternion();
   const seatPosition = new Vector3(), seatRotation = new Quaternion();
   const standingPosition = new Vector3();
@@ -52,7 +56,6 @@ export function createRiderPose(character: Character) {
   function blendFrom(position: Vector3, rotation: Quaternion, bones: typeof fromBones, progress: number) {
     const blend = progress * progress * (3 - 2 * progress);
     root.position.lerp(position, 1 - blend);
-    root.position.y += Math.sin(Math.PI * blend) * 0.17;
     root.quaternion.slerp(rotation, 1 - blend);
     rest.forEach(({ bone }, i) => {
       bone.position.lerp(bones[i]!.position, 1 - blend);
@@ -99,6 +102,19 @@ export function createRiderPose(character: Character) {
   return {
     supported,
     get transitioning() { return transition !== undefined; },
+    /** Read-only, on-demand QA measurements; no work in the animation loop. */
+    snapshot(frame: Object3D) {
+      root.updateWorldMatrix(true, true);
+      const hips = bones.get("hips"), head = bones.get("head");
+      const torso = hips && head ? position(head).sub(position(hips)).normalize() : up;
+      const here = root.getWorldPosition(new Vector3()), bike = frame.getWorldPosition(new Vector3());
+      return {
+        transitioning: transition !== undefined,
+        rootUp: up.clone().applyQuaternion(root.getWorldQuaternion(new Quaternion())).y,
+        torsoUp: torso.y,
+        distanceToBike: Math.hypot(here.x - bike.x, here.z - bike.z),
+      };
+    },
     update(state: Pick<VehicleState, "mode" | "speed">, frame: Object3D, dt = 0, reducedMotion = true) {
       if (character.disposed) return;
       if (state.mode !== "ride") {
@@ -109,6 +125,7 @@ export function createRiderPose(character: Character) {
           root.quaternion.copy(walkingRotation);
           if (transition === "dismount") {
             standingPosition.copy(root.position);
+            exitSide = frame.worldToLocal(root.getWorldPosition(new Vector3())).x >= 0 ? 1 : -1;
             remember(standingBones);
           }
           for (const { mesh, culled } of skins) mesh.frustumCulled = culled;
@@ -127,12 +144,25 @@ export function createRiderPose(character: Character) {
           if (reducedMotion || elapsed >= duration) {
             transition = undefined;
             root.updateWorldMatrix(true, true);
-          } else blendFrom(seatPosition, seatRotation, seatBones, elapsed / duration);
+          } else {
+            const progress = elapsed / duration;
+            // Hold the saddle while the stand lowers, then swing the outside
+            // leg over the seat before transferring weight onto the ground.
+            blendFrom(seatPosition, seatRotation, seatBones, Math.max(0, (progress - .25) / .75));
+            if (progress > .25 && progress < .8) {
+              const side = exitSide > 0 ? "R" : "L";
+              const lift = Math.sin(Math.PI * (progress - .25) / .55);
+              swingFoot.set(exitSide * .05, .50 + lift * .58, -.48).multiplyScalar(GD110_SCALE);
+              const goal = root.worldToLocal(frame.localToWorld(swingFoot.clone()));
+              limb(`thigh.${side}`, `shin.${side}`, `foot.${side}`, goal, new Vector3(-exitSide * .3, .7, -.6));
+            }
+          }
         }
         return;
       }
       if (!riding) {
         walkingRotation.copy(root.quaternion);
+        exitSide = frame.worldToLocal(root.getWorldPosition(new Vector3())).x >= 0 ? 1 : -1;
         transition = supported && !reducedMotion ? "mount" : undefined;
         elapsed = 0;
         fromPosition.copy(root.position);
@@ -153,12 +183,20 @@ export function createRiderPose(character: Character) {
       root.updateWorldMatrix(true, true);
       const hips = bones.get("hips")!;
       hips.position.copy(hips.parent!.worldToLocal(world(RIDE_CONTACTS.hips)));
+      const steering = frame.getObjectByName("steering")?.rotation.y ?? 0;
       orient(hips, root.getWorldQuaternion(new Quaternion())
-        .multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), .30)).multiply(orientations.get("hips")!));
+        .multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), .30 + Math.abs(steering) * .4)).multiply(orientations.get("hips")!));
+      const chest = bones.get("chest")!;
+      orient(chest, new Quaternion().setFromAxisAngle(up.clone().applyQuaternion(root.getWorldQuaternion(new Quaternion())), steering * .7)
+        .multiply(chest.getWorldQuaternion(new Quaternion())));
       for (const side of ["L", "R"] as const) {
         const sign = side === "L" ? 1 : -1;
+        handTarget.copy(side === "L" ? RIDE_CONTACTS.leftHand : RIDE_CONTACTS.rightHand);
+        handTarget.sub(STEERING_PIVOT).applyAxisAngle(up, steering).add(STEERING_PIVOT);
         limb(`upper_arm.${side}`, `forearm.${side}`, `hand.${side}`,
-          side === "L" ? RIDE_CONTACTS.leftHand : RIDE_CONTACTS.rightHand, new Vector3(sign * .5, .9, .05));
+          handTarget, new Vector3(sign * .5, .9, .05));
+        orient(bones.get(`hand.${side}`)!, root.getWorldQuaternion(new Quaternion())
+          .multiply(new Quaternion().setFromAxisAngle(up, steering)).multiply(orientations.get(`hand.${side}`)!));
         limb(`thigh.${side}`, `shin.${side}`, `foot.${side}`,
           side === "L" ? Math.abs(state.speed) < .1 ? RIDE_CONTACTS.plantedFoot : RIDE_CONTACTS.leftFoot : RIDE_CONTACTS.rightFoot,
           new Vector3(sign * .35, .5, .5));
@@ -170,7 +208,20 @@ export function createRiderPose(character: Character) {
       if (transition === "mount") {
         elapsed += dt;
         if (reducedMotion || elapsed >= duration) transition = undefined;
-        else blendFrom(fromPosition, fromRotation, fromBones, elapsed / duration);
+        else {
+          const progress = elapsed / duration;
+          // First approach the saddle; then lift the far leg over it. The
+          // final fifth settles onto the seat while the kickstand folds up.
+          blendFrom(fromPosition, fromRotation, fromBones, Math.min(1, progress / .8));
+          if (progress > .2 && progress < .8) {
+            const swing = (progress - .2) / .6;
+            swingFoot.set(exitSide * .45 * Math.cos(Math.PI * swing), .2 + .95 * Math.sin(Math.PI * swing), -.48)
+              .multiplyScalar(GD110_SCALE);
+            const goal = root.worldToLocal(frame.localToWorld(swingFoot.clone()));
+            const side = exitSide > 0 ? "R" : "L";
+            limb(`thigh.${side}`, `shin.${side}`, `foot.${side}`, goal, new Vector3(exitSide * .3, .8, -.6));
+          }
+        }
       }
     },
   };

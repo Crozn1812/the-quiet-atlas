@@ -99,8 +99,8 @@ describe("vehicle model", () => {
   it("steers A/D symmetrically, clamps both edges, and stays still without speed", () => {
     const state = riding();
     expect(step(state, straight, 0.25, { d: true }).lateral).toBe(0);
-    expect(advance(state, { w: true, d: true }).lateral).toBe(2.5);
-    expect(advance(state, { w: true, a: true }).lateral).toBe(-2.5);
+    expect(advance(state, { w: true, d: true }).lateral).toBe(-2.5);
+    expect(advance(state, { w: true, a: true }).lateral).toBe(2.5);
     expect(advance(state, { w: true, a: true, d: true }).lateral).toBe(0);
   });
 
@@ -178,12 +178,12 @@ describe("vehicle model", () => {
   });
 
   it("requires safe ground and clears cruise and velocity on successful dismount", () => {
-    const state = { ...toggleCruise(riding()), speed: 0.49 };
+    const state = { ...toggleCruise(riding()), speed: 0 };
     expect(dismount(state, false)).toEqual({ ok: false, state, reason: "unsafe-ground" });
     expect(dismount(state, true)).toMatchObject({
       ok: true, state: { mode: "walk", cruise: false, speed: 0, s: state.s },
     });
-    expect(dismount({ ...state, speed: -0.49 }, true).ok).toBe(true);
+    expect(dismount({ ...state, speed: -0.49 }, true).ok).toBe(false);
     expect(dismount(initialVehicle(straight), true)).toMatchObject({ ok: false, reason: "not-riding" });
     expect(state.mode).toBe("ride");
   });

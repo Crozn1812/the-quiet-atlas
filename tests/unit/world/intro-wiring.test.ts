@@ -353,7 +353,7 @@ it("reads the test flag without changing it and enters done immediately", async 
   expect(camera().position.distanceTo(harness.firstPose!.position)).toBe(0);
 });
 
-type Journey = { position(): { x: number; y: number; z: number }; cameraYaw(): number; cameraDistance(): number; visitSecret(id: string): boolean; zone(): string | null };
+type Journey = { position(): { x: number; y: number; z: number }; rider(): { rootUp: number }; cameraYaw(): number; cameraDistance(): number; visitSecret(id: string): boolean; zone(): string | null };
 const journey = () => (container as Element & { __tqaJourney?: Journey }).__tqaJourney;
 
 it.each([undefined, false])("does not install journey observation with flag %s", async flag => {
@@ -370,7 +370,10 @@ it("exposes live journey snapshots and yaw without allowing controller mutation"
   win.__tqaSkipIntro = true;
   await mount();
   const hook = journey()!;
-  expect(Object.keys(hook).sort()).toEqual(["cameraDistance", "cameraYaw", "goTo", "lookoutPosition", "nearVehicle", "position", "visitSecret", "zone"]);
+  expect(Object.keys(hook).sort()).toEqual(["cameraDistance", "cameraYaw", "goTo", "lookoutPosition", "nearVehicle", "position", "rider", "visitSecret", "zone"]);
+  const riderSnapshot = hook.rider();
+  riderSnapshot.rootUp = -1;
+  expect(hook.rider().rootUp).toBe(1);
   expect(Number.isFinite(hook.cameraDistance())).toBe(true);
   expect(hook.cameraDistance()).toBeGreaterThanOrEqual(0);
   expect(Object.isFrozen(hook)).toBe(true);
