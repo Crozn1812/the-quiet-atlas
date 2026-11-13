@@ -9,7 +9,8 @@ Duy chuẩn bị nhiều tài khoản Codex và một Antigravity CLI. Claude l�
 | Codex A | `CODEX_HOME=C:/Users/PC-LP/.codex bash tools/lead/dispatch.sh <ID> <card> [effort]` | cổng 9876 |
 | Codex B | `CODEX_HOME=C:/Users/PC-LP/.codex2 …` | cổng 9877 |
 | Codex C | `CODEX_HOME=C:/Users/PC-LP/.codex3 …` | cổng 9878 |
-| Codex D, E | `.codex4`, `.codex5`: **chưa đăng nhập** (chưa có `auth.json`) | — |
+| Codex D | `CODEX_HOME=C:/Users/PC-LP/.codex4 …` (đăng nhập 13/11 20:00) | cổng 9880 |
+| Codex E | `.codex5`: **chưa đăng nhập** | — |
 | Antigravity | `cd D:/tqa-worktrees/<ID> && agy -p "<prompt>" --mode accept-edits --sandbox` (xem `agy --help`) | cổng 9879 (`agy mcp list`) |
 
 - `dispatch.sh`, `resume.sh`, `autoresume.sh` kế thừa `CODEX_HOME` từ môi trường, nên chỉ cần đặt biến trước lệnh.

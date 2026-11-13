@@ -77,7 +77,7 @@ Khi một worker rảnh mà ưu tiên 1 chưa xong, lấy ưu tiên 2. Không ai
 ## 4. Lượt dùng (quota) và reset
 
 - **Codex hết lượt (LIMIT):** chuyển ticket sang tài khoản khác bằng `CODEX_HOME=… bash tools/lead/resume.sh <ID> <card>`. Thứ tự thử: tài khoản còn nhiều lượt nhất → Antigravity (`dispatch-agy.sh`, chạy tiếp trong cùng worktree) → hẹn giờ hồi lượt bằng `autoresume.sh`.
-- **Reset usage:** hai tài khoản Codex có lượt reset đầy. Duy cho Lead dùng khi weekly còn **dưới 10 %** và hàng đợi còn việc. Lần đầu cần dùng thì hỏi Duy đó là tài khoản nào và cách bấm; ghi lại vào đây.
+- **Reset usage:** `.codex4` có **1 lượt reset** (Codex báo "You have 1 usage limit reset available. Run /usage"). Duy dặn dùng lúc **khoảng 22–23 h ngày 13/11**. Cách dùng: trong cửa sổ Codex của tài khoản đó (Windows Terminal Duy mở sẵn, hoặc chạy `CODEX_HOME=C:/Users/PC-LP/.codex4 codex` trong một tab mới) gõ `/usage` rồi chọn dùng reset. Chỉ gõ `/usage`, không giao việc trong cửa sổ YOLO. Một tài khoản khác cũng có reset: áp quy tắc weekly còn dưới 10 % và hàng đợi còn việc. Ghi lại mỗi lần đã dùng vào đây.
 - **Thêm worker:** Duy đăng nhập `.codex4` và `.codex5` thì dùng ngay (`auth.json` xuất hiện). Mở thêm Blender bằng `bash tools/lead/blender-workers.sh 9880 9881` và thêm `BLENDER_PORT` cho tài khoản đó (xem `lead-workers.md`).
 - **Một tài khoản chạy 2 ticket cùng lúc** được, nếu vùng file tách nhau. Nhưng nó tốn lượt nhanh gấp đôi; chỉ làm khi còn reset.
 - **Claude (Lead):** tiết kiệm. Ở 97 % weekly thì bàn giao Lead cho Codex theo memory `claude-95-handoff-codex`.
