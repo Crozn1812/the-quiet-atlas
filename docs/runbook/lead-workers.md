@@ -35,3 +35,11 @@ Mỗi worker giữ **một** worktree cố định: `D:/tqa-worktrees/W-A` (`.co
 - `merge.sh` xong thì giải phóng worker (detach về main, xóa nhánh, xóa `.busy`), giữ nguyên thư mục.
 - Bỏ một ticket: `. tools/lead/worker-slot.sh; release_ticket <ID>`, sau khi worktree đã sạch hoặc đã commit wip.
 - Ticket tạo theo kiểu cũ (`D:/tqa-worktrees/<ID>`) vẫn chạy và merge như trước.
+
+## Sandbox Windows: unelevated (từ 2026-11-13 tối)
+
+Duy: hộp thoại "Windows sandbox setup" hiện quá nhiều, cho Lead toàn quyền xử lý. Mọi tài khoản (`.codex`, `.codex2`…`.codex4`) dùng `[windows] sandbox = "unelevated"` (restricted token) thay cho `elevated`:
+- không cần admin, không hiện hộp thoại, không lỗi `CreateProcessWithLogonW 1326`;
+- vẫn là sandbox `workspace-write`. Lead đã thử: ghi trong worktree được, ghi ra `D:\` bị chặn (`UnauthorizedAccessException`).
+- Mỗi tài khoản còn cần `[projects.'D:\'] trust_level = "trusted"`, thiếu dòng này Codex hạ về read-only.
+- Tài khoản mới (`.codex5`…): thêm đủ hai mục trên vào `config.toml` trước khi giao việc.
