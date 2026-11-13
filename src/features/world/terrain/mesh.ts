@@ -61,6 +61,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   const forestSurface = new Float32Array(stride ** 2 * 2);
   const coastSurface = new Float32Array(stride ** 2);
   const hillSurface = new Float32Array(stride ** 2);
+  const cc0Surface = new Float32Array(stride ** 2 * 4);
   const indices = new Uint16Array(cells ** 2 * 6);
   const tint = new Color();
   const color = new Color();
@@ -179,6 +180,9 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     // Pale mineral soil separates the walking line from jade moss under canopy.
     tint.copy(trailSoil).lerp(rock, 0.02 + 0.03 * fleck);
     color.lerp(tint, forestTrail);
+    // Explicit semantic masks: never infer the river bed or trail from colour.
+    cc0Surface.set([forest, Math.max(trail, forestTrail), bank * (1 - sea),
+      sea * (1 - smoothstep(0.5, 1.5, aboveWater))], vertex * 4);
     colors.set([color.r, color.g, color.b], offset);
 
     if (x < cells && z < cells) {
@@ -195,6 +199,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   geometry.setAttribute("forestSurface", new BufferAttribute(forestSurface, 2));
   geometry.setAttribute("coastSurface", new BufferAttribute(coastSurface, 1));
   geometry.setAttribute("hillSurface", new BufferAttribute(hillSurface, 1));
+  geometry.setAttribute("cc0Surface", new BufferAttribute(cc0Surface, 4));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

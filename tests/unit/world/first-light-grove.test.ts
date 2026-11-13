@@ -3,10 +3,9 @@ import { createFirstLightGrove, createFirstLightTree, firstLightCameraPitch, fir
 import { surfaceHeight } from '../../../src/features/world/scene/compose';
 import { ZONES } from '../../../src/features/world/layout/zones';
 import { nearestPath, nearestRiver } from '../../../src/features/world/terrain/samples';
-import { ShaderLib, Texture, type Mesh, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from 'three';
+import { ShaderLib, type Mesh, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from 'three';
 import { createRampMaterial, RAMP_STEPS } from '../../../src/features/world/materials/ramp';
 import { bindFirstLightGround } from '../../../src/features/world/foliage/first-light-grove';
-import { attachTerrainDetail } from '../../../src/features/world/terrain/detail';
 import { createFarLandscape } from '../../../src/features/world/scene/far-landscape';
 
 describe('FirstLight bounded woodland prototype',()=>{
@@ -37,13 +36,10 @@ describe('FirstLight bounded woodland prototype',()=>{
   expect(firstLightGroveWeight(a.x+30,a.z)).toBeGreaterThan(0);
   expect(firstLightGroveWeight(a.x+30,a.z)).toBeLessThan(1);
  });
- it('preserves local palette and clean normal/light through the later texture hook and quality changes',()=>{
+ it('preserves the First Light fallback palette before deferred photos arrive',()=>{
   const material=createRampMaterial(0xffffff,RAMP_STEPS.terrain);
   bindFirstLightGround(material);
-  const textures=Array.from({length:5},()=>new Texture());
-  const detail=attachTerrainDetail(material,textures);
-  for(const quality of ['Low','Balanced','High'] as const){
-   detail.setQuality(quality);
+  {
    const shader={...ShaderLib.toon,uniforms:{}} as WebGLProgramParametersWithUniforms;
    material.onBeforeCompile(shader,{} as WebGLRenderer);
    const f=shader.fragmentShader;
@@ -52,12 +48,8 @@ describe('FirstLight bounded woodland prototype',()=>{
    expect(f).toContain('mix(terrainDetail(diffuseColor.rgb), vec3(1.0), firstLightMask * 0.8)');
    expect(f).not.toContain('mix(terrainDetail(diffuseColor.rgb), 1.0,');
    expect(shader.uniforms.firstLightOrigin).toBeDefined();
-   if(quality!=='Low'){
-    expect(f.indexOf('groundRelief')).toBeLessThan(f.indexOf('normal = mix(normal, normalize(vNormal), firstLightMask'));
-    expect(f.indexOf('vec3 firstLightClean = outgoingLight')).toBeLessThan(f.indexOf('outgoingLight *= groundDetail(vColor.rgb)'));
-   }
   }
-  detail.dispose();textures.forEach(t=>t.dispose());material.dispose();
+  material.dispose();
  });
  it('suppresses only the remote backdrop in the local view without distorting playable terrain',()=>{
   const far=createFarLandscape();

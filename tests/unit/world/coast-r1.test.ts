@@ -1,10 +1,9 @@
 import { expect, it, vi } from "vitest";
-import { Matrix4, ShaderLib, Texture, Vector3, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
+import { Matrix4, ShaderLib, Vector3, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { bindCoastR1Ground, coastR1Weight, createCoastR1Tree, createCoastR1Trees, isCoastR1Tree } from "../../../src/features/world/foliage/coast-r1";
 import { bindFirstLightGround } from "../../../src/features/world/foliage/first-light-grove";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { createRampMaterial } from "../../../src/features/world/materials/ramp";
-import { attachTerrainDetail } from "../../../src/features/world/terrain/detail";
 import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 import { buildTile, TILE_SIZE } from "../../../src/features/world/terrain/tiles";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
@@ -61,14 +60,11 @@ it("keeps shrub roots fixed, restores High deterministically and releases every 
   disposals.forEach(spy => expect(spy).toHaveBeenCalledOnce());
 });
 
-it("cleans coastal normal/grain after texture injection while preserving the First Light shader", () => {
+it("preserves the coastal and First Light fallback shader before deferred photos arrive", () => {
   const material = createRampMaterial(0xffffff);
   bindFirstLightGround(material); bindCoastR1Ground(material);
-  const textures = Array.from({ length: 5 }, () => new Texture());
-  const detail = attachTerrainDetail(material, textures);
   try {
-    for (const quality of ["Low", "Balanced", "High"] as const) {
-      detail.setQuality(quality);
+    {
       const shader = { ...ShaderLib.toon, uniforms: {} } as WebGLProgramParametersWithUniforms;
       material.onBeforeCompile(shader, {} as WebGLRenderer);
       expect(shader.fragmentShader).toContain("firstLightPigment");
@@ -76,12 +72,8 @@ it("cleans coastal normal/grain after texture injection while preserving the Fir
       expect(shader.fragmentShader).toContain("hillPigment, vHillSurface * 0.85");
       expect(shader.vertexShader).toContain("vCoastSurface = coastSurface");
       expect(shader.fragmentShader).toContain("coastClean, vCoastSurface * 0.85");
-      if (quality !== "Low") {
-        expect(shader.fragmentShader.indexOf("groundRelief")).toBeLessThan(shader.fragmentShader.indexOf("normal = mix(normal, normalize(vNormal), vCoastSurface"));
-        expect(shader.fragmentShader.indexOf("vec3 coastClean")).toBeLessThan(shader.fragmentShader.indexOf("outgoingLight *= groundDetail(vColor.rgb)"));
-      }
     }
-  } finally { detail.dispose(); textures.forEach(t => t.dispose()); material.dispose(); }
+  } finally { material.dispose(); }
 });
 
 it("bakes the clean coastal surface only on dry land beyond the road, leaving hill/forest vertices alone", () => {

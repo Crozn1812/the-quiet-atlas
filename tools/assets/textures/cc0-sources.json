@@ -1,0 +1,316 @@
+{
+  "sources": [
+    {
+      "id": "forest_floor",
+      "source": "https://polyhaven.com/a/forest_floor",
+      "license": "CC0-1.0",
+      "authors": {
+        "eye-candy.xyz": "All"
+      },
+      "maps": {
+        "diff": {
+          "file": "forest_floor-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_floor/forest_floor_diff_2k.jpg",
+          "sha256": "308bc5f916dcc113bf276cbfdc411bed48b6a9ce5e3bc0c228faa3d54acf125d"
+        },
+        "nor_gl": {
+          "file": "forest_floor-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_floor/forest_floor_nor_gl_2k.jpg",
+          "sha256": "27ea9cf7778fd3f5eacc24159d2cfc040878125c2289c3bccc49be5806e87bd1"
+        },
+        "rough": {
+          "file": "forest_floor-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_floor/forest_floor_rough_2k.jpg",
+          "sha256": "fcc6b3ed06b2b60912c626554f5738417f8ac129ddfae8e0610d47c82a899d7f"
+        }
+      }
+    },
+    {
+      "id": "grass_ground",
+      "source": "https://polyhaven.com/a/grass_ground",
+      "license": "CC0-1.0",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "maps": {
+        "diff": {
+          "file": "grass_ground-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grass_ground/grass_ground_diff_2k.jpg",
+          "sha256": "4272bddc71a7fa659d1deeb13a9df8c42e68a5ac8cde7523187e4a081e028258"
+        },
+        "nor_gl": {
+          "file": "grass_ground-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grass_ground/grass_ground_nor_gl_2k.jpg",
+          "sha256": "effa95c06af273c974476d9a74a234668a1c9292f60fffb4fa40348d638ee7f3"
+        },
+        "rough": {
+          "file": "grass_ground-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grass_ground/grass_ground_rough_2k.jpg",
+          "sha256": "afaed95537e894b8054db38c81712a6d9504b05b560274526621d91d5a95fbe7"
+        }
+      }
+    },
+    {
+      "id": "river_small_rocks",
+      "source": "https://polyhaven.com/a/river_small_rocks",
+      "license": "CC0-1.0",
+      "authors": {
+        "Rob Tuytel": "Photography, Processing",
+        "Rico Cilliers": "Minor adjustment"
+      },
+      "maps": {
+        "diff": {
+          "file": "river_small_rocks-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/river_small_rocks/river_small_rocks_diff_2k.jpg",
+          "sha256": "656a20860f5960cc0f442dd425bfe4607052ab1749efdde35d60c5df9639beac"
+        },
+        "nor_gl": {
+          "file": "river_small_rocks-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/river_small_rocks/river_small_rocks_nor_gl_2k.jpg",
+          "sha256": "4468fc6354767fd959b74e4cb7095d061e533268189c2336e03cb0be1bddc250"
+        },
+        "rough": {
+          "file": "river_small_rocks-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/river_small_rocks/river_small_rocks_rough_2k.jpg",
+          "sha256": "8f9f6104716d3a3af9330dc32905e7f1d5ee3183a7204e2cedecb0b8e3902b42"
+        }
+      }
+    },
+    {
+      "id": "sand_01",
+      "source": "https://polyhaven.com/a/sand_01",
+      "license": "CC0-1.0",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "maps": {
+        "diff": {
+          "file": "sand_01-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sand_01/sand_01_diff_2k.jpg",
+          "sha256": "f311767ab68e132cb9de4160493a71ff17ec765c699d411facd5154d9a9a9c18"
+        },
+        "nor_gl": {
+          "file": "sand_01-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sand_01/sand_01_nor_gl_2k.jpg",
+          "sha256": "b784b6a0526b79c81635bf423be9bc517ad36278ae5d68a4ff30f46eac56f0e3"
+        },
+        "rough": {
+          "file": "sand_01-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sand_01/sand_01_rough_2k.jpg",
+          "sha256": "60ec73993d245be5dab83f9debb67cab4303a0af9d4cec3f28868a58f939f8db"
+        }
+      }
+    },
+    {
+      "id": "rock_face",
+      "source": "https://polyhaven.com/a/rock_face",
+      "license": "CC0-1.0",
+      "authors": {
+        "Greg Zaal": "Photography",
+        "Dario Barresi": "Processing"
+      },
+      "maps": {
+        "diff": {
+          "file": "rock_face-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rock_face/rock_face_diff_2k.jpg",
+          "sha256": "b989c832327538a9e546cca359417acb9a657d041f300407e8398daaf743f5bc"
+        },
+        "nor_gl": {
+          "file": "rock_face-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rock_face/rock_face_nor_gl_2k.jpg",
+          "sha256": "352b87db2502d54487b0ed8abdfb621fae2abf7d360a281b419f567346178cf0"
+        },
+        "rough": {
+          "file": "rock_face-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rock_face/rock_face_rough_2k.jpg",
+          "sha256": "91517cdc191bf60fdb135929e12041e2ad50dd7343b33f25dae75d87ba61b226"
+        }
+      }
+    },
+    {
+      "id": "stony_dirt_path",
+      "source": "https://polyhaven.com/a/stony_dirt_path",
+      "license": "CC0-1.0",
+      "authors": {
+        "eye-candy.xyz": "All"
+      },
+      "maps": {
+        "diff": {
+          "file": "stony_dirt_path-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stony_dirt_path/stony_dirt_path_diff_2k.jpg",
+          "sha256": "9c35b98628c17382b3a494ae15f17f95410edcaaac2e5922e50e5878f98d4a20"
+        },
+        "nor_gl": {
+          "file": "stony_dirt_path-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stony_dirt_path/stony_dirt_path_nor_gl_2k.jpg",
+          "sha256": "6e0ee32808d6ae091cbfb23f6024ab4c7148495d23ae0baf39d0e7ee1f3269d9"
+        },
+        "rough": {
+          "file": "stony_dirt_path-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/stony_dirt_path/stony_dirt_path_rough_2k.jpg",
+          "sha256": "2b9507b060ef9031bd94e97efc6bf876d88583d31bc0a25cb3d16aa8c4bd31c9"
+        }
+      }
+    },
+    {
+      "id": "asphalt_02",
+      "source": "https://polyhaven.com/a/asphalt_02",
+      "license": "CC0-1.0",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "maps": {
+        "diff": {
+          "file": "asphalt_02-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_diff_2k.jpg",
+          "sha256": "28f5ba8690553f192c0e5e1a5ff40f34765b4b93f4cc7059b1a3e9c795b6c28c"
+        },
+        "nor_gl": {
+          "file": "asphalt_02-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_nor_gl_2k.jpg",
+          "sha256": "ffe49db71a0fd34c1e259625df66a302a237597d6ef655307987ec4e45bc6f21"
+        },
+        "rough": {
+          "file": "asphalt_02-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_rough_2k.jpg",
+          "sha256": "b9a516b61b7040a9245ac206642d5f767ad9589a0169c4a1668221429e8a998c"
+        }
+      }
+    },
+    {
+      "id": "pine_bark",
+      "source": "https://polyhaven.com/a/pine_bark",
+      "license": "CC0-1.0",
+      "authors": {
+        "Dimitrios Savva": "All"
+      },
+      "maps": {
+        "diff": {
+          "file": "pine_bark-diff.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/pine_bark/pine_bark_diff_2k.jpg",
+          "sha256": "741f333ab9f8a0996d8a53905b5ac792fab77d7ccb8cac5fbaed8c99b9f6abd5"
+        },
+        "nor_gl": {
+          "file": "pine_bark-nor_gl.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/pine_bark/pine_bark_nor_gl_2k.jpg",
+          "sha256": "e91d024441a698523472ef2001be2eade2f73005d798466c7acd3ec5d585667f"
+        },
+        "rough": {
+          "file": "pine_bark-rough.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/pine_bark/pine_bark_rough_2k.jpg",
+          "sha256": "a86618f6358a97410b15d226d0b3d52bb203aed8d9a29cfa355769b95df94d03"
+        }
+      }
+    }
+  ],
+  "files": [
+    {
+      "file": "color-512.ktx2",
+      "bytes": 323378,
+      "tileSize": 512,
+      "kind": "color",
+      "width": 2048,
+      "height": 1024,
+      "surfaceSizes": [
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512
+      ]
+    },
+    {
+      "file": "surface-512.ktx2",
+      "bytes": 253503,
+      "tileSize": 512,
+      "kind": "surface",
+      "width": 2048,
+      "height": 1024,
+      "surfaceSizes": [
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512,
+        512
+      ]
+    },
+    {
+      "file": "color-1024.ktx2",
+      "bytes": 1295984,
+      "tileSize": 1024,
+      "kind": "color",
+      "width": 4096,
+      "height": 2048,
+      "surfaceSizes": [
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024
+      ]
+    },
+    {
+      "file": "surface-1024.ktx2",
+      "bytes": 1072932,
+      "tileSize": 1024,
+      "kind": "surface",
+      "width": 4096,
+      "height": 2048,
+      "surfaceSizes": [
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024,
+        1024
+      ]
+    },
+    {
+      "file": "color-2048.ktx2",
+      "bytes": 3349198,
+      "tileSize": 2048,
+      "kind": "color",
+      "width": 8192,
+      "height": 3072,
+      "surfaceSizes": [
+        2048,
+        1024,
+        2048,
+        1024,
+        2048,
+        1024,
+        1024,
+        2048
+      ]
+    },
+    {
+      "file": "surface-2048.ktx2",
+      "bytes": 3037573,
+      "tileSize": 2048,
+      "kind": "surface",
+      "width": 8192,
+      "height": 3072,
+      "surfaceSizes": [
+        2048,
+        1024,
+        2048,
+        1024,
+        2048,
+        1024,
+        1024,
+        2048
+      ]
+    }
+  ]
+}

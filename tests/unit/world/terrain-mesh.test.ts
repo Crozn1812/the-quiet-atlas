@@ -175,8 +175,12 @@ describe("terrain tile mesh", () => {
       const position = mesh.geometry.getAttribute("position");
       const normal = mesh.geometry.getAttribute("normal");
       const indices = mesh.geometry.getIndex()!;
-      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["coastSurface", "color", "forestSurface", "hillSurface", "normal", "position"]);
+      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["cc0Surface", "coastSurface", "color", "forestSurface", "hillSurface", "normal", "position"]);
       const forestSurface = mesh.geometry.getAttribute("forestSurface");
+      const photoSurface = mesh.geometry.getAttribute("cc0Surface");
+      expect(photoSurface.itemSize).toBe(4);
+      expect(photoSurface.count).toBe(position.count);
+      expect(Array.from(photoSurface.array).every(value => value >= 0 && value <= 1)).toBe(true);
       expect(forestSurface.count).toBe(position.count);
       expect(Array.from(forestSurface.array).every(value => value >= 0 && value <= 1)).toBe(true);
       expect(mesh.geometry.groups).toHaveLength(0); // One material / draw call per tile.
@@ -220,6 +224,10 @@ describe("terrain tile mesh", () => {
                 const n = new Vector3().fromBufferAttribute(mesh.geometry.getAttribute(attribute), a);
                 const m = new Vector3().fromBufferAttribute(neighbor.geometry.getAttribute(attribute), b);
                 expect(n.distanceTo(m)).toBeLessThan(1e-3);
+              }
+              for (let channel = 0; channel < 4; channel++) {
+                expect(mesh.geometry.getAttribute("cc0Surface").array[a * 4 + channel])
+                  .toBeCloseTo(neighbor.geometry.getAttribute("cc0Surface").array[b * 4 + channel]!, 4);
               }
             }
           }
