@@ -52,6 +52,7 @@ import { timeOfDayAt } from "./layout/lighting";
 import { createVehicleView } from "./vehicle/view";
 import { DISMOUNT_COPY, DISMOUNT_PENDING_COPY, requestDismount } from "./vehicle/dismount";
 import { createVehicleControls } from "./vehicle/controls";
+import { stepVehicleController } from "./vehicle/motion";
 import { createRiderPose } from "./character/ride";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
@@ -733,7 +734,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       physics.resetVelocity();
       return;
     }
-    physics.step((to.x - before.x) / dt, (to.z - before.z) / dt, dt);
+    stepVehicleController(physics, vehicle, proposal, to, dt);
     if (Math.hypot(physics.position.x - to.x, physics.position.z - to.z) > 0.02) {
       // Reject any slide outside the proposal, keeping model, collider and view on the corridor.
       physics.teleport(before);
