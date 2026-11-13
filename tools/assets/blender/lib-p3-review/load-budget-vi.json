@@ -1,0 +1,871 @@
+{
+  "measuredAt": "2026-11-13T17:32:59.195Z",
+  "locale": "vi",
+  "machine": {
+    "label": "desktop dGPU RTX 3060",
+    "os": "Windows_NT 10.0.26200 (Windows 11 Pro) x64",
+    "cpu": "Intel(R) Core(TM) i5-14400F × 16 logical",
+    "ramGB": 32,
+    "browser": "msedge 157.0.4341.46",
+    "headless": true,
+    "cpuThrottle": 1,
+    "webglRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "power": "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)",
+    "viewport": "1366×800",
+    "dpr": 1,
+    "node": "v26.13.0"
+  },
+  "network": {
+    "downloadMbps": 10,
+    "uploadMbps": 10,
+    "rttMs": 100
+  },
+  "runs": [
+    {
+      "label": "Lần 1",
+      "gates": [
+        {
+          "id": "Welcome /vi/:initial-total",
+          "label": "Welcome /vi/ initial transfer",
+          "measured": 231768,
+          "limit": 1048576,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Welcome /vi/:initial-js",
+          "label": "Welcome /vi/ JS (gzip)",
+          "measured": 139812,
+          "limit": 153600,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:initial-total",
+          "label": "Quick /vi/quick/ initial transfer",
+          "measured": 191219,
+          "limit": 1048576,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:initial-js",
+          "label": "Quick /vi/quick/ JS (gzip)",
+          "measured": 135849,
+          "limit": 153600,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Welcome /vi/:no-3d-before-enter",
+          "label": "Welcome /vi/ 3D requests before Enter World",
+          "measured": 0,
+          "limit": 0,
+          "unit": "requests",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:no-3d-before-enter",
+          "label": "Quick /vi/quick/ 3D requests before Enter World",
+          "measured": 0,
+          "limit": 0,
+          "unit": "requests",
+          "status": "PASS"
+        },
+        {
+          "id": "world-bytes",
+          "label": "3D bytes Enter World → playable",
+          "measured": 2190907,
+          "limit": null,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "time-to-playable",
+          "label": "Time to playable",
+          "measured": 6667.599853515625,
+          "limit": 10000,
+          "unit": "ms",
+          "status": "PASS"
+        }
+      ],
+      "details": {
+        "probe": {
+          "clickMs": 1794591147853.6,
+          "firstDrawMs": 1794591151954.5,
+          "playableMs": 1794591154521.2
+        },
+        "clickToFirstDrawMs": 4100.89990234375,
+        "welcome": {
+          "summary": {
+            "count": 14,
+            "total": 231768,
+            "byCategory": {
+              "html": 4373,
+              "css": 6111,
+              "js": 139812,
+              "font": 41622,
+              "image": 39850,
+              "other": 0
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "226.3 KB"
+          },
+          "forbidden": [],
+          "top": [
+            {
+              "url": "/_next/static/chunks/962-3693437366506d9a.js",
+              "type": "Script",
+              "bytes": 67828,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/fa8fddaa-e288b2289a535929.js",
+              "type": "Script",
+              "bytes": 64334,
+              "status": 200
+            },
+            {
+              "url": "/welcome/hero-coast-1920.webp",
+              "type": "Image",
+              "bytes": 39335,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-700-normal.woff2",
+              "type": "Font",
+              "bytes": 15465,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-400-normal.woff2",
+              "type": "Font",
+              "bytes": 14633,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-700-normal.woff2",
+              "type": "Font",
+              "bytes": 6052,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-400-normal.woff2",
+              "type": "Font",
+              "bytes": 5472,
+              "status": 200
+            },
+            {
+              "url": "/vi/",
+              "type": "Document",
+              "bytes": 4373,
+              "status": 200
+            }
+          ]
+        },
+        "quick": {
+          "summary": {
+            "count": 13,
+            "total": 191219,
+            "byCategory": {
+              "html": 6063,
+              "css": 6111,
+              "js": 135849,
+              "font": 41622,
+              "image": 1574,
+              "other": 0
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "186.7 KB"
+          },
+          "forbidden": [],
+          "top": [
+            {
+              "url": "/_next/static/chunks/962-3693437366506d9a.js",
+              "type": "Script",
+              "bytes": 67828,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/fa8fddaa-e288b2289a535929.js",
+              "type": "Script",
+              "bytes": 64334,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-700-normal.woff2",
+              "type": "Font",
+              "bytes": 15465,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-400-normal.woff2",
+              "type": "Font",
+              "bytes": 14633,
+              "status": 200
+            },
+            {
+              "url": "/vi/quick/",
+              "type": "Document",
+              "bytes": 6063,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-700-normal.woff2",
+              "type": "Font",
+              "bytes": 6052,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-400-normal.woff2",
+              "type": "Font",
+              "bytes": 5472,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/css/ece4f5f18d343055.css",
+              "type": "Stylesheet",
+              "bytes": 4268,
+              "status": 200
+            }
+          ]
+        },
+        "world": {
+          "summary": {
+            "count": 10,
+            "total": 2190907,
+            "byCategory": {
+              "html": 0,
+              "css": 0,
+              "js": 2035896,
+              "font": 0,
+              "image": 0,
+              "other": 155011
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "2.09 MB"
+          },
+          "timeMs": 6667.599853515625,
+          "top": [
+            {
+              "url": "/_next/static/chunks/998eca56.5f32915881e6e685.js",
+              "type": "Script",
+              "bytes": 1644502,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/319.06b48316f17a6823.js",
+              "type": "Script",
+              "bytes": 173638,
+              "status": 200
+            },
+            {
+              "url": "/world/start/character-duy.glb",
+              "type": "Fetch",
+              "bytes": 147337,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/d02cf09b.50f9a24a254ff0b5.js",
+              "type": "Script",
+              "bytes": 84680,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/c23c07e0.4fa5c20fd4cd8698.js",
+              "type": "Script",
+              "bytes": 74422,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/964.ad67bc22e9924c7c.js",
+              "type": "Script",
+              "bytes": 45992,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/39.ffdfaae83198cd17.js",
+              "type": "Script",
+              "bytes": 11572,
+              "status": 200
+            },
+            {
+              "url": "/world/props/rock-large-2.glb",
+              "type": "Fetch",
+              "bytes": 3951,
+              "status": 200
+            }
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "label": "Lần 2",
+      "gates": [
+        {
+          "id": "Welcome /vi/:initial-total",
+          "label": "Welcome /vi/ initial transfer",
+          "measured": 231768,
+          "limit": 1048576,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Welcome /vi/:initial-js",
+          "label": "Welcome /vi/ JS (gzip)",
+          "measured": 139812,
+          "limit": 153600,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:initial-total",
+          "label": "Quick /vi/quick/ initial transfer",
+          "measured": 191219,
+          "limit": 1048576,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:initial-js",
+          "label": "Quick /vi/quick/ JS (gzip)",
+          "measured": 135849,
+          "limit": 153600,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Welcome /vi/:no-3d-before-enter",
+          "label": "Welcome /vi/ 3D requests before Enter World",
+          "measured": 0,
+          "limit": 0,
+          "unit": "requests",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:no-3d-before-enter",
+          "label": "Quick /vi/quick/ 3D requests before Enter World",
+          "measured": 0,
+          "limit": 0,
+          "unit": "requests",
+          "status": "PASS"
+        },
+        {
+          "id": "world-bytes",
+          "label": "3D bytes Enter World → playable",
+          "measured": 2190907,
+          "limit": null,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "time-to-playable",
+          "label": "Time to playable",
+          "measured": 6065.300048828125,
+          "limit": 10000,
+          "unit": "ms",
+          "status": "PASS"
+        }
+      ],
+      "details": {
+        "probe": {
+          "clickMs": 1794591159602.9001,
+          "firstDrawMs": 1794591163391.7002,
+          "playableMs": 1794591165668.2002
+        },
+        "clickToFirstDrawMs": 3788.800048828125,
+        "welcome": {
+          "summary": {
+            "count": 14,
+            "total": 231768,
+            "byCategory": {
+              "html": 4373,
+              "css": 6111,
+              "js": 139812,
+              "font": 41622,
+              "image": 39850,
+              "other": 0
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "226.3 KB"
+          },
+          "forbidden": [],
+          "top": [
+            {
+              "url": "/_next/static/chunks/962-3693437366506d9a.js",
+              "type": "Script",
+              "bytes": 67828,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/fa8fddaa-e288b2289a535929.js",
+              "type": "Script",
+              "bytes": 64334,
+              "status": 200
+            },
+            {
+              "url": "/welcome/hero-coast-1920.webp",
+              "type": "Image",
+              "bytes": 39335,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-700-normal.woff2",
+              "type": "Font",
+              "bytes": 15465,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-400-normal.woff2",
+              "type": "Font",
+              "bytes": 14633,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-700-normal.woff2",
+              "type": "Font",
+              "bytes": 6052,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-400-normal.woff2",
+              "type": "Font",
+              "bytes": 5472,
+              "status": 200
+            },
+            {
+              "url": "/vi/",
+              "type": "Document",
+              "bytes": 4373,
+              "status": 200
+            }
+          ]
+        },
+        "quick": {
+          "summary": {
+            "count": 13,
+            "total": 191219,
+            "byCategory": {
+              "html": 6063,
+              "css": 6111,
+              "js": 135849,
+              "font": 41622,
+              "image": 1574,
+              "other": 0
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "186.7 KB"
+          },
+          "forbidden": [],
+          "top": [
+            {
+              "url": "/_next/static/chunks/962-3693437366506d9a.js",
+              "type": "Script",
+              "bytes": 67828,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/fa8fddaa-e288b2289a535929.js",
+              "type": "Script",
+              "bytes": 64334,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-700-normal.woff2",
+              "type": "Font",
+              "bytes": 15465,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-400-normal.woff2",
+              "type": "Font",
+              "bytes": 14633,
+              "status": 200
+            },
+            {
+              "url": "/vi/quick/",
+              "type": "Document",
+              "bytes": 6063,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-700-normal.woff2",
+              "type": "Font",
+              "bytes": 6052,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-400-normal.woff2",
+              "type": "Font",
+              "bytes": 5472,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/css/ece4f5f18d343055.css",
+              "type": "Stylesheet",
+              "bytes": 4268,
+              "status": 200
+            }
+          ]
+        },
+        "world": {
+          "summary": {
+            "count": 10,
+            "total": 2190907,
+            "byCategory": {
+              "html": 0,
+              "css": 0,
+              "js": 2035896,
+              "font": 0,
+              "image": 0,
+              "other": 155011
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "2.09 MB"
+          },
+          "timeMs": 6065.300048828125,
+          "top": [
+            {
+              "url": "/_next/static/chunks/998eca56.5f32915881e6e685.js",
+              "type": "Script",
+              "bytes": 1644502,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/319.06b48316f17a6823.js",
+              "type": "Script",
+              "bytes": 173638,
+              "status": 200
+            },
+            {
+              "url": "/world/start/character-duy.glb",
+              "type": "Fetch",
+              "bytes": 147337,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/d02cf09b.50f9a24a254ff0b5.js",
+              "type": "Script",
+              "bytes": 84680,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/c23c07e0.4fa5c20fd4cd8698.js",
+              "type": "Script",
+              "bytes": 74422,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/964.ad67bc22e9924c7c.js",
+              "type": "Script",
+              "bytes": 45992,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/39.ffdfaae83198cd17.js",
+              "type": "Script",
+              "bytes": 11572,
+              "status": 200
+            },
+            {
+              "url": "/world/props/rock-large-2.glb",
+              "type": "Fetch",
+              "bytes": 3951,
+              "status": 200
+            }
+          ]
+        },
+        "warnings": []
+      }
+    },
+    {
+      "label": "Lần 3",
+      "gates": [
+        {
+          "id": "Welcome /vi/:initial-total",
+          "label": "Welcome /vi/ initial transfer",
+          "measured": 231768,
+          "limit": 1048576,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Welcome /vi/:initial-js",
+          "label": "Welcome /vi/ JS (gzip)",
+          "measured": 139812,
+          "limit": 153600,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:initial-total",
+          "label": "Quick /vi/quick/ initial transfer",
+          "measured": 191219,
+          "limit": 1048576,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:initial-js",
+          "label": "Quick /vi/quick/ JS (gzip)",
+          "measured": 135849,
+          "limit": 153600,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "Welcome /vi/:no-3d-before-enter",
+          "label": "Welcome /vi/ 3D requests before Enter World",
+          "measured": 0,
+          "limit": 0,
+          "unit": "requests",
+          "status": "PASS"
+        },
+        {
+          "id": "Quick /vi/quick/:no-3d-before-enter",
+          "label": "Quick /vi/quick/ 3D requests before Enter World",
+          "measured": 0,
+          "limit": 0,
+          "unit": "requests",
+          "status": "PASS"
+        },
+        {
+          "id": "world-bytes",
+          "label": "3D bytes Enter World → playable",
+          "measured": 2190907,
+          "limit": null,
+          "unit": "bytes",
+          "status": "PASS"
+        },
+        {
+          "id": "time-to-playable",
+          "label": "Time to playable",
+          "measured": 6261.10009765625,
+          "limit": 10000,
+          "unit": "ms",
+          "status": "PASS"
+        }
+      ],
+      "details": {
+        "probe": {
+          "clickMs": 1794591170362.9,
+          "firstDrawMs": 1794591174201,
+          "playableMs": 1794591176624
+        },
+        "clickToFirstDrawMs": 3838.10009765625,
+        "welcome": {
+          "summary": {
+            "count": 14,
+            "total": 231768,
+            "byCategory": {
+              "html": 4373,
+              "css": 6111,
+              "js": 139812,
+              "font": 41622,
+              "image": 39850,
+              "other": 0
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "226.3 KB"
+          },
+          "forbidden": [],
+          "top": [
+            {
+              "url": "/_next/static/chunks/962-3693437366506d9a.js",
+              "type": "Script",
+              "bytes": 67828,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/fa8fddaa-e288b2289a535929.js",
+              "type": "Script",
+              "bytes": 64334,
+              "status": 200
+            },
+            {
+              "url": "/welcome/hero-coast-1920.webp",
+              "type": "Image",
+              "bytes": 39335,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-700-normal.woff2",
+              "type": "Font",
+              "bytes": 15465,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-400-normal.woff2",
+              "type": "Font",
+              "bytes": 14633,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-700-normal.woff2",
+              "type": "Font",
+              "bytes": 6052,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-400-normal.woff2",
+              "type": "Font",
+              "bytes": 5472,
+              "status": 200
+            },
+            {
+              "url": "/vi/",
+              "type": "Document",
+              "bytes": 4373,
+              "status": 200
+            }
+          ]
+        },
+        "quick": {
+          "summary": {
+            "count": 13,
+            "total": 191219,
+            "byCategory": {
+              "html": 6063,
+              "css": 6111,
+              "js": 135849,
+              "font": 41622,
+              "image": 1574,
+              "other": 0
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "186.7 KB"
+          },
+          "forbidden": [],
+          "top": [
+            {
+              "url": "/_next/static/chunks/962-3693437366506d9a.js",
+              "type": "Script",
+              "bytes": 67828,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/fa8fddaa-e288b2289a535929.js",
+              "type": "Script",
+              "bytes": 64334,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-700-normal.woff2",
+              "type": "Font",
+              "bytes": 15465,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-latin-400-normal.woff2",
+              "type": "Font",
+              "bytes": 14633,
+              "status": 200
+            },
+            {
+              "url": "/vi/quick/",
+              "type": "Document",
+              "bytes": 6063,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-700-normal.woff2",
+              "type": "Font",
+              "bytes": 6052,
+              "status": 200
+            },
+            {
+              "url": "/fonts/noto-serif-vietnamese-400-normal.woff2",
+              "type": "Font",
+              "bytes": 5472,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/css/ece4f5f18d343055.css",
+              "type": "Stylesheet",
+              "bytes": 4268,
+              "status": 200
+            }
+          ]
+        },
+        "world": {
+          "summary": {
+            "count": 10,
+            "total": 2190907,
+            "byCategory": {
+              "html": 0,
+              "css": 0,
+              "js": 2035896,
+              "font": 0,
+              "image": 0,
+              "other": 155011
+            },
+            "cvBytes": 0,
+            "failed": 0,
+            "totalHuman": "2.09 MB"
+          },
+          "timeMs": 6261.10009765625,
+          "top": [
+            {
+              "url": "/_next/static/chunks/998eca56.5f32915881e6e685.js",
+              "type": "Script",
+              "bytes": 1644502,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/319.06b48316f17a6823.js",
+              "type": "Script",
+              "bytes": 173638,
+              "status": 200
+            },
+            {
+              "url": "/world/start/character-duy.glb",
+              "type": "Fetch",
+              "bytes": 147337,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/d02cf09b.50f9a24a254ff0b5.js",
+              "type": "Script",
+              "bytes": 84680,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/c23c07e0.4fa5c20fd4cd8698.js",
+              "type": "Script",
+              "bytes": 74422,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/964.ad67bc22e9924c7c.js",
+              "type": "Script",
+              "bytes": 45992,
+              "status": 200
+            },
+            {
+              "url": "/_next/static/chunks/39.ffdfaae83198cd17.js",
+              "type": "Script",
+              "bytes": 11572,
+              "status": 200
+            },
+            {
+              "url": "/world/props/rock-large-2.glb",
+              "type": "Fetch",
+              "bytes": 3951,
+              "status": 200
+            }
+          ]
+        },
+        "warnings": []
+      }
+    }
+  ]
+}

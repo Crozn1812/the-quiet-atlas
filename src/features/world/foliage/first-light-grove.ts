@@ -7,6 +7,7 @@ import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "../terrain/samples";
 import { waterLevelAt } from "../terrain/height";
 import type { Quality } from "../terrain";
+import { bindLibraryTree, TREE_LIBRARY_IDS } from "./library";
 
 const anchor = ZONES.find(zone => zone.id === "first-light")!;
 export const FIRST_LIGHT_SUN = new Vector3(-0.74, 0.57, 0.35).normalize();
@@ -290,7 +291,9 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   })();
   if (!deferredGround) while (!buildGround.next().done) { /* Standalone parity. */ }
   const maxCounts = meshes.map(m => m.count);
+  const library = meshes.map((mesh, variant) => bindLibraryTree(mesh, TREE_LIBRARY_IDS[3 + variant]!));
   function setQuality(quality: Quality) {
+    library.forEach(binding => binding.setQuality(quality));
     // Silhouette and collision remain stable; Low draws a spatially interleaved subset.
     meshes.forEach((m,i) => { m.count = quality === "Low" ? Math.ceil(maxCounts[i]! * 0.7) : maxCounts[i]!; });
   }
@@ -298,6 +301,7 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   return { group, sites, meshes, trunks, setQuality, buildGround,
     dispose() {
       if (disposed) return; disposed = true;
+      library.forEach(binding => binding.dispose());
       buildGround.return(undefined);
       meshes.forEach(m=>m.geometry.dispose()); material.dispose();
       beamGeometry.dispose(); beamMaterial.dispose();

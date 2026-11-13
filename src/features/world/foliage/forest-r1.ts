@@ -9,6 +9,7 @@ import { createDenseFirstLightTree as createFirstLightTree, firstLightGroveWeigh
 import { foliageVariantAt, selectFoliageOccludingCrowns } from "./instances";
 import { createCrownFade } from "../crown-fade";
 import type { FoliageTree } from "./scatter";
+import { bindLibraryTree, TREE_LIBRARY_IDS } from "./library";
 
 /** Route-distance biome blend, independent of travel direction and zone centres. */
 export function forestR1Weight(x: number, z: number, pathT = nearestPath(x, z).t) {
@@ -45,8 +46,13 @@ export function createForestR1Trees(trees: readonly FoliageTree[], options?: {
     return mesh;
   });
   const fades = meshes.map(mesh => createCrownFade(mesh, trees.length));
+  // Retain three draws per streamed tile. Hill stands use the three conifers;
+  // forest stands use the three overlapping broadleaf silhouettes.
+  const pines = trees.filter(tree => tree.kind === "pine").length > trees.length / 2;
+  const library = options ? [] : meshes.map((mesh, variant) => bindLibraryTree(mesh, TREE_LIBRARY_IDS[(pines ? 0 : 3) + variant]!));
   const matrix = new Matrix4(), rotation = new Matrix4();
   function setQuality(quality: Quality) {
+    library.forEach(binding => binding.setQuality(quality));
     meshes.forEach(mesh => { mesh.count = 0; });
     const count = Math.round(trees.length * PRESETS[quality].density);
     for (let i = 0; i < count; i++) {
@@ -82,6 +88,7 @@ export function createForestR1Trees(trees: readonly FoliageTree[], options?: {
     dispose() {
       if (disposed) return;
       disposed = true;
+      library.forEach(binding => binding.dispose());
       group.removeFromParent(); group.clear();
       for (const mesh of meshes) { mesh.dispose(); mesh.geometry.dispose(); mesh.material.dispose(); }
     },

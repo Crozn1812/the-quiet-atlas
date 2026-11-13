@@ -1,0 +1,82 @@
+{
+  "runtime": "GFX-P3",
+  "checks": {
+    "lint": {
+      "exit": 0,
+      "warnings": 0
+    },
+    "typecheck": {
+      "exit": 0
+    },
+    "unit": {
+      "command": "pnpm.cmd test --maxWorkers=1",
+      "exit": 0,
+      "files": 154,
+      "tests": 1789,
+      "durationSeconds": 464.36
+    },
+    "build": {
+      "exit": 0,
+      "count": 1,
+      "wasm": true,
+      "webpack": true,
+      "compiledSeconds": 12.8,
+      "staticAssetsRefreshed": true,
+      "publicOutSha256Match": 7
+    },
+    "assets": {
+      "exit": 0,
+      "worldBytes": 1209686,
+      "worldBytesBefore": 1211094,
+      "deltaBytes": -1408,
+      "startBytes": 147096
+    },
+    "licenses": {
+      "exit": 0,
+      "publicFiles": 68
+    },
+    "loadBudget": {
+      "command": "PERF_PORT=4316 pnpm.cmd test:perf load-budget",
+      "exit": 0,
+      "tests": 2,
+      "coldRunsPerLocale": 3,
+      "locales": [
+        "en",
+        "vi"
+      ],
+      "worstMs": 6832.900146484375,
+      "worldTransferBytes": 2190907,
+      "requests3dBeforeEnter": 0
+    },
+    "worldE2E": {
+      "command": "E2E_PORT=4195 pnpm.cmd exec playwright test world.*\\.spec\\.ts --workers=2",
+      "exit": 1,
+      "passed": 40,
+      "failed": 3,
+      "failedSpec": "tests/e2e/world-vehicle.spec.ts",
+      "baseline4180SameSpecFailed": 3
+    }
+  },
+  "cpuReference": {
+    "method": "one A/B only; high; 4s walking each zone; not ABBA",
+    "units": "ScriptDuration ms/s",
+    "firstLight": {
+      "before": 288,
+      "after": 320
+    },
+    "roots": {
+      "before": 246,
+      "after": 290
+    },
+    "workshop": {
+      "before": 414,
+      "after": 335
+    },
+    "mean": {
+      "before": 316,
+      "after": 315
+    },
+    "cpuGateCertified": false
+  },
+  "acceptance": "Not full PASS: baseline vehicle e2e blocker; Lead ABBA and Iris Xe required."
+}

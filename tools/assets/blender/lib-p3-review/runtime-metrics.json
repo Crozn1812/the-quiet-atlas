@@ -1,0 +1,126 @@
+{
+  "method": "WebGL draw counter, steady High 1600x900, includes shadows and post; baseline 4180; final 4195 with D3D11 headless",
+  "rows": [
+    {
+      "zone": "first-light",
+      "before": {
+        "zone": "first-light",
+        "calls": 177,
+        "triangles": 319609
+      },
+      "after": {
+        "zone": "first-light",
+        "calls": 177,
+        "triangles": 391715
+      },
+      "increase": 0.2256069134473686,
+      "pass": true
+    },
+    {
+      "zone": "workshop",
+      "before": {
+        "zone": "workshop",
+        "calls": 186,
+        "triangles": 308205
+      },
+      "after": {
+        "zone": "workshop",
+        "calls": 186,
+        "triangles": 377563
+      },
+      "increase": 0.22503852955013715,
+      "pass": true
+    },
+    {
+      "zone": "roots",
+      "before": {
+        "zone": "roots",
+        "calls": 98,
+        "triangles": 303938
+      },
+      "after": {
+        "zone": "roots",
+        "calls": 98,
+        "triangles": 356678
+      },
+      "increase": 0.17352223150774182,
+      "pass": true
+    },
+    {
+      "zone": "milestones",
+      "before": {
+        "zone": "milestones",
+        "calls": 66,
+        "triangles": 282003
+      },
+      "after": {
+        "zone": "milestones",
+        "calls": 66,
+        "triangles": 334505
+      },
+      "increase": 0.18617532437598183,
+      "pass": true
+    },
+    {
+      "zone": "old-trail",
+      "before": {
+        "zone": "old-trail",
+        "calls": 76,
+        "triangles": 226289
+      },
+      "after": {
+        "zone": "old-trail",
+        "calls": 76,
+        "triangles": 240664
+      },
+      "increase": 0.06352496144311037,
+      "pass": true
+    },
+    {
+      "zone": "horizon",
+      "before": {
+        "zone": "horizon",
+        "calls": 85,
+        "triangles": 220332
+      },
+      "after": {
+        "zone": "horizon",
+        "calls": 85,
+        "triangles": 226946
+      },
+      "increase": 0.030018335965724452,
+      "pass": true
+    },
+    {
+      "zone": "quiet-shore",
+      "before": {
+        "zone": "quiet-shore",
+        "calls": 84,
+        "triangles": 219253
+      },
+      "after": {
+        "zone": "quiet-shore",
+        "calls": 84,
+        "triangles": 219253
+      },
+      "increase": 0,
+      "pass": true
+    },
+    {
+      "zone": "last-postcard",
+      "before": {
+        "zone": "last-postcard",
+        "calls": 44,
+        "triangles": 173023
+      },
+      "after": {
+        "zone": "last-postcard",
+        "calls": 44,
+        "triangles": 173023
+      },
+      "increase": 0,
+      "pass": true
+    }
+  ],
+  "errors": []
+}

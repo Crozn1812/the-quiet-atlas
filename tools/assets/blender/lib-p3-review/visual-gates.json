@@ -1,0 +1,276 @@
+{
+  "luma": [
+    {
+      "set": "before",
+      "zone": "first-light",
+      "luma": 0.22525537581699345
+    },
+    {
+      "set": "before",
+      "zone": "horizon",
+      "luma": 0.4277288371459695
+    },
+    {
+      "set": "before",
+      "zone": "last-postcard",
+      "luma": 0.3356213371459695
+    },
+    {
+      "set": "before",
+      "zone": "milestones",
+      "luma": 0.23684393790849673
+    },
+    {
+      "set": "before",
+      "zone": "old-trail",
+      "luma": 0.43757553649237474
+    },
+    {
+      "set": "before",
+      "zone": "quiet-shore",
+      "luma": 0.31451984204793026
+    },
+    {
+      "set": "before",
+      "zone": "roots",
+      "luma": 0.3115792075163399
+    },
+    {
+      "set": "before",
+      "zone": "workshop",
+      "luma": 0.2656903921568628
+    },
+    {
+      "set": "high",
+      "zone": "first-light",
+      "luma": 0.22286416394335512
+    },
+    {
+      "set": "high",
+      "zone": "horizon",
+      "luma": 0.4246916448801743
+    },
+    {
+      "set": "high",
+      "zone": "last-postcard",
+      "luma": 0.33542914215686276
+    },
+    {
+      "set": "high",
+      "zone": "milestones",
+      "luma": 0.23604766884531592
+    },
+    {
+      "set": "high",
+      "zone": "old-trail",
+      "luma": 0.4282123638344226
+    },
+    {
+      "set": "high",
+      "zone": "quiet-shore",
+      "luma": 0.3145103322440087
+    },
+    {
+      "set": "high",
+      "zone": "roots",
+      "luma": 0.31090542211328975
+    },
+    {
+      "set": "high",
+      "zone": "workshop",
+      "luma": 0.2616985321350762
+    }
+  ],
+  "skyBefore": {
+    "crop": "top 45%",
+    "classifier": "forest-displayed-rgb-v1",
+    "limit": 0.15,
+    "missing": [],
+    "results": [
+      {
+        "file": "ingame-first-light.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 1144,
+        "totalPixels": 648000,
+        "fraction": 0.0017654320987654322,
+        "required": true,
+        "pass": true
+      },
+      {
+        "file": "ingame-horizon.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 185547,
+        "totalPixels": 648000,
+        "fraction": 0.286337962962963,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-last-postcard.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 29210,
+        "totalPixels": 648000,
+        "fraction": 0.04507716049382716,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-milestones.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 24507,
+        "totalPixels": 648000,
+        "fraction": 0.03781944444444445,
+        "required": true,
+        "pass": true
+      },
+      {
+        "file": "ingame-old-trail.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 47707,
+        "totalPixels": 648000,
+        "fraction": 0.07362191358024692,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-quiet-shore.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 14838,
+        "totalPixels": 648000,
+        "fraction": 0.022898148148148147,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-roots.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 106335,
+        "totalPixels": 648000,
+        "fraction": 0.16409722222222223,
+        "required": true,
+        "pass": false
+      },
+      {
+        "file": "ingame-workshop.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 48723,
+        "totalPixels": 648000,
+        "fraction": 0.07518981481481482,
+        "required": true,
+        "pass": true
+      }
+    ]
+  },
+  "skyAfter": {
+    "crop": "top 45%",
+    "classifier": "forest-displayed-rgb-v1",
+    "limit": 0.15,
+    "missing": [],
+    "results": [
+      {
+        "file": "ingame-first-light.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 691,
+        "totalPixels": 648000,
+        "fraction": 0.001066358024691358,
+        "required": true,
+        "pass": true
+      },
+      {
+        "file": "ingame-horizon.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 189049,
+        "totalPixels": 648000,
+        "fraction": 0.2917422839506173,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-last-postcard.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 29241,
+        "totalPixels": 648000,
+        "fraction": 0.045125,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-milestones.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 6492,
+        "totalPixels": 648000,
+        "fraction": 0.010018518518518519,
+        "required": true,
+        "pass": true
+      },
+      {
+        "file": "ingame-old-trail.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 61256,
+        "totalPixels": 648000,
+        "fraction": 0.09453086419753086,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-quiet-shore.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 23678,
+        "totalPixels": 648000,
+        "fraction": 0.03654012345679012,
+        "required": false,
+        "pass": true
+      },
+      {
+        "file": "ingame-roots.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 96575,
+        "totalPixels": 648000,
+        "fraction": 0.1490354938271605,
+        "required": true,
+        "pass": true
+      },
+      {
+        "file": "ingame-workshop.png",
+        "width": 1600,
+        "height": 900,
+        "cropRows": 405,
+        "skyPixels": 34482,
+        "totalPixels": 648000,
+        "fraction": 0.05321296296296296,
+        "required": true,
+        "pass": true
+      }
+    ]
+  }
+}

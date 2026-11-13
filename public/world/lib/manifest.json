@@ -7,9 +7,9 @@
     "EXT_meshopt_compression",
     "KHR_texture_basisu"
   ],
-  "textureMaxDimension": 128,
+  "textureMaxDimension": 256,
   "sourceBlendSha256": "eb48130d027675aa405664e1d5ff9b718b2438323c73b2c741bfd089d1b36850",
-  "note": "Offline styleframe library. Select one LOD per asset. No runtime integration. Rock variants share one source; pine whole-sprig cards arranged in dense conical tiers. CC0 applies to original additions too.",
+  "note": "GFX-02 CC0 library, integrated by foliage/library.ts after play. Broadleaf refinement by GFX-P3; three variants per species, intact-card LODs; runtime four-view impostors.",
   "assets": [
     {
       "id": "tree-pine-a",
@@ -109,23 +109,23 @@
         {
           "level": 0,
           "file": "tree-broadleaf-1-lod0.glb",
-          "triangles": 1104,
+          "triangles": 950,
           "materials": 2,
-          "textures": 0,
+          "textures": 1,
           "path": "/world/lib/tree-broadleaf-1-lod0.glb",
-          "bytes": 32876
+          "bytes": 29516
         },
         {
           "level": 1,
           "file": "tree-broadleaf-1-lod1.glb",
-          "triangles": 531,
+          "triangles": 506,
           "materials": 2,
-          "textures": 0,
+          "textures": 1,
           "path": "/world/lib/tree-broadleaf-1-lod1.glb",
-          "bytes": 20624
+          "bytes": 23148
         }
       ],
-      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+      "derivation": "GFX-P3 refinement of GFX-02 original: rounded folded alpha-cutout leaves around layered canopy cores; deterministic intact-card LOD1. tools/assets/blender/lib-canopy.py; CC0-1.0"
     },
     {
       "id": "tree-broadleaf-2",
@@ -138,23 +138,23 @@
         {
           "level": 0,
           "file": "tree-broadleaf-2-lod0.glb",
-          "triangles": 1104,
+          "triangles": 950,
           "materials": 2,
-          "textures": 0,
+          "textures": 1,
           "path": "/world/lib/tree-broadleaf-2-lod0.glb",
-          "bytes": 32508
+          "bytes": 29496
         },
         {
           "level": 1,
           "file": "tree-broadleaf-2-lod1.glb",
-          "triangles": 531,
+          "triangles": 506,
           "materials": 2,
-          "textures": 0,
+          "textures": 1,
           "path": "/world/lib/tree-broadleaf-2-lod1.glb",
-          "bytes": 20528
+          "bytes": 23144
         }
       ],
-      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+      "derivation": "GFX-P3 refinement of GFX-02 original: rounded folded alpha-cutout leaves around layered canopy cores; deterministic intact-card LOD1. tools/assets/blender/lib-canopy.py; CC0-1.0"
     },
     {
       "id": "tree-broadleaf-3",
@@ -167,23 +167,23 @@
         {
           "level": 0,
           "file": "tree-broadleaf-3-lod0.glb",
-          "triangles": 1104,
+          "triangles": 950,
           "materials": 2,
-          "textures": 0,
+          "textures": 1,
           "path": "/world/lib/tree-broadleaf-3-lod0.glb",
-          "bytes": 32624
+          "bytes": 29480
         },
         {
           "level": 1,
           "file": "tree-broadleaf-3-lod1.glb",
-          "triangles": 531,
+          "triangles": 506,
           "materials": 2,
-          "textures": 0,
+          "textures": 1,
           "path": "/world/lib/tree-broadleaf-3-lod1.glb",
-          "bytes": 20500
+          "bytes": 23144
         }
       ],
-      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+      "derivation": "GFX-P3 refinement of GFX-02 original: rounded folded alpha-cutout leaves around layered canopy cores; deterministic intact-card LOD1. tools/assets/blender/lib-canopy.py; CC0-1.0"
     },
     {
       "id": "rock-boulder-1",
