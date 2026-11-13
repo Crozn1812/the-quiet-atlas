@@ -1,0 +1,92 @@
+[
+  {
+    "file": "ground-1024.ktx2",
+    "bytes": 108564,
+    "size": 1024,
+    "kind": "ground"
+  },
+  {
+    "file": "ground-normal-1024.ktx2",
+    "bytes": 1011506,
+    "size": 1024,
+    "kind": "ground"
+  },
+  {
+    "file": "rock-1024.ktx2",
+    "bytes": 110264,
+    "size": 1024,
+    "kind": "rock"
+  },
+  {
+    "file": "rock-normal-1024.ktx2",
+    "bytes": 1033770,
+    "size": 1024,
+    "kind": "rock"
+  },
+  {
+    "file": "bark-1024.ktx2",
+    "bytes": 124475,
+    "size": 1024,
+    "kind": "bark"
+  },
+  {
+    "file": "bark-normal-1024.ktx2",
+    "bytes": 1014668,
+    "size": 1024,
+    "kind": "bark"
+  },
+  {
+    "file": "leaves-1024.ktx2",
+    "bytes": 130202,
+    "size": 1024,
+    "kind": "leaves"
+  },
+  {
+    "file": "ground-2048.ktx2",
+    "bytes": 279161,
+    "size": 2048,
+    "kind": "ground"
+  },
+  {
+    "file": "ground-normal-2048.ktx2",
+    "bytes": 3558304,
+    "size": 2048,
+    "kind": "ground"
+  },
+  {
+    "file": "rock-2048.ktx2",
+    "bytes": 301053,
+    "size": 2048,
+    "kind": "rock"
+  },
+  {
+    "file": "rock-normal-2048.ktx2",
+    "bytes": 3643670,
+    "size": 2048,
+    "kind": "rock"
+  },
+  {
+    "file": "bark-2048.ktx2",
+    "bytes": 359561,
+    "size": 2048,
+    "kind": "bark"
+  },
+  {
+    "file": "bark-normal-2048.ktx2",
+    "bytes": 3592033,
+    "size": 2048,
+    "kind": "bark"
+  },
+  {
+    "file": "leaves-2048.ktx2",
+    "bytes": 424146,
+    "size": 2048,
+    "kind": "leaves"
+  },
+  {
+    "file": "sky.hdr",
+    "bytes": 529457,
+    "size": "512x256",
+    "kind": "environment"
+  }
+]

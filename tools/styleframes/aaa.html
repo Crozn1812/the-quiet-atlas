@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GFX-01 · Ánh sáng và chất liệu</title>
+  <link rel="icon" href="data:,">
+  <style>
+    * { box-sizing: border-box } body { margin: 0; background: #2b2a26; color: #eee8d8; font: 13px/1.6 Georgia, serif }
+    canvas { display: block; width: 100vw; height: 100vh }
+    aside { position: fixed; left: 28px; top: 24px; max-width: 350px; padding: 20px 24px; background: #2b2a26dc; backdrop-filter: blur(14px) }
+    h1 { font-size: 22px; font-weight: 400; margin: 0 0 16px } small { letter-spacing: .15em; text-transform: uppercase; color: #a9c8b8 }
+    label { display: block; margin: 10px 0 } select, button { font: inherit; background: #eee8d8; color: #2b2a26; border: 0; padding: 5px 8px; margin-left: 8px }
+    output { display: block; white-space: pre-line; margin-top: 18px; font: 11px/1.8 monospace } p { margin: 12px 0 0; color: #a9c8b8 }
+    #error { position: fixed; bottom: 20px; left: 28px; background: #2b2a26; padding: 12px; max-width: 80vw }
+  </style>
+</head>
+<body>
+  <canvas id="frame" aria-label="Bàn dựng ánh sáng ba cảnh"></canvas>
+  <aside id="controls">
+    <small>The Quiet Atlas / study 37</small><h1>Ánh sáng còn ở lại</h1>
+    <label>Cảnh <select id="scene"><option value="first-light">First Light</option><option value="horizon">Horizon</option><option value="last-postcard">Last Postcard</option></select></label>
+    <label>Hướng <select id="variant"><option value="A">A · R1 nâng cấp</option><option value="B">B · Painterly bán thực</option><option value="C">C · Gần thực</option></select></label>
+    <label>Chất lượng <select id="quality"><option>High</option><option>Low</option></select></label>
+    <button id="clean" type="button">Ẩn bảng · H để hiện lại</button>
+    <output id="metrics">Đang dựng cảnh…</output><p>Ba hướng dùng chung bố cục và seed.<br>Low: giảm độ phân giải, tắt AO / DOF / bloom.</p>
+  </aside>
+  <div id="error" role="alert" hidden></div>
+  <script type="module" src="./aaa/main.ts"></script>
+</body></html>
