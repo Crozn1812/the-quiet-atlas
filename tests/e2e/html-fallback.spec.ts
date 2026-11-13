@@ -13,13 +13,14 @@ test.describe("T02-a JavaScript disabled: content still readable", () => {
         expect(response?.status()).toBe(200);
         await expect(page.getByRole("heading", { level: 1 })).toHaveText(profile.name);
         await expect(page.getByText(profile.role, { exact: false }).first()).toBeVisible();
-        await expect(page.locator("main a[href^='mailto:']")).toBeVisible();
+        await expect(page.locator("main a[href^='https://mail.google.com/mail/?view=cm']")).toBeVisible();
         if (route.endsWith("/quick/")) {
-          await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
+          await expect(page.getByRole("heading", { name: locale === "vi" ? "Li\u00ean h\u1ec7" : "Contact", level: 2, exact: true })).toBeVisible();
+          await expect(page.locator("section[aria-labelledby='contact'] a[href='/cv/']")).toBeVisible();
           await expect(page.locator("main article h3").first()).toBeVisible();
         } else {
-          // ADR 0009: Welcome is one screen; the CV section moved to Quick, the corner card keeps a CV link.
-          await expect(page.locator("main a[href='/cv/']").first()).toBeVisible();
+          // Round 1: Welcome links to Quick Contact for CV access.
+          await expect(page.getByRole("link", { name: locale === "vi" ? "Li\u00ean h\u1ec7 & CV" : "Contact & CV", exact: true })).toHaveAttribute("href", `/${locale}/quick/#contact`);
           await expect(page.getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", `/${locale}/quick/`);
         }
       });

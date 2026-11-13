@@ -207,7 +207,7 @@ for (const route of ALL_PAGES) {
 }
 
 const PROFILE_PAGES = new Set(["/en/", "/vi/", "/en/quick/", "/vi/quick/"]);
-/** ADR 0009: Welcome has no CV section (moved to Quick); its corner card has a CV link instead. */
+/** Round 1: Welcome links to Quick Contact, which contains the CV download. */
 const WELCOME_PAGES = new Set(["/en/", "/vi/"]);
 
 for (const width of [320, 640]) {
@@ -236,15 +236,23 @@ for (const width of [320, 640]) {
       expect(h1 && h1.x >= 0 && h1.x + h1.width <= width + 1, `h1 inside the viewport on ${route}`).toBe(true);
       if (PROFILE_PAGES.has(route)) {
         if (WELCOME_PAGES.has(route)) {
-          const cv = page.locator("main a[href='/cv/']").first();
+          const locale = route.split("/")[1];
+          const cv = page.locator(`main a[href='/${locale}/quick/#contact']`);
           await cv.scrollIntoViewIfNeeded();
           await expect(cv).toBeVisible();
           const cvBox = await cv.boundingBox();
-          expect(cvBox && cvBox.x >= 0 && cvBox.x + cvBox.width <= width + 1, `CV link inside the viewport on ${route}`).toBe(true);
+          expect(cvBox && cvBox.x >= 0 && cvBox.x + cvBox.width <= width + 1, `Contact & CV link inside the viewport on ${route}`).toBe(true);
+          // The narrow Welcome HUD can collapse the direct email; Contact & CV remains the entry point.
+          await cv.click();
+          await expect(page).toHaveURL(`/${locale}/quick/#contact`);
+          await expect(page.locator("section[aria-labelledby='contact'] a[href='/cv/']")).toBeVisible();
         } else {
-          await expect(page.getByRole("heading", { name: "CV", level: 2 })).toBeVisible();
+          await expect(page.getByRole("heading", { name: route.startsWith("/vi/") ? "Li\u00ean h\u1ec7" : "Contact", level: 2, exact: true })).toBeVisible();
+          const cv = page.locator("section[aria-labelledby='contact'] a[href='/cv/']");
+          await cv.scrollIntoViewIfNeeded();
+          await expect(cv).toBeInViewport({ ratio: 1 });
         }
-        const mail = page.locator("main a[href^='mailto:']");
+        const mail = page.locator("main a[href^='https://mail.google.com/mail/?view=cm']");
         await mail.scrollIntoViewIfNeeded();
         await expect(mail).toBeVisible();
         const box = await mail.boundingBox();

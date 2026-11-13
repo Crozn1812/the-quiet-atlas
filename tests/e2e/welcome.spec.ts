@@ -1,11 +1,11 @@
-// T01 — Welcome (spec §13.1): name, role, Quick Portfolio link, Enter World, Sound, CV; 0 console errors.
+// T01 — Welcome (spec §13.1): name, role, Quick Portfolio link, Enter World, Sound, Contact & CV; 0 console errors.
 // Layout per ADR 0009: everything above sits in the bottom-left corner card (see full-viewport.spec.ts).
 import { expect, test } from "./test";
 import { hasWebGL2, LOCALES, settle, trackConsoleErrors } from "./helpers";
 
 for (const profile of LOCALES) {
   const { locale } = profile;
-  test(`T01 /${locale}/ shows name, role, Quick, Enter World, Sound, CV with 0 console errors`, async ({ page }) => {
+  test(`T01 /${locale}/ shows name, role, Quick, Enter World, Sound, Contact & CV with 0 console errors`, async ({ page }) => {
     const errors = trackConsoleErrors(page);
 
     const response = await page.goto(`/${locale}/`);
@@ -26,14 +26,19 @@ for (const profile of LOCALES) {
     await expect(enter).toBeEnabled();
 
     await expect(page.getByRole("button", { name: profile.sound, exact: true })).toBeVisible();
-    // ADR 0009: the CV section (h2) moved to Quick Portfolio; Welcome keeps a CV link in the corner card.
-    // Every CV link must point to /cv/, and the card must show at least one.
-    const cvLinks = page.getByRole("link", { name: /CV/ });
-    await expect(cvLinks.first()).toBeVisible();
-    for (const link of await cvLinks.all()) await expect(link).toHaveAttribute("href", "/cv/");
-    await expect(page.locator(".corner-panel a[href='/cv/']").getByText("CV", { exact: true })).toBeVisible();
-    // Contact (e-mail) is part of the Welcome card (ADR 0009 §1).
-    await expect(page.locator(".corner-panel a[href^='mailto:']")).toBeVisible();
+    // Round 1 routes contact and CV access through Quick Portfolio.
+    const contact = page.locator(".corner-panel").getByRole("link", {
+      name: locale === "vi" ? "Li\u00ean h\u1ec7 & CV" : "Contact & CV", exact: true,
+    });
+    await expect(contact).toBeVisible();
+    await expect(contact).toHaveAttribute("href", `/${locale}/quick/#contact`);
+    await expect(page.locator(".corner-panel a[href^='https://mail.google.com/mail/?view=cm']")).toBeVisible();
+    await contact.click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/quick/#contact$`));
+    const cv = page.locator("section[aria-labelledby='contact'] a[href='/cv/']");
+    await expect(cv).toBeVisible();
+    await cv.click();
+    await expect(page).toHaveURL(/\/cv\/$/);
 
     await settle(page);
     expect(errors, errors.join("\n")).toEqual([]);

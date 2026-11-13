@@ -18,7 +18,7 @@ const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-
 /** HUD controls in world mode (ADR 0009 §3), by accessible name. */
 const hudControls = (leave: string) => [
   { role: "link", name: "Quick Portfolio" },
-  { role: "link", name: "CV" },
+  { role: "link", name: "Contact & CV" },
   { role: "link", name: "Email" },
   { role: "button", name: "Sound" },
   { role: "button", name: "Menu" },
@@ -93,12 +93,13 @@ for (const { locale, sound } of LOCALES) {
       page.getByRole("heading", { level: 1 }),
       page.getByRole("button", { name: "Enter World" }),
       page.locator(`${HUD} a[href='/${locale}/quick/']`),
-      page.locator(`${HUD} a[href='/cv/']`),
-      page.locator(`${HUD} a[href^='mailto:']`),
+      page.locator(`${HUD} a[href='/${locale}/quick/#contact']`),
+      page.locator(`${HUD} a[href^='https://mail.google.com/mail/?view=cm']`),
       page.locator(HUD).getByRole("button", { name: sound, exact: true }),
     ]) {
       await expect(locator).toBeInViewport({ ratio: 1 });
     }
+    await expect(page.locator(HUD).getByRole("link", { name: locale === "vi" ? "Li\u00ean h\u1ec7 & CV" : "Contact & CV", exact: true })).toHaveAttribute("href", `/${locale}/quick/#contact`);
     expect(errors, errors.join("\n")).toEqual([]);
   });
 }
@@ -133,6 +134,7 @@ test("L3-008 #2 Enter World: canvas = viewport (0, 0, 1366×800); HUD has 7 name
   await expect(hud).toHaveAttribute("data-compact", "true");
   const visible = await hud.locator("a, button").evaluateAll(els => els.filter(el => (el as HTMLElement).checkVisibility()).length);
   expect(visible, "HUD shows exactly 7 controls").toBe(7);
+  await expect(hud.getByRole("link", { name: "Contact & CV", exact: true })).toHaveAttribute("href", "/en/quick/#contact");
   const sizes: string[] = [];
   for (const { role, name } of hudControls(leave)) {
     const control = hud.getByRole(role, { name, exact: true });
@@ -172,8 +174,9 @@ test("L3-008 #3 Exit world (HUD): no canvas, the full card is back, focus on Ent
   const hud = page.locator(HUD);
   await expect(hud).toHaveAttribute("data-compact", "false");
   await expect(hud.getByRole("link", { name: "Quick Portfolio", exact: true })).toBeVisible();
-  await expect(hud.getByRole("link", { name: "CV", exact: true })).toBeVisible();
-  await expect(hud.locator("a[href^='mailto:']")).toHaveText(/@/);
+  await expect(hud.getByRole("link", { name: "Contact & CV", exact: true })).toBeVisible();
+  await expect(hud.getByRole("link", { name: "Contact & CV", exact: true })).toHaveAttribute("href", "/en/quick/#contact");
+  await expect(hud.locator("a[href^='https://mail.google.com/mail/?view=cm']")).toHaveText(/@/);
   await expect(hud.getByRole("button", { name: "Sound" })).toBeVisible();
   await expect(hud.getByRole("button", { name: "Menu" })).toBeHidden();
   await expect(hud.getByRole("button", { name: leave })).toBeHidden();
