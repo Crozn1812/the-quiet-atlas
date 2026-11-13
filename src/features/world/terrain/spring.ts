@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, CircleGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Vector3 } from "three";
+import { Box3, BufferGeometry, CircleGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Vector3, type Intersection, type Raycaster } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { riverPointAt, riverTangentAt } from "../layout/river";
@@ -172,7 +172,6 @@ export function createSpring() {
     geometries.push(tree);
   }
   const rockGeometry = mergeGeometries(geometries)!;
-  geometries.forEach(geometry => geometry.dispose());
   const rockMaterial = createRampMaterial(0xffffff);
   rockMaterial.vertexColors = true;
   const cliff = new Mesh(rockGeometry, rockMaterial);
@@ -246,6 +245,36 @@ export function createSpring() {
   pebbleMerged.setAttribute("color", new Float32BufferAttribute(pigments, 3));
   const solidGeometry = mergeGeometries([rockGeometry, pebbleMerged])!;
   cliff.geometry = solidGeometry;
+  // The horizon-wide merged bound overlaps the camera ray even at the open
+  // outlet. Keep the exact triangles, but reject each static rock separately
+  // before Mesh.raycast traverses its faces. These proxies never enter the scene.
+  let faceOffset = 0;
+  const pickParts = [...geometries, pebbleMerged].map(geometry => {
+    geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+    const mesh = new Mesh(geometry, rockMaterial);
+    mesh.matrixAutoUpdate = false;
+    const offset = faceOffset;
+    faceOffset += (geometry.index?.count ?? geometry.getAttribute("position").count) / 3;
+    return { mesh, offset };
+  });
+  cliff.raycast = (raycaster: Raycaster, intersections: Intersection[]) => {
+    for (const part of pickParts) {
+      part.mesh.matrixWorld.copy(cliff.matrixWorld);
+      part.mesh.material = cliff.material;
+      const start = intersections.length;
+      part.mesh.raycast(raycaster, intersections);
+      for (let i = start; i < intersections.length; i++) {
+        const hit = intersections[i]!;
+        hit.object = cliff;
+        if (hit.faceIndex != null) hit.faceIndex += part.offset;
+        if (hit.face) {
+          hit.face.a += part.offset * 3;
+          hit.face.b += part.offset * 3;
+          hit.face.c += part.offset * 3;
+        }
+      }
+    }
+  };
   group.add(new Mesh(foamMerged, foamMaterial));
   const surfaces = [poolSurface, fallSurface];
   let disposed = false;
@@ -254,6 +283,7 @@ export function createSpring() {
       if (disposed) return;
       disposed = true;
       rockGeometry.dispose(); rockMaterial.dispose(); surfaces.forEach(surface => surface.dispose());
+      geometries.forEach(geometry => geometry.dispose());
       foamGeometry.dispose(); foamMerged.dispose(); pebbleMerged.dispose(); solidGeometry.dispose(); foamMaterial.dispose();
       group.removeFromParent(); group.clear();
     },
