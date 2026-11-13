@@ -236,13 +236,29 @@ for (const width of [320, 640]) {
       expect(h1 && h1.x >= 0 && h1.x + h1.width <= width + 1, `h1 inside the viewport on ${route}`).toBe(true);
       if (PROFILE_PAGES.has(route)) {
         if (WELCOME_PAGES.has(route)) {
+          const email = page.locator(".world-hud a[data-contact-email]");
+          await email.scrollIntoViewIfNeeded();
+          // Allow subpixel clipping at the scroll panel edge (less than one CSS pixel).
+          await expect(email).toBeInViewport({ ratio: 0.99 });
+          const emailBox = await email.boundingBox();
+          expect(emailBox && emailBox.width >= 24 && emailBox.height >= 44 && emailBox.x >= 0 && emailBox.x + emailBox.width <= width + 1, `Welcome email has a usable target inside ${width}px on ${route}`).toBe(true);
+          const address = new URL((await email.getAttribute("href"))!).searchParams.get("to");
+          expect(address).toBeTruthy();
+          await expect(email).toHaveAccessibleName(`Email ${address}`);
+          await expect(email.locator("span")).toHaveText(address!);
+          // Exercise the actual hit target without opening an external mail service.
+          await email.evaluate(el => el.addEventListener("click", event => {
+            event.preventDefault();
+            el.setAttribute("data-email-clicked", "true");
+          }, { once: true }));
+          await email.click();
+          await expect(email).toHaveAttribute("data-email-clicked", "true");
           const locale = route.split("/")[1];
           const cv = page.locator(`main a[href='/${locale}/quick/#contact']`);
           await cv.scrollIntoViewIfNeeded();
           await expect(cv).toBeVisible();
           const cvBox = await cv.boundingBox();
           expect(cvBox && cvBox.x >= 0 && cvBox.x + cvBox.width <= width + 1, `Contact & CV link inside the viewport on ${route}`).toBe(true);
-          // The narrow Welcome HUD can collapse the direct email; Contact & CV remains the entry point.
           await cv.click();
           await expect(page).toHaveURL(`/${locale}/quick/#contact`);
           await expect(page.locator("section[aria-labelledby='contact'] a[href='/cv/']")).toBeVisible();

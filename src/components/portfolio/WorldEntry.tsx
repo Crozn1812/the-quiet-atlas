@@ -260,7 +260,7 @@ export function WorldEntry({ locale: initialLocale, copy: initialCopy, email, ch
             <HudIcon kind="cv" />
             <span>{locale === "vi" && appMode !== "world" ? "Liên hệ & CV" : "Contact & CV"}</span>
           </a>
-          <a href={gmailCompose(email)} data-contact-email target="_blank" rel="noopener noreferrer">
+          <a href={gmailCompose(email)} aria-label={appMode === "world" ? "Email" : `Email ${email}`} data-contact-email target="_blank" rel="noopener noreferrer">
             <HudIcon kind="email" />
             <span>{appMode === "world" ? "Email" : email}</span>
           </a>

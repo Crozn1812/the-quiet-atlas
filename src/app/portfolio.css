@@ -515,7 +515,7 @@ nav[aria-label="Language"] ul {
   margin-inline: clamp(1.5rem, 3vw, 2.5rem);
   padding: .75rem 0 1.25rem;
   gap: .25rem .75rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   color: var(--welcome-ink);
   background: transparent;
   border: 0;
@@ -533,8 +533,9 @@ nav[aria-label="Language"] ul {
   white-space: nowrap;
 }
 .world-hud[data-compact="false"] a[data-contact-email] {
-  flex: 1 1 0;
-  min-inline-size: 0;
+  flex: 1 1 12rem;
+  min-inline-size: min(12rem, 100%);
+  max-inline-size: 100%;
 }
 .world-hud[data-compact="false"] a[data-contact-email] span {
   overflow: hidden;
