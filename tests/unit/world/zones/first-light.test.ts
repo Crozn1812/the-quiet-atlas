@@ -597,8 +597,8 @@ describe("First Light pine clearing", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // B2-222 moves the welcome assembly, its collider, plants and shaft into the spawn frame.
-    expect(fingerprint).toBe("edd59548931d900613143bee59679e9010cfcc7fcf88fe8e9c63221c83b513d9");
+    // FL-03 narrows both welcome shafts; collision and interaction stay included.
+    expect(fingerprint).toBe("0de6855bf00bbea9bbcd1ce8d947cb516cea939bf347adfce1de4b7b785e7bd0");
   });
 
 });

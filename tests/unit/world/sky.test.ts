@@ -232,7 +232,7 @@ describe("V6 dawn to dusk CPU reference", () => {
   });
 
   it.each([
-    { t: 0.15, min: 0.26, max: 0.32, low: 3, high: 7 },
+    { t: 0.15, min: 0.20, max: 0.26, low: 3, high: 7 },
     { t: 0.93, min: 0.24, max: 0.30, low: 2, high: 5 },
   ])("keeps the two-plane mean and sun elevation within the $t target", ({ t, min, max, low, high }) => {
     const grade = placedGrade(t);
@@ -320,8 +320,8 @@ describe("position-driven sky grade", () => {
     expect(grade.shadowTint.g).toBeGreaterThan(grade.shadowTint.r);
     expect(grade.sunDirection.length()).toBeCloseTo(1, 12);
     if (tod === 0) {
-      expect(grade.sunIntensity).toBe(1.05);
-      expect(grade.hemiIntensity).toBe(0.8);
+      expect(grade.sunIntensity).toBe(0.78);
+      expect(grade.hemiIntensity).toBe(0.58);
       expect(grade.sunColor).toEqual(new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.6).lerp(new Color(PALETTE.flower), 0.03));
       expect(grade.sunDirection.x).toBeLessThan(0);
       expect(grade.sunDirection.z).toBeGreaterThan(0);

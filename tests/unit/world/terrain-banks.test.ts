@@ -66,7 +66,7 @@ describe("hill stream banks", () => {
   it("preserves forest banks, every half metre of walking strip/bridge approaches and dry zone foundations", () => {
     // Digests captured from the pre-B2-195 heightfield at micrometre precision:
     // stricter than the allowed 0.05 m movement, without bulky height arrays.
-    // FL-02 updates only the forest digest for the source basin and rock-foot shoulders;
+    // FL-03 updates the forest digest for the shallow opening reach;
     // walking/zone digests remain the original exact baseline.
     const forest = createHash("sha256"), path = createHash("sha256"), zones = createHash("sha256");
     const record = (hash: ReturnType<typeof createHash>, x: number, z: number) => {
@@ -104,7 +104,7 @@ describe("hill stream banks", () => {
       }
     }
     expect({ forest: forest.digest("hex"), path: path.digest("hex"), zones: zones.digest("hex") }).toEqual({
-      forest: "dbd0c5b3440360a20cf2ea72e1118f1abcfa4481244e147c3aad8b2cd1e93534",
+      forest: "b45b04927b9bc504b2850232ea5e3877f2bc561784e5e34931f6317f853c3d50",
       path: "07a7fe1af33f072b32d24505fd93645b40c447a7fe3b0753047043b5ad901dcc",
       zones: "b6278fcdc31f2cc70a082b39dc0056e64ad14358fef8b4773bc8b39b50a0a82b",
     });

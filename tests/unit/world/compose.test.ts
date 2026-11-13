@@ -46,7 +46,8 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
         if (zone.biome === "forest-dawn") {
           // R1 dawn biome; hill and coast retain their shipped contract.
           grade.sunIntensity = 1.28;
-          grade.hemiIntensity = 0.64;
+          // FL-03 opens the shaded path with diffuse fill under the closed roof.
+          grade.hemiIntensity = 0.88;
           grade.sunColor.lerp(new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.12), 0.28);
           grade.fogColor.set(PALETTE.skyLow).lerp(new Color(PALETTE.sunGold), 0.20);
         }
@@ -123,8 +124,9 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     const referenceGrove = createFirstLightGrove(surfaceHeight, []);
     const groveCount = referenceGrove.sites.length; referenceGrove.dispose();
     const descriptors = created.mock.calls.map(([descriptor]) => descriptor);
-    expect(descriptors).toHaveLength(initial.length + expectedTrees.length + groveCount + 7);
-    expect(physics.world.colliders.len()).toBe(1 + initial.length + expectedTrees.length + groveCount + 7);
+    // FL-03: ten inscribed cliff solids leave the spring outlet open.
+    expect(descriptors).toHaveLength(initial.length + expectedTrees.length + groveCount + 10);
+    expect(physics.world.colliders.len()).toBe(1 + initial.length + expectedTrees.length + groveCount + 10);
     expect(composed.collisionMeshes).toHaveLength(initial.length + expectedTrees.length + groveCount + 1);
     for (const tile of initial) expect(composed.contains({ x: (tile.ix + 0.5) * TILE_SIZE, z: (tile.iz + 0.5) * TILE_SIZE })).toBe(true);
     expect(worldSpawn().x).toBeCloseTo(ZONES[0]!.position.x);
@@ -145,7 +147,7 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
       composed.setQuality(quality);
       track(composed);
       expect(new Set(composed.collisionMeshes)).toEqual(handles);
-      expect(created).toHaveBeenCalledTimes(initial.length + expectedTrees.length + groveCount + 7);
+      expect(created).toHaveBeenCalledTimes(initial.length + expectedTrees.length + groveCount + 10);
       expect(removed).not.toHaveBeenCalled();
     }
     const oldTerrain = composed.collisionMeshes.filter(mesh => mesh.name === "terrain-tile").map(mesh => mesh.geometry);
@@ -163,7 +165,7 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     expect(initial.some(tile => !desiredKeys.has(tileKey(tile.ix, tile.iz)))).toBe(true);
     for (const tile of desired) expect(composed.contains({ x: (tile.ix + 0.5) * TILE_SIZE, z: (tile.iz + 0.5) * TILE_SIZE })).toBe(true);
     const treeCount = desired.flatMap(tile => scatterTile(tile)).filter(tree => !inFirstLightGrove(tree.x, tree.z)).length + groveCount;
-    expect(physics.world.colliders.len()).toBe(1 + desired.length + treeCount + 7);
+    expect(physics.world.colliders.len()).toBe(1 + desired.length + treeCount + 10);
     expect(composed.collisionMeshes.some(mesh => mesh.name === "spring-mossy-cliff")).toBe(false);
     expect(scene.getObjectByName("first-light-spring")!.visible).toBe(false);
     composed.update(worldSpawn(), 0);

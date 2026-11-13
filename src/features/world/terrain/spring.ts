@@ -1,14 +1,41 @@
-import { BufferGeometry, CircleGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Vector3 } from "three";
+import { Box3, BufferGeometry, CircleGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Vector3 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { riverPointAt, riverTangentAt } from "../layout/river";
 import { createRampMaterial } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
-import { waterLevelAt } from "./height";
+import { surfaceHeight, waterLevelAt } from "./height";
 import { createWaterMaterial } from "../water/material";
 import { createWaterSurface } from "../water/surface";
+import { createFirstLightTree } from "../foliage/first-light-grove";
+import { setDawnCliffBounds } from "../post/dawn-shafts";
+import { nearestPath } from "./samples";
 
-/** World-space spring: two fractured shoulders leave a wet cleft below an overhang.
+const obstacleCache = new WeakMap<Mesh, Map<string, Box3[]>>();
+
+/** The mountain spans the horizon; its enclosing box must not block the open outlet.
+ * Vehicle sweeps use the same separate inscribed solids as Rapier instead. */
+export function springObstacleBounds(mesh: Mesh, radius: number, halfPlayerHeight: number): Box3[] | undefined {
+  const solids = mesh.userData.springSolids as { center: Vector3; radius: number; halfHeight: number }[] | undefined;
+  if (!solids) return;
+  let cache = obstacleCache.get(mesh);
+  if (!cache) { cache = new Map(); obstacleCache.set(mesh, cache); }
+  const key = `${radius}:${halfPlayerHeight}`;
+  let bounds = cache.get(key);
+  if (!bounds) {
+    bounds = solids.map(solid => {
+      const box = new Box3().setFromCenterAndSize(solid.center,
+        new Vector3(solid.radius * 2, solid.halfHeight * 2, solid.radius * 2));
+      box.min.add(new Vector3(-radius, -halfPlayerHeight * 2, -radius));
+      box.max.add(new Vector3(radius, -0.1, radius));
+      return box;
+    });
+    cache.set(key, bounds);
+  }
+  return bounds;
+}
+
+/** World-space spring: fractured, buried shoulders frame an open wet cleft.
  * Static geometry only; the existing river owns downstream animation. */
 export function createSpring() {
   const group = new Group();
@@ -17,18 +44,39 @@ export function createSpring() {
   const right = new Vector3(-forward.z, 0, forward.x);
   const level = waterLevelAt(origin.z);
   const colliders: { center: Vector3; radius: number; halfHeight: number }[] = [];
-  const pieces = [
-    // across, downstream, base, width, height, depth
-    [-2.6, -2.8, -0.7, 4.1, 3.8, 4],
-    [2.5, -3.8, -0.6, 3.5, 4.6, 4.1],
-    [-2, -4, 2.1, 3.8, 3.6, 3.4],
-    [1.2, -4.8, 3, 4, 3.8, 3.8],
-    [-0.1, -2.7, 1.8, 3.3, 2.2, 2.8],
-    [-4, -2, -0.6, 2.4, 2.1, 3.1],
-    [3.8, -3, -0.6, 2.1, 2.6, 2.4],
-  ] as const;
-  const geometries = pieces.map(([across, along, base, width, height, depth], i) => {
-    const geometry = createRockGeometry("boulder", 802 + i, true);
+  const lightBlockers: Box3[] = [];
+  // The ridge runs across the opening view instead of continuing upstream
+  // outside its left edge. Its apron joins the outlet, with no freestanding rock.
+  const ridgeRight = new Vector3(9, 0, -7).normalize();
+  const ridgeBack = new Vector3(-7, 0, -9).normalize();
+  const pieces: { center: Vector3; width: number; height: number; depth: number; yaw: number; solid: boolean; talus: boolean }[] = [];
+  const add = (center: Vector3, base: number, width: number, height: number, depth: number, yaw: number, solid = true, talus = false) => {
+    if (talus && !solid && nearestPath(center.x, center.z).distance < Math.max(width, depth) / 2 + 3) return;
+    center.y = level + base;
+    pieces.push({ center, width, height, depth, yaw, solid, talus });
+  };
+  const ridgeYaw = Math.atan2(-ridgeRight.z, ridgeRight.x);
+  // Two irregular buttresses join the rear face to the existing waterfall.
+  // Their buried feet form an open cleft, rather than a cap/stack over the water.
+  for (const side of [-1, 1]) add(origin.clone().addScaledVector(right, side * 2.4).addScaledVector(forward, -3.5),
+    -0.6, 2.8, side < 0 ? 1.1 : 1.4, 3.8, Math.atan2(-right.z, right.x), true, true);
+  for (const [i, across] of [-27, -10, 7, 24, 41].entries()) {
+    const center = origin.clone().addScaledVector(ridgeRight, across).addScaledVector(ridgeBack, 33 + Math.sin(i * 1.7) * 2);
+    add(center, -0.8, 23, [28, 35, 39, 34, 27][i]!, 19, ridgeYaw);
+    // Broken, projecting ledges read as stratified rock in the gameplay frame.
+    for (const [tier, base] of [4, 12, 20].entries()) add(
+      origin.clone().addScaledVector(ridgeRight, across - 1.5 + Math.sin(i + tier) * 2)
+        .addScaledVector(ridgeBack, 23 + tier * 0.9),
+      base + Math.sin(i * 2.4 + tier) * 1.7, 13 + (i % 2) * 3, 1.2 + tier * 0.25, 6.5, ridgeYaw + Math.sin(i + tier) * 0.13, false);
+  }
+  for (const [i, [side, along, width, height, depth]] of [
+    [-3.1, 2.7, 1.8, 1.1, 1.5], [-4.6, 4.9, 2.5, 1.7, 2],
+    [-5.6, 1.5, 2.2, 1.3, 1.7], [-7.1, 5.1, 2.8, 1.9, 2.3],
+    [-8, 2.5, 3.1, 1.8, 2.4],
+  ].entries()) add(origin.clone().addScaledVector(right, side!).addScaledVector(forward, along!),
+    -0.35, width!, height!, depth!, i * 1.93, false, true);
+  const geometries = pieces.map(({ center, width, height, depth, yaw, solid, talus }, i) => {
+    const geometry = createRockGeometry(talus ? "boulder" : "slab", 802 + i, true);
     geometry.computeBoundingBox();
     const bounds = geometry.boundingBox!;
     const size = bounds.getSize(new Vector3());
@@ -38,30 +86,100 @@ export function createSpring() {
       positions.setX(v, positions.getX(v) + positions.getY(v) * (i % 2 ? -0.19 : 0.23));
       positions.setZ(v, positions.getZ(v) + positions.getY(v) * 0.12);
     }
-    geometry.rotateY(i * 0.63); geometry.computeVertexNormals();
+    geometry.computeVertexNormals();
     // Warm broad faces and mossy upward ledges share the existing draw.
     const colors = geometry.getAttribute("color"), normals = geometry.getAttribute("normal");
-    const stone = new Color(PALETTE.rock).lerp(new Color(PALETTE.sand), 0.24);
+    const stone = new Color(PALETTE.rock).lerp(new Color(PALETTE.sand), 0.29 + (i % 3) * 0.045);
     const moss = new Color(PALETTE.rock).lerp(new Color(PALETTE.grass), 0.65);
     for (let vertex = 0; vertex < colors.count; vertex++) {
-      const pigment = normals.getY(vertex) > 0.3 ? moss : stone;
+      const pigment = normals.getY(vertex) > 0.3 ? moss : normals.getY(vertex) < -0.3
+        ? stone.clone().multiplyScalar(0.65) : stone;
       colors.setXYZ(vertex, pigment.r, pigment.g, pigment.b);
     }
-    const center = origin.clone().addScaledVector(right, across).addScaledVector(forward, along);
-    center.y = level + base;
-    geometry.rotateY(Math.atan2(right.z * -1, right.x)).translate(center.x, center.y, center.z);
+    geometry.rotateY(yaw).translate(center.x, center.y, center.z);
+    if (talus) {
+      // Conform the bottom ring to the actual rendered terrain, burying it by
+      // 30 cm. Upper fracture faces stay rigid; no visible underside can open.
+      for (let v = 0; v < positions.count; v++) {
+        const rise = positions.getY(v) - center.y;
+        const foot = Math.max(level - 0.7, surfaceHeight(positions.getX(v), positions.getZ(v))) - 0.3;
+        positions.setY(v, positions.getY(v) + Math.max(0, foot - center.y) * Math.max(0, 1 - rise / height));
+      }
+      geometry.computeVertexNormals();
+    }
     // Inscribed cylinders leave the visible cleft open and avoid invisible walls on the route.
-    colliders.push({ center: center.clone().add(new Vector3(0, height / 2, 0)),
+    if (solid) colliders.push({ center: center.clone().add(new Vector3(0, height / 2, 0)),
       radius: Math.min(width, depth) * 0.38, halfHeight: height / 2 });
+    if (solid) { geometry.computeBoundingBox(); lightBlockers.push(geometry.boundingBox!.clone()); }
     return geometry;
   });
+  // A continuous fractured face curls from the rear wall to the wet cleft.
+  // Unlike scaled slabs, this has a narrow crest and no broad horizontal cap.
+  const footPositions: number[] = [], footColors: number[] = [];
+  const stone = new Color(PALETTE.rock).lerp(new Color(PALETTE.sand), 0.2);
+  const moss = stone.clone().lerp(new Color(PALETTE.grass), 0.42);
+  const front = [[-1.7, 3.7, 3.2], [-4, 1, 4.1], [-7, -3, 6.2],
+    [-10, -8, 8.3], [-16, -15, 12], [-19, -23, 16]].map(([x, z, height], i) => {
+    const base = new Vector3(origin.x + x!, 0, origin.z + z!);
+    base.y = surfaceHeight(base.x, base.z) - 0.4;
+    const top = base.clone().add(new Vector3(Math.sin(i * 2.3) * 0.45, height!, 0));
+    const back = base.clone().add(new Vector3(-2.7, 0, 1.7));
+    back.y = surfaceHeight(back.x, back.z) - 0.4;
+    const backTop = top.clone().add(new Vector3(-2.3, -0.15 + Math.sin(i) * 0.3, 1.5));
+    return { base, top, back, backTop };
+  });
+  const triangle = (a: Vector3, b: Vector3, c: Vector3, pigment: Color) => {
+    for (const vertex of [a, b, c]) {
+      footPositions.push(vertex.x, vertex.y, vertex.z);
+      footColors.push(pigment.r, pigment.g, pigment.b);
+    }
+  };
+  for (let i = 0; i < front.length - 1; i++) {
+    const a = front[i]!, b = front[i + 1]!;
+    // A displaced mid-face breaks each broad panel into unequal rock facets.
+    const middle = a.base.clone().add(b.top).multiplyScalar(0.5).add(new Vector3(0.45, 0, 0.3));
+    const pigment = stone.clone().multiplyScalar(0.88 + 0.045 * (i % 3));
+    triangle(a.base, b.base, middle, pigment);
+    triangle(b.base, b.top, middle, pigment.clone().lerp(moss, 0.12));
+    triangle(b.top, a.top, middle, pigment);
+    triangle(a.top, a.base, middle, pigment.clone().multiplyScalar(0.9));
+    triangle(a.back, a.backTop, b.back, pigment);
+    triangle(b.back, a.backTop, b.backTop, pigment);
+    triangle(a.top, b.top, a.backTop, moss);
+    triangle(b.top, b.backTop, a.backTop, moss);
+    const bounds = new Box3().setFromPoints([a.base, a.top, a.back, a.backTop, b.base, b.top, b.back, b.backTop, middle]);
+    // Use three inscribed solids; the complete face still masks the light.
+    if (i % 2 === 0) colliders.push({ center: bounds.getCenter(new Vector3()), radius: 1.2,
+      halfHeight: bounds.getSize(new Vector3()).y / 2 });
+    lightBlockers.push(bounds);
+  }
+  const first = front[0]!, last = front.at(-1)!;
+  triangle(first.base, first.top, first.back, stone);
+  triangle(first.back, first.top, first.backTop, stone);
+  triangle(last.base, last.back, last.top, stone);
+  triangle(last.top, last.back, last.backTop, stone);
+  const foot = new BufferGeometry();
+  foot.setAttribute("position", new Float32BufferAttribute(footPositions, 3));
+  foot.setAttribute("color", new Float32BufferAttribute(footColors, 3));
+  foot.computeVertexNormals();
+  geometries.push(foot);
+  // A few small rooted silhouettes cling to the ledges, sharing the rock draw.
+  for (const [i, across] of [-19, 2, 30].entries()) {
+    const tree = createFirstLightTree(i).scale(0.38, 0.49, 0.38).rotateY(i * 1.9);
+    tree.deleteAttribute("uv");
+    const at = origin.clone().addScaledVector(ridgeRight, across).addScaledVector(ridgeBack, 24.8);
+    tree.translate(at.x, level + 13.4, at.z);
+    geometries.push(tree);
+  }
   const rockGeometry = mergeGeometries(geometries)!;
   geometries.forEach(geometry => geometry.dispose());
   const rockMaterial = createRampMaterial(0xffffff);
   rockMaterial.vertexColors = true;
   const cliff = new Mesh(rockGeometry, rockMaterial);
   cliff.name = "spring-mossy-cliff";
+  cliff.userData.springSolids = colliders;
   cliff.castShadow = cliff.receiveShadow = true;
+  setDawnCliffBounds(lightBlockers);
   group.add(cliff);
   const poolGeometry = new CircleGeometry(2.2, 12).rotateX(-Math.PI / 2);
   const rim = poolGeometry.getAttribute("position");

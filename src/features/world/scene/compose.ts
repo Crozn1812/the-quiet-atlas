@@ -5,6 +5,7 @@ import { PALETTE } from "../art/palette";
 import { bindFirstLightGround, createFirstLightGrove, FIRST_LIGHT_SUN, firstLightGroveWeight, inFirstLightGrove } from "../foliage/first-light-grove";
 import { createFoliage, foliageVariantAt } from "../foliage/instances";
 import { createForestR1Trees, forestR1Weight } from "../foliage/forest-r1";
+import { createForestCeiling } from "../foliage/forest-ceiling";
 import { bindCoastR1Ground, createCoastR1Trees, isCoastR1Tree } from "../foliage/coast-r1";
 import { hillR1Weight } from "../foliage/hill-r1";
 import { createFoliageColliders, TRUNK_HEIGHT } from "../foliage/colliders";
@@ -163,6 +164,8 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   let grove = createFirstLightGrove(surfaceHeight, zoneBounds, deferredGround);
   const groveColliders: RAPIER.Collider[] = [];
   scene.add(grove.group);
+  const ceiling = createForestCeiling(surfaceHeight);
+  scene.add(ceiling.group);
   let groundRevision = 0;
   function syncGround() {
     const build = syncGroundChunks();
@@ -306,6 +309,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     quality = next;
     terrainDetail.setQuality(next);
     grove.setQuality(next);
+    ceiling.setQuality(next);
     groundRevision++;
     for (const cell of cells.values()) cell.setQuality(next);
     ground.setQuality(next);
@@ -347,6 +351,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     for (const cell of cells.values()) cell.dispose();
     cells.clear();
     grove.dispose();
+    ceiling.dispose();
     spring.dispose();
     for (const collider of springColliders) world.removeCollider(collider, true);
     for (const collider of groveColliders) world.removeCollider(collider, true);
@@ -460,7 +465,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     grade.sunDirection.lerp(FIRST_LIGHT_SUN, clearing).normalize();
     grade.sunColor.lerp(FIRST_LIGHT_FILL, clearing * 0.28);
     grade.sunIntensity += (1.28 - grade.sunIntensity) * clearing;
-    grade.hemiIntensity += (0.64 - grade.hemiIntensity) * clearing;
+    grade.hemiIntensity += (0.88 - grade.hemiIntensity) * clearing;
     if (previousPosition) previousPosition.copy(player);
     else previousPosition = player.clone();
     sun.color.copy(grade.sunColor);

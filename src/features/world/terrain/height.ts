@@ -293,6 +293,13 @@ export function roadBaseHeight(x: number, z: number): number {
     * (1 - smoothstep(1.5, 6, Math.abs(alongSource + 4)))
     * smoothstep(0.9, 2, Math.abs(acrossSource)) * smoothstep(2, 5, path.distance);
   height += 0.7 * shoulder;
+  // FL-03: the opening reach is wadeable. The streamed heightfield collider
+  // consumes this same surface; there is no separate invisible floor.
+  const wading = (1 - smoothstep(0.065, 0.09, river.t))
+    * (1 - smoothstep(waterEdge - 0.5, waterEdge + 3, river.distance))
+    * smoothstep(PATH_WIDTH / 2, 4, path.distance)
+    * smoothstep(7, 12, alongSource);
+  height += (waterLevelAt(z) - 0.42 - height) * wading;
   return height;
 }
 

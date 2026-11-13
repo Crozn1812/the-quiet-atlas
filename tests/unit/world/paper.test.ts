@@ -253,7 +253,10 @@ describe("R clear post", () => {
     const distance = (color: Color) => new Vector3(...fog.toArray()).distanceTo(new Vector3(...color.toArray()));
     // B2-180 intentionally replaces B2-161's blue-at-all-times fog expectation.
     expect(distance(new Color(PALETTE.mist))).toBeLessThan(distance(new Color(PALETTE.paper)));
-    expect(fog.r).toBeGreaterThan(fog.b);
+    if (t === 0.3) { // FL-03: darker jade forest air.
+      expect(fog.g).toBeGreaterThan(fog.r);
+      expect(fog.g).toBeGreaterThan(fog.b);
+    } else expect(fog.r).toBeGreaterThan(fog.b);
     if (t === 0.93) expect(fog.toArray()).toEqual(lightingAt(1).fogColor.toArray().map(v => expect.closeTo(v, 12)));
   });
 
@@ -366,12 +369,12 @@ describe("forest depth atmosphere (B2-169)", () => {
         if (t === 0.1) {
           for (const depth of [0, 8, 12, 24.99]) expect(amount(depth)).toBeLessThanOrEqual(0.03);
           expect(amount(30)).toBeLessThanOrEqual(0.15);
-          // B2-239: less opaque forest depth, while retaining separation at 100 m.
-          expect(amount(100)).toBeGreaterThanOrEqual(0.3);
-          expect(amount(100)).toBeLessThan(0.45);
+          // Dawn mist stays in the distance, preserving the main warm foreground.
+          expect(amount(100)).toBeGreaterThanOrEqual(0.35);
+          expect(amount(100)).toBeLessThan(0.55);
           const depths = [40, 60, 80, 100, 120].map(amount);
           depths.slice(1).forEach((value, i) => expect(value).toBeGreaterThan(depths[i]!));
-          expect(native.color).toEqual(forestColor);
+          expect(distance(native.color, forestColor)).toBeLessThan(1e-12);
           for (const color of [native.color, ...(u ? [u.fogColor!.value as Color, u.mistColor!.value as Color] : [])]) {
             expect(distance(color, new Color(PALETTE.mist))).toBeLessThan(distance(color, new Color(PALETTE.paper)));
             expect(distance(color, new Color(PALETTE.skyLow))).toBeLessThan(distance(color, new Color(PALETTE.paper)));
@@ -394,7 +397,7 @@ describe("forest depth atmosphere (B2-169)", () => {
       paper.setQuality("High");
       paper.render(scene, new PerspectiveCamera());
       const u = screenMaterial(renderer).material.uniforms;
-      expect(u.fogColor!.value).toEqual(forestColor);
+      expect(distance(u.fogColor!.value as Color, forestColor)).toBeLessThan(1e-12);
       expect(u.mistStrength!.value).toBe(STYLE_PRESETS.R.background.forest!.mist.strength);
     } finally { paper.dispose(); }
   });

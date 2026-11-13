@@ -26,18 +26,17 @@ describe("far landscape individual dawn crowns", () => {
       process.stdout.write('B2-241 triangles: 51200 -> ' + g.index!.count / 3 + '; draws: 1 -> 1; crowns: ' + g.userData.farCrowns + '\n');
     } finally { far.dispose(); }
   });
-  it("preserves the original ground vertices, normals and albedo byte for byte", () => {
+  it("locks the FL-03 shallow stream ground vertices, normals and albedo", () => {
     const far = createFarLandscape();
     try {
       const expected = {
-        position: "b360eaef8fc90cb92404ee7d87a9ea60bc56570a14fd57935844e987655d3283",
-        normal: "a284ce607abb36a94fa60f3ec16c0e9c40949ccf2c60749816832eacde521c9a",
+        position: "59f7056c885b48aa0a1c52786dbc3f1fe95de8eb8d0eb43f62185553e7b1258a",
+        normal: "a66a19e6d747193c1a464426911d63f604b0f972076bb705044540eaab115bec",
         // R1-C: coastal grass pigments also feed the distant ground; geometry stays unchanged.
         color: "70efbfba824b8c2417fbb2ba687b32586c196dbeb23cc3a93f20d28b4fc89542",
       };
-      for (const [name, value] of Object.entries(expected)) {
-        expect(hash(far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))).toBe(value);
-      }
+      const actual = Object.fromEntries(Object.keys(expected).map(name => [name, hash(far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))]));
+      expect(actual).toEqual(expected);
     } finally { far.dispose(); }
   });
   it("builds clustered planar crowns below 12m, clear of stream trees and pads", () => {

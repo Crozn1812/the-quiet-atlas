@@ -4,6 +4,7 @@ import {
   type DirectionalLight, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { bindDawnShafts } from "../post/dawn-shafts";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import type { PaletteKey } from "../art/palette";
 import { createFern } from "../foliage/ground";
@@ -73,6 +74,7 @@ diffuseColor.a *= smoothstep( 0.55, 0.9, shaftAlignment );
 #include <opaque_fragment>`);
   };
   material.customProgramCacheKey = () => "painted-toon-backlit-veil-v1";
+  bindDawnShafts(material);
   // Compose owns the world-space sun. Follow it even when a zone is rotated/reflected.
   mesh.onBeforeRender = (_renderer, scene) => {
     const sun = scene.children.find((child): child is DirectionalLight =>
@@ -91,14 +93,14 @@ export { FOREST_SUN_SHAFT_PROGRESS } from "../layout/sun-shafts";
 export function createForestSunShafts(heightAt: (x: number, z: number) => number) {
   const group = new Group();
   group.name = "forest-sun-shafts";
-  const geometry = sunVeil(0.9).translate(0, 3, 0);
+  const geometry = sunVeil(0.38).translate(0, 3, 0);
   const material = createRampMaterial(tint("sunGold", "cloud", 0.7));
   const mesh = new InstancedMesh(geometry, material, FOREST_SUN_SHAFT_PROGRESS.length);
   mesh.name = "forest-path-sun";
   backlitVeil(mesh);
   const sun = lightingAt(0).sunDirection;
   const across = new Vector3(-sun.z, 0, sun.x).normalize();
-  const along = new Vector3(sun.x * 0.35, 1, sun.z * 0.35).normalize();
+  const along = new Vector3(-0.74, 0.57, 0.35).normalize();
   const normal = new Vector3().crossVectors(across, along).normalize();
   const transform = new Matrix4().makeBasis(across, along, normal);
   const sites: { t: number; position: Vector3 }[] = [];
@@ -304,7 +306,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       const alpha = surface === "sun" ? source : undefined;
       const base = new Color(hues[surface]);
       for (const name of Object.keys(flat.attributes)) {
-        if (name !== "position" && !(alpha && name === "color")) flat.deleteAttribute(name);
+        if (name !== "position" && !(alpha && (name === "color" || name === "uv"))) flat.deleteAttribute(name);
       }
       const positions = flat.getAttribute("position");
       const colors: number[] = [];
@@ -465,7 +467,7 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     place(flowers, x!, z!);
   }
 
-  for (const [x, z, width] of [[6.8, 8, 0.65], [welcomeX, welcomeZ, 1.4]]) {
+  for (const [x, z, width] of [[6.8, 8, 0.14], [welcomeX, welcomeZ, 0.22]]) {
     const veil = sunVeil(width!);
     place([{ ...part(veil.translate(0, 3, 0).rotateZ(-0.28).rotateY(0.35).translate(0, 0.84, 0), "sun"),
       name: "seat-sun-shaft" }], x!, z!);

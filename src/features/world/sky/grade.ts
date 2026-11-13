@@ -54,10 +54,10 @@ const KEYFRAMES: readonly LightingGrade[] = [
   {
     // Shift dawn energy toward diffuse canopy fill: shaded props/path open up
     // while the two-plane illumination stays at the existing dawn reference.
-    sunColor: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.6).lerp(new Color(PALETTE.flower), 0.03), sunIntensity: 1.05,
+    sunColor: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.6).lerp(new Color(PALETTE.flower), 0.03), sunIntensity: 0.78,
     // Five degrees, retaining the eastern azimuth behind the forest.
     sunDirection: new Vector3(-0.9, Math.hypot(0.9, 0.4) * Math.tan(5 * Math.PI / 180), 0.4).normalize(),
-    hemiSky: SKY_HORIZON.clone().lerp(new Color(PALETTE.indigo), 0.05), hemiGround: new Color(PALETTE.grassDry).lerp(SKY_HORIZON, 0.25).multiplyScalar(0.88), hemiIntensity: 0.8,
+    hemiSky: SKY_HORIZON.clone().lerp(new Color(PALETTE.indigo), 0.05), hemiGround: new Color(PALETTE.grassDry).lerp(SKY_HORIZON, 0.25).multiplyScalar(0.88), hemiIntensity: 0.58,
     fogColor: DAWN_FOG.clone(), skyTop: DAWN_TOP.clone(),
     skyHorizon: DAWN_HORIZON.clone(), shadowTint: SKY_TOP.clone().lerp(new Color(PALETTE.indigo), 0.35),
   },

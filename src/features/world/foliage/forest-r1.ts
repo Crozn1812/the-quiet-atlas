@@ -5,7 +5,7 @@ import { forestAtmosphereWeight } from "../art/direction";
 import { createRampMaterial } from "../materials/ramp";
 import { PRESETS, type Quality } from "../terrain";
 import { nearestPath } from "../terrain/samples";
-import { createFirstLightTree, firstLightGroveWeight } from "./first-light-grove";
+import { createDenseFirstLightTree as createFirstLightTree, firstLightGroveWeight } from "./first-light-grove";
 import { foliageVariantAt, selectFoliageOccludingCrowns } from "./instances";
 import { createCrownFade } from "../crown-fade";
 import type { FoliageTree } from "./scatter";
@@ -56,7 +56,8 @@ export function createForestR1Trees(trees: readonly FoliageTree[], options?: {
       const scale = tree.scale * (tree.trailCanopy ? 3 : 1);
       matrix.makeRotationY(foliageVariantAt(tree.z, tree.x, 1000) / 1000 * Math.PI * 2);
       rotation.makeRotationZ(tree.lean);
-      const axes = options?.scale(tree) ?? [1, 1, 1];
+      const weight = forestR1Weight(tree.x, tree.z);
+      const axes = options?.scale(tree) ?? [1 + 0.65 * weight, 1 + 0.55 * weight, 1 + 0.65 * weight];
       matrix.premultiply(rotation).scale(new Vector3(scale * axes[0]!, scale * axes[1]!, scale * axes[2]!));
       matrix.setPosition(tree.x, tree.y, tree.z);
       mesh.setColorAt(mesh.count, pigments[index]!);

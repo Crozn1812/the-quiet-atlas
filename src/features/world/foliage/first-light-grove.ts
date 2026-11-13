@@ -1,5 +1,6 @@
 import { Box3, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector3, type MeshToonMaterial } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { bindDawnShafts } from "../post/dawn-shafts";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
 import { ZONES } from "../layout/zones";
@@ -61,9 +62,18 @@ firstLightMask = max(firstLightMask, vHillSurface);`);
     // and preserve the clean light BEFORE its final grain multiplication (also valid on Low).
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <normal_fragment_begin>", "#include <normal_fragment_begin>\nnormal = mix(normal, normalize(vNormal), firstLightMask * 0.9);")
-      .replace("#include <opaque_fragment>", "vec3 firstLightClean = outgoingLight;\n#include <opaque_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, firstLightClean, firstLightMask * 0.92);");
+      .replace("#include <opaque_fragment>", `
+outgoingLight *= 1.0 + firstLightLocal * 0.65;
+// Keep golden earth readable under the newly closed canopy. Rebalance chroma
+// at equal luminance; distant fog still owns its usual depth-only colour.
+float firstLightLuma = dot(outgoingLight, vec3(0.2126, 0.7152, 0.0722));
+vec3 firstLightShade = firstLightPigment * firstLightLuma / max(dot(firstLightPigment, vec3(0.2126, 0.7152, 0.0722)), 0.001);
+outgoingLight = mix(outgoingLight, firstLightShade, firstLightLocal * mix(0.5, 0.02, firstLightGrass));
+vec3 firstLightClean = outgoingLight;
+#include <opaque_fragment>
+gl_FragColor.rgb = mix(gl_FragColor.rgb, firstLightClean, firstLightMask * 0.92);`);
   };
-  material.customProgramCacheKey = () => `${key.call(material)}-forest-hill-r1-surface-v3`;
+  material.customProgramCacheKey = () => `${key.call(material)}-forest-hill-r1-surface-v5`;
 }
 
 function colored(geometry: BufferGeometry, pigment: Color) {
@@ -81,12 +91,14 @@ function colored(geometry: BufferGeometry, pigment: Color) {
 }
 
 /** Three hand-composed, faceted silhouettes; no boxes, texture or per-frame work. */
-export function createFirstLightTree(variant: number) {
+export function createFirstLightTree(variant: number) { return buildFirstLightTree(variant, false); }
+export function createDenseFirstLightTree(variant: number) { return buildFirstLightTree(variant, true); }
+function buildFirstLightTree(variant: number, dense: boolean) {
   const parts: BufferGeometry[] = [];
   const bark = new Color(PALETTE.rockDark).lerp(new Color(PALETTE.dusk), 0.16);
   const leaf = new Color(PALETTE.forestLight).lerp(new Color(PALETTE.grass), 0.22).lerp(new Color(PALETTE.mist), 0.12);
   const stem = (a: Vector3, b: Vector3, bottom: number, top: number) => {
-    const g = new CylinderGeometry(top, bottom, a.distanceTo(b), 5, 1);
+    const g = new CylinderGeometry(top, bottom, a.distanceTo(b), dense ? 3 : 5, 1);
     const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), b.clone().sub(a).normalize());
     g.applyQuaternion(q).translate(...a.clone().add(b).multiplyScalar(0.5).toArray());
     parts.push(colored(g, bark));
@@ -103,7 +115,9 @@ export function createFirstLightTree(variant: number) {
     const [x, y, z, sx, sy, sz] = lobe as [number, number, number, number, number, number];
     const dx = x + Math.sin(variant * 2 + i) * 0.6;
     stem(new Vector3(lean * 0.5, 4.5 + i * 0.2, 0), new Vector3(dx * 0.8, y - 0.5, z * 0.7), 0.16, 0.05);
-    const g = new IcosahedronGeometry(1, 0).scale(sx, sy, sz).rotateY(variant * 0.43 + i * 0.7).translate(dx, y, z);
+    if (dense) stem(new Vector3(dx * 0.5, y - 1.5, z * 0.4), new Vector3(dx * 1.35, y, z * 1.2 + 0.8), 0.075, 0.025);
+    // Deep hanging crowns close the sky between distant trunks without new faces.
+    const g = new IcosahedronGeometry(1, 0).scale(sx * (dense ? 1.35 : 1), sy * (dense ? 1.7 : 1), sz * (dense ? 1.35 : 1)).rotateY(variant * 0.43 + i * 0.7).translate(dx, y - (dense ? 0.6 : 0), z);
     const pigment = leaf.clone().lerp(new Color(i % 2 ? PALETTE.grass : PALETTE.mist), 0.12 + i * 0.025);
     parts.push(colored(g, pigment));
   }
@@ -164,7 +178,7 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   material.vertexColors = true;
   const renderSites = sites;
   const meshes = [0,1,2].map(variant => {
-    const geometry = createFirstLightTree(variant).scale(1.58, 1.63, 1.53);
+    const geometry = createDenseFirstLightTree(variant).scale(1.88, 2.13, 1.83);
     const items = renderSites.filter(s => s.variant === variant);
     const mesh = new InstancedMesh(geometry, material, items.length);
     mesh.name = `first-light-grove-trees-${variant}`;
@@ -185,15 +199,19 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
     const m = new Mesh(colliderGeometry,colliderMaterial);
     m.position.set(s.x,s.y+2.6*s.scale,s.z); m.scale.set(1,s.scale,1); m.updateMatrixWorld(true); return m;
   });
-  // Two small breaks in the crowns catch the dawn light over the dry trail.
-  // Crossed ribbons keep the light visible from either side of the clearing.
+  // Eight leaf gaps, kept below the roof and above the grass. A single ribbon
+  // per gap avoids doubled opacity from crossed planes.
   const beams: BufferGeometry[] = [];
-  const across = new Vector3(0, 1, 0).cross(FIRST_LIGHT_SUN).normalize();
-  const second = FIRST_LIGHT_SUN.clone().cross(across);
-  for (const [localX, localZ, length, width] of [[-0.8, 9, 20, 1.45], [1.0, 16, 24, 0.95]]) {
+  // Face the clearing's authored camera: horizontal ribbons were nearly edge-on
+  // and collapsed to hairline scratches, despite having a feathered width.
+  const across = FIRST_LIGHT_SUN.clone().cross(new Vector3(7, 4, 9)).normalize();
+  const gaps = [[-6, 6], [-4, 8], [-4, 4], [-2, 8], [-4, 10], [-8, 4], [-6, 8], [-2, 12]];
+  for (const [ray, [localX, localZ]] of gaps.entries()) {
+    const length = 12 + (ray % 3) * 1.65;
+    const width = 0.6 + (ray % 4) * 0.15;
     const { x, z } = toWorld(localX!, localZ!);
-    const base = new Vector3(x, heightAt(x, z) + 0.15, z);
-    for (const lateral of [across, second]) {
+    const base = new Vector3(x, heightAt(x, z) + 0.9 + 0.2 * Math.sin(ray), z);
+    for (const lateral of [across]) {
       const plane = new PlaneGeometry(width!, length!, 8, 8);
       const vertices = plane.getAttribute("position");
       const colors: number[] = [];
@@ -201,8 +219,8 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
       for (let i = 0; i < vertices.count; i++) {
         const progress = vertices.getY(i) / length! + 0.5;
         const fraction = vertices.getX(i) / (width! * 0.5);
-        const opacity = Math.pow(Math.max(0, Math.cos(Math.PI * fraction * 0.5)), 3)
-          * Math.min(1, progress * 7) * Math.min(1, (1 - progress) * 5);
+        const opacity = Math.pow(Math.max(0, Math.cos(Math.PI * fraction * 0.5)), 2)
+          * Math.min(1, progress * 5) * Math.min(1, (1 - progress) * 4);
         point.copy(base).addScaledVector(FIRST_LIGHT_SUN, progress * length!)
           .addScaledVector(lateral, vertices.getX(i) * (1 - 0.55 * progress));
         vertices.setXYZ(i, point.x, point.y, point.z);
@@ -216,9 +234,10 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   beams.forEach(geometry => geometry.dispose());
   const beamMaterial = new MeshBasicMaterial({
     color: new Color(PALETTE.sunGold).lerp(new Color(PALETTE.cloud), 0.48),
-    side: DoubleSide, transparent: true, opacity: 0.135, depthWrite: false,
+    side: DoubleSide, transparent: true, opacity: 0.14, depthWrite: false,
     vertexColors: true, forceSinglePass: true,
   });
+  bindDawnShafts(beamMaterial);
   const dawnRays = new Mesh(beamGeometry, beamMaterial);
   dawnRays.name = "first-light-dawn-rays";
   dawnRays.raycast = () => {};

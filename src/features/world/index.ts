@@ -7,6 +7,9 @@ import { SIGNPOSTS, arrivalPoint } from "../navigation/signposts";
 import { createTeleport, MIST_SECONDS, REDUCED_MOTION_SECONDS } from "../navigation/teleport";
 import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
 import { clampZoom, wrapYaw, springArm, ensureCameraBounds, filterCameraCandidates, INITIAL_ZOOM, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
+import { springObstacleBounds } from "./terrain/spring";
+import { createFirstLightFish } from "./water/fish";
+import { updateDawnShafts } from "./post/dawn-shafts";
 import { firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
 import { PRESETS, type Quality } from "./terrain";
@@ -230,6 +233,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let adaptive = initialAdaptive();
   let contextLost = false;
   const locomotion = createLocomotion(physics);
+  const fish = createFirstLightFish(); scene.add(fish.group);
   const sun = composed.sun;
   gpu.shadowMap.enabled = sun.castShadow;
   // B2-045: rigged character (D-23) with Idle/Walk/Run; the loader falls back to the capsule on any failure.
@@ -634,7 +638,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function solidBounds(radius: number) {
     // Compose exposes terrain in both lists, and trunk collider meshes only in collisionMeshes.
     // Signs use their existing mesh too; both driving modes share this same sweep and controller.
-    return [...composed.collisionMeshes.filter(mesh => !composed.visibleMeshes.includes(mesh)), ...props.map(prop => prop.mesh)].map(mesh => {
+    return [...composed.collisionMeshes.filter(mesh => !composed.visibleMeshes.includes(mesh)), ...props.map(prop => prop.mesh)].flatMap(mesh => {
+      const spring = springObstacleBounds(mesh, radius, HEIGHT);
+      if (spring) return spring;
       let cache = obstacleBounds.get(mesh);
       if (!cache) { cache = new Map(); obstacleBounds.set(mesh, cache); }
       let bounds = cache.get(radius);
@@ -1284,6 +1290,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const animDt = canSimulate(state) ? dt : 0;
     animator.update(animDt, vehicle.mode === "ride" || rider.transitioning || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(animDt);
+    fish.update(animDt, reducedMotion);
+    updateDawnShafts(animDt, reducedMotion);
     if (vehicleControls.dismountPending) getOffVehicle();
     let introFrame: IntroFrame | undefined;
     if (intro?.inputLocked) {
@@ -1493,6 +1501,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     clear();
     motionPreference?.removeEventListener("change", updateMotionPreference);
     dressing?.dispose();
+    fish.dispose();
     composed.dispose();
     zoneScenes?.dispose();
     removeDressingTrimeshes?.();
