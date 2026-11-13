@@ -1,0 +1,422 @@
+{
+  "version": 1,
+  "units": "metres",
+  "upAxis": "Y",
+  "origin": "base centered",
+  "compression": [
+    "EXT_meshopt_compression",
+    "KHR_texture_basisu"
+  ],
+  "textureMaxDimension": 128,
+  "sourceBlendSha256": "eb48130d027675aa405664e1d5ff9b718b2438323c73b2c741bfd089d1b36850",
+  "note": "Offline styleframe library. Select one LOD per asset. No runtime integration. Rock variants share one source; pine whole-sprig cards arranged in dense conical tiers. CC0 applies to original additions too.",
+  "assets": [
+    {
+      "id": "tree-pine-a",
+      "category": "tree",
+      "source": [
+        "https://polyhaven.com/a/pine_tree_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "tree-pine-a-lod0.glb",
+          "triangles": 1096,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/tree-pine-a-lod0.glb",
+          "bytes": 27388
+        },
+        {
+          "level": 1,
+          "file": "tree-pine-a-lod1.glb",
+          "triangles": 487,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/tree-pine-a-lod1.glb",
+          "bytes": 21272
+        }
+      ],
+      "derivation": "Whole Poly Haven needle-sprig alpha cards in overlapping conical whorls; warm rebuilt trunk"
+    },
+    {
+      "id": "tree-pine-b",
+      "category": "tree",
+      "source": [
+        "https://polyhaven.com/a/pine_tree_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "tree-pine-b-lod0.glb",
+          "triangles": 1096,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/tree-pine-b-lod0.glb",
+          "bytes": 27176
+        },
+        {
+          "level": 1,
+          "file": "tree-pine-b-lod1.glb",
+          "triangles": 487,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/tree-pine-b-lod1.glb",
+          "bytes": 21232
+        }
+      ],
+      "derivation": "Whole Poly Haven needle-sprig alpha cards in overlapping conical whorls; warm rebuilt trunk"
+    },
+    {
+      "id": "tree-pine-c",
+      "category": "tree",
+      "source": [
+        "https://polyhaven.com/a/pine_tree_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "tree-pine-c-lod0.glb",
+          "triangles": 1096,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/tree-pine-c-lod0.glb",
+          "bytes": 27544
+        },
+        {
+          "level": 1,
+          "file": "tree-pine-c-lod1.glb",
+          "triangles": 487,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/tree-pine-c-lod1.glb",
+          "bytes": 21244
+        }
+      ],
+      "derivation": "Whole Poly Haven needle-sprig alpha cards in overlapping conical whorls; warm rebuilt trunk"
+    },
+    {
+      "id": "tree-broadleaf-1",
+      "category": "tree",
+      "source": [
+        "project-original: tools/assets/blender/lib-build.py"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "tree-broadleaf-1-lod0.glb",
+          "triangles": 1104,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/tree-broadleaf-1-lod0.glb",
+          "bytes": 32876
+        },
+        {
+          "level": 1,
+          "file": "tree-broadleaf-1-lod1.glb",
+          "triangles": 531,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/tree-broadleaf-1-lod1.glb",
+          "bytes": 20624
+        }
+      ],
+      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    },
+    {
+      "id": "tree-broadleaf-2",
+      "category": "tree",
+      "source": [
+        "project-original: tools/assets/blender/lib-build.py"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "tree-broadleaf-2-lod0.glb",
+          "triangles": 1104,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/tree-broadleaf-2-lod0.glb",
+          "bytes": 32508
+        },
+        {
+          "level": 1,
+          "file": "tree-broadleaf-2-lod1.glb",
+          "triangles": 531,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/tree-broadleaf-2-lod1.glb",
+          "bytes": 20528
+        }
+      ],
+      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    },
+    {
+      "id": "tree-broadleaf-3",
+      "category": "tree",
+      "source": [
+        "project-original: tools/assets/blender/lib-build.py"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "tree-broadleaf-3-lod0.glb",
+          "triangles": 1104,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/tree-broadleaf-3-lod0.glb",
+          "bytes": 32624
+        },
+        {
+          "level": 1,
+          "file": "tree-broadleaf-3-lod1.glb",
+          "triangles": 531,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/tree-broadleaf-3-lod1.glb",
+          "bytes": 20500
+        }
+      ],
+      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    },
+    {
+      "id": "rock-boulder-1",
+      "category": "rock",
+      "source": [
+        "https://polyhaven.com/a/boulder_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "rock-boulder-1-lod0.glb",
+          "triangles": 372,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-1-lod0.glb",
+          "bytes": 18452
+        },
+        {
+          "level": 1,
+          "file": "rock-boulder-1-lod1.glb",
+          "triangles": 142,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-1-lod1.glb",
+          "bytes": 9904
+        }
+      ],
+      "derivation": "Decimated boulder; scaled and sheared variants of one source"
+    },
+    {
+      "id": "rock-boulder-2",
+      "category": "rock",
+      "source": [
+        "https://polyhaven.com/a/boulder_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "rock-boulder-2-lod0.glb",
+          "triangles": 372,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-2-lod0.glb",
+          "bytes": 18432
+        },
+        {
+          "level": 1,
+          "file": "rock-boulder-2-lod1.glb",
+          "triangles": 142,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-2-lod1.glb",
+          "bytes": 9908
+        }
+      ],
+      "derivation": "Decimated boulder; scaled and sheared variants of one source"
+    },
+    {
+      "id": "rock-boulder-3",
+      "category": "rock",
+      "source": [
+        "https://polyhaven.com/a/boulder_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "rock-boulder-3-lod0.glb",
+          "triangles": 372,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-3-lod0.glb",
+          "bytes": 18324
+        },
+        {
+          "level": 1,
+          "file": "rock-boulder-3-lod1.glb",
+          "triangles": 142,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-3-lod1.glb",
+          "bytes": 9892
+        }
+      ],
+      "derivation": "Decimated boulder; scaled and sheared variants of one source"
+    },
+    {
+      "id": "rock-boulder-4",
+      "category": "rock",
+      "source": [
+        "https://polyhaven.com/a/boulder_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "rock-boulder-4-lod0.glb",
+          "triangles": 372,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-4-lod0.glb",
+          "bytes": 18412
+        },
+        {
+          "level": 1,
+          "file": "rock-boulder-4-lod1.glb",
+          "triangles": 142,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/rock-boulder-4-lod1.glb",
+          "bytes": 9912
+        }
+      ],
+      "derivation": "Decimated boulder; scaled and sheared variants of one source"
+    },
+    {
+      "id": "prop-fern",
+      "category": "prop",
+      "source": [
+        "https://polyhaven.com/a/fern_02"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "prop-fern-lod0.glb",
+          "triangles": 281,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/prop-fern-lod0.glb",
+          "bytes": 11896
+        },
+        {
+          "level": 1,
+          "file": "prop-fern-lod1.glb",
+          "triangles": 132,
+          "materials": 1,
+          "textures": 1,
+          "path": "/world/lib/prop-fern-lod1.glb",
+          "bytes": 10536
+        }
+      ],
+      "derivation": "Decimated Poly Haven mesh"
+    },
+    {
+      "id": "prop-bush",
+      "category": "prop",
+      "source": [
+        "project-original: tools/assets/blender/lib-build.py"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "prop-bush-lod0.glb",
+          "triangles": 276,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/prop-bush-lod0.glb",
+          "bytes": 12860
+        },
+        {
+          "level": 1,
+          "file": "prop-bush-lod1.glb",
+          "triangles": 139,
+          "materials": 2,
+          "textures": 0,
+          "path": "/world/lib/prop-bush-lod1.glb",
+          "bytes": 10136
+        }
+      ],
+      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    },
+    {
+      "id": "prop-grass",
+      "category": "prop",
+      "source": [
+        "project-original: tools/assets/blender/lib-build.py"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "prop-grass-lod0.glb",
+          "triangles": 60,
+          "materials": 1,
+          "textures": 0,
+          "path": "/world/lib/prop-grass-lod0.glb",
+          "bytes": 4080
+        },
+        {
+          "level": 1,
+          "file": "prop-grass-lod1.glb",
+          "triangles": 28,
+          "materials": 1,
+          "textures": 0,
+          "path": "/world/lib/prop-grass-lod1.glb",
+          "bytes": 3180
+        }
+      ],
+      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    },
+    {
+      "id": "prop-fallen-log",
+      "category": "prop",
+      "source": [
+        "project-original: tools/assets/blender/lib-build.py",
+        "https://polyhaven.com/a/pine_tree_01"
+      ],
+      "license": "CC0-1.0",
+      "lods": [
+        {
+          "level": 0,
+          "file": "prop-fallen-log-lod0.glb",
+          "triangles": 112,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/prop-fallen-log-lod0.glb",
+          "bytes": 8856
+        },
+        {
+          "level": 1,
+          "file": "prop-fallen-log-lod1.glb",
+          "triangles": 92,
+          "materials": 2,
+          "textures": 1,
+          "path": "/world/lib/prop-fallen-log-lod1.glb",
+          "bytes": 8876
+        }
+      ],
+      "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    }
+  ]
+}

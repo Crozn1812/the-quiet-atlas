@@ -38,3 +38,32 @@ public/architecture/aws-sales-data-pipeline.svg,The Quiet Atlas (project-origina
 public/architecture/cms-devops-platform-aws-eks.svg,The Quiet Atlas (project-original),Project-owned,yes,yes,yes,none,Original vector diagram based on approved reference or project source,-,-,-,-
 public/architecture/insighthub-rag.svg,The Quiet Atlas (project-original),Project-owned,yes,yes,yes,none,Original vector diagram based on approved reference or project source,-,-,-,-
 public/architecture/partner-data-gateway-azure.svg,The Quiet Atlas (project-original),Project-owned,yes,yes,yes,none,Original vector diagram based on approved reference or project source,-,-,-,-
+public/world/lib/tree-pine-a-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD0,none
+public/world/lib/tree-pine-a-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD1,none
+public/world/lib/tree-pine-b-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD0,none
+public/world/lib/tree-pine-b-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD1,none
+public/world/lib/tree-pine-c-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD0,none
+public/world/lib/tree-pine-c-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD1,none
+public/world/lib/tree-broadleaf-1-lod0.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD0,none
+public/world/lib/tree-broadleaf-1-lod1.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD1,none
+public/world/lib/tree-broadleaf-2-lod0.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD0,none
+public/world/lib/tree-broadleaf-2-lod1.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD1,none
+public/world/lib/tree-broadleaf-3-lod0.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD0,none
+public/world/lib/tree-broadleaf-3-lod1.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD1,none
+public/world/lib/rock-boulder-1-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD0,none
+public/world/lib/rock-boulder-1-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD1,none
+public/world/lib/rock-boulder-2-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD0,none
+public/world/lib/rock-boulder-2-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD1,none
+public/world/lib/rock-boulder-3-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD0,none
+public/world/lib/rock-boulder-3-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD1,none
+public/world/lib/rock-boulder-4-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD0,none
+public/world/lib/rock-boulder-4-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/boulder_01,64x64 KTX2,1,LOD1,none
+public/world/lib/prop-fern-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/fern_02,128x128 KTX2,1,LOD0,none
+public/world/lib/prop-fern-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/fern_02,128x128 KTX2,1,LOD1,none
+public/world/lib/prop-bush-lod0.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD0,none
+public/world/lib/prop-bush-lod1.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,4,LOD1,none
+public/world/lib/prop-grass-lod0.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,1,LOD0,none
+public/world/lib/prop-grass-lod1.glb,Codex A (project-original),CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py,-,1,LOD1,none
+public/world/lib/prop-fallen-log-lod0.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py; https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD0,none
+public/world/lib/prop-fallen-log-lod1.glb,Poly Haven / Codex A derivative,CC0-1.0,yes,yes,yes,none,project-original: tools/assets/blender/lib-build.py; https://polyhaven.com/a/pine_tree_01,128x128 KTX2,2,LOD1,none
+public/world/lib/manifest.json,Codex A (project-original),CC0-1.0,yes,yes,yes,none,Generated by tools/assets/blender/lib-package.mjs,-,-,-,none
