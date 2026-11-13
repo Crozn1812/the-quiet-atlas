@@ -11,7 +11,7 @@ Duy chuẩn bị nhiều tài khoản Codex và một Antigravity CLI. Claude l�
 | Codex C | `CODEX_HOME=C:/Users/PC-LP/.codex3 …` | cổng 9878 |
 | Codex D | `CODEX_HOME=C:/Users/PC-LP/.codex4 …` (đăng nhập 13/11 20:00) | cổng 9880 |
 | Codex E | `.codex5`: **chưa đăng nhập** | — |
-| Antigravity | `cd D:/tqa-worktrees/<ID> && agy -p "<prompt>" --mode accept-edits --sandbox` (xem `agy --help`) | cổng 9879 (`agy mcp list`) |
+| Antigravity | `bash tools/lead/dispatch-agy.sh <ID> <card> [effort]` — model mặc định **gemini-4-hydrogen-high** (Argon hết quota tới ~19/11; đổi bằng `AGY_MODEL=…`), quyền lệnh/MCP theo `tools/lead/agy-settings.json` (chế độ headless không hỏi được, lệnh ngoài danh sách bị từ chối và agy dừng → thêm vào danh sách, không dùng `--dangerously-skip-permissions`) | cổng 9879 (`agy mcp list`) |
 
 - `dispatch.sh`, `resume.sh`, `autoresume.sh` kế thừa `CODEX_HOME` từ môi trường, nên chỉ cần đặt biến trước lệnh.
 - Mỗi Codex chạy `codex exec -s workspace-write` (sandbox ghi trong worktree, không mạng). Asset ngoài (Poly Haven CC0) do Lead tải qua Blender MCP của Lead hoặc worker gọi `import_asset` qua MCP của mình.

@@ -5,6 +5,8 @@
 # Uses the persistent slot W-AGY (worker-slot.sh). Re-running a dispatched ticket continues it (like resume.sh).
 set -uo pipefail
 ID="$1"; CARD="$2"; EFFORT="${3:-medium}"
+# Argon has its own weekly quota (out until ~19/11); Hydrogen is the default worker model. Override: AGY_MODEL=…
+AGY_MODEL="${AGY_MODEL:-gemini-4-hydrogen-high}"
 REPO=D:/the-quiet-atlas
 . "$(dirname "$0")/worker-slot.sh"
 case "$CARD" in /*|?:*) CARDPATH="$CARD";; *) CARDPATH="$REPO/docs/tickets/$CARD";; esac
@@ -16,7 +18,7 @@ PROMPT="$(cat "$REPO/docs/tickets/_common-b2.md" "$CARDPATH")
 ## Cách làm
 Làm việc trong thư mục hiện tại ($WT), không sửa ngoài nó. Không commit, không push, không chạm cloud/credential.
 Blender MCP của bạn ở cổng 9879 (đã cấu hình). Xong thì in bàn giao: file đã sửa, lệnh đã chạy + exit code, việc chưa làm."
-cd "$WT" && agy -p "$PROMPT" --mode accept-edits --sandbox --effort "$EFFORT" --print-timeout 0 \
+cd "$WT" && agy -p "$PROMPT" --model "$AGY_MODEL" --mode auto --sandbox --settings "$TQA_REPO/tools/lead/agy-settings.json" --effort "$EFFORT" --print-timeout 0 \
   > "D:/tqa-worktrees/$ID.log" 2>&1
 code=$?
 tail -c 6000 "D:/tqa-worktrees/$ID.log" > "D:/tqa-worktrees/$ID.last.md"
