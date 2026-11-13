@@ -15,6 +15,12 @@ variable "create_alias_records" {
   default     = true
 }
 
+variable "certificate_enabled" {
+  description = "False: chỉ tạo hosted zone/CAA để Duy đổi nameserver trước khi chờ ACM; true sau khi delegation đã hoạt động."
+  type        = bool
+  default     = true
+}
+
 variable "distribution_domain_name" {
   description = "domain_name của distribution CloudFront (output static-site)."
   type        = string

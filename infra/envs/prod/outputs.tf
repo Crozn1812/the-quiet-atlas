@@ -16,3 +16,19 @@ output "name_servers" {
   description = "Nameserver Route 53 đặt ở registrar (rỗng khi chưa có domain_name)."
   value       = module.dns.name_servers
 }
+
+output "hosted_zone_id" {
+  value = module.dns.zone_id
+}
+
+output "certificate_arn" {
+  value = module.dns.certificate_arn
+}
+
+output "site_alarm_name" {
+  value = module.monitoring.site_alarm_name
+}
+
+output "site_alert_topic_arn" {
+  value = module.monitoring.site_alert_topic_arn
+}

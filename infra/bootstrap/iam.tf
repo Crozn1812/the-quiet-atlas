@@ -56,6 +56,8 @@ data "aws_iam_policy_document" "tf_plan" {
       "sns:GetSubscriptionAttributes",
       "sns:ListSubscriptionsByTopic",
       "sns:ListTagsForResource",
+      "cloudwatch:DescribeAlarms",
+      "cloudwatch:ListTagsForResource",
     ]
     resources = ["*"]
   }
@@ -157,6 +159,24 @@ data "aws_iam_policy_document" "tf_apply" {
     sid       = "AlertTopic"
     actions   = ["sns:*"]
     resources = ["arn:${local.partition}:sns:*:${local.account_id}:${var.name_prefix}-*"]
+  }
+
+  statement {
+    sid = "SiteAlarm"
+    actions = [
+      "cloudwatch:PutMetricAlarm",
+      "cloudwatch:DeleteAlarms",
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource",
+      "cloudwatch:ListTagsForResource",
+    ]
+    resources = ["arn:${local.partition}:cloudwatch:us-east-1:${local.account_id}:alarm:${var.name_prefix}-cloudfront-*"]
+  }
+
+  statement {
+    sid       = "ReadSiteAlarms"
+    actions   = ["cloudwatch:DescribeAlarms"]
+    resources = ["*"]
   }
 }
 

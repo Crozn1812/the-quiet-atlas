@@ -5,7 +5,7 @@
 locals {
   enabled      = var.domain_name != ""
   www_name     = "www.${var.domain_name}"
-  alias_names  = local.enabled && var.create_alias_records ? toset([var.domain_name, local.www_name]) : toset([])
+  alias_names  = local.enabled && var.certificate_enabled && var.create_alias_records ? toset([var.domain_name, local.www_name]) : toset([])
   alias_types  = toset(["A", "AAAA"])
   alias_matrix = { for pair in setproduct(local.alias_names, local.alias_types) : "${pair[0]}-${pair[1]}" => { name = pair[0], type = pair[1] } }
 }
@@ -32,7 +32,7 @@ resource "aws_route53_record" "caa" {
 }
 
 resource "aws_acm_certificate" "this" {
-  count    = local.enabled ? 1 : 0
+  count    = local.enabled && var.certificate_enabled ? 1 : 0
   provider = aws.us_east_1
 
   domain_name               = var.domain_name
@@ -52,21 +52,19 @@ resource "aws_acm_certificate" "this" {
 }
 
 resource "aws_route53_record" "validation" {
-  for_each = {
-    for dvo in flatten([for c in aws_acm_certificate.this : c.domain_validation_options]) :
-    dvo.domain_name => dvo
-  }
+  # Keys known before ACM creation; only record values are computed by AWS.
+  for_each = local.enabled && var.certificate_enabled ? toset([var.domain_name, local.www_name]) : toset([])
 
   zone_id         = aws_route53_zone.this[0].zone_id
-  name            = each.value.resource_record_name
-  type            = each.value.resource_record_type
+  name            = one([for dvo in aws_acm_certificate.this[0].domain_validation_options : dvo.resource_record_name if dvo.domain_name == each.key])
+  type            = one([for dvo in aws_acm_certificate.this[0].domain_validation_options : dvo.resource_record_type if dvo.domain_name == each.key])
   ttl             = 300
-  records         = [each.value.resource_record_value]
+  records         = [one([for dvo in aws_acm_certificate.this[0].domain_validation_options : dvo.resource_record_value if dvo.domain_name == each.key])]
   allow_overwrite = true
 }
 
 resource "aws_acm_certificate_validation" "this" {
-  count    = local.enabled ? 1 : 0
+  count    = local.enabled && var.certificate_enabled ? 1 : 0
   provider = aws.us_east_1
 
   certificate_arn         = aws_acm_certificate.this[0].arn

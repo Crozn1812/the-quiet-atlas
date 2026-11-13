@@ -12,6 +12,8 @@ module "monitoring" {
   name_prefix        = var.name_prefix
   alert_email        = var.alert_email
   monthly_budget_usd = var.monthly_budget_usd
+  distribution_id    = module.static_site.distribution_id
+  alarm_topic_arn    = var.operational_alert_topic_arn
 }
 
 module "dns" {
@@ -23,6 +25,7 @@ module "dns" {
   }
 
   domain_name                 = var.domain_name
+  certificate_enabled         = var.dns_certificate_enabled
   distribution_domain_name    = module.static_site.distribution_domain_name
   distribution_hosted_zone_id = module.static_site.distribution_hosted_zone_id
 }

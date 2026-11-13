@@ -160,6 +160,7 @@ locals {
 }
 
 resource "aws_cloudfront_distribution" "site" {
+  # No logging_config: access logging is deliberately disabled (Free plan/cost).
   enabled             = true
   comment             = "${var.name_prefix} static site"
   is_ipv6_enabled     = true

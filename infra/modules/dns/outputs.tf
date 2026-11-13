@@ -13,7 +13,7 @@ output "name_servers" {
 
 output "aliases" {
   description = "Tên miền gắn vào distribution (apex, www) hoặc rỗng."
-  value       = local.enabled ? [var.domain_name, local.www_name] : []
+  value       = local.enabled && var.certificate_enabled ? [var.domain_name, local.www_name] : []
 }
 
 output "certificate_arn" {

@@ -10,10 +10,33 @@ variable "name_prefix" {
 }
 
 variable "alert_email" {
-  description = "Email nhận cảnh báo (SNS + Budgets). Giá trị thật chỉ trong terraform.tfvars (không commit). Rỗng → không đăng ký email."
+  description = "Email nhận cảnh báo (SNS + Budgets + CloudFront). Bắt buộc nếu không cung cấp alarm_topic_arn; chỉ điền trong terraform.tfvars (không commit)."
   type        = string
   default     = ""
   sensitive   = true
+}
+
+variable "distribution_id" {
+  description = "CloudFront distribution to monitor; empty only for cost-guardrail-only use."
+  type        = string
+  default     = ""
+}
+
+variable "alarm_topic_arn" {
+  description = "Existing SNS topic in us-east-1 permitting CloudWatch publish; empty creates a dedicated topic."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.alarm_topic_arn == "" || can(regex("^arn:aws:sns:us-east-1:[0-9]{12}:[^:]+$", var.alarm_topic_arn))
+    error_message = "alarm_topic_arn must be an SNS topic ARN in us-east-1."
+  }
+}
+
+variable "site_monitoring_enabled" {
+  description = "Enable CloudFront 5xx alarm independently of manually managed cost guardrails."
+  type        = bool
+  default     = true
 }
 
 variable "monthly_budget_usd" {

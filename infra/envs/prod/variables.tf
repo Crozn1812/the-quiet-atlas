@@ -20,6 +20,18 @@ variable "domain_name" {
   default     = ""
 }
 
+variable "dns_certificate_enabled" {
+  description = "False khi tạo hosted zone lần đầu; true sau khi NS đã trỏ về Route 53 (runbook terraform.md)."
+  type        = bool
+  default     = true
+}
+
+variable "operational_alert_topic_arn" {
+  description = "SNS us-east-1 có sẵn cho alarm CloudFront; rỗng = tạo topic riêng đăng ký alert_email."
+  type        = string
+  default     = ""
+}
+
 variable "waf_rate_limit" {
   description = "Request tối đa mỗi IP trong 5 phút trước khi WAF chặn."
   type        = number
@@ -33,7 +45,7 @@ variable "cost_guardrails_managed_by_terraform" {
 }
 
 variable "alert_email" {
-  description = "Email nhận cảnh báo chi phí (chỉ dùng khi cost_guardrails_managed_by_terraform = true)."
+  description = "Email cho SNS vận hành và cảnh báo chi phí nếu Terraform quản lý Budgets. Bắt buộc khi không dùng operational_alert_topic_arn."
   type        = string
   default     = ""
   sensitive   = true

@@ -2,7 +2,9 @@
 # Cost Anomaly Detection. Root truyền provider us-east-1 (Billing/Budgets/CE là dịch vụ toàn cầu).
 # Free Tier usage alerts: bật tay trong Billing preferences (không có resource Terraform) — runbook aws-budgets.md.
 
-data "aws_caller_identity" "current" {}
+data "aws_caller_identity" "current" {
+  count = var.enabled || var.site_monitoring_enabled ? 1 : 0
+}
 
 locals {
   n = var.enabled ? 1 : 0
@@ -35,7 +37,7 @@ data "aws_iam_policy_document" "cost_alerts" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
-      values   = [data.aws_caller_identity.current.account_id]
+      values   = [data.aws_caller_identity.current[0].account_id]
     }
   }
 }
@@ -64,6 +66,13 @@ resource "aws_budgets_budget" "monthly" {
   limit_amount = format("%.2f", var.monthly_budget_usd)
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
+
+  lifecycle {
+    precondition {
+      condition     = var.alert_email != ""
+      error_message = "Terraform-managed cost guardrails require alert_email for Budgets and the cost SNS subscription."
+    }
+  }
 
   # Chi phí trước credits (§11.4): không trừ credits/refund để thấy mức tiêu thật.
   cost_types {

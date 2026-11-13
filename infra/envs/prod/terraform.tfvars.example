@@ -8,7 +8,8 @@ site_bucket_name = "<ten-bucket-site-duy-nhat>"
 
 # Tên miền Duy đã mua (Q-09, 2026-11-05): nhbduy.id.vn. Điền vào terraform.tfvars khi làm A2,
 # sau khi Budgets/Paid plan xong (runbook domain-and-acm.md Bước 3 trở đi). Rỗng = chưa tạo DNS/ACM.
-domain_name = ""
+domain_name             = "nhbduy.id.vn"
+dns_certificate_enabled = false # Lần đầu: tạo zone/CAA; đổi true CHỈ sau khi NS đã hoạt động.
 
 waf_rate_limit = 1000
 
@@ -16,3 +17,7 @@ waf_rate_limit = 1000
 cost_guardrails_managed_by_terraform = false
 alert_email                          = ""
 monthly_budget_usd                   = 10
+
+# Điền alert_email thật trong file .tfvars riêng để đăng ký SNS vận hành, hoặc dùng topic có sẵn
+# (us-east-1, subscriber đã Confirmed, cho phép cloudwatch.amazonaws.com publish với SourceAccount).
+operational_alert_topic_arn = ""
