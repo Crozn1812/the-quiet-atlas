@@ -12,7 +12,7 @@ while :; do
     [ -f "$log" ] && [ "$(date -r "$log" +%s)" -ge "$start" ] || log=D:/tqa-worktrees/$id.log
     [ -f "$log" ] || continue
     age=$(( $(date +%s) - $(date -r "$log" +%s) ))
-    if tail -c 3000 "$log" | grep -q "usage limit" && [ "$(date -r "$log" +%s)" -ge "$start" ]; then
+    if tail -c 8000 "$log" | grep -qE "usage limit|out of credits" && [ "$(date -r "$log" +%s)" -ge "$start" ]; then
       echo "$id LIMIT $(grep -o 'try again at [^.]*' "$log" | tail -1)"; hit=1; continue
     fi
     # Stalled: no log write for 25 min (a worker stuck on a sandbox error never writes .last.md in time).
