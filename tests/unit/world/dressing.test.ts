@@ -58,6 +58,7 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(
 
 function fakeFrames() {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  vi.stubGlobal("MessageChannel", undefined);
   vi.stubGlobal("requestAnimationFrame", (callback: (now: number) => void) => setTimeout(() => callback(0), 16));
   vi.stubGlobal("cancelAnimationFrame", (id: ReturnType<typeof setTimeout>) => clearTimeout(id));
 }
@@ -167,6 +168,45 @@ it("yields to the timer budget and does not starve other queued construction", (
     expect(order).toHaveLength(20);
     expect(vi.getTimerCount()).toBe(0);
   } finally { dressing.dispose(); }
+});
+
+it("finishes many bounded slices without waiting for a new frame between each slice", () => {
+  fakeFrames();
+  const dressing = placeDressing();
+  let time = 0; vi.spyOn(performance, "now").mockImplementation(() => time += 4);
+  let steps = 0;
+  const done = vi.fn();
+  dressing.defer((function* () { for (let i = 0; i < 200; i++) { steps++; yield; } })());
+  try {
+    dressing.startDeferred(() => true, done);
+    vi.advanceTimersByTime(300);
+    expect(steps).toBe(200);
+    expect(done).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  } finally { dressing.dispose(); }
+});
+
+it("cancels a posted construction task and closes both message ports on exit", () => {
+  fakeFrames();
+  const tasks: (() => void)[] = [];
+  const port1 = { onmessage: undefined as (() => void) | undefined, close: vi.fn() };
+  const port2 = { postMessage: () => tasks.push(port1.onmessage!), close: vi.fn() };
+  vi.stubGlobal("window", { MessageChannel: class { port1 = port1; port2 = port2; } });
+  const dressing = placeDressing();
+  let time = 0; vi.spyOn(performance, "now").mockImplementation(() => time += 4);
+  let steps = 0;
+  dressing.defer((function* () { while (true) { steps++; yield; } })());
+  dressing.startDeferred(() => true);
+  vi.advanceTimersByTime(48);
+  expect(steps).toBe(1);
+  expect(tasks).toHaveLength(1);
+  tasks.shift()!();
+  expect(steps).toBe(2);
+  dressing.dispose();
+  tasks.shift()!();
+  expect(steps).toBe(2);
+  expect(port1.close).toHaveBeenCalledOnce();
+  expect(port2.close).toHaveBeenCalledOnce();
 });
 
 it("freezes pending construction when control is paused and completes it after resume", () => {

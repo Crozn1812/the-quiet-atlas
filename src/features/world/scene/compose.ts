@@ -94,7 +94,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
   world: TilePhysicsWorld;
   scene: Scene;
   quality: Quality;
-  paper?: { setGrade(grade: LightingGrade): void; setMist(options: { height: number }): void; setFog?(options: { near: number; far: number }): void };
+  paper?: { setGrade(grade: LightingGrade): void; setMist(options: { height: number }): void; setFog?(options: { near: number; far: number }): void; setTimeOfDay?(value: number): void };
 }) {
   let quality = initialQuality;
   let disposed = false;
@@ -451,6 +451,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     const teleport = !previousPosition || previousPosition.distanceTo(player) > 24;
     const followed = teleport ? follower.snap(target) : follower.update(target, dt);
     const tod = timeOfDayAt(t);
+    paper?.setTimeOfDay?.(tod);
     // Copy before directing: the follower keeps its own smoothed state.
     for (const key of ["sunColor", "hemiSky", "hemiGround", "shadowTint"] as const) directed[key].copy(followed[key]);
     directed.sunDirection.copy(followed.sunDirection);

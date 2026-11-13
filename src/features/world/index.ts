@@ -33,7 +33,7 @@ import { createCharacterAnimator } from "./character/animator";
 import { loadCharacter } from "./character/loader";
 import { createProp, type PropKind } from "./props";
 import { createSignLabel } from "./props/lettering";
-import { createGradedPaperPass } from "./scene/paper";
+import { createGradedPaperPass } from "./post/runtime";
 import { STYLE_PRESETS, WORLD_DIRECTION } from "./art/direction";
 import { pathLength, pathPointAt } from "./layout/path";
 import { CORRIDOR_POINTS } from "./post/paper";
@@ -1331,6 +1331,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // Async asset completion must not change the picture behind an open menu/journal.
     // Keep RAF/input/clock ownership alive; resume draws the latest scene normally.
     if (canSimulate(state) || cinematicLocked() || redraw) {
+      paper.setMotion(moved > 0.0001 || cinematicLocked() || teleport.inputLocked, animDt, camera.position.distanceTo(player.position));
+      if (container.dataset.worldBuild === "done" && canSimulate(state) && !cinematicLocked()) paper.startDeferred(scene);
       paper.render(scene, camera);
       redraw = false;
     }

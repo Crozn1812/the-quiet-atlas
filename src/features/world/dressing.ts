@@ -53,6 +53,7 @@ export function placeDressing({ deferred = false } = {}) {
   const pending: Generator<void>[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
   let frame: number | undefined;
+  let channel: MessageChannel | undefined;
   let disposed = false;
   let started = false;
   try {
@@ -99,6 +100,22 @@ export function placeDressing({ deferred = false } = {}) {
     startDeferred(ready: () => boolean, onDone?: () => void) {
       if (started || disposed) return;
       started = true;
+      const schedule = () => {
+        // Posted tasks yield to input/paint without the nested-timer clamp. A
+        // software GPU may take hundreds of ms per frame; tying every 4 ms of
+        // construction to another 16 ms timer starves the optional build queue.
+        if (typeof window !== "undefined" && typeof window.MessageChannel === "function") {
+          if (!channel) {
+            channel = new window.MessageChannel();
+            channel.port1.onmessage = slice;
+          }
+          channel.port2.postMessage(null);
+        } else timer = setTimeout(slice, 0);
+      };
+      const complete = () => {
+        channel?.port1.close(); channel?.port2.close(); channel = undefined;
+        onDone?.();
+      };
       const slice = () => {
         timer = undefined;
         if (disposed) return;
@@ -107,11 +124,11 @@ export function placeDressing({ deferred = false } = {}) {
         // Round-robin prevents the distant shore from starving the nearby sun shafts.
         do {
           const work = pending.shift();
-          if (!work) { onDone?.(); return; }
+          if (!work) { complete(); return; }
           if (!work.next().done) pending.push(work);
         } while (pending.length && performance.now() < until);
-        if (pending.length) timer = setTimeout(slice, 16);
-        else onDone?.();
+        if (pending.length) schedule();
+        else complete();
       };
       const waitForControl = () => {
         timer = undefined;
@@ -137,6 +154,7 @@ export function placeDressing({ deferred = false } = {}) {
       disposed = true;
       if (timer !== undefined) clearTimeout(timer);
       if (frame !== undefined) cancelAnimationFrame(frame);
+      channel?.port1.close(); channel?.port2.close(); channel = undefined;
       for (const work of pending) work.return(undefined);
       pending.length = 0;
       for (const piece of modules) { piece.dispose(); piece.group.removeFromParent(); }

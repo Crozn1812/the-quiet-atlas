@@ -40,9 +40,10 @@ vi.mock("three", async importOriginal => {
     forceContextLoss() {}
   } };
 });
-vi.mock("../../../src/features/world/scene/paper", () => ({
+vi.mock("../../../src/features/world/post/runtime", () => ({
   createGradedPaperPass: () => ({
     setFogColorOverride() {},
+    setMotion() {}, startDeferred() {}, setTimeOfDay() {},
     setGrade: harness.grade,
     setMist: harness.mist,
     setFog: harness.fog,

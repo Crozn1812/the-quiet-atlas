@@ -13,6 +13,16 @@ const harness = vi.hoisted(() => ({
   dpr: 0,
 }));
 
+// This suite exercises input/scene lifecycle; actual post resources are covered by post-c.test.ts.
+vi.mock("../../../src/features/world/post/cinematic", () => ({
+  createPost: (renderer: import("three").WebGLRenderer, scene: import("three").Scene, camera: import("three").PerspectiveCamera) => ({
+    render: () => renderer.render(scene, camera), resize() {}, setFocus() {}, dispose() {},
+  }),
+}));
+vi.mock("../../../src/features/world/sky/environment", () => ({
+  createEnvironment: () => ({ setQuality() {}, setActive() {}, setTimeOfDay() {}, update() {}, dispose() {} }),
+}));
+
 // B2-045: unit tests never fetch the rigged GLB; the loader's capsule fallback keeps the old player shape.
 vi.mock("../../../src/features/world/character/loader", async () => {
   const { createFallbackCharacter } = await import("../../../src/features/world/character/fallback");
