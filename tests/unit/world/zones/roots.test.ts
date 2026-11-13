@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import {
-  Box3, BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3,
+  Box3, BufferGeometry, Color, Mesh, MeshStandardMaterial, MeshToonMaterial, Raycaster, Vector3,
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -590,6 +590,12 @@ describe("The Roots procedural zone", () => {
     scene.group.traverse(node => expect(node.name).not.toMatch(/text|logo/i));
     for (const mesh of meshes(scene)) {
       const material = mesh.material;
+      if (mesh.name === "roots-moss") {
+        expect(material).toBeInstanceOf(MeshStandardMaterial);
+        expect((material as unknown as MeshStandardMaterial).roughness).toBe(0.96);
+        expect(material.vertexColors).toBe(true);
+        continue;
+      }
       expect(material).toBeInstanceOf(MeshToonMaterial);
       expect(material.color.toArray()).toEqual(pigments[mesh.name]!.toArray());
       const paper = new Vector3(...new Color(PALETTE.paper).toArray());
@@ -630,10 +636,11 @@ describe("The Roots procedural zone", () => {
     const moss = scene.group.getObjectByName("roots-moss") as PaintedMesh;
     const positions = moss.geometry.getAttribute("position");
     // Nine root crests precede the original cut-top patches and the two foot clusters.
-    const extra = positions.count / 3 - 40 - 9 * 48;
+    const mossCount = moss.geometry.userData.mossVertices;
+    const extra = mossCount / 3 - 40 - 9 * 48;
     expect(extra).toBeGreaterThan(40);
     expect(extra).toBeLessThanOrEqual(300);
-    for (let i = (40 + 9 * 48) * 3; i < positions.count; i++) {
+    for (let i = (40 + 9 * 48) * 3; i < mossCount; i++) {
       const p = new Vector3().fromBufferAttribute(positions, i);
       expect(Math.hypot(p.x - 6.4, p.z)).toBeLessThan(3.4);
       expect(p.y).toBeGreaterThanOrEqual(-0.051);

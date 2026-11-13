@@ -9,6 +9,7 @@ import { createSkillsBoard } from "../props/lettering";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createStumpGeometry } from "../props/wood";
+import { createRootsDressing } from "./roots-dressing";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
   type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
@@ -595,20 +596,26 @@ export const createRootsScene: ZoneSceneFactory = context => {
       context.heightAt(side * (STUMP_X + boardX), offsetZ + boardZ) + 2.9, offsetZ + boardZ - 0.095);
     group.add(skillsBoard.mesh);
   }
+  let dressing: ReturnType<typeof createRootsDressing> | undefined;
   for (const [surface, batch] of batches) {
     const merged = mergeGeometries(batch, false)!;
     batch.forEach(part => part.dispose());
     merged.computeBoundingBox();
     merged.computeBoundingSphere();
+    if (surface === "moss") {
+      dressing = createRootsDressing(context, merged, side, offsetZ);
+      group.add(dressing.mesh);
+      continue;
+    }
     const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
-    if (surface === "moss") material.color.set(PALETTE.grass).lerp(new Color(PALETTE.forestDeep), 0.6);
     if (surface === "vine") material.color.set(PALETTE.forestDeep);
     if (surface === "flower") material.color.set(PALETTE.flower);
     // Kit pigments are already in linear vertex colors; avoid a second material tint.
     if (["wood", "ink", "cut", "node"].includes(surface)) material.color.setRGB(1, 1, 1);
-    if (surface === "wood" || surface === "ink" || surface === "moss") addBarkFill(material);
+    if (surface === "wood" || surface === "ink") addBarkFill(material);
     const mesh = new Mesh(merged, material);
     mesh.name = `roots-${surface}`;
+    if (surface === "wood" || surface === "ink") mesh.userData.photoSurface = "bark";
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
@@ -626,6 +633,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
       if (disposed) return;
       disposed = true;
       cancelTree();
+      dressing?.dispose();
       for (const child of group.children) {
         if (child instanceof Mesh && child !== skillsBoard?.mesh) { child.geometry.dispose(); child.material.dispose(); }
       }

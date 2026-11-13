@@ -106,7 +106,7 @@ export function fitDressing(source: BufferGeometry, site: DressingSite, heightAt
 }
 
 export function createLibraryBatch(fallback: BufferGeometry, sites: readonly DressingSite[], heightAt: (x: number, z: number) => number,
-  load?: DressingLoader) {
+  load?: DressingLoader, retained?: BufferGeometry) {
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0, side: DoubleSide });
   material.forceSinglePass = true;
   const maps = [0, 1, 2].map(() => ({ value: null as Texture | null }));
@@ -145,7 +145,8 @@ if (vDressingSurface > -0.5) {
   async function loadDetail(renderer: WebGLRenderer) {
     if (disposed || pending || detail || quality === "Low") return;
     pending = true;
-    const parts: BufferGeometry[] = [];
+    // Keep an authored surface in the same draw through both quality variants.
+    const parts: BufferGeometry[] = retained ? [retained.clone()] : [];
     try {
       if (!load) decoder = await createLoader(renderer);
       const unique = new Map<DressingAsset, LibrarySource>();
@@ -181,7 +182,7 @@ if (vDressingSurface > -0.5) {
   return { mesh, loadDetail, dispose() {
     if (disposed) return; disposed = true; unbind();
     mesh.onBeforeRender = () => {}; mesh.onAfterRender = () => {};
-    mesh.removeFromParent(); fallback.dispose(); detail?.dispose(); material.dispose();
+    mesh.removeFromParent(); fallback.dispose(); detail?.dispose(); retained?.dispose(); material.dispose();
     sources.splice(0).forEach(source => source.dispose());
   } };
 }
