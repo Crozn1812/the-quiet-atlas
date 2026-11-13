@@ -320,14 +320,15 @@ describe("workshop bank set-piece", () => {
 
   it("stops the descending stone steps before water and does not place submerged props", () => {
     const scene = create({ underWater: x => x > 3.55 });
-    const stone = meshes(scene).find(mesh => mesh.name === "workshop-stone")!;
-    const bounds = new Box3().setFromObject(stone);
+    const stone = meshes(scene).find(mesh => mesh.name === "rock-stack-stones")!;
+    const bounds = new Box3().setFromPoints(vertices(stone).slice(0, stone.userData.workshopBaseVertices));
     expect(bounds.min.x).toBeCloseTo(2.84, 5);
     expect(bounds.max.x).toBeCloseTo(3.46, 5);
     expect(bounds.max.y).toBeCloseTo(0.36, 5);
-    expect(meshes(create({ underWater: x => x > 2.7 })).some(mesh => mesh.name === "workshop-stone")).toBe(false);
+    const noSteps = meshes(create({ underWater: x => x > 2.7 })).find(mesh => mesh.name === "rock-stack-stones")!;
+    expect(noSteps.userData.workshopBaseVertices ?? 0).toBe(0);
     const dry = create();
-    const allSteps = meshes(dry).find(mesh => mesh.name === "workshop-stone")!;
+    const allSteps = meshes(dry).find(mesh => mesh.name === "rock-stack-stones")!;
     const top = (x: number) => new Raycaster(new Vector3(x, 2, 4.7), new Vector3(0, -1, 0)).intersectObject(allSteps)[0]!.point.y;
     expect([3.15, 3.82, 4.49].map(top)).toEqual(expect.arrayContaining([expect.closeTo(0.36), expect.closeTo(0.26), expect.closeTo(0.16)]));
   });
@@ -370,7 +371,7 @@ describe("workshop bank set-piece", () => {
         const attribute = mesh.geometry.getAttribute("color");
         const positions = mesh.geometry.getAttribute("position");
         let warmColumnVertices = 0;
-        for (let i = 0; i < attribute.count; i++) {
+        for (let i = 0; i < (mesh.userData.workshopBaseVertices ?? attribute.count); i++) {
           const p = new Vector3().fromBufferAttribute(attribute, i);
           const pos = new Vector3().fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld);
           const distance = pigment === "stone" ? Math.min(...stoneColors.map(c => c.distanceTo(p)))
@@ -396,7 +397,7 @@ describe("workshop bank set-piece", () => {
       expect(mesh.material.gradientMap).not.toBeNull();
       const wash = mesh.geometry.getAttribute("color");
       const shades = new Set<number>();
-      for (let i = 0; i < wash.count; i++) {
+      for (let i = 0; i < (mesh.userData.workshopBaseVertices ?? wash.count); i++) {
         expect(wash.getX(i)).toBe(wash.getY(i));
         expect(wash.getX(i)).toBe(wash.getZ(i));
         expect(wash.getX(i)).toBeGreaterThanOrEqual(0.91);
@@ -415,7 +416,7 @@ describe("workshop bank set-piece", () => {
     const scene = create();
     const moss = meshes(scene).find(mesh => mesh.name === "workshop-moss")!;
     const positions = moss.geometry.getAttribute("position");
-    const details = Array.from({ length: positions.count }, (_, i) =>
+    const details = Array.from({ length: moss.userData.workshopBaseVertices }, (_, i) =>
       new Vector3().fromBufferAttribute(positions, i)).filter(p => p.y < 0.4 && p.x > -7.5);
     expect(details.length).toBeGreaterThan(0);
     for (const p of details) {
@@ -495,7 +496,7 @@ describe("workshop bank set-piece", () => {
     for (const mesh of meshes(scene)) {
       if (mesh.name.includes("moss")) continue; // Shared fern topology can evolve independently.
       const positions = mesh.geometry.getAttribute("position");
-      for (let i = 0; i < positions.count; i += 3) {
+      for (let i = 0; i < (mesh.userData.workshopBaseVertices ?? positions.count); i += 3) {
         triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
           .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
       }
@@ -524,8 +525,8 @@ describe("workshop bank set-piece", () => {
     }
     expect(planks).toHaveBeenCalled();
     expect(posts).toHaveBeenCalled();
-    expect(rocks.mock.calls.every(([kind]) => kind === "slab")).toBe(true);
-    expect(rocks).toHaveBeenCalledTimes(15);
+    expect(rocks.mock.calls.every(([kind]) => kind === "slab" || kind === "stone")).toBe(true);
+    expect(rocks.mock.calls.filter(([kind]) => kind === "slab")).toHaveLength(15);
   });
 
   it("locks the WS-02 communal gate contract after RT-02 removes the easel", () => {
@@ -544,7 +545,7 @@ describe("workshop bank set-piece", () => {
     expect(front(0.34)).toBeLessThan(-6.85); // Joint opens onto the rear panel.
     const heightAt = (x: number, z: number) => x * 0.035 + z * 0.02;
     const sloped = create({ heightAt });
-    const stone = meshes(sloped).find(mesh => mesh.name === "workshop-stone")!;
+    const stone = meshes(sloped).find(mesh => mesh.name === "rock-stack-stones")!;
     const up = new Vector3(0, 1, 0);
     for (const x of [3.15, 3.82, 4.49]) {
       const foot = heightAt(x, 4.7);

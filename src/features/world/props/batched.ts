@@ -5,7 +5,7 @@ import type { Quality } from "../terrain";
 
 const qualities = new WeakMap<Object3D, Quality>();
 const refreshers = new WeakMap<Object3D, () => void>();
-function qualityOf(object: Object3D): Quality {
+export function bakedPropQuality(object: Object3D): Quality {
   for (let node: Object3D | null = object; node; node = node.parent) {
     const quality = qualities.get(node);
     if (quality) return quality;
@@ -20,15 +20,15 @@ export function setBakedPropQuality(root: Object3D, quality: Quality) {
 
 /** Library batches share the existing quality traversal without a second world controller. */
 export function bindBakedPropQuality(object: Object3D, apply: (quality: Quality) => void) {
-  const refresh = () => apply(qualityOf(object));
+  const refresh = () => apply(bakedPropQuality(object));
   refreshers.set(object, refresh);
   refresh();
   return () => { refreshers.delete(object); };
 }
 
-export interface BakedBatchPart {
+export interface BakedBatchPart<Asset extends string = PropAsset> {
   index: number;
-  asset: PropAsset;
+  asset: Asset;
   /** Bounds before terrain grounding; preserve the existing collider footprint. */
   bounds: Box3;
   yaw?: number;
@@ -40,6 +40,12 @@ export interface BakedBatchPart {
  */
 export function deferBakedBatch(mesh: Mesh, parts: BufferGeometry[], entries: BakedBatchPart[],
   heightAt: (x: number, z: number) => number, load: PropGeometryLoader = loadPropGeometry) {
+  return deferCustomBakedBatch(mesh, parts, entries, heightAt, load);
+}
+
+/** The same batch ownership/quality path for approved library assets. */
+export function deferCustomBakedBatch<Asset extends string>(mesh: Mesh, parts: BufferGeometry[], entries: BakedBatchPart<Asset>[],
+  heightAt: (x: number, z: number) => number, load: (asset: Asset) => Promise<BufferGeometry>) {
   if (!entries.length) return () => {};
   const sources = parts.map(part => {
     const source = part.clone();
@@ -57,12 +63,12 @@ export function deferBakedBatch(mesh: Mesh, parts: BufferGeometry[], entries: Ba
     sourcesReleased = true;
     sources.forEach(source => source.dispose());
   };
-  const refresh = () => { mesh.geometry = qualityOf(mesh) === "Low" ? fallback : detail ?? fallback; };
+  const refresh = () => { mesh.geometry = bakedPropQuality(mesh) === "Low" ? fallback : detail ?? fallback; };
   refreshers.set(mesh, refresh);
   const previousRender = mesh.onAfterRender;
   mesh.onAfterRender = (...args) => {
     previousRender.apply(mesh, args);
-    if (disposed || started || qualityOf(mesh) === "Low") return;
+    if (disposed || started || bakedPropQuality(mesh) === "Low") return;
     started = true;
     void Promise.allSettled(entries.map(async entry => {
       const loaded = await load(entry.asset);

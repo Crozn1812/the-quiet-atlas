@@ -1,6 +1,7 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute, Group,
   IcosahedronGeometry, Mesh, OctahedronGeometry, PointLight, Shape, TorusGeometry, Vector3, type MeshToonMaterial,
+  type WebGLRenderer,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
@@ -8,6 +9,9 @@ import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
+import { deferCustomBakedBatch, type BakedBatchPart } from "../props/batched";
+import { bindWorkshopBatch, createWorkshopLibrary, type WorkshopAsset } from "../props/workshop-library";
+import { createWorkshopDressing } from "./workshop-dressing";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
 type Point = readonly [number, number, number];
@@ -685,11 +689,27 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     collider([0.62, height, 1.6], [x, y + height / 2, z]);
   }
 
+  const dressingEntries = new Map<Surface, BakedBatchPart<WorkshopAsset>[]>();
+  const library = createWorkshopLibrary();
+  const releases: (() => void)[] = [];
+  const baseVertices = new Map<Surface, number>();
+  for (const [surface, parts] of batches.get(group)!) {
+    baseVertices.set(surface, parts.reduce((count, part) => count + part.getAttribute("position").count, 0));
+  }
+  for (const part of createWorkshopDressing(context, side, offsetZ)) {
+    const parts = batches.get(group)!.get(part.surface) ?? [];
+    batches.get(group)!.set(part.surface, parts);
+    const entries = dressingEntries.get(part.surface) ?? [];
+    entries.push({ index: parts.length, asset: part.asset, bounds: part.bounds, yaw: part.yaw, colorScale: part.colorScale });
+    dressingEntries.set(part.surface, entries);
+    parts.push(part.geometry);
+    const key = `dressing-${part.surface}`;
+    trianglesByCluster[key] = (trianglesByCluster[key] ?? 0) + part.geometry.getAttribute("position").count / 3;
+  }
   group.add(fireGroup);
   for (const [parent, surfaces] of batches) {
     for (const [surface, parts] of surfaces) {
       const geometry = mergeGeometries(parts, false)!;
-      parts.forEach(part => part.dispose());
       geometry.computeVertexNormals();
       geometry.computeBoundingBox();
       geometry.computeBoundingSphere();
@@ -697,7 +717,21 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
       let material = materials.get(surface);
       if (!material) { material = materialFor(surface); materials.set(surface, material); }
       const mesh = new Mesh(geometry, material);
-      mesh.name = `workshop-${surface}${parent === fireGroup ? "-fire" : ""}`;
+      // P2 already recognizes this stone batch and the explicit bark opt-in.
+      mesh.name = surface === "stone" ? "rock-stack-stones" : `workshop-${surface}${parent === fireGroup ? "-fire" : ""}`;
+      if (surface === "wood") mesh.userData.photoSurface = "bark";
+      mesh.userData.workshopBaseVertices = parent === group ? baseVertices.get(surface) ?? 0 : geometry.getAttribute("position").count;
+      const entries = dressingEntries.get(surface);
+      if (parent === group) {
+        if (entries) {
+          let renderer: WebGLRenderer;
+          releases.push(deferCustomBakedBatch(mesh, parts, entries, context.heightAt, asset => library.load(asset, renderer)));
+          releases.push(bindWorkshopBatch(mesh, active => { renderer = active; }));
+        } else {
+          releases.push(bindWorkshopBatch(mesh, () => {}));
+        }
+      }
+      parts.forEach(part => part.dispose());
       mesh.castShadow = surface !== "flower";
       mesh.receiveShadow = surface !== "flower";
       parent.add(mesh);
@@ -735,6 +769,9 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      // Restore render hooks before the deferred batch restores its fallback.
+      releases.reverse().forEach(release => release());
+      library.dispose();
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
       group.removeFromParent();
