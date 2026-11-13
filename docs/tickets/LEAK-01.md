@@ -5,3 +5,5 @@
 - Nếu Zod bỏ được: check:leaks tự hết lỗi. **Không** nới regex của scan-leaks trừ khi Zod buộc phải ở lại; khi đó chỉ bỏ qua đúng mẫu thuộc tính JS `.local` đứng sau một định danh (`[a-z]\.local\b` trong file `.js` của `_next/static`), kèm test cho cả trường hợp domain thật `foo.local` vẫn bị bắt.
 - Được sửa: `src/components/portfolio/**`, `src/content/**` (chỉ chỗ import), `tools/scan-leaks/**` (chỉ khi cần), test unit tương ứng.
 - Điều kiện xong: build một lần (lệnh WASM), `pnpm check:leaks` và `pnpm check:bundle` exit 0; dán kích thước chunk có Zod trước/sau (`grep -l "precision" out/_next/static/chunks/*.js` + `wc -c`); `bash tools/lead/gate.sh .` → GATE PASS. Không commit.
+
+> **Lead (lượt 2, sau MAP-01 `fd7907e`):** được sửa `src/features/world/zones/milestones.ts` (chỉ chỗ import dữ liệu chứng chỉ). Lấy dữ liệu từ JSON/type đã validate lúc build, không import `src/content` runtime.
