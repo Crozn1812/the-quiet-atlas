@@ -30,12 +30,13 @@ Full e2e, load-budget, Lighthouse, CPU so main cho cả đợt R2: **NOT RUN** (
 
 | Ticket (góp ý của Duy) | Commit | Ảnh | Duy chấm |
 |---|---|---|---|
-| **MS-02** (#9) tượng đá Duy chưa thành hình thay các cục đá "lốp xe" | `c278102` | [từ đường mòn](ms02-statue.webp) · [cận](ms02-statue-close.webp) | giữ / sửa / bỏ |
+| **MS-02** (#9) tượng đá Duy chưa thành hình thay các cục đá "lốp xe" | `c278102` + `8d5d820` | [từ đường mòn](ms02-statue.webp) · [cận](ms02-statue-close.webp) | giữ / sửa / bỏ |
 
 - Ba vòng: vòng 1 quá nhỏ và tối; vòng 2 là chồng hộp trắng; vòng 3 dựng theo công thức hình khối của Lead (bệ, ngực + vai, cổ, đầu, tóc, kính, vai và góc đầu còn thiếu, mảnh đá lơ lửng, hốc cho chứng chỉ dự định).
 - Lead sửa thêm: bỏ đoạn chèn CCNA cứng (world chỉ đọc `src/content`), bỏ màu bóng quá nhạt làm tượng trắng xanh.
 - Kiểm: gate merge PASS (lint, typecheck, unit 1754/1754); build exit 0.
-- **Còn yếu, chưa sửa:** chữ trên các phiến chứng chỉ dính nhau, khó đọc từ xa; tượng quay mặt dọc theo đường mòn thay vì ra phía người đi tới. Mặt tượng là khối đơn giản, chưa giống Duy.
+- **MS-02b (`8d5d820`):** tượng quay mặt ra đường mòn; chữ trên phiến tách rõ (CCNA, VTI / DEVOPS); hai phiến dự định (AWS SAA, LINUX / CEH) lơ lửng tách riêng, chữ mờ hơn. Ảnh ở trên chụp sau bản này. Kiểm: lint, typecheck, unit Milestones 41/41, build exit 0, gate merge PASS.
+- **Còn yếu, chưa sửa:** mặt tượng là khối đơn giản, chưa giống Duy.
 
 ## Việc theo dõi
 
