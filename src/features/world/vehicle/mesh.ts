@@ -4,6 +4,7 @@ import {
 } from "three";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
+import { assignBakedUVs, disposeBakedAppearance, installBakedAppearance, vehicleSurface, type BakedSurface } from "../character/baked-appearance";
 
 // Uniformly fit the complete D-23 silhouette (including the high mirrors) inside
 // the ticket's bounding envelope. Authoring coordinates below follow gd110.py.
@@ -26,13 +27,18 @@ type Paint = (typeof GD110_COLORS)[keyof typeof GD110_COLORS];
 class Batch {
   private positions: number[] = [];
   private colors: number[] = [];
+  private normals: number[] = [];
+  private surfaces: BakedSurface[] = [];
   private parts: string[] = [];
   private bones: number[] = [];
   private ranges: { name: string; start: number; count: number; bone: number }[] = [];
 
   add(name: string, geometry: BufferGeometry, paint: Paint, bone = 0, offset: Point = [0, 0, 0]): void {
+    if (!geometry.hasAttribute("normal")) geometry.computeVertexNormals();
     const flat = geometry.index ? geometry.toNonIndexed() : geometry;
     const positions = flat.getAttribute("position");
+    const normals = flat.getAttribute("normal");
+    const surface = vehicleSurface(name, paint === GD110_COLORS.metal);
     const color = new Color(paint); // Three converts sRGB palette entries to linear.
     const start = this.positions.length / 3;
     for (let i = 0; i < positions.count; i++) {
@@ -40,6 +46,8 @@ class Batch {
         (positions.getY(i) + offset[1]) * GD110_SCALE, (positions.getZ(i) + offset[2]) * GD110_SCALE);
       this.colors.push(color.r, color.g, color.b);
       this.bones.push(bone);
+      this.normals.push(normals.getX(i), normals.getY(i), normals.getZ(i));
+      this.surfaces.push(surface);
     }
     this.parts.push(name);
     this.ranges.push({ name, start, count: positions.count, bone });
@@ -67,7 +75,8 @@ class Batch {
     }
     geometry.setAttribute("skinIndex", new BufferAttribute(indices, 4));
     geometry.setAttribute("skinWeight", new BufferAttribute(weights, 4));
-    geometry.computeVertexNormals();
+    geometry.setAttribute("normal", new Float32BufferAttribute(this.normals, 3));
+    assignBakedUVs(geometry, this.surfaces);
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
     geometry.userData.parts = this.parts;
@@ -359,6 +368,7 @@ export function createGd110(): Group {
   group.add(chassis);
   group.updateMatrixWorld(true);
   chassis.bind(new Skeleton(bones));
+  installBakedAppearance(chassis, false);
   // Include the fork, mirrors and grips through the full steering sweep.
   chassis.boundingBox = chassis.geometry.boundingBox!.clone();
   chassis.boundingBox.min.y = 0;
@@ -375,6 +385,7 @@ export function disposeGd110(group: Group): void {
   const materials = new Set<import("three").Material>();
   group.traverse(node => {
     if (!(node instanceof Mesh)) return;
+    if (node instanceof SkinnedMesh) disposeBakedAppearance(node);
     if (node instanceof SkinnedMesh) node.skeleton.dispose();
     geometries.add(node.geometry);
     for (const material of Array.isArray(node.material) ? node.material : [node.material]) materials.add(material);

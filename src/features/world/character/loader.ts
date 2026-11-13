@@ -1,10 +1,11 @@
-import { Color, Group, Material, Mesh, MeshToonMaterial } from "three";
+import { Color, Group, Material, Mesh, MeshToonMaterial, SkinnedMesh } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { createRampMaterial } from "../materials/ramp";
 import { HEIGHT } from "../scene";
 import { createFallbackCharacter } from "./fallback";
 import { createCharacter, disposeCharacterMaterials, disposeCharacterTree, type Character } from "./runtime";
+import { installBakedAppearance } from "./baked-appearance";
 
 export type { Character } from "./runtime";
 
@@ -41,6 +42,9 @@ export async function loadCharacter(url?: string): Promise<Character> {
     });
     // B2-045a is flat-coloured; the replaced PBR textures are no longer used.
     disposeCharacterMaterials(replacements.keys());
+    gltf.scene.traverse(object => {
+      if (object instanceof SkinnedMesh && object.skeleton.bones.length === 19) installBakedAppearance(object, true);
+    });
     return createCharacter(root, gltf.animations);
   } catch (error) {
     disposeCharacterTree(root);

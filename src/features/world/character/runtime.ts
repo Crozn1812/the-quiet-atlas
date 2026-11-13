@@ -2,6 +2,7 @@ import {
   AnimationClip, AnimationMixer, BufferGeometry, Material, Mesh, Object3D,
   Skeleton, SkinnedMesh, Texture, type AnimationAction,
 } from "three";
+import { disposeBakedAppearance } from "./baked-appearance";
 
 export interface Character {
   /** Controller-centred pivot; the authored GLB faces +Z with its feet at Y=0. */
@@ -30,6 +31,7 @@ export function disposeCharacterTree(root: Object3D): void {
   const skeletons = new Set<Skeleton>();
   root.traverse((object) => {
     if (!(object instanceof Mesh)) return;
+    if (object instanceof SkinnedMesh) disposeBakedAppearance(object);
     geometries.add(object.geometry);
     for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
       materials.add(material);

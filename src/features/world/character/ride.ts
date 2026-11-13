@@ -2,6 +2,7 @@ import { Bone, Object3D, Quaternion, SkinnedMesh, Vector3 } from "three";
 import { VEHICLE_TRANSITION_SECONDS, type VehicleState } from "../../vehicle/model";
 import { GD110_SCALE, STEERING_PIVOT } from "../vehicle/mesh";
 import type { Character } from "./runtime";
+import { setBakedAppearanceTransitionGuard } from "./baked-appearance";
 
 const point = (x: number, y: number, z: number) => new Vector3(x, y, z).multiplyScalar(GD110_SCALE);
 /** Bike-local contact points, in metres; ankles sit above the soles on the pegs. */
@@ -35,6 +36,9 @@ export function createRiderPose(character: Character) {
   const walkingRotation = root.quaternion.clone();
   let riding = false;
   let transition: "mount" | "dismount" | undefined;
+  const transitioning = () => transition !== undefined;
+  for (const { mesh } of skins) setBakedAppearanceTransitionGuard(mesh, transitioning);
+  let appearanceFrame: Object3D | undefined;
   let elapsed = 0;
   const duration = VEHICLE_TRANSITION_SECONDS;
   const up = new Vector3(0, 1, 0);
@@ -117,6 +121,12 @@ export function createRiderPose(character: Character) {
     },
     update(state: Pick<VehicleState, "mode" | "speed">, frame: Object3D, dt = 0, reducedMotion = true) {
       if (character.disposed) return;
+      if (appearanceFrame !== frame) {
+        frame.traverse(object => {
+          if (object instanceof SkinnedMesh) setBakedAppearanceTransitionGuard(object, transitioning);
+        });
+        appearanceFrame = frame;
+      }
       if (state.mode !== "ride") {
         if (riding) {
           transition = supported && !reducedMotion ? "dismount" : undefined;
