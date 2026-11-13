@@ -41,3 +41,5 @@ Mỗi worker giữ **một** worktree cố định: `D:/tqa-worktrees/W-A` (`.co
 Đã thử `[windows] sandbox = "unelevated"` để hết hộp thoại admin: hết hộp thoại nhưng trong sandbox build, Edge và bash hỏng (`spawn EPERM`, `CreateFileMapping` Win32 error 5), worker không kiểm được gì. **Đã quay lại `elevated`.** Giảm hộp thoại bằng thư mục cố định W-x: mỗi thư mục chỉ hỏi một lần. Mỗi tài khoản cần thêm `[projects.'D:\'] trust_level = "trusted"`; thiếu dòng này Codex hạ xuống read-only.
 
 - Codex sandbox không ghi được `.git/worktrees/*` của repo chính (index.lock Permission denied): **không giao "rebase" cho worker**. Lead tự rebase: `git add -A; git commit -m wip; git rebase main; git reset --soft HEAD~1; git reset`, rồi resume.
+
+- Worktree mà sandbox của account khác đã build (`.next`, `out`, `test-results`) sẽ EPERM với account mới, Lead cũng không đổi ACL được. Chuyển ticket sang account khác = xuất `git diff --binary` (kể cả untracked) rồi áp vào worktree của account mới.
