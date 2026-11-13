@@ -2,10 +2,11 @@ import { Color, ShaderMaterial, UniformsLib, UniformsUtils, Vector2, Vector3 } f
 import { PALETTE } from "../art/palette";
 import { lightingAt, type LightingGrade } from "../sky/grade";
 import type { Quality } from "../terrain";
+import { riverPointAt, riverTangentAt } from "../layout/river";
 
 export const WATER_FLOW_SPEED = 0.05;
 export const SEA_WAVE_PERIOD = 8;
-// 109 coast samples + 29 colour, clock, direction and fog floats = 138 floats.
+// 109 coast samples; C adds one sky colour and two static source vectors.
 export const SEA_SHORE_SAMPLES = 109;
 /** Shoreline slope |dz/dx| above which the foam line fades out (bay corners after B2-152b). */
 export const SEA_FOAM_MAX_SLOPE = 3;
@@ -25,6 +26,11 @@ export interface WaterMaterialOptions {
 const vertexShader = /* glsl */ `
   varying vec2 vWaterUv;
   varying vec3 vWaterWorld;
+  #ifdef C_WATER
+    attribute vec3 waterBedDepth;
+    varying vec3 vBedDepth;
+    varying float vCascade;
+  #endif
   #ifdef WATER_REFLECTION
     varying vec3 vViewDirection;
     varying vec3 vSurfaceNormal;
@@ -33,6 +39,10 @@ const vertexShader = /* glsl */ `
   void main() {
     vWaterUv = uv;
     vWaterWorld = (modelMatrix * vec4(position, 1.0)).xyz;
+    #ifdef C_WATER
+      vBedDepth = waterBedDepth;
+      vCascade = 1.0 - smoothstep(0.7, 0.98, abs(normalize(mat3(modelMatrix) * normal).y));
+    #endif
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     #ifdef WATER_REFLECTION
       vViewDirection = -mvPosition.xyz;
@@ -48,6 +58,15 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uDeepColor;
   uniform vec3 uPaperColor;
   uniform vec3 uSkyHorizon;
+  #ifdef C_WATER
+    uniform vec3 uSkyTop;
+    #ifndef SEA_WATER
+      uniform vec3 uSpringOrigin;
+      uniform vec3 uSpringForward;
+    #endif
+    varying vec3 vBedDepth;
+    varying float vCascade;
+  #endif
   uniform float uSkyMix;
   uniform float uTime;
   varying vec2 vWaterUv;
@@ -99,6 +118,12 @@ const fragmentShader = /* glsl */ `
     return smoothstep(0.68, 0.94, waterField(across, along));
   }
   // End water noise functions.
+  float waterAbsorption(float depth) {
+    return 1.0 - exp(-max(depth, 0.0) * 0.85);
+  }
+  float waterOpacity(float absorption, float reflection) {
+    return mix(mix(0.22, 0.78, absorption), 0.94, clamp(reflection, 0.0, 1.0));
+  }
   void main() {
     // UV.y is downstream distance in metres, so this translation is 0.05 m/s.
     float flow = vWaterUv.y;
@@ -146,6 +171,18 @@ const fragmentShader = /* glsl */ `
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
     float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));
+    #ifdef C_WATER
+      // Piecewise-linear bed profile in metres, baked from the terrain once.
+      float bedDepth = mix(mix(vBedDepth.x, vBedDepth.y, min(vWaterUv.x * 2.0, 1.0)),
+        mix(vBedDepth.y, vBedDepth.z, max(vWaterUv.x * 2.0 - 1.0, 0.0)), step(0.5, vWaterUv.x));
+      #ifdef SEA_WATER
+        // A shallow seabed proxy follows the trusted coastline only; rejected
+        // inlet secants retain deep water rather than drawing a turquoise wedge.
+        bedDepth = mix(12.0, offshore * 0.09, shoreInfluence);
+      #endif
+      float opticalDepth = waterAbsorption(bedDepth);
+      color = mix(uEdgeColor, color, opticalDepth);
+    #endif
     #ifndef SEA_WATER
       // River-only detail: ribbon UVs measure distance across and along the channel.
       // Inverse world-space UV gradient measures ribbon width under perspective.
@@ -210,6 +247,13 @@ const fragmentShader = /* glsl */ `
         reflection *= mix(0.18, 2.0, smoothstep(0.995, 1.0, grazing));
       #endif
       color = mix(color, uSkyHorizon, reflection);
+      #ifdef C_WATER
+        // Cheap sky IBL: reflect the view ray into the runtime sky gradient.
+        // Row-vector multiplication undoes the view rotation (including pitch).
+        vec3 reflectedRay = reflect(-normalize(vViewDirection), surfaceNormal) * mat3(viewMatrix);
+        vec3 skyRadiance = mix(uSkyHorizon, uSkyTop, smoothstep(0.0, 0.85, reflectedRay.y));
+        color += (skyRadiance - uSkyHorizon) * reflection;
+      #endif
       #ifndef SEA_WATER
         // Only the open coastal reach receives sunset; forest water stays shaded.
         vec2 riverRay = vWaterWorld.xz - cameraPosition.xz;
@@ -302,11 +346,31 @@ const fragmentShader = /* glsl */ `
       foam *= 1.0 - smoothstep(SEA_FOAM_MAX_SLOPE * 0.5, SEA_FOAM_MAX_SLOPE, abs(slope));
       color = mix(color, uPaperColor, foam);
     #endif
-    #ifdef SEA_WATER
-      gl_FragColor = vec4(color, 1.0);
-    #else
-      gl_FragColor = vec4(color, mix(0.48, 0.70, sin(vWaterUv.y * 0.7 - uTime * 1.1) * 0.5 + 0.5));
+    float opacity = 1.0;
+    #if defined(C_WATER) && defined(SEA_WATER)
+      // Reveal submerged shore stones; offshore and rejected secants stay opaque.
+      opacity = mix(0.3, 1.0, smoothstep(0.0, 0.98, opticalDepth));
+      opacity = mix(opacity, 1.0, clamp(reflection, 0.0, 1.0));
     #endif
+    #ifndef SEA_WATER
+      #ifdef C_WATER
+        // Beer-Lambert absorption: shallow stones and fish remain visible.
+        // Reflected light and whitewater obscure the bed at grazing angles.
+        opacity = waterOpacity(opticalDepth, reflection);
+        vec2 fromSpring = vWaterWorld.xz - uSpringOrigin.xz;
+        float springAlong = dot(fromSpring, uSpringForward.xz);
+        float springAcross = dot(fromSpring, vec2(-uSpringForward.z, uSpringForward.x));
+        float impact = (1.0 - smoothstep(0.3, 1.15, abs(springAlong + 0.7)))
+          * (1.0 - smoothstep(0.35, 1.0, abs(springAcross)));
+        float bubbles = smoothstep(0.52, 0.8, waterField(springAcross, springAlong - uTime * 0.1));
+        float sourceFoam = max(vCascade * 0.25, impact * 0.4) * bubbles * rippleDistanceFade;
+        color = mix(color, uPaperColor, sourceFoam);
+        opacity = mix(opacity, 0.92, max(sourceFoam, vCascade * 0.7));
+      #else
+        opacity = mix(0.48, 0.70, sin(vWaterUv.y * 0.7 - uTime * 1.1) * 0.5 + 0.5);
+      #endif
+    #endif
+    gl_FragColor = vec4(color, opacity);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
     #include <fog_fragment>
@@ -346,6 +410,7 @@ export class WaterMaterial extends ShaderMaterial {
     const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.22, WATER_REFLECTION: 1 };
     if (sea) defines.SEA_WATER = 1;
     if (quality !== "Low") defines.WATER_FLOW = 1;
+    if (quality !== "Low") defines.C_WATER = 1;
     if (quality === "High") defines.WATER_RIPPLES = 1;
     super({
       name: `painted-${sea ? "sea" : "river"}-${quality.toLowerCase()}`,
@@ -357,6 +422,11 @@ export class WaterMaterial extends ShaderMaterial {
           uDeepColor: { value: deep },
           uPaperColor: { value: new Color(PALETTE.paper) },
           uSkyHorizon: { value: new Color() },
+          ...(quality !== "Low" ? { uSkyTop: { value: new Color() } } : {}),
+          ...(!sea ? {
+            uSpringOrigin: { value: riverPointAt(0) },
+            uSpringForward: { value: riverTangentAt(0) },
+          } : {}),
           uSkyMix: { value: 0 },
           ...(!sea ? { uCoastWeight: { value: 0 } } : {}),
           uTime: { value: 0 },
@@ -374,13 +444,15 @@ export class WaterMaterial extends ShaderMaterial {
       vertexShader,
       fragmentShader,
       fog: true,
-      transparent: !sea,
+      transparent: !sea || quality !== "Low",
       depthWrite: sea,
       // The existing coast terrain is flat at sea level; avoid coplanar flicker.
       polygonOffset: true,
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -1,
     });
+    // Standalone materials and the sea quad have no baked river attributes.
+    Object.assign(this.defaultAttributeValues, { waterBedDepth: [0.1, 0.6, 0.1] });
     this.edgePigment = edge;
     this.deepPigment = deep;
     this.setGrade(options.grade ?? lightingAt(sea ? 1 : 0));
@@ -390,7 +462,7 @@ export class WaterMaterial extends ShaderMaterial {
 
   /** Flat-surface half-Lambert + hemisphere, with the same Lambert BRDF as terrain.
    * Pigment, strokes and foam receive irradiance; Fresnel receives sky radiance.
-   * Uniform count and geometry stay unchanged.
+   * Geometry and draw count stay unchanged.
    */
   setGrade(grade: LightingGrade): void {
     if (this.disposed) return;
@@ -438,6 +510,7 @@ export class WaterMaterial extends ShaderMaterial {
       // Reflect the actual horizon radiance; Fresnel controls its weight in GLSL.
       this.uniforms.uSkyHorizon!.value.copy(grade.skyHorizon);
     }
+    this.uniforms.uSkyTop?.value.copy(grade.skyTop).multiplyScalar(sea ? 1 : 0.45 * skyVisibility);
     this.uniforms.uSunWashColor!.value.copy(this.sunWash).multiply(grade.sunColor)
       .multiplyScalar(grade.sunIntensity * 0.65);
     this.setSunDirection(grade.sunDirection);

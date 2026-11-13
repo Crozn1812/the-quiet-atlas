@@ -173,7 +173,7 @@ describe("water receives the player's grade", () => {
       const material = createWaterMaterial("High", { surface });
       const grade = gradeAt(0.93);
       material.setGrade(grade);
-      const keys = ["uEdgeColor", "uDeepColor", "uPaperColor", "uSkyHorizon", "uSunWashColor"];
+      const keys = ["uEdgeColor", "uDeepColor", "uPaperColor", "uSkyHorizon", "uSunWashColor", "uSkyTop"];
       const before = keys.map(key => material.uniforms[key]!.value.clone());
       for (let i = 0; i < 20; i++) material.setGrade(grade);
       expect(keys.map(key => material.uniforms[key]!.value)).toEqual(before);
@@ -187,12 +187,15 @@ describe("water receives the player's grade", () => {
       expect(material.uniforms.uSkyHorizon!.value).toEqual(reflectedSky);
       expect(luma(material.uniforms.uSkyHorizon!.value)).toBeGreaterThan(0);
       if (surface === "river") expect(luma(riverSample(material, 0.5, 12, 0.9))).toBeGreaterThan(0);
-      expect(keys.filter(key => key !== "uSkyHorizon").map(key => luma(material.uniforms[key]!.value))).toEqual([0, 0, 0, 0]);
+      expect(keys.filter(key => key !== "uSkyHorizon" && key !== "uSkyTop")
+        .map(key => luma(material.uniforms[key]!.value))).toEqual([0, 0, 0, 0]);
       // No emission means darkness only when incident light AND the sky are dark.
       grade.skyHorizon.multiplyScalar(1e-8);
+      grade.skyTop.multiplyScalar(1e-8);
       material.setGrade(grade);
       for (const key of keys) expect(luma(material.uniforms[key]!.value)).toBeLessThan(1e-8);
       grade.skyHorizon.multiplyScalar(0);
+      grade.skyTop.multiplyScalar(0);
       material.setGrade(grade);
       expect(keys.map(key => luma(material.uniforms[key]!.value))).toEqual(keys.map(() => 0));
       material.dispose();

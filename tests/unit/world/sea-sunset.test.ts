@@ -571,7 +571,7 @@ describe("road-view sunset sea", () => {
     } finally { sea.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("uses at most 140 explicit uniform floats and no sampler on %s", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("adds only one sky colour to the 138-float sea budget on %s, with no sampler", quality => {
     const sea = createSea(quality);
     try {
       const floatCount = Object.values(sea.mesh.material.uniforms).reduce((sum, { value }) => {
@@ -582,8 +582,8 @@ describe("road-view sunset sea", () => {
         if (value instanceof Vector3) return sum + 3;
         throw new Error("Unbudgeted sea uniform");
       }, 0);
-      expect(floatCount).toBe(138);
-      expect(floatCount).toBeLessThanOrEqual(140);
+      // GFX-P4 reflects both horizon and zenith; one additional RGB uniform.
+      expect(floatCount).toBe(quality === "Low" ? 138 : 141);
       expect(sea.mesh.material.fragmentShader).not.toMatch(/sampler|texture\s*\(/);
       expect(sea.mesh.geometry.index!.count / 3).toBe(2);
       expect(sea.mesh.geometry.boundingBox!.getSize(new Vector3()).x).toBe(SEA_RENDER_SIZE);

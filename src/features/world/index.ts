@@ -59,6 +59,7 @@ import { VEHICLE_LABELS } from "../vehicle/labels";
 import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
 import { ZONE_HINTS } from "../../i18n/zone-hints";
 import { ambienceMixAt } from "../audio/mix";
+import { COAST_BEACH_Z } from "./layout/scale";
 import { updateFoliageWind } from "./foliage/instances";
 
 declare global {
@@ -557,7 +558,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       detail: ambienceMixAt({
         distanceToRiver: nearestRiver(x, z).distance,
         // Mean shoreline of shoreHeight; include elevation above the water surface.
-        distanceToSea: Math.hypot(Math.max(0, z + 880), Math.max(0, y - HEIGHT - waterLevelAt(z))),
+        distanceToSea: Math.hypot(Math.max(0, z - COAST_BEACH_Z), Math.max(0, y - HEIGHT - waterLevelAt(z))),
         zoneBiome: nearestZone().biome,
         timeOfDay: timeOfDayAt(nearestPath(x, z).t),
         distanceToChime: chimeTarget

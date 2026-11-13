@@ -1,5 +1,6 @@
 import { Mesh, type BufferGeometry } from "three";
 import type { WaterMaterial } from "./material";
+import { bakeWaterDepth } from "./depth";
 
 /** Each surface owns its geometry and material; dispose detaches it from the scene. */
 export interface WaterSurface {
@@ -11,6 +12,9 @@ export interface WaterSurface {
 }
 
 export function createWaterSurface(geometry: BufferGeometry, material: WaterMaterial): WaterSurface {
+  // Includes the existing First Light pool and falling sheet without changing
+  // their geometry, colliders, fish, or the surface lifecycle.
+  if (!material.defines.SEA_WATER && !geometry.hasAttribute("waterBedDepth")) bakeWaterDepth(geometry);
   const mesh = new Mesh(geometry, material);
   mesh.name = material.name;
   let disposed = false;

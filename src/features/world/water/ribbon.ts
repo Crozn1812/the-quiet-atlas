@@ -5,6 +5,7 @@ import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
 import { createWaterSurface, type WaterSurface } from "./surface";
 import { SEA_INLAND_OVERLAP } from "./bounds";
+import { bakeWaterDepth } from "./depth";
 
 /** Sea datum shared with terrain/height.ts. */
 export const WATER_LEVEL = 0;
@@ -97,6 +98,7 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
   geometry.setAttribute("normal", new Float32BufferAttribute(normals, 3));
   geometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
+  bakeWaterDepth(geometry, true, surfaceHeight);
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
   return geometry;
