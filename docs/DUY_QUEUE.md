@@ -6,6 +6,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
+| Q-46 | **Account Codex D (`.codex4`) hết credit** ("workspace out of credits", 01:00 14/11). Nạp thêm credit hoặc báo bỏ account này | Đội Codex | Không (A/B/C vẫn chạy, chỉ chậm hơn) | Khi quay lại | Trang usage của workspace Codex; Lead tự chạy lại khi có credit |
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
 | Q-33 | **Chấm showcase đợt 18–20** (giữ/sửa/bỏ 9 dòng) | L3 | Không | Khi rảnh | `docs/showcase/20-world-life/checklist.md` |
 | Q-20 | **AWS bảo mật tài khoản** (Duy tự làm). MFA bằng app Authenticator: **đã xong** (Duy, 2026-11-05). Còn: (a) kiểm root **không có access key**; (b) tạo **user dùng hằng ngày** (không dùng root). Đây là bảo mật, **không phải** nhiệm vụ nhận credit | L5 | A2 | Sớm | `docs/runbook/aws-account-and-credits.md` bước 4–7 |
