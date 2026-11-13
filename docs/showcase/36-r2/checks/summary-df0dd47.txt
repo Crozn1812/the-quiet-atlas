@@ -1,0 +1,11 @@
+gate exit=0 96s
+build exit=0 59s
+cv exit=0 2s
+bundle exit=0 0s
+leaks exit=1 1s
+licenses exit=0 0s
+assets exit=0 1s
+e2e exit=1 438s
+load exit=0 482s
+lhci exit=0 242s
+done

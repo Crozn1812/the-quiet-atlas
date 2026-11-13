@@ -1,0 +1,4 @@
+gate exit=0 127s
+gate exit=0 127s
+build exit=1 4s
+build failed, stopping

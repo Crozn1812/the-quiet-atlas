@@ -1,0 +1,311 @@
+
+Running 158 tests using 4 workers
+
+  ✓    1 [msedge] › tests\e2e\a11y-keyboard.spec.ts:108:3 › T11 keyboard /en/projects/cms-devops-platform-aws-eks/: Tab and Shift+Tab reach every interactive element in DOM order, no trap (1.9s)
+  ✓    3 [msedge] › tests\e2e\a11y-keyboard.spec.ts:108:3 › T11 keyboard /vi/: Tab and Shift+Tab reach every interactive element in DOM order, no trap (1.9s)
+  ✓    2 [msedge] › tests\e2e\a11y-keyboard.spec.ts:108:3 › T11 keyboard /en/: Tab and Shift+Tab reach every interactive element in DOM order, no trap (2.2s)
+  ✓    4 [msedge] › tests\e2e\a11y-keyboard.spec.ts:108:3 › T11 keyboard /en/quick/: Tab and Shift+Tab reach every interactive element in DOM order, no trap (2.9s)
+  ✓    5 [msedge] › tests\e2e\a11y-keyboard.spec.ts:108:3 › T11 keyboard /en/privacy/: Tab and Shift+Tab reach every interactive element in DOM order, no trap (1.5s)
+  ✓    6 [msedge] › tests\e2e\a11y-keyboard.spec.ts:108:3 › T11 keyboard /404.html: Tab and Shift+Tab reach every interactive element in DOM order, no trap (1.5s)
+  ✓    7 [msedge] › tests\e2e\a11y-keyboard.spec.ts:154:3 › T11 keyboard /en/: Enter on .world-hud a[href='/en/quick/']:has(> span:text-is('Quick Portfolio')) navigates to /\/en\/quick\/$/ (1.8s)
+  ✓    8 [msedge] › tests\e2e\a11y-keyboard.spec.ts:154:3 › T11 keyboard /vi/: Enter on .world-hud a[href='/vi/quick/']:has(> span:text-is('Quick Portfolio')) navigates to /\/vi\/quick\/$/ (1.6s)
+  ✓   10 [msedge] › tests\e2e\a11y-keyboard.spec.ts:154:3 › T11 keyboard /en/projects/cms-devops-platform-aws-eks/: Enter on a[href='/en/quick/'] navigates to /\/en\/quick\/$/ (1.6s)
+  ✓    9 [msedge] › tests\e2e\a11y-keyboard.spec.ts:154:3 › T11 keyboard /en/quick/: Enter on main article h3 a[href^='/en/projects/'] navigates to /\/en\/projects\/[^/]+\/$/ (1.6s)
+  ✓   11 [msedge] › tests\e2e\a11y-keyboard.spec.ts:154:3 › T11 keyboard /en/privacy/: Enter on a[href='/en/quick/'] navigates to /\/en\/quick\/$/ (1.4s)
+  ✓   12 [msedge] › tests\e2e\a11y-keyboard.spec.ts:154:3 › T11 keyboard /404.html: Enter on a[href='/en/'] navigates to /\/en\/$/ (1.4s)
+  ✓   13 [msedge] › tests\e2e\a11y-keyboard.spec.ts:163:3 › T11 focus visible /en/: every Tab stop gets an outline/box-shadow (WCAG 2.4.7) (1.3s)
+  ✓   14 [msedge] › tests\e2e\a11y-keyboard.spec.ts:163:3 › T11 focus visible /vi/: every Tab stop gets an outline/box-shadow (WCAG 2.4.7) (1.5s)
+  ✓   15 [msedge] › tests\e2e\a11y-keyboard.spec.ts:163:3 › T11 focus visible /en/quick/: every Tab stop gets an outline/box-shadow (WCAG 2.4.7) (1.7s)
+  ✓   16 [msedge] › tests\e2e\a11y-keyboard.spec.ts:163:3 › T11 focus visible /en/projects/cms-devops-platform-aws-eks/: every Tab stop gets an outline/box-shadow (WCAG 2.4.7) (1.2s)
+  ✓   17 [msedge] › tests\e2e\a11y-keyboard.spec.ts:163:3 › T11 focus visible /en/privacy/: every Tab stop gets an outline/box-shadow (WCAG 2.4.7) (1.2s)
+  ✓   18 [msedge] › tests\e2e\a11y-keyboard.spec.ts:163:3 › T11 focus visible /404.html: every Tab stop gets an outline/box-shadow (WCAG 2.4.7) (1.2s)
+  ✓   19 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /: exactly one h1, no skipped levels (1.1s)
+  ✓   20 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/: exactly one h1, no skipped levels (1.1s)
+  ✓   21 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/: exactly one h1, no skipped levels (1.2s)
+  ✓   22 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/quick/: exactly one h1, no skipped levels (1.1s)
+  ✓   23 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/quick/: exactly one h1, no skipped levels (1.1s)
+  ✓   24 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/privacy/: exactly one h1, no skipped levels (1.1s)
+  ✓   25 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/projects/aws-sales-data-pipeline/: exactly one h1, no skipped levels (1.1s)
+  ✓   26 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/projects/cms-devops-platform-aws-eks/: exactly one h1, no skipped levels (1.1s)
+  ✓   27 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/projects/insighthub-rag/: exactly one h1, no skipped levels (1.1s)
+  ✓   28 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /en/projects/partner-data-gateway-azure/: exactly one h1, no skipped levels (1.1s)
+  ✓   29 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/privacy/: exactly one h1, no skipped levels (1.0s)
+  ✓   30 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/projects/aws-sales-data-pipeline/: exactly one h1, no skipped levels (1.1s)
+  ✓   31 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/projects/cms-devops-platform-aws-eks/: exactly one h1, no skipped levels (1.2s)
+  ✓   32 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/projects/insighthub-rag/: exactly one h1, no skipped levels (1.1s)
+  ✓   33 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /vi/projects/partner-data-gateway-azure/: exactly one h1, no skipped levels (1.0s)
+  ✓   34 [msedge] › tests\e2e\a11y-keyboard.spec.ts:187:3 › T11 headings /404.html: exactly one h1, no skipped levels (1.0s)
+  ✓   35 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /: no horizontal scroll (1.1s)
+  ✓   36 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/: no horizontal scroll, name/CV/contact visible (1.3s)
+  ✓   37 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/: no horizontal scroll, name/CV/contact visible (1.3s)
+  ✓   38 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/quick/: no horizontal scroll, name/CV/contact visible (1.2s)
+  ✓   39 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/quick/: no horizontal scroll, name/CV/contact visible (1.2s)
+  ✓   40 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/privacy/: no horizontal scroll (1.0s)
+  ✓   41 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/projects/aws-sales-data-pipeline/: no horizontal scroll (1.1s)
+  ✓   42 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/projects/cms-devops-platform-aws-eks/: no horizontal scroll (1.1s)
+  ✓   43 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/projects/insighthub-rag/: no horizontal scroll (1.1s)
+  ✓   44 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /en/projects/partner-data-gateway-azure/: no horizontal scroll (1.1s)
+  ✓   45 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/privacy/: no horizontal scroll (1.1s)
+  ✓   46 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/projects/aws-sales-data-pipeline/: no horizontal scroll (1.1s)
+  ✓   47 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/projects/cms-devops-platform-aws-eks/: no horizontal scroll (1.1s)
+  ✓   48 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/projects/insighthub-rag/: no horizontal scroll (1.1s)
+  ✓   49 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /vi/projects/partner-data-gateway-azure/: no horizontal scroll (1.1s)
+  ✓   50 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 320px /404.html: no horizontal scroll (1.1s)
+  ✓   51 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /: no horizontal scroll (1.1s)
+  ✓   52 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/: no horizontal scroll, name/CV/contact visible (1.3s)
+  ✓   53 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/: no horizontal scroll, name/CV/contact visible (1.3s)
+  ✓   54 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/quick/: no horizontal scroll, name/CV/contact visible (1.3s)
+  ✓   55 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/quick/: no horizontal scroll, name/CV/contact visible (1.3s)
+  ✓   56 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/privacy/: no horizontal scroll (1.1s)
+  ✓   57 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/projects/aws-sales-data-pipeline/: no horizontal scroll (1.1s)
+  ✓   58 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/projects/cms-devops-platform-aws-eks/: no horizontal scroll (1.2s)
+  ✓   59 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/projects/insighthub-rag/: no horizontal scroll (1.1s)
+  ✓   60 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /en/projects/partner-data-gateway-azure/: no horizontal scroll (1.1s)
+  ✓   61 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/privacy/: no horizontal scroll (1.1s)
+  ✓   62 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/projects/aws-sales-data-pipeline/: no horizontal scroll (1.2s)
+  ✓   63 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/projects/cms-devops-platform-aws-eks/: no horizontal scroll (1.2s)
+  ✓   64 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/projects/insighthub-rag/: no horizontal scroll (1.1s)
+  ✓   65 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /vi/projects/partner-data-gateway-azure/: no horizontal scroll (1.1s)
+  ✓   66 [msedge] › tests\e2e\a11y-keyboard.spec.ts:215:5 › T11 reflow 640px /404.html: no horizontal scroll (1.1s)
+  ✓   67 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /: no animation/transition on visible elements (1.1s)
+  ✓   68 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/: no animation/transition on visible elements (1.1s)
+  ✓   69 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/: no animation/transition on visible elements (1.1s)
+  ✓   70 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/quick/: no animation/transition on visible elements (1.2s)
+  ✓   71 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/quick/: no animation/transition on visible elements (1.2s)
+  ✓   72 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/privacy/: no animation/transition on visible elements (1.1s)
+  ✓   73 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/projects/aws-sales-data-pipeline/: no animation/transition on visible elements (1.1s)
+  ✓   74 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/projects/cms-devops-platform-aws-eks/: no animation/transition on visible elements (1.1s)
+  ✓   75 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/projects/insighthub-rag/: no animation/transition on visible elements (1.2s)
+  ✓   76 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /en/projects/partner-data-gateway-azure/: no animation/transition on visible elements (1.2s)
+  ✓   77 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/privacy/: no animation/transition on visible elements (1.1s)
+  ✓   78 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/projects/aws-sales-data-pipeline/: no animation/transition on visible elements (1.1s)
+  ✓   79 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/projects/cms-devops-platform-aws-eks/: no animation/transition on visible elements (1.2s)
+  ✓   80 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/projects/insighthub-rag/: no animation/transition on visible elements (1.5s)
+  ✓   81 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /vi/projects/partner-data-gateway-azure/: no animation/transition on visible elements (1.3s)
+  ✓   82 [msedge] › tests\e2e\a11y-keyboard.spec.ts:266:3 › T11 reduced motion /404.html: no animation/transition on visible elements (1.3s)
+  ✓   83 [msedge] › tests\e2e\a11y-keyboard.spec.ts:291:3 › T11 skip link /en/: first Tab stop skips to the main content (1.3s)
+  ✓   84 [msedge] › tests\e2e\a11y-keyboard.spec.ts:291:3 › T11 skip link /en/quick/: first Tab stop skips to the main content (1.3s)
+  ✓   85 [msedge] › tests\e2e\a11y-keyboard.spec.ts:291:3 › T11 skip link /en/projects/cms-devops-platform-aws-eks/: first Tab stop skips to the main content (1.2s)
+  ✓   87 [msedge] › tests\e2e\fonts.spec.ts:29:1 › T11 /vi/: Noto Serif (self-hosted Vietnamese 400 subset) is loaded and used; no font from another origin (1.3s)
+  ✓   88 [msedge] › tests\e2e\fonts.spec.ts:58:1 › T11 /en/: latin Noto Serif loaded from /fonts/, Vietnamese 700 subset not requested (unused), no font from another origin (1.2s)
+  ✓   89 [msedge] › tests\e2e\full-viewport.spec.ts:52:3 › L3-008 #1 /en/ 1366×800: one screen (no vertical scroll), corner card inside the viewport, bottom-left half (1.6s)
+  ✓   90 [msedge] › tests\e2e\full-viewport.spec.ts:52:3 › L3-008 #1 /vi/ 1366×800: one screen (no vertical scroll), corner card inside the viewport, bottom-left half (1.5s)
+  ✓   93 [msedge] › tests\e2e\full-viewport.spec.ts:188:3 › L3-008 #4 axe /en/ Welcome 1366×800: 0 violations (2.2s)
+  ✓   94 [msedge] › tests\e2e\full-viewport.spec.ts:188:3 › L3-008 #4 axe /vi/ Welcome 1366×800: 0 violations (2.7s)
+  ✓   92 [msedge] › tests\e2e\full-viewport.spec.ts:156:1 › L3-008 #3 Exit world (HUD): no canvas, the full card is back, focus on Enter World (8.8s)
+  ✓   96 [msedge] › tests\e2e\html-fallback.spec.ts:10:7 › T02-a JavaScript disabled: content still readable › T02-a /en/ without JS (804ms)
+  ✓   97 [msedge] › tests\e2e\html-fallback.spec.ts:10:7 › T02-a JavaScript disabled: content still readable › T02-a /en/quick/ without JS (736ms)
+  ✓   98 [msedge] › tests\e2e\html-fallback.spec.ts:10:7 › T02-a JavaScript disabled: content still readable › T02-a /vi/ without JS (639ms)
+  ✓   99 [msedge] › tests\e2e\html-fallback.spec.ts:10:7 › T02-a JavaScript disabled: content still readable › T02-a /vi/quick/ without JS (1.0s)
+  ✓  100 [msedge] › tests\e2e\html-fallback.spec.ts:30:3 › T02-a JavaScript disabled: content still readable › T02-a / (entry) without JS links to both locales (496ms)
+  ✓  101 [msedge] › tests\e2e\html-fallback.spec.ts:39:3 › T02-b /en/ before Enter World: no 3D files, no world chunk (2.6s)
+  ✓   91 [msedge] › tests\e2e\full-viewport.spec.ts:107:1 › L3-008 #2 Enter World: canvas = viewport (0, 0, 1366×800); HUD has 7 named controls (Atlas Journal added, B2-112), each ≥ 24×24 (16.0s)
+  ✓  102 [msedge] › tests\e2e\html-fallback.spec.ts:49:3 › T02-c /en/ at 800px width: Editorial link replaces Enter World, no world chunk (2.0s)
+  ✓  103 [msedge] › tests\e2e\html-fallback.spec.ts:62:3 › T02-d /en/ without WebGL2: no 3D chunk, Quick path available (2.2s)
+  ✓  105 [msedge] › tests\e2e\html-fallback.spec.ts:49:3 › T02-c /vi/ at 800px width: Editorial link replaces Enter World, no world chunk (1.7s)
+  ✓  104 [msedge] › tests\e2e\html-fallback.spec.ts:39:3 › T02-b /vi/ before Enter World: no 3D files, no world chunk (2.7s)
+  ✓  106 [msedge] › tests\e2e\html-fallback.spec.ts:62:3 › T02-d /vi/ without WebGL2: no 3D chunk, Quick path available (2.0s)
+  ✓  108 [msedge] › tests\e2e\routing.spec.ts:6:1 › Q12 direct URLs of every route return 200 HTML (117ms)
+  ✓  109 [msedge] › tests\e2e\routing.spec.ts:14:1 › Q12 /vi/quick (missing slash) → 301 to /vi/quick/ (16ms)
+  ✓  110 [msedge] › tests\e2e\routing.spec.ts:26:1 › Q12 unknown URLs → 404 page with HTTP 404 (never home with 200) (111ms)
+  ✓  111 [msedge] › tests\e2e\routing.spec.ts:37:1 › Q12 unknown URL in the browser shows a way back to the portfolio (738ms)
+  ✓  112 [msedge] › tests\e2e\routing.spec.ts:48:1 › Q12 reload of a direct deep URL keeps the page (858ms)
+  ✓   95 [msedge] › tests\e2e\full-viewport.spec.ts:195:1 › L3-008 #4 axe inside the world (/en/, HUD compact, menu closed): 0 violations (18.3s)
+  ✓  113 [msedge] › tests\e2e\welcome.spec.ts:8:3 › T01 /en/ shows name, role, Quick, Enter World, Sound, Contact & CV with 0 console errors (2.1s)
+  ✓  114 [msedge] › tests\e2e\welcome.spec.ts:8:3 › T01 /vi/ shows name, role, Quick, Enter World, Sound, Contact & CV with 0 console errors (2.3s)
+  ✓   86 [msedge] › tests\e2e\a11y.spec.ts:12:1 › T11 axe on 16 HTML pages: 0 critical/serious violations (excluding tracked known issues) (30.0s)
+  ✓  116 [msedge] › tests\e2e\world-entry-risk.spec.ts:54:3 › desktop (fine pointer) › (a) Enter World fails → Retry → fails again: focus on Enter World, Retry gone, Enter World aria-disabled, 0 errors (1.9s)
+  ✓  117 [msedge] › tests\e2e\world-entry-risk.spec.ts:98:3 › desktop (fine pointer) › (a2) world chunk fails to load (network) → Retry → fails again: focus on Enter World, Retry gone, 0 page errors (1.5s)
+  ✓  115 [msedge] › tests\e2e\world-content.spec.ts:81:1 › T07 First Light: hinted at spawn, E opens the overlay (paused, focus on title, open latency recorded), Esc closes (resumed, focus back) (5.8s)
+  ✓  107 [msedge] › tests\e2e\q15-context-loss.spec.ts:39:1 › Q15 world contract: losing the WebGL context emits tqa:world-error {kind:'context-lost'} once on the container (11.5s)
+  ✓  119 [msedge] › tests\e2e\world-entry-risk.spec.ts:161:3 › narrow viewport at load › (c) width 800 at load: Editorial, no WebGL probe; resize to 1280 → probe runs, Enter World enabled and enters; result cached (5.9s)
+  ✓  121 [msedge] › tests\e2e\q15-context-loss.spec.ts:49:1 › Q15 UI: after context loss the viewer is back on HTML within 2 s (world mode left, Quick Portfolio + CV reachable) (5.8s)
+  ✓  122 [msedge] › tests\e2e\world-entry-risk.spec.ts:197:3 › coarse pointer (touch device, 1366×1024) › (d) coarse pointer: Editorial with the pointer reason, no WebGL context created on load (3.4s)
+  ✓  118 [msedge] › tests\e2e\world-entry-risk.spec.ts:130:3 › desktop (fine pointer) › (b) en → menu Tiếng Việt → menu “Exit world”: full navigation to the /vi/ Welcome, no world (11.0s)
+  ✓  125 [msedge] › tests\e2e\world-input.spec.ts:30:1 › Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close the menu nor change pause/quality (5.6s)
+  ✓  120 [msedge] › tests\e2e\world-content.spec.ts:101:1 › T07 Workshop: walk to the desk with real keys (W+D), hint = workshop, E opens the project list; Esc closes (31.5s)
+  ✓  123 [msedge] › tests\e2e\world-horizon-bench.spec.ts:7:36 › horizon bench: keyboard approach, E / Escape / movement exits (vi) (49.0s)
+  ✓  126 [msedge] › tests\e2e\world-input.spec.ts:55:1 › §6.1 camera input is blocked while the menu pauses the world (ArrowLeft held); control: it rotates once resumed (43.7s)
+  ✓  124 [msedge] › tests\e2e\world-horizon-bench.spec.ts:7:36 › horizon bench: keyboard approach, E / Escape / movement exits (en) (51.6s)
+  ✓  127 [msedge] › tests\e2e\world-content.spec.ts:156:1 › §6.3 Roots: overlay shows Duy's current skills, links Quick Portfolio; × Close closes (41.3s)
+  ✓  128 [msedge] › tests\e2e\world-input.spec.ts:81:1 › Q21 (page change): menu → Quick Portfolio, then Back → Welcome in its initial state (no world, no canvas) (19.3s)
+  ✓  129 [msedge] › tests\e2e\world-input.spec.ts:114:1 › Q21 (reload): reloading while in the world starts a new session on Welcome (17.9s)
+  ✓  130 [msedge] › tests\e2e\world-input.spec.ts:193:3 › Q21 language switch inside the world › en → vi: URL /vi/ via replaceState, page lang/title in Vietnamese, English menu/HUD, same Canvas, 0 errors; axe on the open menu (18.2s)
+  ✓  134 [msedge] › tests\e2e\world-input.spec.ts:305:3 › Q21 language switch inside the world › ADR 0016: overlay stays English after changing the page language to vi (16.1s)
+  ✓  131 [msedge] › tests\e2e\world-content.spec.ts:184:1 › §6.1 overlay and menu never stack: Esc with the overlay open closes the overlay only; menu still opens afterwards (20.7s)
+  ✓  132 [msedge] › tests\e2e\world-input.spec.ts:236:3 › Q21 language switch inside the world › vi → en: URL /en/ via replaceState, page lang/title in English, English HUD, same Canvas, 0 errors (20.1s)
+  ✓  136 [msedge] › tests\e2e\world-input.spec.ts:369:3 › Q21 world copy stays English (ADR 0016) › Enter World on /vi/: English world locale, canvas aria-label and spawn hint (43.6s)
+  ✓  137 [msedge] › tests\e2e\world-input.spec.ts:384:3 › Q21 world copy stays English (ADR 0016) › /en/ → menu Tiếng Việt: page changes, English world locale, canvas label and hint stay on the same canvas (56.4s)
+  ✓  135 [msedge] › tests\e2e\world-input.spec.ts:334:3 › Q21 language switch inside the world › exit after switching en → vi: full navigation to the /vi/ Welcome (no world, no canvas) (1.0m)
+  ✓  138 [msedge] › tests\e2e\world-intro.spec.ts:10:1 › plays on Enter World, offers a focused Skip, and hands control back on Skip (27.8s)
+  ✓  139 [msedge] › tests\e2e\world-intro.spec.ts:27:1 › Escape skips the cinematic (19.4s)
+  ✓  140 [msedge] › tests\e2e\world-intro.spec.ts:38:3 › reduced motion › finishes with a short paper fade instead of the flight (16.9s)
+  ✓  133 [msedge] › tests\e2e\world-input.spec.ts:256:3 › Q21 language switch inside the world › position kept: walk away from spawn, switch en → vi, the scene frame is unchanged (control: walking changed it) (1.6m)
+  ✓  142 [msedge] › tests\e2e\world-journal.spec.ts:35:1 › the journal starts empty on every Enter World (no stored progress) (17.8s)
+  ✓  141 [msedge] › tests\e2e\world-journal.spec.ts:5:1 › J opens the journal and pauses the world; a visited zone is stamped; J closes (19.5s)
+  ✓  143 [msedge] › tests\e2e\world-menu.spec.ts:30:1 › T07 menu: Esc opens (paused, focus on title), Tab/Shift+Tab stay inside, Esc closes (resumed, focus back to world) (19.3s)
+  ✓  144 [msedge] › tests\e2e\world-menu.spec.ts:60:1 › §6.2.7 quality: <select> changes data-world-quality and emits tqa:world-state on the same canvas (no remount) (20.3s)
+  ✓  145 [msedge] › tests\e2e\world-menu.spec.ts:97:1 › ADR 0009 menu: 'Exit world' in the menu leaves the world (no canvas, Welcome card back, focus on Enter World) (9.8s)
+  ✓  147 [msedge] › tests\e2e\world-menu.spec.ts:130:1 › ADR 0008 return to path: menu button dispatches tqa:return-to-path, closes the menu, world keeps running without console errors (15.1s)
+  ✓  146 [msedge] › tests\e2e\world-menu.spec.ts:113:1 › T07 menu: corner button opens the menu; × Close closes it and returns focus to the button (18.0s)
+  ✓  148 [msedge] › tests\e2e\world-railing.spec.ts:7:36 › coastal railing: keyboard approach, E / Escape / movement exits (vi) (35.0s)
+  ✓  150 [msedge] › tests\e2e\world-travel.spec.ts:7:1 › teleport chooser: opens on the world event, disables the current zone, closes and unpauses on a choice (29.8s)
+  ✓  151 [msedge] › tests\e2e\world-travel.spec.ts:32:1 › teleport: Escape closes the chooser without travelling (29.4s)
+  ✓  153 [msedge] › tests\e2e\world-travel.spec.ts:49:1 › Sound is a real toggle on Welcome (no audio before the press) (4.1s)
+  ✓  149 [msedge] › tests\e2e\world-railing.spec.ts:7:36 › coastal railing: keyboard approach, E / Escape / movement exits (en) (43.9s)
+  ✓  152 [msedge] › tests\e2e\world-travel.spec.ts:43:1 › the GD110 waits parked beside First Light (16.5s)
+  ✓  157 [msedge] › tests\e2e\world.spec.ts:11:3 › World /en/: Enter World loads the world chunk; Exit world tears it down (47.3s)
+  ✘  158 [msedge] › tests\e2e\world.spec.ts:11:3 › World /vi/: Enter World loads the world chunk; Exit world tears it down (43.6s)
+  ✘  154 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike (2.2m)
+  ✘  156 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E during mount ends upright beside the parked bike (2.2m)
+  ✘  155 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E while rolling ends upright beside the parked bike (2.2m)
+
+
+  1) [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+    Expected: "done"
+    Received: "pending"
+    Timeout:  90000ms
+
+    Call log:
+      - Expect "toHaveAttribute" locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]') with timeout 90000ms
+      - waiting for locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+        7 × locator resolved to <div lang="en" tabindex="-1" role="region" class="world-viewport" data-world-locale="en" data-world-intro="done" data-world-motion="full" data-world-ending="idle" data-world-paused="false" data-world-build="pending" data-world-teleport="idle" data-world-vehicle="parked" data-world-postcard="ready" data-world-quality="balanced" data-world-hint="first-light" data-world-chunk="__TQA_WORLD_CHUNK__" aria-label="Physics test scene — WASD to move">…</div>
+          - unexpected value "pending"
+        101 × locator resolved to <div lang="en" tabindex="-1" role="region" class="world-viewport" data-world-locale="en" data-world-intro="done" data-world-motion="full" data-world-ending="idle" data-world-quality="low" data-world-paused="false" data-world-build="pending" data-world-teleport="idle" data-world-vehicle="parked" data-world-postcard="ready" data-world-hint="first-light" data-world-chunk="__TQA_WORLD_CHUNK__" aria-label="Physics test scene — WASD to move">…</div>
+            - unexpected value "pending"
+
+
+      23 |     // Deferred scenery only builds while the session can simulate. A second
+      24 |     // Edge worker may start blurred, so restore focus before waiting for it.
+    > 25 |     await expect(world!).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
+         |                          ^
+      26 |     // High is pinned using the same event as the menu; motion stays enabled.
+      27 |     await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "high" } })));
+      28 |     expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(false);
+        at D:\the-quiet-atlas\tests\e2e\world-vehicle.spec.ts:25:26
+
+    Error Context: test-results\e2e-artifacts\world-vehicle-vehicle-with-329cb-ight-beside-the-parked-bike-msedge\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\e2e-artifacts\world-vehicle-vehicle-with-329cb-ight-beside-the-parked-bike-msedge\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\e2e-artifacts\world-vehicle-vehicle-with-329cb-ight-beside-the-parked-bike-msedge\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E while rolling ends upright beside the parked bike 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+    Expected: "done"
+    Received: "pending"
+    Timeout:  90000ms
+
+    Call log:
+      - Expect "toHaveAttribute" locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]') with timeout 90000ms
+      - waiting for locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+        109 × locator resolved to <div lang="en" tabindex="-1" role="region" class="world-viewport" data-world-locale="en" data-world-intro="done" data-world-motion="full" data-world-ending="idle" data-world-quality="low" data-world-paused="false" data-world-build="pending" data-world-teleport="idle" data-world-vehicle="parked" data-world-postcard="ready" data-world-hint="first-light" data-world-chunk="__TQA_WORLD_CHUNK__" aria-label="Physics test scene — WASD to move">…</div>
+            - unexpected value "pending"
+
+
+      23 |     // Deferred scenery only builds while the session can simulate. A second
+      24 |     // Edge worker may start blurred, so restore focus before waiting for it.
+    > 25 |     await expect(world!).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
+         |                          ^
+      26 |     // High is pinned using the same event as the menu; motion stays enabled.
+      27 |     await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "high" } })));
+      28 |     expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(false);
+        at D:\the-quiet-atlas\tests\e2e\world-vehicle.spec.ts:25:26
+
+    Error Context: test-results\e2e-artifacts\world-vehicle-vehicle-with-069af-ight-beside-the-parked-bike-msedge\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\e2e-artifacts\world-vehicle-vehicle-with-069af-ight-beside-the-parked-bike-msedge\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\e2e-artifacts\world-vehicle-vehicle-with-069af-ight-beside-the-parked-bike-msedge\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E during mount ends upright beside the parked bike 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+    Expected: "done"
+    Received: "pending"
+    Timeout:  90000ms
+
+    Call log:
+      - Expect "toHaveAttribute" locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]') with timeout 90000ms
+      - waiting for locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+        9 × locator resolved to <div lang="en" tabindex="-1" role="region" class="world-viewport" data-world-locale="en" data-world-intro="done" data-world-motion="full" data-world-ending="idle" data-world-paused="false" data-world-build="pending" data-world-teleport="idle" data-world-vehicle="parked" data-world-postcard="ready" data-world-quality="balanced" data-world-hint="first-light" data-world-chunk="__TQA_WORLD_CHUNK__" aria-label="Physics test scene — WASD to move">…</div>
+          - unexpected value "pending"
+        102 × locator resolved to <div lang="en" tabindex="-1" role="region" class="world-viewport" data-world-locale="en" data-world-intro="done" data-world-motion="full" data-world-ending="idle" data-world-quality="low" data-world-paused="false" data-world-build="pending" data-world-teleport="idle" data-world-vehicle="parked" data-world-postcard="ready" data-world-hint="first-light" data-world-chunk="__TQA_WORLD_CHUNK__" aria-label="Physics test scene — WASD to move">…</div>
+            - unexpected value "pending"
+
+
+      23 |     // Deferred scenery only builds while the session can simulate. A second
+      24 |     // Edge worker may start blurred, so restore focus before waiting for it.
+    > 25 |     await expect(world!).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
+         |                          ^
+      26 |     // High is pinned using the same event as the menu; motion stays enabled.
+      27 |     await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "high" } })));
+      28 |     expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(false);
+        at D:\the-quiet-atlas\tests\e2e\world-vehicle.spec.ts:25:26
+
+    Error Context: test-results\e2e-artifacts\world-vehicle-vehicle-with-fd002-ight-beside-the-parked-bike-msedge\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\e2e-artifacts\world-vehicle-vehicle-with-fd002-ight-beside-the-parked-bike-msedge\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\e2e-artifacts\world-vehicle-vehicle-with-fd002-ight-beside-the-parked-bike-msedge\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [msedge] › tests\e2e\world.spec.ts:11:3 › World /vi/: Enter World loads the world chunk; Exit world tears it down 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]') with timeout 20000ms
+      - waiting for locator('[data-world-chunk="__TQA_WORLD_CHUNK__"]')
+
+
+      22 |     await enter.click();
+      23 |     const scene = page.locator(`[data-world-chunk="${WORLD_MARKER}"]`);
+    > 24 |     await expect(scene).toBeVisible({ timeout: 20_000 });
+         |                         ^
+      25 |     await expect(scene.locator("canvas")).toHaveCount(1);
+      26 |     await expect(page.locator("[data-app-mode='world']")).toHaveCount(1);
+      27 |     await settle(page);
+        at D:\the-quiet-atlas\tests\e2e\world.spec.ts:24:25
+
+    Error Context: test-results\e2e-artifacts\world-World-vi-Enter-World-62e0d-nk-Exit-world-tears-it-down-msedge\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\e2e-artifacts\world-World-vi-Enter-World-62e0d-nk-Exit-world-tears-it-down-msedge\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\e2e-artifacts\world-World-vi-Enter-World-62e0d-nk-Exit-world-tears-it-down-msedge\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike 
+    [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E while rolling ends upright beside the parked bike 
+    [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E during mount ends upright beside the parked bike 
+    [msedge] › tests\e2e\world.spec.ts:11:3 › World /vi/: Enter World loads the world chunk; Exit world tears it down 
+  154 passed (7.3m)

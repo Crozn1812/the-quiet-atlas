@@ -1,0 +1,12 @@
+$ node tools/scan-leaks/index.mjs src/content out
+scan-leaks (§4.6) — dirs: src/content, out; files scanned: 156, binary skipped: 52
+
+Warnings:
+  - TQA_DENYLIST_FILE chưa đặt — bỏ qua luật R5 (denylist khách hàng/đối tác/email đồng nghiệp).
+
+Findings (2):
+  out/_next/static/chunks/964.ad67bc22e9924c7c.js:3:5072  [R4 internal-domain]  t…(7 chars)
+  out/_next/static/chunks/964.ad67bc22e9924c7c.js:55:5774  [R4 internal-domain]  t…(7 chars)
+
+RESULT: FAIL
+[ELIFECYCLE] Command failed with exit code 1.

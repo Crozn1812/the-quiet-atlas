@@ -1,0 +1,49 @@
+$ playwright test -c tests/perf/playwright.perf.config.ts
+
+Running 3 tests using 1 worker
+
+  ✓  1 tests\perf\journey.perf.ts:22:1 › B2-210 main journey at walking speed (6.2m)
+run 1: Welcome /en/ initial transfer=225452 PASS; Welcome /en/ JS (gzip)=139792 PASS; Quick /en/quick/ initial transfer=184794 PASS; Quick /en/quick/ JS (gzip)=135845 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2187539 PASS; Time to playable=5546.599853515625 PASS
+run 2: Welcome /en/ initial transfer=225452 PASS; Welcome /en/ JS (gzip)=139792 PASS; Quick /en/quick/ initial transfer=184794 PASS; Quick /en/quick/ JS (gzip)=135845 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2187539 PASS; Time to playable=6942.199951171875 PASS
+run 3: Welcome /en/ initial transfer=225452 PASS; Welcome /en/ JS (gzip)=139792 PASS; Quick /en/quick/ initial transfer=184794 PASS; Quick /en/quick/ JS (gzip)=135845 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2187539 PASS; Time to playable=6129.699951171875 PASS
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /en/ initial transfer | ≤ 1.00 MB | 220.2 KB (225452 B) | 220.2 KB (225452 B) | 220.2 KB (225452 B) | 220.2 KB (225452 B) | **PASS** |
+| Welcome /en/ JS (gzip) | ≤ 150.0 KB | 136.5 KB (139792 B) | 136.5 KB (139792 B) | 136.5 KB (139792 B) | 136.5 KB (139792 B) | **PASS** |
+| Quick /en/quick/ initial transfer | ≤ 1.00 MB | 180.5 KB (184794 B) | 180.5 KB (184794 B) | 180.5 KB (184794 B) | 180.5 KB (184794 B) | **PASS** |
+| Quick /en/quick/ JS (gzip) | ≤ 150.0 KB | 132.7 KB (135845 B) | 132.7 KB (135845 B) | 132.7 KB (135845 B) | 132.7 KB (135845 B) | **PASS** |
+| Welcome /en/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /en/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | ≤ n/a | 2.09 MB (2187539 B) | 2.09 MB (2187539 B) | 2.09 MB (2187539 B) | 2.09 MB (2187539 B) | **PASS** |
+| Time to playable | ≤ 10 s | 5.55 s | 6.94 s | 6.13 s | 6.94 s | **PASS** |
+
+Tổng: **PASS** (gate theo kết quả xấu nhất của 3 lần cold load).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.46","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\the-quiet-atlas\test-results\load-budget
+  ✓  2 tests\perf\load-budget.perf.ts:222:3 › load budget §8 /en/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (32.8s)
+run 1: Welcome /vi/ initial transfer=231726 PASS; Welcome /vi/ JS (gzip)=139792 PASS; Quick /vi/quick/ initial transfer=191201 PASS; Quick /vi/quick/ JS (gzip)=135845 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2187539 PASS; Time to playable=7471 PASS
+run 2: Welcome /vi/ initial transfer=231726 PASS; Welcome /vi/ JS (gzip)=139792 PASS; Quick /vi/quick/ initial transfer=191201 PASS; Quick /vi/quick/ JS (gzip)=135845 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2187539 PASS; Time to playable=7671.699951171875 PASS
+run 3: Welcome /vi/ initial transfer=231726 PASS; Welcome /vi/ JS (gzip)=139792 PASS; Quick /vi/quick/ initial transfer=191201 PASS; Quick /vi/quick/ JS (gzip)=135845 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2187539 PASS; Time to playable=6212.699951171875 PASS
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /vi/ initial transfer | ≤ 1.00 MB | 226.3 KB (231726 B) | 226.3 KB (231726 B) | 226.3 KB (231726 B) | 226.3 KB (231726 B) | **PASS** |
+| Welcome /vi/ JS (gzip) | ≤ 150.0 KB | 136.5 KB (139792 B) | 136.5 KB (139792 B) | 136.5 KB (139792 B) | 136.5 KB (139792 B) | **PASS** |
+| Quick /vi/quick/ initial transfer | ≤ 1.00 MB | 186.7 KB (191201 B) | 186.7 KB (191201 B) | 186.7 KB (191201 B) | 186.7 KB (191201 B) | **PASS** |
+| Quick /vi/quick/ JS (gzip) | ≤ 150.0 KB | 132.7 KB (135845 B) | 132.7 KB (135845 B) | 132.7 KB (135845 B) | 132.7 KB (135845 B) | **PASS** |
+| Welcome /vi/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /vi/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | ≤ n/a | 2.09 MB (2187539 B) | 2.09 MB (2187539 B) | 2.09 MB (2187539 B) | 2.09 MB (2187539 B) | **PASS** |
+| Time to playable | ≤ 10 s | 7.47 s | 7.67 s | 6.21 s | 7.67 s | **PASS** |
+
+Tổng: **PASS** (gate theo kết quả xấu nhất của 3 lần cold load).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.46","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\the-quiet-atlas\test-results\load-budget
+  ✓  3 tests\perf\load-budget.perf.ts:222:3 › load budget §8 /vi/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (1.2m)
+
+  Slow test file: tests\perf\journey.perf.ts (6.2m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  3 passed (8.0m)

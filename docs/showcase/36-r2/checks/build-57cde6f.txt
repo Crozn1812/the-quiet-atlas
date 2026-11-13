@@ -1,0 +1,21 @@
+$ node tools/build.mjs
+▲ Next.js 16.4.4 (webpack)
+⚠ Attempted to load @next/swc-win32-x64-msvc, but an error occurred: An Application Control policy has blocked this file.
+\\?\D:\the-quiet-atlas\node_modules\.pnpm\@next+swc-win32-x64-msvc@16.4.4\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+⚠ Error: Cannot find module 'C:\Users\PC-LP\AppData\Local\next-swc\wasm\package\wasm.js' imported from D:\the-quiet-atlas\node_modules\.pnpm\next@16.4.4_@babel+core@7.2_b8f276e268aab74f9c58b6478e620c9c\node_modules\next\dist\build\swc\index.js
+    at ignore-listed frames {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///C:/Users/PC-LP/AppData/Local/next-swc/wasm/package/wasm.js'
+}
+⚠ Error: Cannot find module 'C:\Users\PC-LP\AppData\Local\next-swc\wasm\package\wasm.js' imported from D:\the-quiet-atlas\node_modules\.pnpm\next@16.4.4_@babel+core@7.2_b8f276e268aab74f9c58b6478e620c9c\node_modules\next\dist\build\swc\index.js
+    at ignore-listed frames {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///C:/Users/PC-LP/AppData/Local/next-swc/wasm/package/wasm.js'
+}
+⨯ Failed to load SWC binary for win32/x64, see more info here: https://nextjs.org/docs/messages/failed-loading-swc
+⨯ Failed to load next.config.ts, see more info here https://nextjs.org/docs/messages/next-config-error
+
+> Build error occurred
+Error: Failed to load SWC binary for win32/x64, see more info here: https://nextjs.org/docs/messages/failed-loading-swc
+    at ignore-listed frames
+[ELIFECYCLE] Command failed with exit code 1.
