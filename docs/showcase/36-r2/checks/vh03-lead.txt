@@ -1,0 +1,8 @@
+GATE PASS: lint, typecheck,  Tests 1782 passed (1782)
+build ok
+  ✓  6 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E during mount ends upright beside the parked bike (32.3s)
+  ✓  7 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike (38.8s)
+  ✓  8 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E while rolling ends upright beside the parked bike (37.2s)
+  ✓  9 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E during mount ends upright beside the parked bike (33.5s)
+
+  9 passed (5.5m)
