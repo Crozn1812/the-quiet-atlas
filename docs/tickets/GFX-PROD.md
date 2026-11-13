@@ -28,3 +28,8 @@ Sau P1–P4: mỗi khu một ticket dressing (đá, cây, vật thể theo khu) 
 ## GFX-P5 — Nhân vật và xe GD110 hướng C (Codex D)
 Nhân vật (rig 19 xương, đi/chạy/ngồi/lái giữ nguyên) và xe GD110: chất liệu PBR (vải áo trơn, quần, da, tóc, kính; sơn xe, kim loại, cao su lốp, da yên), normal/roughness từ texture CC0 hoặc bake trong Blender, tỷ lệ và dáng theo turnaround D-23 (không logo Chiefs, không chữ Suzuki). Mặt và tay mịn hơn (subdivision trước khi bake, LOD cho xa). Giữ ≤ 30 000 tam giác nhân vật, ≤ 25 000 xe; nạp deferred nếu tăng thời gian tới lúc chơi được.
 Được sửa: `src/features/world/character/**`, `src/features/world/vehicle/**` (chỉ mesh/vật liệu), `tools/assets/blender/character*`, `tools/assets/blender/gd110*`, `public/world/character/`, `public/world/vehicle/`, LICENSES, test. Ảnh: cận nhân vật 3 góc + xe 3 góc (High) và 8 khu.
+
+## GFX-P6 — Intro và ending hướng C (Codex B)
+Intro (bình minh First Light) và ending (hoàng hôn Last Postcard) dùng hệ C đã merge: IBL/hậu kỳ GFX-P1 (`post/cinematic.ts`, `post/runtime.ts`), cây GFX-P3, nước GFX-P4. Chỉnh khung máy quay, ánh sáng, grading và DOF riêng cho cinematic (DOF được dùng ở cinematic cả Balanced; tắt ở Low). Giữ thời lượng, phụ đề, nút bỏ qua, reduced-motion, và `data-world-build` không chờ asset C.
+Được sửa: `src/features/world/cinematic/**`, `post/cinematic.ts`, test. Không sửa `index.ts` (nếu cần nối, ≤ 5 dòng và ghi trong bàn giao).
+Ảnh: 6 khung intro + 6 khung ending (High) + 1 khung Low mỗi đoạn; video 30–60 s mỗi đoạn vào `docs/showcase/38-c/` nếu ghi được.
