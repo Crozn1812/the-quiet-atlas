@@ -1,4 +1,5 @@
 import { enterWorld, ensureWindowFocus, trackConsoleErrors } from "./helpers";
+import { attachVehicleDiagnostics, recordVehicleDiagnostics } from "./helpers/vehicle-diagnostics";
 import { expect, test, type Locator } from "./test";
 
 interface Journey {
@@ -9,9 +10,18 @@ interface Journey {
 type JourneyElement = HTMLElement & { __tqaJourney: Journey };
 const position = (world: Locator) => world.evaluate(el => (el as JourneyElement).__tqaJourney.position());
 const pose = (world: Locator) => world.evaluate(el => (el as JourneyElement).__tqaJourney.rider());
+// SwiftShader can take longer than a wall-clock sleep to draw a frame. Two
+// consecutive rAF callbacks guarantee a world tick between position samples.
+const positionAfterFrames = (world: Locator) => world.evaluate(async el => {
+  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  return (el as JourneyElement).__tqaJourney.position();
+});
 
 test.use({ reducedMotion: "no-preference", viewport: { width: 1280, height: 720 } });
 test.describe.configure({ timeout: 120_000 });
+test.beforeEach(async ({ page }) => recordVehicleDiagnostics(page));
+test.afterEach(async ({ page }, testInfo) => attachVehicleDiagnostics(page, testInfo));
 
 for (const scenario of ["brake to rest", "E while rolling", "E during mount"] as const) {
   test(`vehicle with motion: ${scenario} ends upright beside the parked bike`, async ({ page }) => {
@@ -37,23 +47,25 @@ for (const scenario of ["brake to rest", "E while rolling", "E during mount"] as
       await page.keyboard.down("w");
       await page.waitForTimeout(1500);
       await page.keyboard.down("d");
-      await page.waitForTimeout(1500);
+      // Keep driving until simulation, rather than 3 s of wall time, has moved
+      // the bike. Use the default assertion deadline and original distance.
+      await expect.poll(async () => {
+        const driven = await positionAfterFrames(world!);
+        return Math.hypot(driven.x - start.x, driven.z - start.z);
+      }).toBeGreaterThan(.1);
       await page.keyboard.up("d");
       await page.keyboard.up("w");
-      const driven = await position(world!);
-      expect(Math.hypot(driven.x - start.x, driven.z - start.z)).toBeGreaterThan(.1);
       if (scenario === "brake to rest") {
         await page.keyboard.down("s");
         await expect.poll(async () => {
           const before = await position(world!);
-          await page.waitForTimeout(250);
-          const after = await position(world!);
+          const after = await positionAfterFrames(world!);
           return Math.hypot(after.x - before.x, after.z - before.z);
         }, { timeout: 15_000 }).toBeLessThan(.002);
         // Keep holding past zero: braking must not silently become reversing.
         const stopped = await position(world!);
         await page.waitForTimeout(500);
-        const after = await position(world!);
+        const after = await positionAfterFrames(world!);
         expect(Math.hypot(after.x - stopped.x, after.z - stopped.z)).toBeLessThan(.002);
         await page.keyboard.up("s");
       }
