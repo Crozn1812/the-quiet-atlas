@@ -1,5 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
-import { createSurfaceSampler, riverWidthAt, waterLevelAt, worldHeight } from "../terrain/height";
+import { createSurfaceSampler, surfaceHeight, riverWidthAt, waterLevelAt, worldHeight } from "../terrain/height";
 import { riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
@@ -17,10 +17,11 @@ function mouthBlend(t: number): number {
 
 /** Only the final reach may hand its surface to the sea. The sea quad also
  * extends behind inland reaches, where a z-only test would erase the stream. */
-function estuaryJoinT(): number {
+export function estuaryJoinT(): number {
+  if (cachedJoin !== undefined) return cachedJoin;
   const near = riverPointAt(1).z + SEA_INLAND_OVERLAP;
   for (let row = 0; row <= 256; row++) {
-    const t = 0.95 + 0.05 * row / 256;
+    const t = 0.82 + 0.18 * row / 256;
     const centre = riverPointAt(t);
     const tangent = riverTangentAt(t);
     // Probe beyond the carved channel: its submerged bed alone does not mean
@@ -29,11 +30,14 @@ function estuaryJoinT(): number {
     for (const offset of [-bank, bank]) {
       const x = centre.x - tangent.z * offset;
       const z = centre.z + tangent.x * offset;
-      if (z <= near && worldHeight(x, z) < WATER_LEVEL) return t;
+      if (z <= near && Math.min(worldHeight(x, z), surfaceHeight(x, z)) < WATER_LEVEL) return cachedJoin = t;
     }
   }
-  return 1;
+  return cachedJoin = 1;
 }
+
+// The layout and heightfield are immutable; share this static shoreline scan.
+let cachedJoin: number | undefined;
 
 export { riverWidthAt } from "../terrain/height";
 
@@ -49,7 +53,7 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
   const indices: number[] = [];
   const length = riverLength();
   const join = estuaryJoinT();
-  const blendStart = Math.max(0.95, join - 16 / length);
+  const blendStart = Math.max(0.82, join - 16 / length);
   const blendEnd = Math.max(blendStart + 0.00001, join - 2 / length);
   // Explicit transition rows keep even coarse ribbons from spanning the join
   // with a triangle that is still above the sea. Upstream rows are untouched.

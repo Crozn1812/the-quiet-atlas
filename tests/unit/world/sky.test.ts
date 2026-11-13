@@ -4,6 +4,7 @@ import { PALETTE } from "../../../src/features/world/art/palette";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import { fogAt, FOREST_ATMOSPHERE_TRANSITION, paletteColor, STYLE_PRESETS } from "../../../src/features/world/art/direction";
 import { directGrade } from "../../../src/features/world/scene/compose";
 import { applyCoastAtmosphere, cloneGrade, coastAtmosphereWeight, GRADE_COLORS, lightingAt, type LightingGrade } from "../../../src/features/world/sky/grade";
@@ -213,7 +214,7 @@ describe("V6 dawn to dusk CPU reference", () => {
     expect(grade.sunIntensity).toBe(2.2);
     expect(grade.hemiIntensity).toBe(1.6);
     expect(Math.asin(grade.sunDirection.y) * 180 / Math.PI).toBeCloseTo(35);
-    expect(fogAt(horizon.t)).toEqual({ near: 120, far: 700, forestWeight: 0 });
+    expect(fogAt(horizon.t)).toEqual({ near: 120, far: 700 * WORLD_SCALE, forestWeight: 0 });
     expect(grade.fogColor).toEqual(new Color(PALETTE.skyLow));
     const reference = referenceLuma(grade).mean;
     for (const zone of ZONES.filter(zone => zone.biome !== "hill")) {

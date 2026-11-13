@@ -16,7 +16,8 @@ import { roadBandOffsetAt, roadSurfaceColorAt } from "./surface";
 // Longitudinal cells are <= 0.8 m; shoulder cells are <= 0.35 m.
 export const ROAD_BANDS = [-3.3, -3.05, -2.8, -2.5, -2.2, -2.1, -1.8, -1.55, -0.65, -0.06,
   0.06, 0.65, 1.55, 1.8, 2.1, 2.2, 2.5, 2.8, 3.05, 3.3] as const;
-export const ROAD_CELL_LENGTH = .8;
+// The tighter bends need shorter faces to stay within the 10 cm drape envelope.
+export const ROAD_CELL_LENGTH = .7;
 export const ROAD_SEGMENTS = Math.ceil((ROAD_END - ROAD_START) * pathLength() / ROAD_CELL_LENGTH);
 // Retain the established strip elsewhere; only the terminal needs exact cell clipping.
 export const ROAD_TERMINAL_ROW = Math.floor(ROAD_SEGMENTS - 15 / ROAD_CELL_LENGTH);

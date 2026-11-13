@@ -1,4 +1,5 @@
 import { STYLE_PRESETS } from "../../../src/features/world/art/direction";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import { afterEach, expect, it, vi } from "vitest";
 import { Box3, BufferGeometry, Color, Fog, HemisphereLight, InstancedMesh, Material, Matrix4, Mesh, Scene, Vector3 } from "three";
 import { createWorldScene, directGrade, nearestSafePath, surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
@@ -35,11 +36,11 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
         const zone = ZONES.find(zone => zone.id === id)!;
         composed.update(new Vector3().copy(zone.position), 0);
         const expected = zone.biome === "forest-dawn" ? { near: 60, far: 180 }
-          : zone.biome === "coast-dusk" ? { near: 160, far: 900 } : { near: 120, far: 700 };
+          : zone.biome === "coast-dusk" ? { near: 160, far: 900 * WORLD_SCALE } : { near: 120, far: 700 * WORLD_SCALE };
         expect(scene.fog).toBeInstanceOf(Fog);
-        expect((scene.fog as Fog).near).toBe(expected.near);
+        expect((scene.fog as Fog).near).toBeCloseTo(expected.near, 8);
         expect((scene.fog as Fog).far).toBeCloseTo(expected.far, 8);
-        expect(paper.setFog.mock.lastCall![0].near).toBe(expected.near);
+        expect(paper.setFog.mock.lastCall![0].near).toBeCloseTo(expected.near, 8);
         expect(paper.setFog.mock.lastCall![0].far).toBeCloseTo(expected.far, 8);
         expect(paper.setFog.mock.lastCall![0].forestWeight).toBe(0);
         const grade = applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(zone.t)), timeOfDayAt(zone.t)), zone.t);

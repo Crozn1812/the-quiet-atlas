@@ -174,7 +174,8 @@ describe("The Milestones hillside", () => {
       };
       const target = scene.interactable.position;
       expect(target.x).toBeLessThan(-PATH_CLEARANCE);
-      expect(Math.abs(target.z)).toBeGreaterThan(8);
+      // The placement search may use the nearer dry shoulder on the shorter bend.
+      expect(Math.abs(target.z)).toBeGreaterThanOrEqual(4);
       const edge = new Vector3(-PATH_CLEARANCE, 0, target.z);
       edge.y = heightAt(edge.x, edge.z) + HEIGHT;
       expect(edge.distanceTo(target)).toBeLessThanOrEqual(2.5);

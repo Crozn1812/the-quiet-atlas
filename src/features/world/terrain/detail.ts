@@ -1,6 +1,7 @@
 import { Color, LoadingManager, Mesh, MeshToonMaterial, NoColorSpace, RepeatWrapping, type Object3D, type Texture, type WebGLRenderer } from "three";
 import type { Quality } from "../terrain";
 import { hex } from "../art/palette";
+import { COAST_SAND_Z } from "../layout/scale";
 
 export const TERRAIN_TEXTURE_BYTES = 385355;
 export const TERRAIN_TEXTURE_URLS = ["grass", "dirt", "rock", "sand", "normal"].map(name => `/world/textures/${name}.ktx2`);
@@ -34,7 +35,7 @@ float groundDetail(vec3 pigment) {
   float sandDistance = distance(pigment, groundSandColor);
   float grassWeight = 1.0 - smoothstep(0.08, 0.30, greenDistance);
   float sandWeight = (1.0 - smoothstep(0.06, 0.24, sandDistance))
-    * (1.0 - smoothstep(-720.0, -680.0, groundPosition.z));
+    * (1.0 - smoothstep(${COAST_SAND_Z[0].toFixed(1)}, ${COAST_SAND_Z[1].toFixed(1)}, groundPosition.z));
   float rockWeight = 1.0 - smoothstep(0.57, 0.82, abs(n.y));
   float detail = mix(groundSample(groundDirt, groundPosition.xz), groundSample(groundGrass, groundPosition.xz), grassWeight);
   detail = mix(detail, groundSample(groundSand, groundPosition.xz), sandWeight);

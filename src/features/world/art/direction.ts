@@ -4,6 +4,7 @@ import { Color, SRGBColorSpace } from "three";
 import { PALETTE, type PaletteKey } from "./palette";
 import { ZONES } from "../layout/zones";
 import { pathLength } from "../layout/path";
+import { WORLD_SCALE } from "../layout/scale";
 
 /** A traceable palette recipe, never an independent colour swatch. */
 export interface PaletteRecipe {
@@ -36,7 +37,7 @@ export interface StylePreset {
   background: {
     terrain: PaletteRecipe;
     ramp: { steps: number; soft: boolean };
-    /** World-scale linear fog to paper (m); the 15/65 m prototype values swallow a 900 m world. */
+    /** Linear fog in metres, with remote visibility proportional to the route. */
     fog: { near: number; far: number; coastFar?: number; coastNear?: number };
     /** warmth: 0 = palette mist (cool jade), 1 = the shot's painted horizon colour. */
     mist: { bands: [number, number, number]; strength: number; warmth: number };
@@ -127,8 +128,8 @@ const R: StylePreset = {
   background: {
     terrain: recipe("grass", "grassDry", 0.25, 1, 1),
     ramp: { steps: 4, soft: true },
-    fog: { near: 120, far: 700, coastFar: 900, coastNear: 160 },
-    mist: { bands: [160, 320, 600], strength: 0.02, warmth: 1 },
+    fog: { near: 120, far: 700 * WORLD_SCALE, coastFar: 900 * WORLD_SCALE, coastNear: 160 },
+    mist: { bands: [160 * WORLD_SCALE, 320 * WORLD_SCALE, 600 * WORLD_SCALE], strength: 0.02, warmth: 1 },
     forest: {
       color: recipe("mist", "sunGold", 0.18),
       // Keep the walking corridor clear; distant trunks still dissolve into jade air.

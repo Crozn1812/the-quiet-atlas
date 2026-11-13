@@ -7,6 +7,7 @@ import { PATH_BRIDGES, pathLength, pathPointAt, pathRiverTAt } from "../../../sr
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { routeSeconds, secondsToZone } from "../../../src/features/world/layout/timing";
 import { LIGHTING_TRANSITION, timeOfDayAt } from "../../../src/features/world/layout/lighting";
+import { WORLD_LENGTH, WORLD_SCALE } from "../../../src/features/world/layout/scale";
 
 function measuredLength(pointAt: (t: number) => Vector3, end = 1): number {
   let length = 0;
@@ -39,10 +40,10 @@ describe("river and walking geometry", () => {
       expect(riverTangentAt(i / 1024).length()).toBeCloseTo(1, 8);
     }
     expect(reversals).toBeGreaterThanOrEqual(3);
-    expect(Math.max(...samples.map(p => p.x))).toBeGreaterThan(50);
-    expect(Math.min(...samples.map(p => p.x))).toBeLessThan(-50);
+    expect(Math.max(...samples.map(p => p.x))).toBeGreaterThan(50 * WORLD_SCALE);
+    expect(Math.min(...samples.map(p => p.x))).toBeLessThan(-50 * WORLD_SCALE);
     expect(samples[0]).toEqual(new Vector3(0, 0, 0));
-    expect(samples.at(-1)).toEqual(new Vector3(0, 0, -900));
+    expect(samples.at(-1)!.distanceTo(new Vector3(0, 0, -WORLD_LENGTH))).toBeLessThan(1e-8);
     expect(riverLength()).toBeCloseTo(measuredLength(riverPointAt), 1);
     expect(Object.isFrozen(RIVER_CONTROL_POINTS)).toBe(true);
   });
@@ -119,7 +120,7 @@ describe("zone placement and design timing gates", () => {
     expect(ZONES.at(-1)!.biome).toBe("coast-dusk");
     // Three estimates endpoint tangents with finite differences; the normal
     // offset can shift Z by a few millimetres at the river mouth.
-    expect(Math.abs(ZONES.at(-1)!.position.z + 900)).toBeLessThan(0.01);
+    expect(Math.abs(ZONES.at(-1)!.position.z + WORLD_LENGTH)).toBeLessThan(0.01);
     expect(ZONES.at(-1)!.lookDirection.z).toBeLessThan(-0.99);
     for (const zone of ZONES) {
       expect(zone.position).toEqual(pathPointAt(zone.t));
@@ -132,15 +133,15 @@ describe("zone placement and design timing gates", () => {
     }
   });
 
-  it("walks the complete route in 5–7 minutes and reaches the early content on time", () => {
+  it("meets ADR 0017's 200–240 s route and early-content walking times", () => {
     expect(WALK_SPEED).toBe(3);
-    expect(routeSeconds()).toBeGreaterThanOrEqual(300);
-    expect(routeSeconds()).toBeLessThanOrEqual(420);
+    expect(routeSeconds()).toBeGreaterThanOrEqual(200);
+    expect(routeSeconds()).toBeLessThanOrEqual(240);
     expect(secondsToZone("first-light")).toBe(0);
-    expect(secondsToZone("workshop")).toBeGreaterThanOrEqual(45);
-    expect(secondsToZone("workshop")).toBeLessThanOrEqual(60);
-    expect(secondsToZone("roots")).toBeLessThanOrEqual(90);
-    expect(secondsToZone("milestones")).toBeLessThanOrEqual(90);
+    expect(secondsToZone("workshop")).toBeGreaterThanOrEqual(25);
+    expect(secondsToZone("workshop")).toBeLessThanOrEqual(45);
+    expect(secondsToZone("roots")).toBeLessThanOrEqual(60);
+    expect(secondsToZone("milestones")).toBeLessThanOrEqual(60);
     expect(secondsToZone("last-postcard")).toBe(routeSeconds());
     for (const zone of ZONES) {
       expect(Math.abs(secondsToZone(zone.id) - measuredLength(pathPointAt, zone.t) / WALK_SPEED)).toBeLessThan(0.01);

@@ -2,7 +2,7 @@
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "./art/palette";
 import { PATH_CLEARANCE, ZONE_CLEARANCE } from "./foliage/scatter";
-import { pathPointAt } from "./layout/path";
+import { pathLength, pathPointAt } from "./layout/path";
 import { ZONES } from "./layout/zones";
 import { createRampMaterial } from "./materials/ramp";
 import { createPostGeometry } from "./props/wood";
@@ -12,7 +12,8 @@ import { nearestPath } from "./terrain/samples";
 
 /** Fixed route-distance anchors; the small shoulder search is deterministic. */
 export function createWaymarkLayout() {
-  return [0.38, 0.412, 0.53, 0.562, 0.594].map((t, i) => {
+  const spacing = 35 / pathLength();
+  return [0.38, 0.38 + spacing, 0.53, 0.53 + spacing, 0.53 + 2 * spacing].map((t, i) => {
     const p = pathPointAt(t);
     const f = pathPointAt(t + 0.001).sub(pathPointAt(t - 0.001)).normalize();
     const kind = i < 2 ? "post" : "cairn";

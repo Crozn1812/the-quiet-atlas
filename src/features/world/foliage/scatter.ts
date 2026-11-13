@@ -6,6 +6,7 @@ import { nearestPath, nearestRiver, PATH_SAMPLES } from "../terrain/samples";
 import { TILE_SIZE, tileKey, type TerrainTile, type TileAddress } from "../terrain/tiles";
 import { isDeepCrown } from "./instances";
 import { FOREST_SUN_SHAFT_PROGRESS } from "../layout/sun-shafts";
+import { BROADLEAF_VARIANT_SEEDS, createBroadleafCrown } from "./shapes";
 
 export interface FoliageTree {
   readonly x: number;
@@ -36,6 +37,23 @@ const firstHill = ZONES.findIndex(zone => zone.biome === "hill");
 const forestEdge = (ZONES[firstHill - 1]!.t + ZONES[firstHill]!.t) / 2;
 const sunGaps = FOREST_SUN_SHAFT_PROGRESS.map(pathPointAt);
 const trailCanopySpawn = pathPointAt(0);
+const trailFootprint = (() => {
+  const crown = createBroadleafCrown(BROADLEAF_VARIANT_SEEDS[0], true);
+  const position = crown.getAttribute("position"), surface = crown.getAttribute("surface");
+  // Each leaf bunch has twelve vertices. Separate footprints retain the gaps
+  // between bunches when the shorter route brings clearings closer together.
+  const bounds = [];
+  for (let start = 0; start < position.count && surface.getX(start) === 0; start += 12) {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let i = start; i < start + 12; i++) {
+      minX = Math.min(minX, position.getX(i)); maxX = Math.max(maxX, position.getX(i));
+      minZ = Math.min(minZ, position.getZ(i)); maxZ = Math.max(maxZ, position.getZ(i));
+    }
+    bounds.push({ minX, maxX, minZ, maxZ });
+  }
+  crown.dispose();
+  return bounds;
+})();
 
 /** Metres back from the hill boundary in the path-defined biome map. */
 export function forestHillDistanceAt(x: number, z: number): number {
@@ -44,14 +62,15 @@ export function forestHillDistanceAt(x: number, z: number): number {
 
 function hasCanopyRoom(x: number, z: number, scale: number, path: ReturnType<typeof nearestPath>): boolean {
   const nx = (path.x - x) / path.distance, nz = (path.z - z) / path.distance;
-  // Conservative projected bounds of every B2-166 shape, including inward
-  // shear, crown anchor lean and hanging ribbons. Keep whole pads in the sky.
-  const min = -2.2 * 4.2 * scale - 1, max = 3.3 * 4.2 * scale + 1;
-  const across = 2.2 * 2.2 * scale + 1;
+  // The selected trail shape is upright and faces inward. Its actual footprint
+  // keeps pads clear without reserving the obsolete, much larger canopy envelope.
   const clears = (px: number, pz: number, radius: number) => {
     const dx = px - x, dz = pz - z;
     const along = dx * nx + dz * nz, sideways = -dx * nz + dz * nx;
-    return Math.hypot(Math.max(min - along, 0, along - max), Math.max(0, Math.abs(sideways) - across)) > radius;
+    return trailFootprint.every(box => Math.hypot(
+      Math.max(box.minX * scale - 1 - along, 0, along - box.maxX * scale - 1),
+      Math.max(box.minZ * scale - 1 - sideways, 0, sideways - box.maxZ * scale - 1),
+    ) > radius);
   };
   return ZONES.every(zone => clears(zone.position.x, zone.position.z, zone.radius + 1))
     && sunGaps.every(point => clears(point.x, point.z, 9));
@@ -197,7 +216,8 @@ function candidates(ix: number, iz: number): Candidate[] {
     const forestWeight = distance > 40 ? 0.32 : distance > 22 ? 0.85 : 1;
     // Colour comes from the renderer's position hash: favour its deep buckets
     // without another material, mesh, colour override or extra random draws.
-    const density = canopy ? (isDeepCrown(x, z) ? 0.98 : 0.2) * (distance > 200 ? 0.25 : 1)
+    // Keep the established deep-green majority over the shorter coastal field.
+    const density = canopy ? (isDeepCrown(x, z) ? 0.98 : 0.16) * (distance > 200 ? 0.25 : 1)
       : biome === "forest-dawn" ? Math.min(1, clump * (shoulder ? 2.4 : forestWeight)) : biome === "hill" ? clump * 0.2
         : inland > 260 ? clump * 0.01 : clump * 0.25;
     if (densityRoll >= density || isFoliageExcluded(x, z)) continue;
@@ -205,14 +225,13 @@ function candidates(ix: number, iz: number): Candidate[] {
     const shrub = biome === "coast-dusk" && !canopy;
     const pineChance = biome === "forest-dawn" ? ((forestEdge - path.t) * routeLength <= 40 ? 0.72 : 0.12) : 0.6;
     const kind = shrub || canopy ? "broadleaf" : kindRoll < pineChance ? "pine" : "broadleaf";
-    // Keep the old eligibility envelope: smaller trees must not promote extra
-    // candidates or change the Poisson field. Only their visual size changes.
+    // Test the rendered footprint against the now closer clearings and pads.
     const trailCanopy = shoulder && kind === "broadleaf"
       && Math.hypot(x - trailCanopySpawn.x, z - trailCanopySpawn.z) >= 12
-      && hasCanopyRoom(x, z, 1.6 + scaleRoll * 0.4, path);
+      && hasCanopyRoom(x, z, 1.39 + scaleRoll * 0.01, path);
     // The renderer multiplies trail scale by three. 1.35–1.40 effective scale
     // gives 12–13 m trees with <=1.4x bark width; only their limbs reach inward.
-    const trailScale = (1.35 + scaleRoll * 0.05) / 3;
+    const trailScale = (1.39 + scaleRoll * 0.01) / 3;
     result.push({ x, z, priority, scale: shrub ? 0.12 + scaleRoll * 0.08 : canopy ? 0.9 + scaleRoll * 0.6 : trailCanopy ? trailScale : 0.8 + scaleRoll * 0.5,
       // Broad crowns overlap in projection up the slope and reuse the coastal
       // shrub species, so the denser coast does not activate extra draw calls.

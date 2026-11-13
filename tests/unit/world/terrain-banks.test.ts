@@ -64,10 +64,9 @@ describe("hill stream banks", () => {
   });
 
   it("preserves forest banks, every half metre of walking strip/bridge approaches and dry zone foundations", () => {
-    // Digests captured from the pre-B2-195 heightfield at micrometre precision:
+    // ADR 0017 digests of the relocated heightfield at micrometre precision:
     // stricter than the allowed 0.05 m movement, without bulky height arrays.
-    // FL-03 updates the forest digest for the shallow opening reach;
-    // walking/zone digests remain the original exact baseline.
+    // Retain the 5 cm road-cut, edge continuity and bank slope gates above.
     const forest = createHash("sha256"), path = createHash("sha256"), zones = createHash("sha256");
     const record = (hash: ReturnType<typeof createHash>, x: number, z: number) => {
       const base = roadBaseHeight(x, z);
@@ -104,9 +103,9 @@ describe("hill stream banks", () => {
       }
     }
     expect({ forest: forest.digest("hex"), path: path.digest("hex"), zones: zones.digest("hex") }).toEqual({
-      forest: "b45b04927b9bc504b2850232ea5e3877f2bc561784e5e34931f6317f853c3d50",
-      path: "07a7fe1af33f072b32d24505fd93645b40c447a7fe3b0753047043b5ad901dcc",
-      zones: "b6278fcdc31f2cc70a082b39dc0056e64ad14358fef8b4773bc8b39b50a0a82b",
+      forest: "594d27d5504e797065281a5bd4861ab824cc75217a3ef5a05b9594712ee91c5d",
+      path: "a0cefa80524d65714bd779262475d53b447f9f0c77c15f8ebd6dc5519e82d6d8",
+      zones: "4fb53f743bb6dc1fe202e0e48cebb225f26ee82880ffcfbe3022998824c446a8",
     });
   });
 });

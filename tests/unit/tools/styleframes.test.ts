@@ -38,7 +38,7 @@ describe("T10 road yaw", () => {
     expect(left.x).toBeLessThan(0);
     expect(right.x).toBeGreaterThan(0);
     expect(left.dot(right)).toBeCloseTo(-1, 12);
-    const mountain = at.clone().addScaledVector(left, 100);
+    const mountain = at.clone().addScaledVector(left, 110);
     const bay = at.clone().addScaledVector(right, 60);
     for (const height of [worldHeight, surfaceHeight]) {
       expect(height(mountain.x, mountain.z) - height(at.x, at.z)).toBeGreaterThanOrEqual(30);

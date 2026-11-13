@@ -2,6 +2,7 @@ import { Box3, Color, Mesh, PerspectiveCamera, Raycaster, Vector3, type BufferGe
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
+import { pathPointAt } from "../../../../src/features/world/layout/path";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
 import { waterLevelAt } from "../../../../src/features/world/terrain/height";
@@ -116,7 +117,7 @@ describe("quiet-shore procedural place", () => {
         camera.lookAt(view === "wide" ? anchor.clone().setY(anchor.y + 2)
           : shore.target.position.clone().setY(shore.target.position.y + 0.5));
         camera.updateMatrixWorld(true);
-        const sea = new Vector3(-30, 0, -940);
+        const sea = pathPointAt(1).add(new Vector3(-38, 0, -40)).setY(0);
         expect(surfaceHeight(sea.x, sea.z)).toBeLessThan(waterLevelAt(sea.z));
         const screen = sea.clone().project(camera);
         expect(Math.abs(screen.x)).toBeLessThan(0.9);

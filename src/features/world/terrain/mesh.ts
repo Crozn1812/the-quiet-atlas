@@ -6,6 +6,7 @@ import { hex } from "../art/palette";
 import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } from "./height";
 import { nearestPath, nearestRiver } from "./samples";
 import type { TerrainTile } from "./tiles";
+import { COAST_SAND_Z, routeZ } from "../layout/scale";
 
 const grass = new Color(hex("grass"));
 const grassDry = new Color(hex("grassDry"));
@@ -93,7 +94,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const sunward = Math.max(0, (-0.8 * dx + 0.6 * dz) / length);
     const dryness = clamp(smoothstep(0.2, 0.8, broad)
       + 0.16 * smoothstep(3, 45, aboveWater) + 0.1 * sunward
-      + 0.25 * smoothstep(550, 850, -wz) * groundDetail);
+      + 0.25 * smoothstep(-routeZ(550), -routeZ(850), -wz) * groundDetail);
     color.copy(grass).lerp(grassDry, dryness);
 
     // Share the biome edge with forest air: a 40 m fade in walking distance.
@@ -141,10 +142,10 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     color.lerp(tint, cliff);
 
     // Lead fix: sand and seabed belong to real water only. waterLevelAt() is the valley's river level, so low meadow
-    // ground far from the stream must stay grass. Sea: south of z −700 (the bay reaches −680). Stream: within ~3 m of
+    // ground far from the stream must stay grass. Sea: beyond the shared coast boundary. Stream: within ~3 m of
     // the ribbon edge, where the bed reads as light wet stone, not the dark seabed (no black halo beside the ribbon).
     const bank = 1 - smoothstep(riverWidthAt(river.t) / 2 + 0.5, riverWidthAt(river.t) / 2 + 3, river.distance);
-    const sea = 1 - smoothstep(-720, -680, wz);
+    const sea = 1 - smoothstep(COAST_SAND_Z[0], COAST_SAND_Z[1], wz);
     tint.copy(sand).lerp(rock, 0.08 + 0.12 * detail + 0.25 * (1 - sea));
     // Sea beach is a narrow band (Duy's refs: grass runs down to the stones); the stream bank keeps 1.2–2.2 m.
     color.lerp(tint, Math.max(bank * (1 - smoothstep(1.2, 2.2, aboveWater)), sea * (1 - smoothstep(0.5, 1.1, aboveWater))));

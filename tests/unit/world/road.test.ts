@@ -8,6 +8,7 @@ import { PATH_CLEARANCE, ZONE_CLEARANCE } from "../../../src/features/world/foli
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { timeOfDayAt } from "../../../src/features/world/layout/lighting";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import {
   createRoadLayout, POLE_OFFSET, POLE_RADIUS, POLE_SPACING, POST_OFFSET, POST_RADIUS,
   POST_SPACING, ROAD_END, ROAD_LIFT, ROAD_START, ROAD_TAPER_LENGTH, ROAD_WIDTH,
@@ -322,8 +323,9 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
   });
 
   it("places bollards on walking-right and wooden poles on walking-left, outside the corridor, pads and water", () => {
-    expect(road.layout.posts.length).toBeGreaterThan(10);
-    expect(road.layout.poles.length).toBeGreaterThanOrEqual(3);
+    // ADR 0017 shortens the road but retains the metre-based post spacing.
+    expect(road.layout.posts.length).toBeGreaterThan(10 * WORLD_SCALE);
+    expect(road.layout.poles.length).toBeGreaterThanOrEqual(Math.floor(3 * WORLD_SCALE));
     for (const [items, offset, radius] of [
       [road.layout.posts, POST_OFFSET, POST_RADIUS], [road.layout.poles, POLE_OFFSET, POLE_RADIUS],
     ] as const) {

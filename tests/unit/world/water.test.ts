@@ -10,7 +10,7 @@ import { lightingAt } from "../../../src/features/world/sky/grade";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { createWaterMaterial, SEA_WAVE_PERIOD, WATER_FLOW_SPEED } from "../../../src/features/world/water/material";
 import {
-  createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
+  createRibbonGeometry, createRiverRibbon, estuaryJoinT, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL,
 } from "../../../src/features/world/water/ribbon";
 import { createSea, SEA_INLAND_OVERLAP, SEA_RENDER_SIZE, SEA_SIZE } from "../../../src/features/world/water/sea";
 import { createEnding } from "../../../src/features/world/cinematic/ending";
@@ -99,7 +99,7 @@ describe("river ribbon", () => {
       for (const vertex of [i * 2, i * 2 + 1]) {
         const blend = Math.max(0, (t - 0.96) / 0.04);
         const sink = 0.05 * blend * blend * (3 - 2 * blend);
-        if (t >= 0.03 && t < 0.95) expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
+        if (t >= 0.03 && t < estuaryJoinT() - 16 / riverLength()) expect(positions.getY(vertex)).toBeCloseTo(waterLevelAt(riverPointAt(t).z) - sink, 5);
         expect(normals.getY(vertex)).toBe(1);
         expect(uv.getY(vertex)).toBeCloseTo(t * riverLength(), 3);
       }
@@ -364,8 +364,8 @@ describe("sea and water lifecycle", () => {
     const bounds = sea.mesh.geometry.boundingBox!;
     expect(bounds.min.y).toBe(WATER_LEVEL);
     expect(bounds.max.y).toBe(WATER_LEVEL);
-    expect(bounds.max.z).toBe(mouth.z + SEA_INLAND_OVERLAP);
-    expect(bounds.min.z).toBe(mouth.z - SEA_RENDER_SIZE);
+    expect(bounds.max.z).toBeCloseTo(mouth.z + SEA_INLAND_OVERLAP, 5);
+    expect(bounds.min.z).toBeCloseTo(mouth.z - SEA_RENDER_SIZE, 5);
     expect(bounds.min.x).toBe(mouth.x - SEA_RENDER_SIZE / 2);
     expect(bounds.max.x).toBe(mouth.x + SEA_RENDER_SIZE / 2);
     expect(sea.mesh.geometry.getAttribute("position").count).toBe(4);
@@ -373,11 +373,11 @@ describe("sea and water lifecycle", () => {
     expect(sea.mesh.geometry.getAttribute("uv").getY(0)).toBeCloseTo(riverLength() - SEA_INLAND_OVERLAP, 3);
     const material = sea.mesh.material;
     expect(material.uniforms.uShoreBounds!.value.toArray()).toEqual([mouth.x - SEA_SIZE / 2, SEA_SIZE]);
-    // Captured before RC-12: changing render coverage must not resample any of the 109 shore uniforms.
+    // ADR 0017 relocates the beach; retain 109 uniforms and lock the new samples.
     const shoreline = { bounds: material.uniforms.uShoreBounds!.value.toArray(), samples: material.uniforms.uShoreZ!.value };
     expect(shoreline.samples).toHaveLength(109);
     expect(createHash("sha256").update(JSON.stringify(shoreline)).digest("hex"))
-      .toBe("fe664ac28b02b01c1055b02a57b351ea925165d1194ec046cbf2883d22608f39");
+      .toBe("542ebb2479bb076e7d9adfc5ddc6893d9e6151049d957560f5d746f0cb2c6838");
     // B2-174: turquoise pigment follows the sampled coast; B2-160's wash stays separate.
     const grade = lightingAt(1);
     const light = grade.sunColor.clone().multiplyScalar(grade.sunIntensity * (0.625 + 0.375 * grade.sunDirection.y))

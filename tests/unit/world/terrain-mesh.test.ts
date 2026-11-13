@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import * as direction from "../../../src/features/world/art/direction";
 import { hex } from "../../../src/features/world/art/palette";
 import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
+import { WORLD_SCALE, routeZ } from "../../../src/features/world/layout/scale";
 import { createTileCollider, removeTileCollider, type TileRapier } from "../../../src/features/world/terrain/collider";
 import { riverWidthAt, waterLevelAt } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
@@ -258,18 +259,19 @@ describe("terrain tile mesh", () => {
   it("gradually dries coastal grass and breaks grassy slopes with exposed soil", () => {
     const grass = paletteColor("grass"), dry = paletteColor("grassDry");
     const dryness = (color: Color) => (color.r - grass.r) / (dry.r - grass.r);
-    const means = [-550, -700, -850].map(z => {
+    const means = [550, 700, 850].map(station => {
+      const z = routeZ(station);
       let sum = 0;
-      for (let x = 300; x <= 900; x += 10) sum += dryness(sampleColor(x, z, waterLevelAt(z) + 20));
+      for (let x = 300; x <= 900; x += 10) sum += dryness(sampleColor(x * WORLD_SCALE, z, waterLevelAt(z) + 20));
       return sum / 61;
     });
     expect(means[1]!).toBeGreaterThan(means[0]!);
     expect(means[2]!).toBeGreaterThan(means[1]!);
     let exposed = 0;
     for (let x = 300; x <= 500; x += 10) {
-      const flat = sampleColor(x, -700, 20);
+      const flat = sampleColor(x, routeZ(700), 20);
       expect(colorDistance(flat, grass.clone().lerp(dry, dryness(flat)))).toBeLessThan(1e-6);
-      const slope = sampleColor(x, -700, 20, 0.6);
+      const slope = sampleColor(x, routeZ(700), 20, 0.6);
       const grassBlend = grass.clone().lerp(dry, dryness(slope));
       if (colorDistance(slope, grassBlend) > 0.01) exposed++;
     }
@@ -379,7 +381,7 @@ describe("terrain tile mesh", () => {
     } finally { material.dispose(); }
   });
 
-  it("retains old hill trails and all sampled coastal road colours byte for byte", () => {
+  it("retains hill trails and locks relocated coastal road colours (ADR 0017)", () => {
     const dirt = paletteColor("grassDry").lerp(paletteColor("rockDark"), 0.32);
     for (const t of [0.6, 0.79]) {
       const p = pathPointAt(t);
@@ -388,9 +390,9 @@ describe("terrain tile mesh", () => {
     const coast = pathPointAt(0.9);
     expect(colorDistance(sampleColor(coast.x, coast.z, waterLevelAt(coast.z) + 0.4), paletteColor("sand")))
       .toBeLessThan(0.12);
-    // FNV-1a over Float32 RGB before B2-190: t=.80..1, centre/edges/shoulders,
+    // FNV-1a over relocated Float32 RGB: t=.80..1, centre/edges/shoulders,
     // three elevations and three slopes (1323 colour samples).
-    expect(roadColorSignature()).toBe(3827333170);
+    expect(roadColorSignature()).toBe(2255076605);
   });
 
   it("varies meadow luma by at least 0.03 over 200 m with smooth large-scale patches", () => {

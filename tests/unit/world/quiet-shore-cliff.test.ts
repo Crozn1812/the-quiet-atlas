@@ -1,4 +1,4 @@
-import { Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
+import { Color, Mesh, MeshToonMaterial, Raycaster, Triangle, Vector3 } from "three";
 import { expect, it } from "vitest";
 import { hex } from "../../../src/features/world/art/palette";
 import { pathPointAt } from "../../../src/features/world/layout/path";
@@ -31,21 +31,31 @@ it("diagnoses the Quiet Shore left bank with terrain raycasts", () => {
           expect(hit.point.y).toBeLessThan(waterLevelAt(target.z) - 0.6);
           expect(hit.face!.normal.y).toBeGreaterThan(0.99);
         }
-        if (offset === 16) {
+        // ADR 0017: the bank's easing shoulder now reaches the 18 m probe.
+        if (offset === 18) {
           expect(ray.intersectObjects([mesh, water])[0]!.object).toBe(mesh);
           expect(hit.point.y).toBeGreaterThan(waterLevelAt(target.z));
           expect(hit.face!.normal.y).toBeGreaterThan(Math.cos(35 * Math.PI / 180));
-          expect(nearestRiver(target.x, target.z).distance).toBeCloseTo(8, 3);
+          expect(nearestRiver(target.x, target.z).distance).toBeCloseTo(10, 3);
         }
         const colors = mesh.geometry.getAttribute("color");
         if (offset === 14 || offset === 16) {
-          const i = hit.face!.a;
-          const color = new Color().setRGB(colors.getX(i), colors.getY(i), colors.getZ(i));
+          // ADR 0017 moves the sample into different triangles: inspect the
+          // actual hit pigment instead of an arbitrary triangle corner.
+          const positions = mesh.geometry.getAttribute("position");
+          const indices = [hit.face!.a, hit.face!.b, hit.face!.c];
+          const [a, b, c] = indices.map(i => new Vector3().fromBufferAttribute(positions, i)) as [Vector3, Vector3, Vector3];
+          a.add(mesh.position); b.add(mesh.position); c.add(mesh.position);
+          const weights = Triangle.getBarycoord(hit.point, a, b, c, new Vector3())!;
+          const color = new Color(0, 0, 0);
+          indices.forEach((i, j) => color.add(new Color().setRGB(colors.getX(i), colors.getY(i), colors.getZ(i))
+            .multiplyScalar(weights.getComponent(j))));
           const luma = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
           bankLumas.push(luma);
           // Linear vertex pigment, not the mean luma of a rendered frame.
           expect(luma).toBeGreaterThanOrEqual(0.24);
-          expect(luma).toBeLessThanOrEqual(0.32);
+          // Interpolated mineral/sand mix at the relocated 2 m grid edge.
+          expect(luma).toBeLessThanOrEqual(0.36);
           expect(color.r).toBeGreaterThan(color.g);
           expect(color.g).toBeGreaterThan(color.b);
           for (const key of ["asphalt", "grass"] as const) {

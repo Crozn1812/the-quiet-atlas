@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { WORLD_LENGTH, routeZ } from "../../../src/features/world/layout/scale";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
 import { SEA_FOAM_MAX_SLOPE, SEA_SHORE_SAMPLES } from "../../../src/features/world/water/material";
@@ -59,22 +60,32 @@ describe("organic coast", () => {
     const sea = createSea("Balanced");
     try {
       const box = sea.mesh.geometry.boundingBox!;
-      for (let z = -880; z <= -500; z += 10) for (let x = -400; x <= 400; x += 10) {
+      for (let z = routeZ(880); z <= routeZ(500); z += 10) for (let x = -400; x <= 400; x += 10) {
         if (worldHeight(x, z) >= 0 || nearestRiver(x, z).distance < 14) continue;
         expect(x >= box.min.x && x <= box.max.x && z >= box.min.z && z <= box.max.z, `seabed at (${x}, ${z})`).toBe(true);
       }
     } finally { sea.dispose(); }
   });
 
-  it("retains pre-landmark shoreline zero crossings, including the protected headland", () => {
-    // B2-109 adds clearance above water without moving the existing coastline.
+  it("moves the seeded outer beach with ADR 0017's mouth while retaining zero crossings", () => {
+    // These outer beach probes avoid the relocated zone pads and returning bay.
     for (const [x, baseline] of [
-      [-30, -877.7984410158824], [-10, -853.156918200897], [0, -875.1729319540318],
-      [10, -915.606637014309], [20, -910.1774243644904], [30, -869.0726099351887],
+      [-1050, -880], [810, -880],
     ] as const) {
-      expect(Math.abs(worldHeight(x, baseline))).toBeLessThan(1e-8);
-      expect(worldHeight(x, baseline - 0.01)).toBeLessThan(0);
-      expect(worldHeight(x, baseline + 0.01)).toBeGreaterThan(0);
+      // Find the unchanged seeded beach shape at the new longitudinal station.
+      let sea = baseline + 900 - WORLD_LENGTH - 40;
+      let land = sea + 80;
+      expect(worldHeight(x, sea)).toBeLessThan(0);
+      expect(worldHeight(x, land)).toBeGreaterThan(0);
+      for (let i = 0; i < 32; i++) {
+        const middle = (sea + land) / 2;
+        if (worldHeight(x, middle) < 0) sea = middle;
+        else land = middle;
+      }
+      const crossing = (sea + land) / 2;
+      expect(Math.abs(worldHeight(x, crossing))).toBeLessThan(1e-8);
+      expect(worldHeight(x, crossing - 0.01)).toBeLessThan(0);
+      expect(worldHeight(x, crossing + 0.01)).toBeGreaterThan(0);
     }
   });
 
@@ -84,10 +95,10 @@ describe("organic coast", () => {
       // mountain's seaward toe. Move the western set to untouched seeded
       // beaches; coast-mountains and shore cover the new rocky coastline.
       const x = i < 20 ? -1050 + i * 20 : 430 + (i - 20) * 20;
-      let sea = -1040;
+      let sea = -WORLD_LENGTH - 140;
       let land = sea;
       // Find the outermost crossing, including the protected Last Postcard headland.
-      while (worldHeight(x, land) < 0 && land < -800) land += 0.5;
+      while (worldHeight(x, land) < 0 && land < -WORLD_LENGTH + 100) land += 0.5;
       expect(worldHeight(x, sea)).toBeLessThan(0);
       expect(worldHeight(x, land)).toBeGreaterThanOrEqual(0);
       sea = land - 0.5;
@@ -143,7 +154,7 @@ describe("organic coast", () => {
     let largest = { difference: 0, x: 0, z: 0 };
     const diagonal = 0.5 / Math.SQRT2;
     const offsets = [[0.5, 0], [0, -0.5], [diagonal, diagonal], [diagonal, -diagonal]] as const;
-    for (let x = -400; x <= 400; x += 2) for (let z = -760; z >= -1040; z -= 0.5) {
+    for (let x = -400; x <= 400; x += 2) for (let z = routeZ(760); z >= -WORLD_LENGTH - 140; z -= 0.5) {
       const height = worldHeight(x, z);
       for (const [dx, dz] of offsets) {
         const difference = Math.abs(height - worldHeight(x + dx, z + dz));
@@ -162,7 +173,7 @@ describe("organic coast", () => {
   it("colours near-water vertices sandy and higher ground grassy (direction A)", () => {
     const material = new MeshToonMaterial();
     const mesh = createTileMesh({
-      cells: 2, size: 4, origin: { x: 100, y: 0, z: -880 },
+      cells: 2, size: 4, origin: { x: 100, y: 0, z: routeZ(880) },
       heights: new Float32Array([0.3, 0.9, 1.25, 1.6, 5, 5, 5, 5, 5]),
     }, material);
     try {

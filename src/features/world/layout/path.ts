@@ -1,13 +1,15 @@
 import { Vector3 } from "three";
 import { clampProgress, riverPointAt, riverTangentAt } from "./river";
+import { WORLD_SCALE } from "./scale";
 
 export const PATH_BANK_OFFSET = 8;
 
 // River-distance windows cover the full bank-to-bank transition, including approaches.
-const crossings = [
-  { start: 0.348, end: 0.372 },
-  { start: 0.678, end: 0.702 },
-] as const;
+// Preserve the physical approach length when the river itself gets shorter.
+const crossings = [0.36, 0.69].map(t => ({
+  start: t - 0.012 / WORLD_SCALE,
+  end: t + 0.012 / WORLD_SCALE,
+}));
 
 function smoothstep(t: number): number {
   return t * t * (3 - 2 * t);

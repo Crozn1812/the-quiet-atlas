@@ -5,6 +5,7 @@ import { createFoliage, foliageVariantAt, isDeepCrown } from "../../../src/featu
 import { foliageBiomeAt, foliageClumpAt, isFoliageExcluded, isZoneApproach, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { pathPointAt } from "../../../src/features/world/layout/path";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { PRESETS } from "../../../src/features/world/terrain";
 import { TILE_SIZE, tilesAlongPath } from "../../../src/features/world/terrain/tiles";
@@ -76,7 +77,7 @@ it("clears the full 60-degree incoming cone through 15 m beyond each zone edge",
 
 it("uses existing broadleaf instances for sparse coastal shrubs below 2 m", () => {
   const shrubs = forest.filter(tree => tree.growth === "shrub");
-  expect(shrubs.length).toBeGreaterThan(10);
+  expect(shrubs.length).toBeGreaterThan(10 * WORLD_SCALE);
   // B2-153 adds mature inland forest; the low-shrub ratio applies seaward.
   const coast = forest.filter(tree => foliageBiomeAt(tree.x, tree.z) === "coast-dusk" && !coastalPosition(tree).inland);
   const seaShrubs = coast.filter(tree => tree.growth === "shrub");
@@ -160,6 +161,10 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
   // Verify rendered instance colours as well as the hash, at every quality.
   const foliage = createFoliage(inland.length);
   const actual = new Color(), deep = new Color(PALETTE.forestDeep);
+  // ADR 0017 leaves fewer coastal trees: Low's small stratified subset can
+  // differ from the full population. Keep the majority gate on the population
+  // and independently verify the exact rendered subset at every quality.
+  expect(inland.filter(tree => isDeepCrown(tree.x, tree.z)).length / inland.length).toBeGreaterThanOrEqual(0.6);
   try {
     foliage.setTiles(inland);
     for (const quality of ["Low", "Balanced", "High"] as const) {
@@ -173,7 +178,11 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
         total++;
       }
       expect(total).toBeGreaterThan(0);
-      expect(deepCount / total).toBeGreaterThanOrEqual(0.6);
+      const count = Math.round(inland.length * PRESETS[quality].density);
+      const expectedDeep = Array.from({ length: count }, (_, i) => inland[Math.floor((i + 0.5) * inland.length / count)]!)
+        .filter(tree => isDeepCrown(tree.x, tree.z)).length;
+      expect(total).toBe(count);
+      expect(deepCount).toBe(expectedDeep);
       expect(Object.values(foliage.species).flatMap(species => species.variants)
         .flatMap(variant => [variant.trunks, variant.crowns]).filter(mesh => mesh.count > 0).length).toBeLessThanOrEqual(4);
     }

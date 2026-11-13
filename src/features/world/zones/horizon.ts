@@ -7,6 +7,7 @@ import { HORIZON_BENCH_COPY } from "../../../i18n/railing";
 import { ZONE_IDS, type InteractionTarget } from "../../interaction/targets";
 import { PALETTE } from "../art/palette";
 import { ZONES } from "../layout/zones";
+import { riverPointAt } from "../layout/river";
 import { deferBakedBatch, type BakedBatchPart } from "../props/batched";
 import type { PropAsset } from "../props/deferred";
 import { createPropMaterial } from "../props/materials";
@@ -236,8 +237,8 @@ export function resolveHorizonBench(height: (x: number, z: number) => number) {
     stand.y = height(stand.x, stand.z) + HEIGHT;
     const seat = worldPoint(bx + 0.02, seatZ);
     seat.y = height(seat.x, seat.z) + HEIGHT;
-    // Sea horizon at river mouth (x ~ -20, z ~ -900). Look seaward from the bench:
-    const forward = new Vector3(-20, 0, -900).sub(seat).setY(0).normalize();
+    // Look seaward at the current mouth, keeping the authored lateral framing.
+    const forward = riverPointAt(1).add(new Vector3(-20, 0, 0)).sub(seat).setY(0).normalize();
     const along = new Vector3(layout.lookDirection.x, 0, layout.lookDirection.z).normalize();
     const target: InteractionTarget = {
       id: "horizon-bench", kind: "lookout", zoneId: "horizon", position: stand.clone(), reach: 1.4,

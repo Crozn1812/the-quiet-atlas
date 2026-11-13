@@ -2,10 +2,11 @@ import { Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { riverLength, riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
+import { WORLD_LENGTH, WORLD_SCALE, routeZ } from "../../../src/features/world/layout/scale";
 import { surfaceHeight, worldSpawn } from "../../../src/features/world/scene/compose";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
-import { createRibbonGeometry, riverWidthAt, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
+import { createRibbonGeometry, estuaryJoinT, riverWidthAt, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
 
 describe("river spring ribbon", () => {
   it("starts at 0.6 m and widens monotonically into the unchanged ribbon at t=0.03", () => {
@@ -70,7 +71,7 @@ describe("river spring ribbon", () => {
       const uv = geometry.getAttribute("uv");
       for (let row = 0; row <= segments; row++) {
         const t = row / segments;
-        if (t < 0.03 || t >= 0.95) continue;
+        if (t < 0.03 || t >= estuaryJoinT() - 16 / riverLength()) continue;
         const centre = riverPointAt(t);
         const tangent = riverTangentAt(t);
         const progress = Math.max(0, (t - 0.96) / 0.04);
@@ -155,11 +156,11 @@ describe("spring terrain and dry access", () => {
     }
   });
 
-  it("retains the old water-level formula everywhere, including beyond the source", () => {
+  it("retains source/coast elevations on ADR 0017's scaled water profile", () => {
     for (let z = 20; z >= -1000; z--) {
-      const coastProgress = Math.max(0, Math.min(1, (-z - 760) / 140));
+      const coastProgress = Math.max(0, Math.min(1, (-z + routeZ(760)) / (140 * WORLD_SCALE)));
       const coastal = 1 - coastProgress * coastProgress * (3 - 2 * coastProgress);
-      expect(waterLevelAt(z)).toBe(Math.max(0, z + 900) * 0.008 - 0.35 * coastal);
+      expect(waterLevelAt(z)).toBeCloseTo(Math.max(0, z + WORLD_LENGTH) * 0.008 / WORLD_SCALE - 0.35 * coastal, 12);
     }
   });
 });

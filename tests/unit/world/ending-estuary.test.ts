@@ -1,9 +1,9 @@
 import { Vector3 } from "three";
 import { expect, it } from "vitest";
-import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
+import { riverLength, riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestRiver } from "../../../src/features/world/terrain/samples";
-import { createRibbonGeometry, createRiverRibbon, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL } from "../../../src/features/world/water/ribbon";
+import { createRibbonGeometry, createRiverRibbon, estuaryJoinT, riverWidthAt, RIBBON_SEGMENTS, WATER_LEVEL } from "../../../src/features/world/water/ribbon";
 import { createSea } from "../../../src/features/world/water/sea";
 
 // Actual terrain triangles use a 2 m lattice and the b-c diagonal.
@@ -22,7 +22,9 @@ it.each([RIBBON_SEGMENTS, 1000, 17, 1])("keeps upstream centres and water levels
   const geometry = createRibbonGeometry(segments);
   try {
     const positions = geometry.getAttribute("position");
-    for (let row = 0; row / segments < 0.95; row++) {
+    // ADR 0017: the open bay reaches the shorter stream sooner. Extra join
+    // rows are downstream of this unchanged-level interval.
+    for (let row = 0; row / segments < estuaryJoinT() - 16 / riverLength(); row++) {
       const t = row / segments;
       const centre = riverPointAt(t);
       const tangent = riverTangentAt(t);

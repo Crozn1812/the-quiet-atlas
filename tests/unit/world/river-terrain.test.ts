@@ -144,8 +144,9 @@ describe("river terrain heightmap", () => {
 
   // B2-031 (Lead art decision, taste §5.2): valley hills 2-12 m above the bank; was 1-5 m in B2-011.
   it("grows seeded valley hills beyond the river banks", () => {
-    const centre = riverPointAt(0.1);
-    const tangent = riverTangentAt(0.1);
+    // ADR 0017: avoid the opposite bend, now within the old 70 m probe.
+    const centre = riverPointAt(0.12);
+    const tangent = riverTangentAt(0.12);
     for (const side of [-1, 1]) {
       const bank = worldHeight(centre.x - tangent.z * 8 * side, centre.z + tangent.x * 8 * side);
       const hill = worldHeight(centre.x - tangent.z * 70 * side, centre.z + tangent.x * 70 * side);

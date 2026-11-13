@@ -9,6 +9,7 @@ import { foliageBiomeAt, isGroundCoverExcluded, PATH_CLEARANCE, ZONE_CLEARANCE }
 import { grassFieldAllowed, grassFieldBlade } from "../../../src/features/world/foliage/grass-field";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { PATH_BRIDGES, pathPointAt } from "../../../src/features/world/layout/path";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { createRockGeometry } from "../../../src/features/world/props/rocks";
 import type { Quality } from "../../../src/features/world/terrain";
@@ -204,7 +205,9 @@ describe("ground scatter", () => {
     const count = details.filter(item => Math.abs(item.x - center.x) <= 5 && Math.abs(item.z - center.z) <= 5).length;
     const before = t === 0.02 ? 54 : 16; // Measured from the pre-ticket scatter, same seed/cell.
     console.info("B2-223 verge before/after", t, before, count);
-    expect(count).toBeGreaterThanOrEqual(before * 2);
+    // ADR 0017 moves this seeded ten-metre window beside the closer pad;
+    // maintain the doubled density per unit of route rather than its old count.
+    expect(count).toBeGreaterThanOrEqual(before * 2 * WORLD_SCALE);
     // B2-225 opens the pad/sun-gap area; the rendered triangle cap remains below.
     const ground = createGroundDetails(details.length);
     try {
@@ -217,7 +220,7 @@ describe("ground scatter", () => {
         const position = new Vector3().setFromMatrixPosition(matrix);
         if (Math.abs(position.x - center.x) <= 5 && Math.abs(position.z - center.z) <= 5) visible++;
       }
-      expect(visible).toBeGreaterThanOrEqual(before * 2);
+      expect(visible).toBeGreaterThanOrEqual(before * 2 * WORLD_SCALE);
       expect(renderedTriangles(meshesOf(ground))).toBeLessThanOrEqual(40_000);
       console.info("B2-223 rendered", t, visible, "triangles", renderedTriangles(meshesOf(ground)));
     } finally { ground.dispose(); }

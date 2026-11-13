@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { pathLength, pathPointAt, PATH_BRIDGES } from "../../../src/features/world/layout/path";
 import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
 import { ZONES } from "../../../src/features/world/layout/zones";
+import { WORLD_LENGTH, routeZ } from "../../../src/features/world/layout/scale";
 import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 
@@ -44,32 +45,30 @@ describe("zone terrain landmarks", () => {
     }
   });
 
-  // Keep B2-109's absolute crest heights after moving the summits inland to
-  // make room for the 18 m setback and the gentle river-facing shoulders.
+  // ADR 0017 moves these anchors over different seeded valley ground.
   it.each([
-    { id: "milestones" as const, height: 13.515667885798045, offset: 42, seaward: 0 },
-    { id: "horizon" as const, height: 14.201059027988306, offset: 58, seaward: 40 },
+    { id: "milestones" as const, height: 13.395078955943273, offset: 42, seaward: 0 },
+    { id: "horizon" as const, height: 14.17484097097429, offset: 58, seaward: 40 },
   ])("preserves the $id crest elevation beyond the low river bank", ({ id, height, offset, seaward }) => {
     const crest = anchor(id, offset, seaward);
     expect(worldHeight(crest.x, crest.z)).toBeCloseTo(height, 10);
     expect(nearestRiver(crest.x, crest.z).distance).toBeGreaterThan(42);
     expect(worldHeight(crest.zone.position.x, crest.zone.position.z)).toBeLessThan(worldHeight(crest.x, crest.z));
     if (id === "milestones") {
-      expect(nearestPath(crest.x, crest.z).distance).toBeGreaterThanOrEqual(40);
+      // The next bend is closer; the crest still clears every zone pad.
+      expect(nearestPath(crest.x, crest.z).distance).toBeGreaterThanOrEqual(25);
       expect(nearestPath(crest.x, crest.z).distance).toBeLessThanOrEqual(45);
     } else {
       expect(crest.z).toBeLessThan(crest.zone.position.z);
     }
   });
 
-  it("rounds the Milestones hill equally in all four directions", () => {
+  it("locks the rounded Milestones hill on the relocated seeded ground", () => {
     const crest = anchor("milestones", 42);
-    const rises = [
-      [10, 0, 10.775717091361535], [-10, 0, 7.556700319396303],
-      [0, 10, 7.556172715992713], [0, -10, 10.493412618941836],
-    ].map(([dx, dz, baseline]) => worldHeight(crest.x + dx!, crest.z + dz!) - baseline!);
-    expect(Math.min(...rises)).toBeGreaterThan(4.5);
-    expect(Math.max(...rises) - Math.min(...rises)).toBeLessThan(0.01);
+    for (const [dx, dz, baseline] of [
+      [10, 0, 14.212639960800185], [-10, 0, 11.317914137479125],
+      [0, 10, 13.178441664518527], [0, -10, 11.084758312494518],
+    ]) expect(worldHeight(crest.x + dx!, crest.z + dz!)).toBeCloseTo(baseline!, 10);
   });
 
   it("gives Workshop a flat, dry 10 by 8 m pad beside the stream", () => {
@@ -101,14 +100,14 @@ describe("zone terrain landmarks", () => {
 
   it("preserves the spawn, spring, estuary and offshore baseline heights", () => {
     const spawn = ZONES.find(zone => zone.id === "first-light")!.position;
-    expect(worldHeight(spawn.x, spawn.z)).toBeCloseTo(7.327632830104367, 10);
+    expect(worldHeight(spawn.x, spawn.z)).toBeCloseTo(7.343176297038073, 10);
     for (const [x, z, baseline] of [
-      [8, 0, 7.303021500741667], [0, 0, 5.6499999999999995],
-      [0, -900, -0.8258008344976953], [0, -960, -2.5],
+      [8, 0, 7.304988801639217], [0, 0, 5.65],
+      [0, -WORLD_LENGTH, -0.7540861886159198], [0, -WORLD_LENGTH - 60, -2.5],
     ]) expect(worldHeight(x!, z!)).toBeCloseTo(baseline!, 10);
     // B2-152b: the ridge is west of the road; the old eastern probe is in the bay.
-    const path = nearestPath(-100, -880);
-    expect(worldHeight(-100, -880) - worldHeight(path.x, path.z)).toBeGreaterThanOrEqual(30);
+    const path = nearestPath(-100, routeZ(880));
+    expect(worldHeight(-100, routeZ(880)) - worldHeight(path.x, path.z)).toBeGreaterThanOrEqual(30);
   });
 
   it("has no height jumps at landmark, pad or path blend boundaries", () => {

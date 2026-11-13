@@ -3,6 +3,7 @@ import { Color, LinearFilter, SRGBColorSpace, type DataTexture } from "three";
 import { fogAt as directedFogAt, forestAtmosphereWeight, FOREST_ATMOSPHERE_TRANSITION, paletteColor, STYLE_PRESETS, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { pathLength } from "../../../src/features/world/layout/path";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import { createRampMaterial, disposeRampGradients, RAMP_PRESETS, RAMP_STEPS } from "../../../src/features/world/materials/ramp";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { placeZoneScenes } from "../../../src/features/world/zones";
@@ -84,8 +85,8 @@ describe("R clear-air world direction", () => {
     for (const t of [0.5, 0.76, 0.9, 1]) expect(directedFogAt(t).near).toBeGreaterThanOrEqual(120);
     expect(directedFogAt(0.3)).toEqual({ near: 35, far: 190, forestWeight: 1 });
     expect(WORLD_DIRECTION.background.forest!.mist.strength).toBeLessThanOrEqual(0.08);
-    expect(directedFogAt(0.5)).toEqual({ near: 120, far: 700, forestWeight: 0 });
-    expect(directedFogAt(0.9)).toEqual({ near: 160, far: 900, forestWeight: 0 });
+    expect(directedFogAt(0.5)).toEqual({ near: 120, far: 700 * WORLD_SCALE, forestWeight: 0 });
+    expect(directedFogAt(0.9)).toEqual({ near: 160, far: 900 * WORLD_SCALE, forestWeight: 0 });
     expect(directedFogAt(NaN)).toEqual(directedFogAt(0));
     expect(directedFogAt(Infinity)).toEqual(directedFogAt(1));
   });

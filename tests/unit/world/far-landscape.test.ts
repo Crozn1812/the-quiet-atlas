@@ -26,14 +26,14 @@ describe("far landscape individual dawn crowns", () => {
       process.stdout.write('B2-241 triangles: 51200 -> ' + g.index!.count / 3 + '; draws: 1 -> 1; crowns: ' + g.userData.farCrowns + '\n');
     } finally { far.dispose(); }
   });
-  it("locks the FL-03 shallow stream ground vertices, normals and albedo", () => {
+  it("locks ADR 0017's relocated far ground vertices, normals and albedo", () => {
     const far = createFarLandscape();
     try {
       const expected = {
-        position: "59f7056c885b48aa0a1c52786dbc3f1fe95de8eb8d0eb43f62185553e7b1258a",
-        normal: "a66a19e6d747193c1a464426911d63f604b0f972076bb705044540eaab115bec",
+        position: "741faaf0089bbd418b0209aa6e43eee7e5f614db93bc2772378ca5bcbad361c0",
+        normal: "7ddf148046453ac55e4ab0ea5d85443b5588ff0e6699b963586b7bba98742ded",
         // R1-C: coastal grass pigments also feed the distant ground; geometry stays unchanged.
-        color: "70efbfba824b8c2417fbb2ba687b32586c196dbeb23cc3a93f20d28b4fc89542",
+        color: "2e888f78e53a21b779a080b2fb6fe246b06a30333a1c602682d824ad73d536ed",
       };
       const actual = Object.fromEntries(Object.keys(expected).map(name => [name, hash(far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))]));
       expect(actual).toEqual(expected);

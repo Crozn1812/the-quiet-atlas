@@ -78,10 +78,15 @@ it("keeps mixed tree sizes up to and beyond the crest, clears walking-right, and
   for (const [low, high] of [[0.9, 1.1], [1.1, 1.3], [1.3, 1.5]] as const) {
     expect(canopy.filter(tree => tree.scale >= low && tree.scale < high).length).toBeGreaterThan(5);
   }
-  for (const [start, end] of [[0.82, 0.88], [0.88, 0.94], [0.94, 1]] as const) {
-    expect(canopy.filter(tree => {
-      const p = position(tree);
-      return p.t >= start && p.t <= end && p.distance >= 100;
+  // ADR 0017: remote hillside trees can now project onto the previous bend.
+  // Inspect the three physical coastal thirds, including trees on that bend.
+  const coastStart = pathPointAt(0.82), coastEnd = pathPointAt(1);
+  const span = coastStart.distanceTo(coastEnd), forward = coastEnd.sub(coastStart).normalize();
+  for (let third = 0; third < 3; third++) {
+    expect(extended.filter(tree => {
+      const along = (tree.x - coastStart.x) * forward.x + (tree.z - coastStart.z) * forward.z;
+      return tree.growth !== "shrub" && position(tree).distance >= 100
+        && along >= third * span / 3 && along < (third + 1) * span / 3;
     }).length).toBeGreaterThan(0);
   }
   expect(canopy.filter(tree => tree.y >= 35 && position(tree).distance <= 160).length).toBeGreaterThan(10);

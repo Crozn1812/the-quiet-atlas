@@ -1,10 +1,11 @@
 import { CatmullRomCurve3, Vector3 } from "three";
+import { WORLD_SCALE } from "./scale";
 
 /** Metres in the XZ plane, from the dawn forest to the sea at negative Z. */
-export const RIVER_CONTROL_POINTS = Object.freeze([
+export const RIVER_CONTROL_POINTS = Object.freeze(([
   [0, 0], [55, -115], [-55, -250], [55, -390],
   [-55, -535], [55, -680], [0, -820], [0, -900],
-] as const);
+] as const).map(([x, z]) => Object.freeze([x * WORLD_SCALE, z * WORLD_SCALE] as const)));
 
 const river = new CatmullRomCurve3(
   RIVER_CONTROL_POINTS.map(([x, z]) => new Vector3(x, 0, z)),

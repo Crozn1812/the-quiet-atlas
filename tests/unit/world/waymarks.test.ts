@@ -21,7 +21,8 @@ it("places 2â€“4 dry, clear markers per blind span at 30â€“45 m route 
   }
   marks.forEach(mark => {
     expect(mark.t).toBeGreaterThanOrEqual(mark.segment === 0 ? 0.356 : 0.5);
-    expect(mark.t).toBeLessThanOrEqual(mark.segment === 0 ? 0.415 : 0.604);
+    // ADR 0017 retains 35 m gaps rather than the old normalized spans.
+    expect(mark.t).toBeLessThanOrEqual(mark.segment === 0 ? 0.38 + 35 / pathLength() : 0.53 + 70 / pathLength());
     expect(nearestPath(mark.x, mark.z).distance - mark.width / 2).toBeGreaterThan(PATH_CLEARANCE);
     ZONES.forEach(zone => expect(Math.hypot(mark.x - zone.position.x, mark.z - zone.position.z))
       .toBeGreaterThan(zone.radius + ZONE_CLEARANCE + mark.width / 2));

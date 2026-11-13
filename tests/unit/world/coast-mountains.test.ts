@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pathPointAt } from "../../../src/features/world/layout/path";
+import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
 import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { worldHeight } from "../../../src/features/world/terrain/height";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
@@ -10,6 +11,7 @@ const start = pathPointAt(0.82);
 const end = pathPointAt(1);
 const forward = end.clone().sub(start).normalize();
 function point(along: number, left: number) {
+  along *= WORLD_SCALE;
   return { x: start.x + forward.x * along + forward.z * left,
     z: start.z + forward.z * along - forward.x * left };
 }
@@ -32,7 +34,7 @@ function triangleSlopes(x: number, z: number) {
 describe("distant coastal mountains and rocky cape (B2-173)", () => {
   it("has one pointed 110–150 m main summit behind the old left ridge", () => {
     const summit = point(155, 325);
-    const projection = 155 / start.distanceTo(end);
+    const projection = 155 * WORLD_SCALE / start.distanceTo(end);
     const road = pathPointAt(0.82 + 0.18 * projection);
     expect(projection).toBeGreaterThanOrEqual(0);
     expect(projection).toBeLessThanOrEqual(1);
@@ -81,7 +83,7 @@ describe("distant coastal mountains and rocky cape (B2-173)", () => {
     for (const sample of [worldHeight, surfaceHeight]) {
       for (const [along, left] of crests) {
         const p = point(along, left);
-        const road = pathPointAt(0.82 + 0.18 * along / start.distanceTo(end));
+        const road = pathPointAt(0.82 + 0.18 * along * WORLD_SCALE / start.distanceTo(end));
         const rise = sample(p.x, p.z) - sample(road.x, road.z);
         expect(left).toBeGreaterThan(325);
         expect(nearestPath(p.x, p.z).distance).toBeGreaterThan(150);
@@ -126,14 +128,14 @@ describe("distant coastal mountains and rocky cape (B2-173)", () => {
     }
   });
 
-  // Captured before B2-173. No existing probe was moved or its tolerance relaxed.
+  // ADR 0017: rebaseline the same metre setbacks after relocating the route.
   it.each([
-    [0.82, [3.60652906707785, 15.490915381529806, 35.375508305669996, 41.54052764110105]],
-    [0.85, [2.949398864922386, 13.918118361389284, 44.28835732852482, 45.35863655290501]],
-    [0.9, [3.2075245019227347, 13.163965090414724, 43.89802515191002, 44.425442057017115]],
-    [0.95, [2.878434690497352, 12.167127287152251, 42.99740845158549, 42.48344290284445]],
-    [1, [-2.0065900832028123, 8.378673808503947, 41.853566665596354, 42.15331408632613]],
-  ] as const)("preserves the old left slope exactly at t=%s", (t, baseline) => {
+    [0.82, [3.2033698860219904, 10.952158865411047, 27.450340097888112, 40.664694379722086]],
+    [0.85, [3.110268073322401, 14.46163434197473, 28.896743553115684, 37.82627472262389]],
+    [0.9, [2.300931806526925, 13.22840429272034, 44.19526163130878, 44.3798110141974]],
+    [0.95, [1.864767356675216, 11.345374118336428, 42.84906176797373, 42.335025363523044]],
+    [1, [-1.337282878550298, 8.911230201594096, 42.57550628964361, 44.73030621348666]],
+  ] as const)("locks the relocated left slope at t=%s", (t, baseline) => {
     [40, 60, 100, 140].forEach((left, i) => {
       const p = station(t, left);
       expect(worldHeight(p.x, p.z)).toBe(baseline[i]);

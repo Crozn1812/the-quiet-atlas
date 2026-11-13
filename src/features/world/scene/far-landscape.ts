@@ -9,12 +9,12 @@ import { nearestPath, nearestRiver } from "../terrain/samples";
 import { createRampMaterial, RAMP_PRESETS, RAMP_STEPS } from "../materials/ramp";
 import { waterLevelAt, worldHeight } from "../terrain/height";
 import { createTileMesh } from "../terrain/mesh";
+import { WORLD_LENGTH } from "../layout/scale";
 
 export const FAR_LANDSCAPE = Object.freeze({
-  /** World-space minimum corner and edge length (m): the route spans x ±63, z −900…0; the bay, cape and peaks
-   * sit inside this square with room for the horizon ridges. */
+  /** Fixed scenic margins retain the bay, cape and peaks around the shorter route. */
   originX: -1024,
-  originZ: -1600,
+  originZ: -WORLD_LENGTH - 700,
   size: 2048,
   cells: 160,
   /** Sink ground below detail tiles; individual crowns sit above it. */
