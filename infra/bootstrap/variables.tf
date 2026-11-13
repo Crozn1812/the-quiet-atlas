@@ -16,7 +16,7 @@ variable "github_repository" {
 }
 
 variable "github_environment" {
-  description = "GitHub Environment (duyệt tay) cho tf-apply và site-deploy (spec §11.6)."
+  description = "GitHub Environment (duyệt tay) cho tf-apply (spec §11.6); site-deploy tin nhánh main (REL-01)."
   type        = string
   default     = "production"
 }

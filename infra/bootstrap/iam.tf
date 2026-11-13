@@ -174,7 +174,7 @@ resource "aws_iam_role_policy" "tf_apply" {
 }
 
 # ---------------------------------------------------------------------------------------------------------------
-# site-deploy — environment:production. Chỉ ghi/xóa object của đúng bucket site + invalidation đúng distribution.
+# site-deploy — main only (REL-01). Chỉ ghi/xóa object của đúng bucket site + invalidation đúng distribution.
 # Chỉ tạo khi đã biết site_distribution_id (sau lần apply envs/prod đầu tiên).
 # ---------------------------------------------------------------------------------------------------------------
 data "aws_iam_policy_document" "site_deploy" {
@@ -203,8 +203,8 @@ resource "aws_iam_role" "site_deploy" {
   count = local.create_site_deploy ? 1 : 0
 
   name                 = "${var.name_prefix}-site-deploy"
-  description          = "GitHub Actions (environment production): upload site + invalidate HTML."
-  assume_role_policy   = data.aws_iam_policy_document.trust_production.json
+  description          = "GitHub Actions (main): upload site + invalidate HTML."
+  assume_role_policy   = data.aws_iam_policy_document.trust_site_deploy.json
   max_session_duration = 3600
 }
 

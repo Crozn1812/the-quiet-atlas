@@ -1,0 +1,121 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type deploy to publish main to production'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'deploy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      AWS_REGION: ap-southeast-1
+      AWS_PAGER: ''
+      SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ vars.CF_DISTRIBUTION_ID }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: Checkout dispatched main commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+
+      - name: Check required variables
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          test -n "$AWS_DEPLOY_ROLE_ARN"
+          test -n "$SITE_BUCKET"
+          test -n "$CF_DISTRIBUTION_ID"
+          node -e 'const u = new URL(process.env.SITE_URL); if (u.protocol !== "https:" || u.pathname !== "/" || u.search || u.hash || u.username || u.password) throw new Error("SITE_URL must be an HTTPS origin");'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          version: 12.16.1
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # tools/build.mjs uses the hosted runner's Chrome for CV PDFs and OG images.
+      - name: Build static export
+        run: pnpm build
+
+      - name: Check bundle
+        run: pnpm check:bundle
+
+      - name: Check asset licenses
+        run: pnpm check:licenses
+
+      - name: Assume site deploy role via OIDC
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: site-deploy-${{ github.run_id }}
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Upload immutable assets first (retain previous releases)
+        run: |
+          for prefix in _next/static world; do
+            if [ -d "out/$prefix" ]; then
+              aws s3 sync "out/$prefix/" "s3://$SITE_BUCKET/$prefix/" \
+                --cache-control 'public, max-age=31536000, immutable' \
+                --no-follow-symlinks --only-show-errors
+            fi
+          done
+
+      - name: Sync mutable files and remove obsolete mutable objects
+        run: |
+          test -s out/index.html
+          aws s3 sync out/ "s3://$SITE_BUCKET/" --delete \
+            --exclude '_next/static/*' --exclude 'world/*' \
+            --cache-control 'no-cache, max-age=0, must-revalidate' \
+            --no-follow-symlinks --only-show-errors
+          # sync does not update metadata on unchanged objects. Re-upload mutable
+          # files so an earlier deployment's cache headers cannot survive.
+          aws s3 cp out/ "s3://$SITE_BUCKET/" --recursive \
+            --exclude '_next/static/*' --exclude 'world/*' \
+            --cache-control 'no-cache, max-age=0, must-revalidate' \
+            --no-follow-symlinks --only-show-errors
+
+      - name: Invalidate HTML and wait for completion
+        run: |
+          # CloudFront only expands a wildcard at the END of a path. Keep the
+          # requested paths, and enumerate HTML + directory URLs for real coverage.
+          paths=('/*.html' '/' '/*/')
+          while IFS= read -r -d '' file; do
+            path="/${file#out/}"
+            paths+=("$path")
+            if [[ "$path" == */index.html && "$path" != /index.html ]]; then
+              paths+=("${path%index.html}")
+            fi
+          done < <(find out -type f -name '*.html' -print0)
+          invalidation_id="$(aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "${paths[@]}" --query 'Invalidation.Id' --output text)"
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "$CF_DISTRIBUTION_ID" --id "$invalidation_id"
