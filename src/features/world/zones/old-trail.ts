@@ -11,6 +11,7 @@ import { createRampMaterial } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
+import { createOldTrailDressing } from "./old-trail-dressing";
 
 /** Resize the shared hewn post to the existing marker footprint. Keep its grain. */
 function post(width: number, height: number, depth: number, lean: number, seed: number): BufferGeometry {
@@ -199,7 +200,9 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   }
   const timberMaterial = createRampMaterial(0xffffff, WORLD_DIRECTION.foliage.ramp);
   timberMaterial.vertexColors = true;
-  mesh(wood, timberMaterial, "weathered-trail-timber");
+  // P2's shared deferred controller supplies photographed bark without another
+  // texture request, material controller, or change to the timber/collider shape.
+  mesh(wood, timberMaterial, "weathered-trail-timber").userData.photoSurface = "bark";
   const moss = createRampMaterial(paletteColor({ base: "grass", mix: "forestDeep", amount: 0.6,
     saturation: 1, brightness: 1 }), WORLD_DIRECTION.foliage.ramp);
   moss.vertexColors = true;
@@ -251,6 +254,9 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
   // A conservative box encloses the lantern at the full ±0.035 rad sway.
   colliders.push({ center: lantern.position.clone().add(new Vector3(0, -0.39, 0)), size: new Vector3(0.52, 0.86, 0.48) });
 
+  const dressing = createOldTrailDressing(context);
+  group.add(dressing.mesh);
+
   let elapsed = 0;
   let disposed = false;
   return {
@@ -267,6 +273,7 @@ export const createOldTrailScene: ZoneSceneFactory = (context) => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      dressing.dispose();
       ownedGeometry.forEach(geometry => geometry.dispose());
       ownedMaterials.forEach(material => material.dispose());
       group.removeFromParent();

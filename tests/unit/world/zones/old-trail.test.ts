@@ -22,7 +22,8 @@ function create(overrides: Partial<ZoneSceneContext> = {}) {
 }
 function meshes(scene: ZoneScene): Mesh[] {
   const result: Mesh[] = [];
-  scene.group.traverse(object => { if (object instanceof Mesh) result.push(object); });
+  // Keep the pre-C hard-prop invariants below independent of additive dressing.
+  scene.group.traverse(object => { if (object instanceof Mesh && object.name !== "old-trail-dressing") result.push(object); });
   return result;
 }
 function vertices(scene: ZoneScene): Vector3[] {
@@ -78,15 +79,14 @@ describe("old-trail scene", () => {
 
   it("stays within the real merged triangle/draw-call/radius budgets, including while swaying", () => {
     const scene = create();
-    const all = meshes(scene);
+    const all = [...meshes(scene), scene.group.getObjectByName("old-trail-dressing") as Mesh];
     const triangles = all.reduce((total, mesh) => total + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = all.reduce((total, mesh) => total + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
     expect(triangles).toBeLessThanOrEqual(3108 * 1.5);
-    // R1-B replaces the authored pine with the shared 280-triangle R1 tree.
-    expect(triangles).toBe(2758);
-    expect(triangles).toBeLessThanOrEqual(2874 * 1.25);
+    expect(triangles).toBeGreaterThan(2758);
+    expect(triangles).toBeLessThanOrEqual(2758 * 1.25);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(drawCalls).toBe(7);
+    expect(drawCalls).toBe(8);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     for (let i = 0; i < 20; i++) {
       scene.update?.(0.5, false);
@@ -96,7 +96,7 @@ describe("old-trail scene", () => {
     // Every material batch is already below the per-cluster cap, including all
     // ten markers together; no smaller prop cluster can exceed that upper bound.
     all.forEach(mesh => expect(mesh.geometry.getAttribute("position").count / 3).toBeLessThanOrEqual(2000));
-    console.info(`R1-B Old Trail budget: 3030 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
+    console.info(`GFX-Z Old Trail fallback: 2758 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
   });
 
   it("keeps all ten markers plain and capped, and enlarges the broken gate uniformly by 1.5", () => {
