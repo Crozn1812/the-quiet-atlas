@@ -3,7 +3,7 @@ import {
   TorusGeometry, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { content } from "../../../content";
+import certificates from "../../../content/certificates.json";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { TRUNK_HEIGHT } from "../foliage/colliders";
@@ -14,6 +14,9 @@ import { createRockGeometry } from "../props/rocks";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
 } from "./types";
+
+// The server validates this shared JSON through content; keep runtime schemas out of the world chunk.
+const content = { profiles: [{ locale: "en", certificates: certificates.en }] };
 
 type Surface = "weathered" | "future" | "ink" | "needles" | "flower";
 interface Part {

@@ -1,0 +1,38 @@
+{
+  "vi": [
+    {
+      "title": "CCNA",
+      "description": "Cisco Certified Network Associate, nhận tháng 03/2026."
+    },
+    {
+      "title": "Chứng nhận hoàn thành khoá DevOps, VTI Academy",
+      "description": "Certificate of Completion, 09/2026. Khoá học có đồ án tốt nghiệp là CMS DevOps Platform trên AWS EKS."
+    },
+    {
+      "title": "Dự định: AWS Solutions Architect Associate",
+      "description": "Chưa thi. Viên đá này còn để trống."
+    },
+    {
+      "title": "Dự định: chứng chỉ Linux hoặc CEH",
+      "description": "Chưa thi. Viên đá này còn để trống."
+    }
+  ],
+  "en": [
+    {
+      "title": "CCNA",
+      "description": "Cisco Certified Network Associate, earned 03/2026."
+    },
+    {
+      "title": "Certificate of Completion: DevOps, VTI Academy",
+      "description": "Completed the DevOps training course, 09/2026. Its graduation project was the CMS DevOps Platform on AWS EKS."
+    },
+    {
+      "title": "Planned: AWS Solutions Architect Associate",
+      "description": "Not taken yet. This stone is still blank."
+    },
+    {
+      "title": "Planned: a Linux certification or CEH",
+      "description": "Not taken yet. This stone is still blank."
+    }
+  ]
+}

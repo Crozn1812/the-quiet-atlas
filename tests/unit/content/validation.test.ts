@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { content } from "@/content";
+import certificates from "@/content/certificates.json";
 import { validateContent, projectSchema, projectStatusLabel, publicUrlSchema } from "@/content/schema";
 
 describe("content build contract", () => {
+  it("validates the same certificate JSON consumed by the world", () => {
+    for (const profile of content.profiles) {
+      expect(profile.certificates).toEqual(certificates[profile.locale]);
+    }
+  });
   it("accepts the shipped dataset", () => expect(() => validateContent(content)).not.toThrow());
   it("rejects duplicate slugs within a locale", () => {
     const data = structuredClone(content); data.projects.push(data.projects[0]!);

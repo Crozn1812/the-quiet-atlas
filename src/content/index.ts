@@ -1,4 +1,6 @@
 import evidence from "./evidence.json";
+// CCNA earned 03/2026: Duy confirmed in R2 playtest feedback (UI-05).
+import certificates from "./certificates.json";
 import { validateContent } from "./schema";
 import { locales } from "@/i18n/locales";
 // Public project copy. Every sentence traces to Duy's answers (DUY_QUEUE, 2026-11-04), a public README or his CV.
@@ -227,21 +229,7 @@ const skills: Record<Locale, ProfileItem[]> = {
     { title: "Tools", description: "Terraform\nDocker\nKubernetes\nHelm\nJenkins\nGitHub Actions\nArgo CD\nPrometheus — observability\nGrafana — observability\nPostman — API testing" }
   ]
 };
-const certificates: Record<Locale, ProfileItem[]>={
-  // CCNA earned 03/2026: Duy confirmed in R2 playtest feedback (UI-05).
-  vi: [
-    { title: "CCNA", description: "Cisco Certified Network Associate, nhận tháng 03/2026." },
-    { title: "Chứng nhận hoàn thành khoá DevOps, VTI Academy", description: "Certificate of Completion, 09/2026. Khoá học có đồ án tốt nghiệp là CMS DevOps Platform trên AWS EKS." },
-    { title: "Dự định: AWS Solutions Architect Associate", description: "Chưa thi. Viên đá này còn để trống." },
-    { title: "Dự định: chứng chỉ Linux hoặc CEH", description: "Chưa thi. Viên đá này còn để trống." }
-  ],
-  en: [
-    { title: "CCNA", description: "Cisco Certified Network Associate, earned 03/2026." },
-    { title: "Certificate of Completion: DevOps, VTI Academy", description: "Completed the DevOps training course, 09/2026. Its graduation project was the CMS DevOps Platform on AWS EKS." },
-    { title: "Planned: AWS Solutions Architect Associate", description: "Not taken yet. This stone is still blank." },
-    { title: "Planned: a Linux certification or CEH", description: "Not taken yet. This stone is still blank." }
-  ]
-};
+// Certificate copy is shared with the client statue; validate it below with the full dataset.
 const direction: Record<Locale, ProfileItem[]> = {
   vi: [
     { title: "Chặng 1 · 1–3 năm sau tốt nghiệp", description: "Củng cố Linux, mạng, cloud và Kubernetes qua các bài toán triển khai thực tế. Tập trung vào CI/CD, hạ tầng dưới dạng mã, quan sát hệ thống và xử lý sự cố. Tìm hiểu cách vận hành ứng dụng AI trong môi trường có thể theo dõi và kiểm soát." },

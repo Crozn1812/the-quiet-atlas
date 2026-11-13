@@ -30,6 +30,9 @@ export function readContent(root = repoRoot) {
       if (id === "./evidence.json") {
         return JSON.parse(fs.readFileSync(path.join(root, "src/content/evidence.json"), "utf8"));
       }
+      if (id === "./certificates.json") {
+        return JSON.parse(fs.readFileSync(path.join(root, "src/content/certificates.json"), "utf8"));
+      }
       if (id === "./schema") return load("src/content/schema.ts");
       if (id === "@/i18n/locales") return load("src/i18n/locales.ts");
       throw new Error(`Non-public import: ${id}`);
