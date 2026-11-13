@@ -1,0 +1,20 @@
+main:
+ingame-first-light.png	0.225
+ingame-horizon.png	0.426
+ingame-last-postcard.png	0.336
+ingame-milestones.png	0.241
+ingame-old-trail.png	0.444
+ingame-quiet-shore.png	0.316
+ingame-roots.png	0.315
+ingame-workshop.png	0.270
+cand:
+ingame-first-light.png	0.225
+ingame-horizon.png	0.426
+ingame-last-postcard.png	0.336
+ingame-milestones.png	0.241
+ingame-old-trail.png	0.444
+ingame-quiet-shore.png	0.316
+ingame-roots.png	0.315
+ingame-workshop.png	0.270
+
+[exited with code 0]
