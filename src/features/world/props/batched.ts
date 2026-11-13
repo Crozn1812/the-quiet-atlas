@@ -18,6 +18,14 @@ export function setBakedPropQuality(root: Object3D, quality: Quality) {
   root.traverse(object => refreshers.get(object)?.());
 }
 
+/** Library batches share the existing quality traversal without a second world controller. */
+export function bindBakedPropQuality(object: Object3D, apply: (quality: Quality) => void) {
+  const refresh = () => apply(qualityOf(object));
+  refreshers.set(object, refresh);
+  refresh();
+  return () => { refreshers.delete(object); };
+}
+
 export interface BakedBatchPart {
   index: number;
   asset: PropAsset;

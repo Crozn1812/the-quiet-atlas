@@ -1,6 +1,6 @@
 import {
   Box3, BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute,
-  Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, PlaneGeometry, TorusGeometry, Vector3,
+  Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, PlaneGeometry, TorusGeometry, Vector3,
   type DirectionalLight, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -22,6 +22,7 @@ import { lightingAt } from "../sky/grade";
 import { waterLevelAt } from "../terrain/height";
 import { nearestRiver } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneFactory } from "./types";
+import { createFirstLightDressing } from "./first-light-dressing";
 
 type Surface = "wood" | "paper" | "green" | "stone" | "sun" | "ink" | "flower" | "petal";
 type Part = { geometry: BufferGeometry; surface: Surface; pigment?: Color; name?: string; baked?: PropAsset };
@@ -298,13 +299,16 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
       parts.forEach(({ geometry }) => geometry.dispose());
       return false;
     }
-    for (const { geometry, surface, pigment, name } of parts) {
+    for (const { geometry, surface: sourceSurface, pigment, name } of parts) {
+      // Ink is opaque pigment on paper: sharing its draw frees one slot for PBR dressing.
+      const surface = sourceSurface === "ink" ? "paper" : sourceSurface;
       const flat = geometry.index ? geometry.toNonIndexed() : geometry;
       if (flat !== geometry) geometry.dispose();
       // Rebase kit pigments into each shared material without losing grain or moss colours.
       const source = flat.getAttribute("color");
       const alpha = surface === "sun" ? source : undefined;
-      const base = new Color(hues[surface]);
+      const base = new Color(hues[sourceSurface]);
+      const destination = new Color(hues[surface]);
       for (const name of Object.keys(flat.attributes)) {
         if (name !== "position" && !(alpha && (name === "color" || name === "uv"))) flat.deleteAttribute(name);
       }
@@ -319,6 +323,11 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
         if (alpha) colors.push(alpha.getW(i));
       }
       flat.setAttribute("color", new Float32BufferAttribute(colors, alpha ? 4 : 3));
+      if (surface !== sourceSurface) {
+        const color = flat.getAttribute("color");
+        for (let i = 0; i < color.count; i++) color.setXYZ(i, color.getX(i) * base.r / destination.r,
+          color.getY(i) * base.g / destination.g, color.getZ(i) * base.b / destination.b);
+      }
       flat.computeVertexNormals();
       if (name) namedParts.push({ name, surface, start: buckets[surface].reduce((n, g) => n + g.getAttribute("position").count, 0), count: positions.count });
       buckets[surface].push(flat);
@@ -487,8 +496,8 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
   if (welcomeCollider) colliders.push(welcomeCollider);
 
   const materials = {
-    wood: createRampMaterial(hues.wood, WORLD_DIRECTION.foliage.ramp),
-    paper: createRampMaterial(hues.paper, WORLD_DIRECTION.foliage.ramp),
+    wood: new MeshStandardMaterial({ color: hues.wood, roughness: 0.96, metalness: 0 }),
+    paper: new MeshStandardMaterial({ color: hues.paper, roughness: 1, metalness: 0 }),
     green: createRampMaterial(hues.green, WORLD_DIRECTION.foliage.ramp),
     stone: createRampMaterial(hues.stone, WORLD_DIRECTION.foliage.ramp),
     sun: createRampMaterial(hues.sun),
@@ -513,12 +522,17 @@ export const createFirstLightScene: ZoneSceneFactory = (context) => {
     mesh.name = `first-light-${surface}`;
     geometry.userData.parts = namedParts.filter(p => p.surface === surface);
     mesh.castShadow = false;
+    mesh.receiveShadow = surface === "wood" || surface === "paper";
     if (surface === "sun") {
-      backlitVeil(mesh);
+      backlitVeil(mesh as Mesh<BufferGeometry, MeshToonMaterial>);
       mesh.raycast = () => {};
     }
     group.add(mesh);
   }
+
+  const dressing = createFirstLightDressing(context);
+  group.add(dressing.mesh);
+  releaseDetails.push(() => dressing.dispose());
 
   let disposed = false;
   return {

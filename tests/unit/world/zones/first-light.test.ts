@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Box3, Color, CylinderGeometry, MeshBasicMaterial, Mesh, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry } from "three";
+import { Box3, Color, CylinderGeometry, MeshBasicMaterial, Mesh, MeshStandardMaterial, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CAMERA_CLEARANCE, CAMERA_PITCH, INITIAL_ZOOM, springArm } from "../../../../src/features/world/camera";
 import { paletteColor } from "../../../../src/features/world/art/direction";
@@ -260,9 +260,10 @@ describe("First Light pine clearing", () => {
       flower: new Color(PALETTE.flower).getHex(),
       petal: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sand), 0.12).getHex(),
     };
-    for (const mesh of meshes(scene)) {
+    for (const mesh of meshes(scene).filter(mesh => mesh.name !== "first-light-dressing")) {
       const surface = mesh.name.replace("first-light-", "");
-      expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
+      const pbr = surface === "wood" || surface === "paper";
+      expect(mesh.material).toBeInstanceOf(pbr ? MeshStandardMaterial : MeshToonMaterial);
       expect(mesh.material.color.getHex()).toBe(colors[surface]);
       if (surface !== "paper" && surface !== "petal") {
         const paper = new Vector3(...new Color(PALETTE.paper).toArray());
@@ -274,8 +275,13 @@ describe("First Light pine clearing", () => {
         }
       }
       expect(mesh.material.vertexColors).toBe(true);
-      expect(mesh.material.gradientMap).toBeTruthy();
-      expect(mesh.material).not.toHaveProperty("metalness");
+      if (pbr) {
+        expect(mesh.material).toHaveProperty("metalness", 0);
+        expect((mesh.material as unknown as MeshStandardMaterial).roughness).toBeGreaterThanOrEqual(0.96);
+      } else {
+        expect(mesh.material.gradientMap).toBeTruthy();
+        expect(mesh.material).not.toHaveProperty("metalness");
+      }
       const washes = mesh.geometry.getAttribute("color");
       expect(washes.count).toBe(mesh.geometry.getAttribute("position").count);
       const palette = Object.values(PALETTE).map(value => new Vector3(...new Color(value).toArray()));
@@ -440,7 +446,7 @@ describe("First Light pine clearing", () => {
 
   it("releases all owned geometries/materials once while retaining the shared world ramp", () => {
     const first = create(), sibling = create();
-    const ramp = meshes(first)[0]!.material.gradientMap!;
+    const ramp = meshes(first).find(mesh => mesh.name === "first-light-green")!.material.gradientMap!;
     const rampDisposed = vi.fn();
     ramp.addEventListener("dispose", rampDisposed);
     const resources = meshes(first).flatMap(mesh => [mesh.geometry, mesh.material]);
@@ -460,7 +466,7 @@ describe("First Light pine clearing", () => {
     expect(first.group.children).toHaveLength(0);
     expect(siblingDisposed).not.toHaveBeenCalled();
     expect(rampDisposed).not.toHaveBeenCalled();
-    expect(meshes(sibling)[0]!.material.gradientMap).toBe(ramp);
+    expect(meshes(sibling).find(mesh => mesh.name === "first-light-green")!.material.gradientMap).toBe(ramp);
   });
 
   it("frames the welcome at the real intro/skip handoff without trunk occlusion", () => {
@@ -544,7 +550,7 @@ describe("First Light pine clearing", () => {
       }
       const paper = meshes(scene).find(mesh => mesh.name === "first-light-paper")!;
       const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
-      for (const mesh of meshes(scene).filter(mesh => !["first-light-paper", "first-light-sun"].includes(mesh.name)))
+      for (const mesh of meshes(scene).filter(mesh => !["first-light-paper", "first-light-sun", "first-light-dressing"].includes(mesh.name)))
         expect(luma(paper.material.color)).toBeGreaterThan(luma(mesh.material.color));
       for (const mesh of meshes(scene)) {
         const vertices = mesh.geometry.getAttribute("position");
@@ -588,7 +594,7 @@ describe("First Light pine clearing", () => {
     for (const mesh of meshes(scene)) {
       const positions = mesh.geometry.getAttribute("position");
       // Shared foliage changes independently; test its total budget and determinism above.
-      if (mesh.name === "first-light-green") continue;
+      if (mesh.name === "first-light-green" || mesh.name === "first-light-dressing") continue;
       for (let i = 0; i < positions.count; i += 3) {
         triangles.push([0, 1, 2].flatMap(offset => new Vector3().fromBufferAttribute(positions, i + offset)
           .applyMatrix4(mesh.matrixWorld).toArray().map(value => value.toFixed(5))).join(","));
