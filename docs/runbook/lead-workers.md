@@ -24,3 +24,14 @@ Duy chuẩn bị nhiều tài khoản Codex và một Antigravity CLI. Claude l�
 ## Main dùng chung
 
 Hai phiên Lead từng dùng chung `D:/the-quiet-atlas`. Commit trên main luôn kèm đường dẫn: `git commit -m … -- <paths>`; không `git add -A`/`commit -a`. `merge.sh` chỉ chạy khi main sạch.
+
+## Thư mục cố định cho từng worker (từ 2026-11-13, Duy chọn "cách 1")
+
+Mỗi worker giữ **một** worktree cố định: `D:/tqa-worktrees/W-A` (`.codex`), `W-B` (`.codex2`), `W-C` (`.codex3`), `W-D` (`.codex4`), `W-E` (`.codex5`), `W-AGY` (Antigravity). Mỗi ticket mới chỉ đổi nhánh (`lane/<ID>` từ main), không tạo thư mục mới. Nhờ vậy sandbox Windows của Codex chỉ xin quyền admin một lần cho mỗi worker, thay vì mỗi ticket.
+
+- `dispatch.sh` tự suy ra worker từ `CODEX_HOME`; có thể ép bằng `WORKER=X`. `dispatch-agy.sh` dùng `W-AGY`.
+- `D:/tqa-worktrees/<ID>.wt` ghi thư mục của ticket; `resume.sh` và `merge.sh` đọc file này.
+- `W-<x>.busy` chứa ID ticket đang chiếm worker. Dispatch vào worker đang bận sẽ bị **từ chối**.
+- `merge.sh` xong thì giải phóng worker (detach về main, xóa nhánh, xóa `.busy`), giữ nguyên thư mục.
+- Bỏ một ticket: `. tools/lead/worker-slot.sh; release_ticket <ID>`, sau khi worktree đã sạch hoặc đã commit wip.
+- Ticket tạo theo kiểu cũ (`D:/tqa-worktrees/<ID>`) vẫn chạy và merge như trước.

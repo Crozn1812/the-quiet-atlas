@@ -5,7 +5,7 @@
 set -uo pipefail
 ID="$1"; MSG="$2"
 REPO=D:/the-quiet-atlas
-WT=D:/tqa-worktrees/$ID
+. "$(dirname "$0")/worker-slot.sh"; WT="$(wt_for "$ID")"
 GATE="$REPO/tools/lead/gate.sh"
 if [ -n "$(git -C "$WT" status --porcelain)" ]; then
   git -C "$WT" add -A && git -C "$WT" commit -q -m "wip $ID" || { echo "$ID: wip commit failed"; exit 1; }
@@ -14,5 +14,5 @@ if [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ]; then echo
 git -C "$REPO" merge --squash "lane/$ID" > /dev/null 2>&1 || { echo "$ID: MERGE CONFLICT"; git -C "$REPO" status --short | grep -E "^(UU|AA|DU|UD)"; exit 1; }
 bash "$GATE" "$REPO" || { echo "$ID: GATE FAILED (main left uncommitted)"; exit 1; }
 git -C "$REPO" commit -q -F "$MSG" || { echo "$ID: commit failed"; exit 1; }
-git -C "$REPO" worktree remove --force "$WT" && git -C "$REPO" branch -D -q "lane/$ID"
+release_ticket "$ID"
 echo "$ID MERGED $(git -C "$REPO" log --oneline -1)"
