@@ -1,6 +1,7 @@
 import { CylinderGeometry, Group, Mesh, MeshBasicMaterial } from "three";
 import { VEHICLE_TRANSITION_SECONDS, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
 import { createGd110, disposeGd110, GD110_WHEEL_RADIUS } from "./mesh";
+import { vehicleAnimationDelta } from "./transition";
 
 export const MAX_VEHICLE_LEAN = 12 * Math.PI / 180;
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
@@ -79,7 +80,7 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
       const seconds = Number.isFinite(dt) ? clamp(dt, 0, .25) : 0;
       if (!previous) transitionSeconds = VEHICLE_TRANSITION_SECONDS;
       else if (previous.state.mode !== state.mode) transitionSeconds = 0;
-      transitionSeconds += seconds;
+      transitionSeconds += vehicleAnimationDelta(dt, true);
       const phase = transitionSeconds / VEHICLE_TRANSITION_SECONDS;
       // Mount: settle onto the seat before kicking up. Dismount: park first.
       const standTarget = state.mode === "ride" ? clamp((phase - .8) / .2, 0, 1) : 1 - clamp(phase / .25, 0, 1);

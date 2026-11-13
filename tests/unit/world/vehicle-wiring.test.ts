@@ -21,6 +21,7 @@ const harness = vi.hoisted(() => ({
   dispose: vi.fn(),
   update: vi.fn(),
   step: vi.fn(),
+  riderUpdate: vi.fn(),
   teleport: vi.fn(), wet: false, blocked: false, realPhysics: false, collisions: [] as import("three").Mesh[],
 }));
 
@@ -28,6 +29,15 @@ const harness = vi.hoisted(() => ({
 vi.mock("../../../src/features/world/character/loader", async () => {
   const { createFallbackCharacter } = await import("../../../src/features/world/character/fallback");
   return { loadCharacter: async () => createFallbackCharacter() };
+});
+vi.mock("../../../src/features/world/character/ride", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../../src/features/world/character/ride")>();
+  return { ...actual, createRiderPose: (...args: Parameters<typeof actual.createRiderPose>) => {
+    const pose = actual.createRiderPose(...args);
+    const update = pose.update;
+    vi.spyOn(pose, "update").mockImplementation((...values) => { harness.riderUpdate(...values); update(...values); });
+    return pose;
+  } };
 });
 vi.mock("three", async importOriginal => {
   const actual = await importOriginal<typeof import("three")>();
@@ -208,6 +218,25 @@ async function ride() {
   key("KeyE");
   expect(container.dataset.worldVehicle).toBe("manual");
 }
+it.each([60, 2])("passes active frame time to the vehicle at %s FPS without changing physics steps", async fps => {
+  await ride();
+  advance(1000 / fps); // Mount clears the frame clock; establish its new anchor.
+  harness.step.mockClear();
+  key("KeyW");
+  advance(1000 / fps);
+  expect(harness.riderUpdate.mock.lastCall?.[2]).toBeCloseTo(1 / fps);
+  expect(harness.step).toHaveBeenCalled();
+  for (const call of harness.step.mock.calls) expect(call[2]).toBe(1 / 60);
+  expect(harness.step.mock.calls.length).toBeLessThanOrEqual(5);
+  send(win, "blur");
+  advance(10_000);
+  expect(harness.riderUpdate.mock.lastCall?.[2]).toBe(0);
+  send(win, "focus");
+  advance(1000 / fps);
+  expect(harness.riderUpdate.mock.lastCall?.[2]).toBe(1 / 60);
+  advance(1000 / fps);
+  expect(harness.riderUpdate.mock.lastCall?.[2]).toBeCloseTo(1 / fps);
+});
 function drive(seconds: number) {
   for (let i = 0; i < seconds * 10; i++) advance();
 }

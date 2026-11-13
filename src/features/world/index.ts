@@ -54,6 +54,7 @@ import { DISMOUNT_COPY, DISMOUNT_PENDING_COPY, requestDismount } from "./vehicle
 import { createVehicleControls } from "./vehicle/controls";
 import { stepVehicleController } from "./vehicle/motion";
 import { createRiderPose } from "./character/ride";
+import { vehicleAnimationDelta } from "./vehicle/transition";
 import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
 import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
@@ -1264,6 +1265,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       applyQuality(result.quality);
     }
     const dt = Math.min(0.1, last ? (now - last) / 1000 : FIXED_DT);
+    const vehicleDt = vehicleAnimationDelta(last ? (now - last) / 1000 : FIXED_DT, canSimulate(state));
     const wasPlaying = intro?.inputLocked;
     startIntro();
     if (cameraEnabled()) yaw = wrapYaw(yaw + (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) * KEY_YAW_SPEED * dt);
@@ -1292,7 +1294,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     // A paused world is frozen (§6.1): no idle breathing either (e2e compares paused frames pixel for pixel).
     const animDt = canSimulate(state) ? dt : 0;
     animator.update(animDt, vehicle.mode === "ride" || rider.transitioning || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
-    publishVehicle(animDt);
+    publishVehicle(vehicleDt);
     fish.update(animDt, reducedMotion);
     updateDawnShafts(animDt, reducedMotion);
     if (vehicleControls.dismountPending) getOffVehicle();
