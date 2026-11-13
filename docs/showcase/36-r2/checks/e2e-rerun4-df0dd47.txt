@@ -1,0 +1,39 @@
+
+Running 5 tests using 1 worker
+
+  ✘  1 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike (1.0m)
+  ✓  2 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E while rolling ends upright beside the parked bike (43.7s)
+  ✓  3 [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: E during mount ends upright beside the parked bike (45.0s)
+  ✓  4 [msedge] › tests\e2e\world.spec.ts:11:3 › World /en/: Enter World loads the world chunk; Exit world tears it down (10.5s)
+  ✓  5 [msedge] › tests\e2e\world.spec.ts:11:3 › World /vi/: Enter World loads the world chunk; Exit world tears it down (11.8s)
+
+
+  1) [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 0.002
+    Received:   0.01645978118158089
+
+      55 |         await page.waitForTimeout(500);
+      56 |         const after = await position(world!);
+    > 57 |         expect(Math.hypot(after.x - stopped.x, after.z - stopped.z)).toBeLessThan(.002);
+         |                                                                      ^
+      58 |         await page.keyboard.up("s");
+      59 |       }
+      60 |     }
+        at D:\the-quiet-atlas\tests\e2e\world-vehicle.spec.ts:57:70
+
+    Error Context: test-results\e2e-artifacts\world-vehicle-vehicle-with-329cb-ight-beside-the-parked-bike-msedge\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\e2e-artifacts\world-vehicle-vehicle-with-329cb-ight-beside-the-parked-bike-msedge\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\e2e-artifacts\world-vehicle-vehicle-with-329cb-ight-beside-the-parked-bike-msedge\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [msedge] › tests\e2e\world-vehicle.spec.ts:17:3 › vehicle with motion: brake to rest ends upright beside the parked bike 
+  4 passed (3.4m)
