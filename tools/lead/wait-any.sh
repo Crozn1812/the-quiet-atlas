@@ -15,6 +15,10 @@ while :; do
     if tail -c 3000 "$log" | grep -q "usage limit" && [ "$(date -r "$log" +%s)" -ge "$start" ]; then
       echo "$id LIMIT $(grep -o 'try again at [^.]*' "$log" | tail -1)"; hit=1; continue
     fi
+    # Stalled: no log write for 25 min (a worker stuck on a sandbox error never writes .last.md in time).
+    if [ "$age" -ge 1500 ] && [ "$(date -r "$log" +%s)" -ge "$start" -o $(( $(date +%s) - start )) -ge 1500 ]; then
+      echo "$id STALL (log idle $((age / 60)) min)"; hit=1; continue
+    fi
     last=D:/tqa-worktrees/$id.last.md
     if [ -f "$last" ] && [ "$(date -r "$last" +%s)" -ge "$start" ] && [ "$age" -ge 90 ]; then
       echo "$id DONE"; hit=1
