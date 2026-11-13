@@ -7,6 +7,8 @@ set -uo pipefail
 ID="$1"; CARD="$2"; EFFORT="${3:-medium}"
 # Argon has its own weekly quota (out until ~19/11); Hydrogen is the default worker model. Override: AGY_MODEL=…
 AGY_MODEL="${AGY_MODEL:-gemini-4-hydrogen-high}"
+# A model name ending in -low/-medium/-high already fixes the effort; agy rejects an extra --effort (2026-11-13).
+case "$AGY_MODEL" in *-low|*-medium|*-high) EFFORT_ARG="";; *) EFFORT_ARG="--effort $EFFORT";; esac
 REPO=D:/the-quiet-atlas
 . "$(dirname "$0")/worker-slot.sh"
 case "$CARD" in /*|?:*) CARDPATH="$CARD";; *) CARDPATH="$REPO/docs/tickets/$CARD";; esac
@@ -18,7 +20,7 @@ PROMPT="$(cat "$REPO/docs/tickets/_common-b2.md" "$CARDPATH")
 ## Cách làm
 Làm việc trong thư mục hiện tại ($WT), không sửa ngoài nó. Không commit, không push, không chạm cloud/credential.
 Blender MCP của bạn ở cổng 9879 (đã cấu hình). Xong thì in bàn giao: file đã sửa, lệnh đã chạy + exit code, việc chưa làm."
-cd "$WT" && agy -p "$PROMPT" --model "$AGY_MODEL" --mode auto --sandbox --settings "$TQA_REPO/tools/lead/agy-settings.json" --effort "$EFFORT" --print-timeout 0 \
+cd "$WT" && agy -p "$PROMPT" --model "$AGY_MODEL" --mode auto --sandbox --settings "$TQA_REPO/tools/lead/agy-settings.json" $EFFORT_ARG --print-timeout 0 \
   > "D:/tqa-worktrees/$ID.log" 2>&1
 code=$?
 tail -c 6000 "D:/tqa-worktrees/$ID.log" > "D:/tqa-worktrees/$ID.last.md"
