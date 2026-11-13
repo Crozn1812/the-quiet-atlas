@@ -17,7 +17,7 @@ import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt } from "../../../../src/features
 import { nearestPath } from "../../../../src/features/world/terrain/samples";
 import { placeZoneScenes } from "../../../../src/features/world/zones";
 import {
-  createMilestonesScene, FUTURE_BASE_HEX, INK_BASE_HEX, milestoneCertificates, type MilestoneStatueMetadata, WEATHERED_BASE_HEX,
+  createMilestonesScene, FUTURE_BASE_HEX, INK_BASE_HEX, milestoneCertificates, type MilestoneStatueMetadata, STATUE_YAW, WEATHERED_BASE_HEX,
 } from "../../../../src/features/world/zones/milestones";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
@@ -153,6 +153,7 @@ describe("The Milestones hillside", () => {
     expect(scene.colliders[0]!.size.x).toBeCloseTo(2.2, 1);
     expect(scene.colliders[0]!.size.z).toBeCloseTo(2.8, 1);
     expect(scene.colliders[0]!.size.y).toBeCloseTo(1.0, 1);
+    expect(scene.colliders[0]!.yaw).toBeCloseTo(STATUE_YAW, 2);
     // Collider 1: Pine trunk at x = 15, z = 2.7
     expect(scene.colliders[1]!.center.distanceTo(new Vector3(15.01386, 2.1, 2.7))).toBeLessThanOrEqual(0.1);
     // Road-side interaction target on the plinth (x = 4.7, y = 1.38, z = 0)
@@ -331,14 +332,18 @@ describe("The Milestones hillside", () => {
         expect(ctx.underWater(x, z)).toBe(false);
       }
     }
-    for (const box of scene.colliders) {
-      expect(box.yaw ?? 0).toBe(0);
-      expect(Math.abs(box.center.x) - box.size.x / 2).toBeGreaterThan(PATH_CLEARANCE);
+    for (const [index, box] of scene.colliders.entries()) {
+      if (index === 0) expect(box.yaw).toBeCloseTo(STATUE_YAW, 2);
+      else expect(box.yaw ?? 0).toBe(0);
       expect(box.size.toArray().every(value => value > 0)).toBe(true);
+      const cosY = Math.cos(box.yaw ?? 0), sinY = Math.sin(box.yaw ?? 0);
       for (let ix = 0; ix <= 10; ix++) {
         for (let iz = 0; iz <= 10; iz++) {
-          const x = box.center.x + box.size.x * (ix / 10 - 0.5);
-          const z = box.center.z + box.size.z * (iz / 10 - 0.5);
+          const dx = box.size.x * (ix / 10 - 0.5);
+          const dz = box.size.z * (iz / 10 - 0.5);
+          const x = box.center.x + dx * cosY - dz * sinY;
+          const z = box.center.z + dx * sinY + dz * cosY;
+          expect(Math.abs(x)).toBeGreaterThan(PATH_CLEARANCE);
           expect(ctx.onPath(x, z)).toBe(false);
           expect(ctx.underWater(x, z)).toBe(false);
         }
@@ -504,7 +509,7 @@ describe("The Milestones hillside", () => {
     expect(propTriangles).toBeLessThanOrEqual(2000);
   });
 
-  it("sculpts the 5.6–6.2 m unfinished portrait bust of Duy with >= 0.30 m carved English letters, dark recessed sockets, 4 orbiting stone shards and 2 lighter planned blocks", () => {
+  it("sculpts the 5.6–6.2 m unfinished portrait bust of Duy with >= 0.26 m carved English letters, dark recessed sockets, 4 orbiting stone shards and 2 lighter planned blocks", () => {
     const certs = milestoneCertificates();
     expect(certs).toHaveLength(4);
     expect(certs.filter(c => c.achieved).map(c => c.inscription)).toEqual(["CCNA", "VTI DEVOPS"]);
@@ -512,7 +517,7 @@ describe("The Milestones hillside", () => {
     for (const c of certs) {
       expect(c.inscription).toMatch(/^[A-Z0-9 ]+$/);
       if (c.achieved) {
-        expect(c.charHeight).toBeGreaterThanOrEqual(0.30);
+        expect(c.charHeight).toBeGreaterThanOrEqual(0.26);
         expect(c.carveDepth).toBeGreaterThanOrEqual(0.05);
       } else {
         expect(c.carveDepth).toBeLessThanOrEqual(0.02);
@@ -525,7 +530,7 @@ describe("The Milestones hillside", () => {
     expect(meta.fittedPieces).toHaveLength(2);
     expect(meta.fittedPieces.map(p => p.inscription)).toEqual(["CCNA", "VTI DEVOPS"]);
     for (const piece of meta.fittedPieces) {
-      expect(piece.charHeight).toBeGreaterThanOrEqual(0.30);
+      expect(piece.charHeight).toBeGreaterThanOrEqual(0.26);
       expect(piece.carveDepth).toBeGreaterThanOrEqual(0.05);
     }
 
@@ -584,6 +589,31 @@ describe("The Milestones hillside", () => {
       }],
     });
     expect(completed.every(c => c.achieved)).toBe(true);
+  });
+
+  it("MS-02b: rotates statue 25° towards Roots, separates floating planned tablets by >= 0.5 m, and formats certificate text cleanly", () => {
+    const scene = create();
+    const meta = statueMeta(scene);
+
+    // 1. Orientation: 25° yaw towards Roots (decreasing t, -Z)
+    expect(STATUE_YAW).toBeCloseTo(25 * Math.PI / 180, 4);
+    expect(scene.colliders[0]!.yaw).toBeCloseTo(STATUE_YAW, 4);
+
+    // 2. Letters: height >= 0.26 m, multi-line for multi-word inscriptions
+    expect(meta.certificates.find(c => c.slot === 0)!.inscription).toBe("CCNA");
+    expect(meta.certificates.find(c => c.slot === 1)!.inscription).toBe("VTI DEVOPS");
+    expect(meta.certificates.find(c => c.slot === 2)!.inscription).toBe("AWS SAA");
+    expect(meta.certificates.find(c => c.slot === 3)!.inscription).toBe("LINUX CEH");
+    for (const c of meta.certificates) {
+      expect(c.charHeight).toBeGreaterThanOrEqual(0.26);
+    }
+
+    // 3. Floating planned pieces: separated horizontally by >= 0.5 m
+    expect(meta.plannedPieces).toHaveLength(2);
+    const p1Center = meta.plannedPieces[0]!.bounds.getCenter(new Vector3());
+    const p2Center = meta.plannedPieces[1]!.bounds.getCenter(new Vector3());
+    const horizDist = Math.hypot(p1Center.x - p2Center.x, p1Center.z - p2Center.z);
+    expect(horizDist).toBeGreaterThanOrEqual(0.5);
   });
 
   it("preserves V2 pine bark and needle pigments through the shared material", () => {

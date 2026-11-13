@@ -23,6 +23,7 @@ interface Part {
   z: number;
   solid: boolean;
   collisionGeometry?: BufferGeometry;
+  yaw?: number;
 }
 
 export interface MilestoneCertificatePiece {
@@ -83,7 +84,8 @@ export interface MilestoneStatueMetadata {
 // Monumental 7.0 m portrait bust anchored at x = 4.7 m so its plinth, interactable prompt and silhouette align with the trail.
 const STATUE_X = 4.7;
 const STATUE_Z = 0;
-const STATUE_YAW = 0.08;
+// Rotated 25° towards Roots (decreasing t, -Z) so the front of the bust directly faces approaching travelers.
+export const STATUE_YAW = 25 * Math.PI / 180;
 const COS_YAW = Math.cos(STATUE_YAW);
 const SIN_YAW = Math.sin(STATUE_YAW);
 
@@ -126,13 +128,13 @@ export function milestoneCertificates(
     const planned = /^(?:planned|dự định)\b/i.test(item.title.trim())
       || /\b(?:not taken yet|still blank|chưa thi)\b/i.test(item.description);
     const inscription = toEnglishInscription(item.title);
-    const multiLine = inscription.trim().split(/\s+/).length >= 2 && inscription.length > 6;
+    const multiLine = inscription.trim().split(/\s+/).length >= 2;
     return {
       slot,
       title: item.title,
       inscription,
       achieved: !planned,
-      charHeight: planned ? 0.36 : (multiLine ? 0.40 : 0.50),
+      charHeight: multiLine ? 0.27 : 0.30,
       carveDepth: planned ? 0.012 : 0.065,
     };
   });
@@ -331,7 +333,7 @@ function emitCarvedInscription(
   offset: readonly [number, number, number] = [0, 0, 0],
 ): number {
   const words = inscription.trim().split(/\s+/).filter(Boolean);
-  const lines = words.length >= 2 && inscription.length > 6
+  const lines = words.length >= 2
     ? [words[0]!, words.slice(1).join(" ")]
     : [inscription.trim()];
   const [cu, cy, cv] = [
@@ -341,14 +343,20 @@ function emitCarvedInscription(
   ];
   let strokesEmitted = 0;
   const lineCount = lines.length;
-  const lineSpacing = charHeight * 1.28;
-  const halfThick = charHeight * 0.088;
+  const lineGap = lineCount > 1 ? 0.035 : 0;
+  const lineSpacing = charHeight + lineGap;
+  const halfThick = 0.020; // 0.040 m total stroke thickness (within 0.035–0.05 m requirement)
   const frontOutward = statuePoint(-1, 0, 0);
 
   lines.forEach((line, lineIndex) => {
     const chars = [...line];
-    const maxCharWidth = Math.min(charHeight * 0.66, (tabletWidth * 0.88) / Math.max(1, chars.length * 1.24));
-    const stepV = maxCharWidth * 1.26;
+    const charSpacing = Math.max(0.20 * charHeight, 0.05); // >= 18% of charHeight
+    const availableWidth = tabletWidth - 2 * 0.085; // guarantees >= 0.08 m margin on each side
+    const maxCharWidth = Math.min(
+      charHeight * 0.48,
+      (availableWidth - (chars.length - 1) * charSpacing) / Math.max(1, chars.length),
+    );
+    const stepV = maxCharWidth + charSpacing;
     const totalV = (chars.length - 1) * stepV + maxCharWidth;
     const startV = -totalV / 2;
     const baseY = cy + ((lineCount - 1) / 2 - lineIndex) * lineSpacing - charHeight / 2;
@@ -524,8 +532,9 @@ function buildDuyPortraitSculpture(
   const lichenTint = new Color(PALETTE.paper);
   for (let i = 0; i < pedPos.count; i++) {
     const px = pedPos.getX(i), py = pedPos.getY(i), pz = pedPos.getZ(i);
-    pedestalBounds.expandByPoint(new Vector3(px, py, pz));
-    weatheredAcc.positions.push(px, py, pz);
+    const sp = statuePoint(px, py, pz);
+    pedestalBounds.expandByPoint(sp);
+    weatheredAcc.positions.push(sp.x, sp.y, sp.z);
     const col = new Color(pedCol.getX(i) * weatheredBase.r, pedCol.getY(i) * weatheredBase.g, pedCol.getZ(i) * weatheredBase.b);
     if (py < 0.16) col.lerp(mossTint, 0.68);
     else if (py > 0.36 && Math.abs(pz) < 1.0) col.lerp(lichenTint, 0.45);
@@ -887,18 +896,19 @@ function buildDuyPortraitSculpture(
   let inscribedStrokeCount = 0;
 
   const slotGrid = [
-    { slot: 0, y: 2.65, v: -0.56, uChest: -0.48 },
-    { slot: 1, y: 1.95, v: -0.56, uChest: -0.55 },
-    { slot: 2, y: 2.65, v: +0.56, uChest: -0.48 },
-    { slot: 3, y: 1.95, v: +0.56, uChest: -0.55 },
+    { slot: 0, y: 2.68, v: -0.56, uChest: -0.48 },
+    { slot: 1, y: 1.88, v: -0.56, uChest: -0.55 },
+    { slot: 2, y: 2.68, v: +0.56, uChest: -0.48 },
+    { slot: 3, y: 1.88, v: +0.56, uChest: -0.55 },
   ] as const;
+
+  const tabletSize: [number, number, number] = [0.08, 0.74, 1.04];
 
   for (const [idx, cert] of certificates.entries()) {
     const grid = slotGrid[idx % slotGrid.length]!;
     if (cert.achieved) {
       const pieceBounds = new Box3();
       const tabletCenter: [number, number, number] = [grid.uChest - 0.04, grid.y, grid.v];
-      const tabletSize: [number, number, number] = [0.08, 0.62, 1.0];
       emitBox(tabletAcc, tabletCenter, tabletSize, tabletTone, [0, 0, 0], 0, pieceBounds);
       torsoBounds.union(pieceBounds);
       shouldersBounds.union(pieceBounds);
@@ -923,7 +933,7 @@ function buildDuyPortraitSculpture(
     } else {
       // Dark recessed socket 0.25 m deep into the chest
       const socketCenter: [number, number, number] = [grid.uChest + 0.125, grid.y, grid.v];
-      const socketSize: [number, number, number] = [0.25, 0.62, 1.0];
+      const socketSize: [number, number, number] = [0.25, tabletSize[1], tabletSize[2]];
       const gapBounds = new Box3();
       emitBox(inkAcc, socketCenter, socketSize, inkTone, [0, 0, 0], 0, gapBounds);
       const throughLocal = statuePoint(grid.uChest, grid.y, grid.v).add(new Vector3(STATUE_X, 0, STATUE_Z));
@@ -935,18 +945,21 @@ function buildDuyPortraitSculpture(
         bounds: gapBounds.translate(new Vector3(STATUE_X, 0, STATUE_Z)),
       });
 
-      // Hovering tablet 1.05 m in front of chest, tilted 15°
+      // Hovering tablets separated horizontally by >= 0.5 m, facing same direction as statue face
       const floatAcc = makeAccumulator(futureBase);
       const floatBounds = new Box3();
-      const floatCenter: [number, number, number] = [grid.uChest - 1.05, grid.y + 0.08, grid.v];
-      const floatSize: [number, number, number] = [0.08, 0.62, 1.0];
-      const floatTilt = 0.26; // 15 degrees
-      emitBox(floatAcc, floatCenter, floatSize, plannedBlockTone, [0, 0, 0], floatTilt, floatBounds);
+      // Slot 2 (AWS SAA): upper tablet at v = +0.25
+      // Slot 3 (LINUX CEH): lower tablet at v = +1.00 (separated by 0.75 m horizontally)
+      const floatCenter: [number, number, number] = cert.slot === 2
+        ? [grid.uChest - 0.95, grid.y + 0.05, 0.25]
+        : [grid.uChest - 0.90, grid.y, 1.00];
+      const floatTilt = 0; // faces same direction as statue face
+      emitBox(floatAcc, floatCenter, tabletSize, plannedBlockTone, [0, 0, 0], floatTilt, floatBounds);
       emitCarvedInscription(
         floatAcc,
         cert.inscription,
-        [floatCenter[0] - floatSize[0] / 2, floatCenter[1], floatCenter[2]],
-        floatSize[2],
+        [floatCenter[0] - tabletSize[0] / 2, floatCenter[1], floatCenter[2]],
+        tabletSize[2],
         cert.charHeight,
         cert.carveDepth,
         shallowCarveTone,
@@ -1119,6 +1132,7 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     x: STATUE_X,
     z: STATUE_Z,
     solid: true,
+    yaw: STATUE_YAW,
   });
 
   // Dressed certificate tablets on the chest + 2 hovering paler planned certificate blocks (`future` stone).
@@ -1232,7 +1246,7 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     if (part.solid) {
       const center = (collisionBounds.isEmpty() ? bounds : collisionBounds).getCenter(new Vector3());
       const size = (collisionBounds.isEmpty() ? bounds : collisionBounds).getSize(new Vector3());
-      colliders.push({ center, size });
+      colliders.push({ center, size, yaw: part.yaw });
     }
     const flat = geometry.index ? geometry.toNonIndexed() : geometry;
     flat.deleteAttribute("uv");
