@@ -1,6 +1,6 @@
 ## TICKET MAP-01 — Thu ngắn tuyến đi bộ (ADR 0017)
 
-Bối cảnh: `docs/tickets/R2-playtest-feedback.md` (dòng "Map quá dài và rộng"), `docs/adr/0017-shorter-walking-route.md`. Áp `_common-b2.md`, `_review-common.md`, `_graphics-common.md`. Ticket này chạy **một mình**: không worker nào khác sửa `src/features/world/` trong lúc làm.
+Bối cảnh: `docs/tickets/R2-playtest-feedback.md` (dòng "Map quá dài và rộng"), `docs/adr/0017-shorter-walking-route.md`. Áp `_common-b2.md`, `_review-common.md`, `_graphics-common.md`. Chỉ PERF-FL03 chạy song song (5 file nêu ở mục "Không được sửa").
 
 **Mục tiêu (trải nghiệm):** người chơi đi bộ hết 8 khu trong khoảng 3,5–4 phút thay vì hơn 6 phút. Đường vẫn uốn theo suối, cảnh từng khu không đổi; chỉ đoạn đi giữa các khu ngắn lại.
 
@@ -19,7 +19,7 @@ Bối cảnh: `docs/tickets/R2-playtest-feedback.md` (dòng "Map quá dài và r
 3. Kiểm tra từng khu sau khi dời: không có vật nổi, đè lên suối/đường, hay mắc vào bờ; cầu vẫn nằm đúng chỗ suối; đường nhựa ven biển, lan can, ghế Horizon vẫn dùng được.
 
 **Được sửa:** `src/features/world/**`, `src/features/navigation/*`, `src/features/story/*`, `src/features/audio/*` (chỉ chỗ đọc vị trí), `tools/world/*`, `tools/wayfinding/*`, `tools/styleframes/*` (chỉ chỗ đọc layout), `tests/unit/**`, `tests/perf/*` nếu có kỳ vọng vị trí. Đổi test **có chủ đích** theo ADR 0017; ghi từng test đã đổi và lý do trong bàn giao.
-**Không được sửa:** `package.json`, lockfile, `docs/`, `src/components/`, `src/app/`, `public/world/` (không cần asset mới).
+**Không được sửa:** các file của PERF-FL03 đang chạy song song (`foliage/forest-ceiling.ts`, `foliage/first-light-grove.ts`, `post/dawn-shafts.ts`, `water/fish.ts`, `terrain/spring.ts`); nếu buộc phải chạm, ghi rõ trong bàn giao. `package.json`, lockfile, `docs/`, `src/components/`, `src/app/`, `public/world/` (không cần asset mới).
 
 **Điều kiện xong:**
 - `bash tools/lead/gate.sh .` → GATE PASS (dán dòng cuối).
