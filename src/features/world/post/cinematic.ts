@@ -9,6 +9,7 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { PALETTE } from "../art/palette";
 import type { Quality } from "../terrain";
+import { cinematicLook, type CinematicPresentation } from "../cinematic/presentation";
 
 export function createPost(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera, quality: Exclude<Quality, "Low">) {
   const composer = new EffectComposer(renderer);
@@ -30,7 +31,8 @@ export function createPost(renderer: WebGLRenderer, scene: Scene, camera: Perspe
   ao.updatePdMaterial({ radius: 5, samples: quality === "High" ? 8 : 4 });
   composer.addPass(ao);
   composer.addPass(new UnrealBloomPass(new Vector2(1, 1), quality === "High" ? 0.13 : 0.08, 0.5, 1.25));
-  const dof = quality === "High" ? new ShaderPass({ ...BokehShader, defines: { ...BokehShader.defines, DEPTH_PACKING: 0 } }, "tColor") : undefined;
+  // Balanced allocates this pass too, but only cinematic playback may enable it.
+  const dof = new ShaderPass({ ...BokehShader, defines: { ...BokehShader.defines, DEPTH_PACKING: 0 } }, "tColor");
   if (dof) {
     dof.enabled = false;
     dof.uniforms.tDepth!.value = source.depthTexture;
@@ -42,16 +44,21 @@ export function createPost(renderer: WebGLRenderer, scene: Scene, camera: Perspe
       tDiffuse: { value: null },
       shadowTint: { value: new Color(PALETTE.indigo).lerp(new Color(PALETTE.skyLow), 0.6) },
       highlightTint: { value: new Color(PALETTE.cloud).lerp(new Color(PALETTE.sunGold), 0.13) },
+      saturation: { value: 0.94 },
     },
     vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}",
-    fragmentShader: `varying vec2 vUv; uniform sampler2D tDiffuse; uniform vec3 shadowTint,highlightTint;
+    fragmentShader: `varying vec2 vUv; uniform sampler2D tDiffuse; uniform vec3 shadowTint,highlightTint; uniform float saturation;
       void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;float l=dot(c,vec3(.2126,.7152,.0722));
-      c=mix(vec3(l),c,.94);c=mix(c,c*shadowTint*1.5,.055*(1.0-smoothstep(.02,.45,l)));
+      c=mix(vec3(l),c,saturation);c=mix(c,c*shadowTint*1.5,.055*(1.0-smoothstep(.02,.45,l)));
       c=mix(c,c*highlightTint*1.05,.06*smoothstep(.4,1.3,l));gl_FragColor=vec4(max(c,vec3(0.0)),1.0);}`,
   });
   composer.addPass(grade);
   // RenderPass writes linear HDR into half-float buffers; only OutputPass tone maps/transfers to sRGB.
   composer.addPass(new OutputPass());
+  const baseShadow = grade.uniforms.shadowTint!.value.clone() as Color;
+  const baseHighlight = grade.uniforms.highlightTint!.value.clone() as Color;
+  const looks = { intro: cinematicLook("intro"), ending: cinematicLook("ending") };
+  let cinematic: CinematicPresentation | null = null;
   return {
     render() {
       if (dof) { dof.uniforms.nearClip!.value = camera.near; dof.uniforms.farClip!.value = camera.far; }
@@ -67,9 +74,18 @@ export function createPost(renderer: WebGLRenderer, scene: Scene, camera: Perspe
       ao.setSize(Math.max(1, Math.ceil(width * dpr / 2)), Math.max(1, Math.ceil(height * dpr / 2)));
     },
     setFocus(enabled: boolean, focus: number) {
-      if (!dof) return;
-      dof.enabled = enabled;
-      dof.uniforms.focus!.value = Math.max(camera.near, focus);
+      dof.enabled = enabled && (quality === "High" || cinematic !== null);
+      dof.uniforms.focus!.value = Math.max(camera.near, Math.min(camera.far, focus));
+    },
+    setCinematic(value: CinematicPresentation | null) {
+      cinematic = value;
+      const strength = value ? Math.max(0, Math.min(1, value.strength)) : 0;
+      const look = looks[value?.kind ?? "intro"];
+      grade.uniforms.shadowTint!.value.copy(baseShadow).lerp(look.shadowTint, strength);
+      grade.uniforms.highlightTint!.value.copy(baseHighlight).lerp(look.highlightTint, strength);
+      grade.uniforms.saturation!.value = 0.94 + (look.saturation - 0.94) * strength;
+      dof.uniforms.aperture!.value = 0.000025 + (look.aperture - 0.000025) * strength;
+      dof.uniforms.maxblur!.value = value ? look.maxblur * strength : 0.003;
     },
     dispose() {
       for (const pass of composer.passes) pass.dispose();

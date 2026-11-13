@@ -1,4 +1,4 @@
-import { Color, Fog, PerspectiveCamera, Scene, Vector2, WebGLRenderTarget, type WebGLRenderer } from "three";
+import { Color, DirectionalLight, Fog, HemisphereLight, PerspectiveCamera, Scene, Vector2, WebGLRenderTarget, type WebGLRenderer } from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
@@ -104,7 +104,7 @@ describe("direction C runtime", () => {
     expect(EffectComposer).not.toHaveBeenCalled();
     pass.setQuality("Balanced"); pass.render(scene, camera);
     const pipeline = composer();
-    expect(pipeline.passes.map(item => item.constructor.name)).toEqual(["RenderPass", "GTAOPass", "UnrealBloomPass", "ShaderPass", "OutputPass"]);
+    expect(pipeline.passes.map(item => item.constructor.name)).toEqual(["RenderPass", "GTAOPass", "UnrealBloomPass", "ShaderPass", "ShaderPass", "OutputPass"]);
     const release = pipeline.passes.map(item => vi.spyOn(item, "dispose"));
     pass.setQuality("Low");
     release.forEach(spy => expect(spy).toHaveBeenCalledOnce());
@@ -137,7 +137,46 @@ describe("direction C runtime", () => {
     pass.setMotion(true, 0.1); pass.render(scene, camera);
     expect(dof.enabled).toBe(false);
     pass.setQuality("Balanced"); pass.render(scene, camera);
-    expect(bokeh()).toBeUndefined();
+    expect(bokeh()!.enabled).toBe(false);
+    pass.dispose();
+  });
+  it.each(["Balanced", "High"] as const)("keeps moving %s cinematic subjects in focus before deferred assets, then restores gameplay", quality => {
+    const { scene, camera, pass } = setup(quality, false);
+    pass.render(scene, camera);
+    pass.setCinematic({ kind: "intro", strength: 1, focus: 75 });
+    pass.setMotion(true, 1 / 60);
+    camera.position.z += 1;
+    pass.render(scene, camera);
+    const dof = bokeh()!;
+    expect(dof.enabled).toBe(true);
+    expect(dof.uniforms.focus!.value).toBe(75);
+    expect(createEnvironment).not.toHaveBeenCalled();
+    const grade = composer().passes.find(item => item instanceof ShaderPass && item.uniforms.saturation) as ShaderPass;
+    expect(grade.uniforms.saturation!.value).toBe(0.92);
+    pass.setCinematic({ kind: "ending", strength: 1, focus: 4.5 });
+    pass.render(scene, camera);
+    expect(dof.uniforms.focus!.value).toBe(4.5);
+    expect(grade.uniforms.saturation!.value).toBe(0.9);
+    pass.setCinematic(null); pass.startDeferred(scene); pass.render(scene, camera);
+    expect(dof.enabled).toBe(false);
+    expect(grade.uniforms.saturation!.value).toBe(0.94);
+    pass.dispose();
+  });
+  it("applies cinematic light on Low without post/HDRI and restores lights after a failed draw", () => {
+    const { scene, camera, renderer, pass } = setup("Low", false);
+    const sun = new DirectionalLight(0xffffff, 1), fill = new HemisphereLight(0xffffff, 0x222222, 0.5);
+    scene.add(sun, fill);
+    const original = sun.color.clone();
+    pass.setCinematic({ kind: "intro", strength: 1, focus: 10 });
+    renderer.render.mockImplementation(() => {
+      expect(sun.intensity).toBe(1.04); expect(fill.intensity).toBe(0.55);
+      expect(sun.color.equals(original)).toBe(false);
+      throw new Error("draw failed");
+    });
+    expect(() => pass.render(scene, camera)).toThrow("draw failed");
+    expect(sun.color.equals(original)).toBe(true);
+    expect(sun.intensity).toBe(1); expect(fill.intensity).toBe(0.5);
+    expect(EffectComposer).not.toHaveBeenCalled(); expect(createEnvironment).not.toHaveBeenCalled();
     pass.dispose();
   });
   it("applies the native position fog and cinematic override, restoring scene state even on a draw error", () => {

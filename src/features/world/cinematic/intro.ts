@@ -2,6 +2,7 @@ import { Color, CubicBezierCurve3, Vector3 } from "three";
 import { riverPointAt } from "../layout/river";
 import { waterLevelAt, worldHeight } from "../terrain/height";
 import { WORLD_DIRECTION } from "../art/direction";
+import type { CinematicPresentation } from "./presentation";
 
 export const INTRO_DURATION = 22;
 export const CAMERA_CLEARANCE = 0.8;
@@ -14,6 +15,7 @@ export interface CameraPose {
 }
 
 export interface IntroFrame {
+  cinematic?: CinematicPresentation;
   position: Vector3;
   target: Vector3;
   fov: number;
@@ -118,7 +120,7 @@ export function createIntro(gameplayPose: CameraPose) {
     if (time <= 1) {
       position = overview.clone();
       target = overviewTarget.clone();
-      fov = 72;
+      fov = 70;
       mistBoost = 0;
     } else if (time <= 8) {
       const u = ease((time - 1) / 7);
@@ -126,25 +128,25 @@ export function createIntro(gameplayPose: CameraPose) {
       position = overWater(0.3 + (0.16 - 0.3) * u, 115 + (glideHeight - 115) * u);
       position.z -= 180 * (1 - u);
       target = overviewTarget.clone().lerp(upstreamTarget(glide), u);
-      fov = 72 + (60 - 72) * u;
+      fov = 70 + (58 - 70) * u;
       mistBoost = 0.04 * u;
     } else if (time <= 15) {
       const u = ease((time - 8) / 7);
       position = overWater(0.16 + (0.025 - 0.16) * u, glideHeight);
       target = upstreamTarget(position);
-      fov = 60;
+      fov = 58;
       mistBoost = 0.04;
     } else if (time <= 18) {
       const u = ease((time - 15) / 3);
       position = detailCurve.getPoint(u);
       target = upstreamTarget(close).lerp(leafTarget, u);
-      fov = 60 + (50 - 60) * u;
+      fov = 58 + (48 - 58) * u;
       mistBoost = 0.04;
     } else {
       const u = ease((time - 18) / 4);
       position = revealCurve.getPoint(u);
       target = revealTarget.getPoint(u);
-      fov = 50 + (end.fov - 50) * u;
+      fov = 48 + (end.fov - 48) * u;
       mistBoost = 0.04 * (1 - u);
       letterbox = 1 - u;
     }
@@ -159,7 +161,10 @@ export function createIntro(gameplayPose: CameraPose) {
     } else {
       position.y = Math.max(position.y, floor);
     }
-    return { position, target, fov, mistBoost, letterbox, paperOpacity: 0 };
+    return {
+      position, target, fov, mistBoost, letterbox, paperOpacity: 0,
+      cinematic: { kind: "intro", strength: letterbox, focus: position.distanceTo(target) },
+    };
   }
 
   return { duration: INTRO_DURATION, sample, finalFrame };
