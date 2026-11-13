@@ -1030,6 +1030,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     camera.position.copy(pose.position);
     camera.lookAt(pose.target);
     camera.fov = pose.fov;
+    paper.setCinematic?.(playing && !reducedMotion ? pose.cinematic ?? null : null);
     if (playing) {
       if (ending?.inputLocked && !reducedMotion && farLandscape && !farLandscape.mesh.visible) {
         while (!farLandscape.build.next().done) { /* Existing single-mesh backdrop. */ }
