@@ -26,10 +26,20 @@ Ghi chú ảnh:
 
 Full e2e, load-budget, Lighthouse, CPU so main cho cả đợt R2: **NOT RUN** (chạy một lần khi mọi ticket R2 đã merge).
 
-## Chưa xong
+## MS-02 — tượng đá đang ghép (merge sáng 13/11)
 
-- **MS-02** (#9) tượng đá Duy đang ghép: vòng 1 quá nhỏ và tối, vòng 2 to và đọc được chữ nhưng là chồng hộp trắng. Vòng 3 đang dựng theo công thức hình khối của Lead (đầu, tóc, kính, cổ, vai, phần thiếu, hốc chứng chỉ). Chưa merge.
-- Việc theo dõi: sau khi đổi chất lượng ngay lúc vừa dịch chuyển, khi máy tải nặng, địa hình có thể chưa dựng xong lúc chụp ảnh e2e (thấy ở HZ-02). Chưa xác định là lỗi sản phẩm hay do tải.
+| Ticket (góp ý của Duy) | Commit | Ảnh | Duy chấm |
+|---|---|---|---|
+| **MS-02** (#9) tượng đá Duy chưa thành hình thay các cục đá "lốp xe" | `c278102` | [từ đường mòn](ms02-statue.webp) · [cận](ms02-statue-close.webp) | giữ / sửa / bỏ |
+
+- Ba vòng: vòng 1 quá nhỏ và tối; vòng 2 là chồng hộp trắng; vòng 3 dựng theo công thức hình khối của Lead (bệ, ngực + vai, cổ, đầu, tóc, kính, vai và góc đầu còn thiếu, mảnh đá lơ lửng, hốc cho chứng chỉ dự định).
+- Lead sửa thêm: bỏ đoạn chèn CCNA cứng (world chỉ đọc `src/content`), bỏ màu bóng quá nhạt làm tượng trắng xanh.
+- Kiểm: gate merge PASS (lint, typecheck, unit 1754/1754); build exit 0.
+- **Còn yếu, chưa sửa:** chữ trên các phiến chứng chỉ dính nhau, khó đọc từ xa; tượng quay mặt dọc theo đường mòn thay vì ra phía người đi tới. Mặt tượng là khối đơn giản, chưa giống Duy.
+
+## Việc theo dõi
+
+- Sau khi đổi chất lượng ngay lúc vừa dịch chuyển, khi máy tải nặng, địa hình có thể chưa dựng xong lúc chụp ảnh e2e (thấy ở HZ-02). Chưa xác định là lỗi sản phẩm hay do tải.
 
 ## Quy trình và quota
 

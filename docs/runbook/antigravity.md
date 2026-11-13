@@ -39,5 +39,5 @@ Xong thì viết bàn giao vào tools/review/AG-<ticket>-handoff.md: file đã s
 | `AG-SC-01` | SC-01 bí mật to, huyền bí | 4515 | merged `4d76f65` (2 vòng) |
 | `AG-B2-091` | B2-091 tiếng chuông gió | 4521 | merged `7367882` |
 | `AG-WS-02` | WS-02 cổng đình làng có lửa | 4518 | merged `9cbbb86` (2 vòng) |
-| `AG-HZ-02` | HZ-02 ngồi ghế Horizon | 4519 | review |
-| `AG-MS-02` | MS-02 tượng đá Duy đang ghép | 4517 | trả lại vòng 1, đang sửa |
+| `AG-HZ-02` | HZ-02 ngồi ghế Horizon | 4519 | merged `cebecd7` + đánh dấu `dd1aaf2` (2 vòng + Lead sửa camera) |
+| `AG-MS-02` | MS-02 tượng đá Duy đang ghép | 4517 | merged `c278102` (3 vòng + Lead sửa màu) |
