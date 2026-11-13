@@ -33,3 +33,11 @@ Nhân vật (rig 19 xương, đi/chạy/ngồi/lái giữ nguyên) và xe GD110:
 Intro (bình minh First Light) và ending (hoàng hôn Last Postcard) dùng hệ C đã merge: IBL/hậu kỳ GFX-P1 (`post/cinematic.ts`, `post/runtime.ts`), cây GFX-P3, nước GFX-P4. Chỉnh khung máy quay, ánh sáng, grading và DOF riêng cho cinematic (DOF được dùng ở cinematic cả Balanced; tắt ở Low). Giữ thời lượng, phụ đề, nút bỏ qua, reduced-motion, và `data-world-build` không chờ asset C.
 Được sửa: `src/features/world/cinematic/**`, `post/cinematic.ts`, test. Không sửa `index.ts` (nếu cần nối, ≤ 5 dòng và ghi trong bàn giao).
 Ảnh: 6 khung intro + 6 khung ending (High) + 1 khung Low mỗi đoạn; video 30–60 s mỗi đoạn vào `docs/showcase/38-c/` nếu ghi được.
+
+## GFX-Z* — Dressing từng khu hướng C (mỗi khu một ticket)
+Chung: dùng hệ đã merge (P1 post/IBL, P3 cây, P4 nước; P2 vật liệu khi đã merge) và kho `public/world/lib` (đá boulder 1–4, dương xỉ, bụi, cỏ, khúc gỗ đổ, cây). Làm khu trông như ảnh thật chụp tại chỗ theo `docs/art-bible/taste.md` và nội dung khu trong spec: nhóm đá có chủ đích, bụi/dương xỉ ở mép đường và gốc cây, cỏ cao theo vùng sáng, khúc gỗ đổ, vật thể đặc trưng khu đổi sang PBR. Giữ nguyên vị trí điểm tương tác, collider đường đi, trigger, nội dung chữ.
+- **CPU:** đo đơn của GFX-P6 cho thấy First Light/Workshop đã cao hơn bản cũ ~+20 ms/s. Mọi vật dressing phải **instanced/batched** (`props/batched.ts`), không thêm object có update mỗi frame, cull theo khoảng cách; báo số draw call và tam giác trước/sau.
+- Asset mới (nếu có) CC0, deferred, có dòng LICENSES; ghi byte thêm.
+- Được sửa: `src/features/world/zones/<khu>.ts`, file mới `src/features/world/zones/<khu>-dressing.ts`, `src/features/world/props/**` chỉ thêm file mới (không sửa file chung trừ khi ghi rõ lý do), test của khu.
+- Không sửa: `index.ts`, `layout/`, `terrain/`, `materials/`, `road/`, `foliage/`, `water/`, khu khác.
+- Xong: gate PASS; build một lần; e2e world `--workers=2` config mặc định; ảnh High 3 góc của khu (trước/sau) + Low 1 góc; `check:assets`. Không commit.
