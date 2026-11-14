@@ -60,6 +60,7 @@ import { VEHICLE_LABELS } from "../vehicle/labels";
 import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
 import { ZONE_HINTS } from "../../i18n/zone-hints";
 import { ambienceMixAt } from "../audio/mix";
+import { surfAt } from "./shore/surf";
 import { COAST_BEACH_Z } from "./layout/scale";
 import { updateFoliageWind } from "./foliage/instances";
 
@@ -557,6 +558,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dispatchEvent(new CustomEvent("tqa:ambience", {
       bubbles: false,
       detail: ambienceMixAt({
+        surf: surfAt(x, z, camera.matrixWorld.elements[0]!, camera.matrixWorld.elements[2]!, y - HEIGHT - waterLevelAt(z)),
         distanceToRiver: nearestRiver(x, z).distance,
         // Mean shoreline of shoreHeight; include elevation above the water surface.
         distanceToSea: Math.hypot(Math.max(0, z - COAST_BEACH_Z), Math.max(0, y - HEIGHT - waterLevelAt(z))),

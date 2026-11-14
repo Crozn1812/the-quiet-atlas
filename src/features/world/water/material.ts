@@ -3,6 +3,7 @@ import { PALETTE } from "../art/palette";
 import { lightingAt, type LightingGrade } from "../sky/grade";
 import type { Quality } from "../terrain";
 import { riverPointAt, riverTangentAt } from "../layout/river";
+import { SURF_GLSL } from "../../audio/waves";
 
 export const WATER_FLOW_SPEED = 0.05;
 export const SEA_WAVE_PERIOD = 8;
@@ -118,6 +119,9 @@ const fragmentShader = /* glsl */ `
     return smoothstep(0.68, 0.94, waterField(across, along));
   }
   // End water noise functions.
+  #ifdef SEA_WATER
+    ${SURF_GLSL}
+  #endif
   float waterAbsorption(float depth) {
     return 1.0 - exp(-max(depth, 0.0) * 0.85);
   }
@@ -211,6 +215,10 @@ const fragmentShader = /* glsl */ `
     #ifdef SEA_WATER
       // All sea motion shares the freezeable clock, including on Low.
       float phase = uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)};
+      float surfPhase = surfCycle(uTime, vWaterWorld.x);
+      float breakerDistance = mix(11.0, 0.0, smoothstep(0.0, 0.27, surfPhase));
+      float breaker = exp(-pow((offshore - breakerDistance) / 0.65, 2.0))
+        * (1.0 - smoothstep(0.27, 0.4, surfPhase)) * shoreInfluence * shoreValid;
       float swell = waterField(vWaterWorld.x, vWaterWorld.z - uTime * 0.05) - 0.5;
       float crossSwell = waterField(vWaterWorld.x + 0.11, vWaterWorld.z - uTime * 0.05) - 0.5;
       // Begin sea ripple scalars. The broad sunset wash below remains sky reflection.
@@ -220,6 +228,12 @@ const fragmentShader = /* glsl */ `
       // End sea ripple scalars.
       color = mix(color, uPaperColor, 0.00875);
       color *= 1.0 + 0.24 * seaStroke;
+      #ifdef C_WATER
+        // Long, low swells turn toward shore; no CPU deformation or new water mesh.
+        float longSwell = sin(vWaterWorld.z * 0.22 - uTime * 0.62 + sin(vWaterWorld.x * 0.025));
+        color *= 1.0 + longSwell * 0.025;
+        color *= 1.0 + breaker * 0.12;
+      #endif
     #endif
     #ifdef WATER_REFLECTION
       vec3 surfaceNormal = normalize(vSurfaceNormal);
@@ -232,6 +246,11 @@ const fragmentShader = /* glsl */ `
       #endif
       #ifdef SEA_WATER
         surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * vec3(crossSwell, 0.0, swell) * 0.006 * seaStroke);
+        #ifdef C_WATER
+          // Optical crest slope lifts the lip before it breaks, on the same existing sea quad.
+          float crestSlope = breaker * (offshore - breakerDistance) * 0.22;
+          surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * vec3(0.0, 0.0, crestSlope));
+        #endif
       #endif
       float grazing = 1.0 - clamp(dot(surfaceNormal, normalize(vViewDirection)), 0.0, 1.0);
       float fresnel = grazing * grazing * grazing;
@@ -334,14 +353,12 @@ const fragmentShader = /* glsl */ `
       float washStrength = 0.7 * wash * washMarks * (0.5 + 0.14 * core + 0.24 * glimmer);
       // End sun wash scalars.
       color = mix(color, uSunWashColor, washStrength);
-      float brush = 0.5 + 0.5 * sin(vWaterWorld.x * 0.73 + vWaterWorld.z * 0.27);
-      // One thin cream-white edge runs up and retreats over an eight-second breath.
-      float foamDistance = 0.26 + 0.04 * cos(phase);
-      // A large horizon pixel must not inflate the shore edge into a broad white patch.
-      float foamWidth = clamp(fwidth(offshore) * 0.8, 0.2, 0.3);
-      float foam = 1.0 - smoothstep(foamWidth * 0.3, foamWidth, abs(offshore - foamDistance));
-      foam *= 1.0 - smoothstep(0.5, 0.6, offshore);
-      foam *= smoothstep(0.0, 0.04, offshore) * smoothstep(0.48, 0.58, brush) * 0.6 * shoreInfluence * shoreValid;
+      float brush = 0.7 + 0.3 * sin(vWaterWorld.x * 1.7 + vWaterWorld.z * 2.7);
+      float foam = 0.0;
+      #ifdef C_WATER
+        // Crest whitens in the last metres, then joins the terrain-conforming uprush.
+        foam = breaker * smoothstep(0.1, 0.22, surfPhase) * brush * 0.8;
+      #endif
       // Where the sampled coast turns back on itself (bay corners, spits) z(x) jumps between samples: no foam there.
       foam *= 1.0 - smoothstep(SEA_FOAM_MAX_SLOPE * 0.5, SEA_FOAM_MAX_SLOPE, abs(slope));
       color = mix(color, uPaperColor, foam);

@@ -58,11 +58,12 @@ function scalars(material: WaterMaterial, start: string, end: string, inputs: Re
     .replace(/uSunDirection\.y/g, "sunElevation")
     .replace(/length\(horizonRay\)/g, "horizonRange")
     .replace(/viewMatrix\[1\]\[2\]/g, "cameraDownTilt")
-    .replace(/\b(sin|cos|sqrt|abs|max|min|floor)\(/g, "Math.$1(")
+    .replace(/\b(sin|cos|sqrt|abs|max|min|floor|exp|pow)\(/g, "Math.$1(")
     .replace(/SEA_FOAM_MAX_SLOPE/g, String(SEA_FOAM_MAX_SLOPE))
     .replace(/fwidth\(alongSun \* 0.24 \* perspective\)/g, "washPixelWidth")
     .replace(/fwidth\(alongSun \* 1.7\)/g, "glimmerPixelWidth")
     .replace(/#ifndef SEA_WATER[\s\S]*?#endif/g, "")
+    .replace(/#ifdef C_WATER[\s\S]*?#endif/g, block => material.quality === "Low" ? "" : block.replace(/#ifdef C_WATER|#endif/g, ""))
     .replace(/#ifdef SEA_WATER|#endif/g, "")
     .replace(/fwidth\(offshore\)/g, "offshorePixelWidth");
   const evaluate = new Function("inputs", "smoothstep", "mix", "clamp", "fract", `
@@ -528,28 +529,27 @@ describe("road-view sunset sea", () => {
     } finally { material.dispose(); }
   });
 
-  it("keeps the eight-second gentle foam and suppresses it at steep coasts", () => {
+  it("keeps the eight-second breaking foam and suppresses it at steep coasts", () => {
     const sea = createSea("Balanced");
     try {
       const material = sea.mesh.material;
-      const foam = (slope: number, phase: number) => scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+      const foam = (slope: number, surfPhase: number) => scalars(material, "float foam = 0.0;",
         "color = mix(color, uPaperColor, foam)", {
-          phase, offshore: 0.26 + 0.04 * Math.cos(phase),
-          offshorePixelWidth: 0.05, brush: 1, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope,
-        }, ["foam", "foamDistance"]);
+          surfPhase, breaker: 1, brush: 1, slope,
+        }, ["foam"]);
       expect(SEA_WAVE_PERIOD).toBe(8);
       for (let i = 0; i <= 16; i++) {
-        const phase = i * Math.PI / 8;
-        expect(foam(0, phase).foam).toBeGreaterThan(0);
-        expect(foam(0, phase).foam).toBeLessThanOrEqual(0.6);
+        const phase = i / 16;
+        expect(foam(0, phase).foam).toBeGreaterThanOrEqual(0);
+        expect(foam(0, phase).foam).toBeLessThanOrEqual(0.8);
         expect(foam(SEA_FOAM_MAX_SLOPE, phase).foam).toBe(0);
         expect(foam(-SEA_FOAM_MAX_SLOPE, phase).foam).toBe(0);
       }
-      expect(foam(0, 0).foamDistance).toBeCloseTo(foam(0, 2 * Math.PI).foamDistance!);
+      expect(foam(0, 0.25).foam).toBe(0.8);
     } finally { sea.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("has zero %s foam at and beyond 5 m even with horizon-sized pixel derivatives", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s breaking foam inside the surf zone even with horizon-sized pixel derivatives", quality => {
     const sea = createSea(quality);
     try {
       const material = sea.mesh.material;
@@ -557,13 +557,16 @@ describe("road-view sunset sea", () => {
         for (const slope of [-2, 0, 2, SEA_FOAM_MAX_SLOPE]) {
           for (let frame = 0; frame <= 16; frame++) {
             const phase = frame * Math.PI / 8;
-            for (const offshore of [5, 5.001, 6.001, 10, 40, 300, 800]) {
-              const sample = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+            for (const offshore of [15, 16, 40, 300, 800]) {
+              const surfPhase = phase / (2 * Math.PI);
+              const { breaker } = scalars(material, "float breakerDistance =", "float swell =", {
+                surfPhase, offshore, shoreInfluence: 1, shoreValid: 1,
+              }, ["breaker"]);
+              const sample = scalars(material, "float foam = 0.0;",
                 "color = mix(color, uPaperColor, foam)", {
-                  phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope,
-                }, ["foam", "foamWidth"]);
-              expect(sample.foam).toBe(0);
-              expect(sample.foamWidth).toBeLessThanOrEqual(0.45);
+                  surfPhase, breaker, offshore, offshorePixelWidth, brush: 1, slope,
+                }, ["foam"]);
+              expect(sample.foam).toBeLessThan(0.000001);
             }
           }
         }
@@ -592,26 +595,15 @@ describe("road-view sunset sea", () => {
 });
 
 
-describe("B2-219 foam support and coverage", () => {
-  it("covers 30?70 percent of the 0.6 m sea edge and never escapes it", () => {
+describe("SURF-01 replaces the B2-219 static edge with breaking waves", () => {
+  it("whitens an incoming crest and leaves the quiet interval clear", () => {
     const material = createWaterMaterial("High", { surface: "sea" });
     try {
-      for (const phase of [0, 1.5, 3, 5]) for (const offshorePixelWidth of [0.001, 1000]) {
-        let covered = 0, samples = 0;
-        for (let i = 0; i < 80; i++) for (let j = 0; j < 80; j++) {
-          const offshore = (i + 0.5) / 80 * 0.6;
-          const brush = 0.5 + 0.5 * Math.sin(j / 80 * Math.PI * 2);
-          const sample = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
-            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope: 0}, ["foam"]);
-          covered += Number(sample.foam! > 0.01); samples++;
-        }
-        expect(covered / samples).toBeGreaterThanOrEqual(0.3);
-        expect(covered / samples).toBeLessThanOrEqual(0.7);
-        for (const offshore of [-1, 0, 0.6, 0.601, 1]) {
-          expect(scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
-            "color = mix(color, uPaperColor, foam)", {phase, offshore, offshorePixelWidth, brush: 1, uHasShore: 1, shoreValid: 1, shoreInfluence: 1, slope: 0}, ["foam"]).foam).toBe(0);
-        }
-      }
+      const foam = (surfPhase: number, breaker: number) => scalars(material, "float foam = 0.0;",
+        "color = mix(color, uPaperColor, foam)", { surfPhase, breaker, brush: 1, slope: 0 }, ["foam"]).foam!;
+      expect(foam(0, 1)).toBe(0);
+      expect(foam(0.25, 1)).toBeCloseTo(0.8);
+      expect(foam(0.25, 0)).toBe(0);
     } finally { material.dispose(); }
   });
 });
@@ -846,8 +838,9 @@ describe("RC-14 finite shore influence", () => {
           uShoreZ: material.uniforms.uShoreZ!.value, uHasShore: 1,
         }, ["shoreValid"]);
         expect(shore.shoreValid).toBe(0);
-        const foam = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+        const foam = scalars(material, "float foam = 0.0;",
           "color = mix(color, uPaperColor, foam)", {
+            surfPhase: 0.25, breaker: shore.shoreValid! * pigment.shoreInfluence,
             phase: 0, offshore: pigment.offshore, offshorePixelWidth: 0.05, brush: 1,
             uHasShore: 1, shoreValid: shore.shoreValid, shoreInfluence: pigment.shoreInfluence, slope: pigment.slope,
           }, ["foam"]).foam;
@@ -880,8 +873,9 @@ describe("RC-14 finite shore influence", () => {
       expect(shore.offshore).toBeCloseTo(0.3, 8);
       expect(shore.shoreValid).toBe(1);
       expect(shore.slope).toBe(0);
-      const foam = scalars(material, "// One thin cream-white edge runs up and retreats over an eight-second breath.",
+      const foam = scalars(material, "float foam = 0.0;",
         "color = mix(color, uPaperColor, foam)", { phase: 0, offshore: shore.offshore,
+          surfPhase: 0.25, breaker: shore.shoreValid! * shore.shoreInfluence!,
           offshorePixelWidth: 0.05, brush: 1, uHasShore: 1,
           shoreValid: shore.shoreValid, shoreInfluence: shore.shoreInfluence, slope: shore.slope,
         }, ["foam"]).foam;

@@ -1,4 +1,5 @@
 import { clampUnit, type AmbienceMix } from "./mix";
+import { surfCycle, surfEnvelope } from "./waves";
 
 export const MIX_RAMP_SECONDS = 1.5;
 export const DEFAULT_MASTER_VOLUME = 0.35;
@@ -63,10 +64,12 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
     birds: own(context.createGain()), sea: own(context.createGain()),
     chime: own(context.createGain()),
   };
+  const seaPan = own(context.createStereoPanner());
+  seaPan.connect(master);
   const fades = Object.fromEntries(Object.entries(channels).map(([key, node]) => {
-    node.connect(master);
+    node.connect(key === "sea" ? seaPan : master);
     return [key, fader(context, node.gain, 0)];
-  })) as Record<keyof AmbienceMix, (value: number) => void>;
+  })) as Record<keyof typeof channels, (value: number) => void>;
 
   // One locally generated mono buffer, shared by three differently filtered loops.
   const noiseRandom = randomFromSeed(seed);
@@ -106,10 +109,33 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
   modulate(stream.filter.frequency, 0.08, 240);
   const wind = noiseLayer(channels.wind, "lowpass", 480, 0.18, 1.1);
   modulate(wind.envelope.gain, 0.055, 0.1);
-  const sea = noiseLayer(channels.sea, "lowpass", 700, 0.19, 2.3);
-  const waveRandom = randomFromSeed(seed ^ 0x5ea);
-  // A positive sine envelope swells once every seeded 6–9 seconds.
-  modulate(sea.envelope.gain, 1 / (6 + waveRandom() * 3), 0.17);
+  // Separate spectral envelopes give the incoming roar, soft impact and draining hiss.
+  // One generated buffer; no files, timers, independent LFO or queued catch-up waves.
+  const sea = noiseLayer(channels.sea, "lowpass", 650, 0, 2.3);
+  const breaking = noiseLayer(channels.sea, "bandpass", 1300, 0, 0.7);
+  const retreat = noiseLayer(channels.sea, "highpass", 1600, 0, 1.7);
+  let lastSurf: { seconds: number; along: number; pan: number } | undefined;
+  function updateSurf(mix: AmbienceMix) {
+    const sample = mix.surf;
+    // A context without world samples stays silent rather than inventing another clock.
+    const valid = sample && [sample.seconds, sample.along, sample.pan].every(Number.isFinite);
+    const seconds = valid ? sample.seconds : 0;
+    const along = valid ? sample.along : 0;
+    const pan = valid ? Math.max(-1, Math.min(1, sample.pan)) : 0;
+    if (lastSurf?.seconds === seconds && lastSurf.along === along && lastSurf.pan === pan) return;
+    lastSurf = { seconds, along, pan };
+    const envelope = surfEnvelope(surfCycle(seconds, along));
+    const now = context.currentTime;
+    // The shell samples at 4 Hz; short ramps soften steps and never run ahead of the picture.
+    sea.envelope.gain.cancelAndHoldAtTime(now);
+    breaking.envelope.gain.cancelAndHoldAtTime(now);
+    retreat.envelope.gain.cancelAndHoldAtTime(now);
+    sea.envelope.gain.linearRampToValueAtTime(valid ? 0.035 + envelope.approach * 0.34 : 0, now + 0.06);
+    breaking.envelope.gain.linearRampToValueAtTime(valid ? envelope.break * 0.32 : 0, now + 0.06);
+    retreat.envelope.gain.linearRampToValueAtTime(valid ? envelope.retreat * 0.06 : 0, now + 0.06);
+    seaPan.pan.cancelAndHoldAtTime(now);
+    seaPan.pan.linearRampToValueAtTime(pan * 0.8, now + 0.06);
+  }
 
   const birdRandom = randomFromSeed(seed ^ 0xb17d);
   let bird: { oscillator: OscillatorNode; envelope: GainNode } | undefined;
@@ -237,7 +263,8 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
 
   return {
     setMix(mix: AmbienceMix) {
-      for (const key of Object.keys(channels) as (keyof AmbienceMix)[]) fades[key](mix[key] ?? 0);
+      for (const key of Object.keys(channels) as (keyof typeof channels)[]) fades[key](mix[key] ?? 0);
+      updateSurf(mix);
       birdsEnabled = clampUnit(mix.birds) > 0;
       if (birdsEnabled) scheduleBird();
       else releaseBird(true);

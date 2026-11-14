@@ -1,4 +1,5 @@
 import type { Biome } from "../world/layout/zones";
+import type { SurfListener } from "./waves";
 
 export interface AmbienceMix {
   readonly stream: number;
@@ -6,6 +7,7 @@ export interface AmbienceMix {
   readonly birds: number;
   readonly sea: number;
   readonly chime?: number;
+  readonly surf?: SurfListener;
 }
 
 export interface AmbienceInputs {
@@ -17,6 +19,7 @@ export interface AmbienceInputs {
   readonly timeOfDay: number;
   /** World-space metres to the forgotten-sound wind chime landmark. */
   readonly distanceToChime?: number;
+  readonly surf?: SurfListener;
 }
 
 /** NaN is silent; infinities and finite values clamp to the unit range. */
@@ -50,7 +53,8 @@ export function ambienceMixAt(inputs: AmbienceInputs): AmbienceMix {
     wind: forest ? 0.22 : coast ? 0.38 : 0.8,
     // The strict forest gate also cancels queued chirps when leaving a forest.
     birds: forest ? 0.2 + 0.55 * dawn : 0,
-    sea: proximity(inputs.distanceToSea, 70) * (coast ? 0.95 : 0.3),
+    sea: proximity(inputs.surf?.distance ?? inputs.distanceToSea, 70) * (coast ? 0.95 : 0.3),
     chime: chimeProximity(inputs.distanceToChime),
+    ...(inputs.surf ? { surf: inputs.surf } : {}),
   };
 }

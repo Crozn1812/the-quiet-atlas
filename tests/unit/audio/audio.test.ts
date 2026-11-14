@@ -21,6 +21,7 @@ class FakeParam {
     this.events.push({ kind: "cancel", time });
     return this;
   }
+  cancelAndHoldAtTime(time: number) { return this.cancelScheduledValues(time); }
 }
 
 class FakeNode {
@@ -28,11 +29,12 @@ class FakeNode {
   gain = new FakeParam();
   frequency = new FakeParam();
   Q = new FakeParam();
+  pan = new FakeParam();
   type = "sine";
   loop = false;
   buffer: unknown;
   onended: (() => void) | null = null;
-  constructor(readonly kind: "gain" | "filter" | "oscillator" | "noise" | "destination") {}
+  constructor(readonly kind: "gain" | "filter" | "oscillator" | "noise" | "destination" | "pan") {}
   connect(node: FakeNode | FakeParam) {
     this.connections.push(node);
     return node;
@@ -55,6 +57,7 @@ class FakeContext {
     return node;
   }
   createGain() { return this.create("gain"); }
+  createStereoPanner() { return this.create("pan"); }
   createBiquadFilter() { return this.create("filter"); }
   createOscillator() { return this.create("oscillator"); }
   createBufferSource() { return this.create("noise"); }
@@ -177,7 +180,7 @@ describe("pure ambience mix", () => {
 });
 
 describe("synthesized graph", () => {
-  it("generates noise locally, filters each layer and uses slow modulation / 6–9 s waves", () => {
+  it("generates one local noise buffer, with separate incoming, breaking and draining surf", () => {
     const context = new FakeContext();
     const ambience = createAmbience(context.asAudio());
     ambience.setMix(quiet);
@@ -185,22 +188,42 @@ describe("synthesized graph", () => {
     expect(context.buffers[0]!.some(value => value !== 0)).toBe(true);
     expect(context.buffers[0]!.every(value => value >= -1 && value <= 1)).toBe(true);
     const sources = context.nodes.filter(node => node.kind === "noise");
-    expect(sources).toHaveLength(3);
+    expect(sources).toHaveLength(5);
     expect(sources.every(node => node.loop && node.buffer)).toBe(true);
     const filters = context.nodes.filter(node => node.kind === "filter");
-    expect(filters.map(node => node.type)).toEqual(["bandpass", "lowpass", "lowpass"]);
+    expect(filters.map(node => node.type)).toEqual(["bandpass", "lowpass", "lowpass", "bandpass", "highpass"]);
     expect(sources.map(node => node.connections[0])).toEqual(filters);
     const lfos = context.nodes.filter(node => node.kind === "oscillator");
-    expect(lfos).toHaveLength(3);
+    expect(lfos).toHaveLength(2);
     expect(lfos.every(node => node.type === "sine")).toBe(true);
     expect(lfos[0]!.frequency.events[0]!.value).toBeLessThan(0.1);
     expect(lfos[1]!.frequency.events[0]!.value).toBeLessThan(0.1);
-    const period = 1 / lfos[2]!.frequency.events[0]!.value!;
-    expect(period).toBeGreaterThanOrEqual(6);
-    expect(period).toBeLessThanOrEqual(9);
     expect(context.gains()[0]!.gain.events[0]!.value).toBe(DEFAULT_MASTER_VOLUME);
     expect(context.gains()[0]!.connections).toEqual([context.destination]);
-    expect(context.gains().slice(1, 6).every(node => node.connections[0] === context.gains()[0])).toBe(true);
+    expect(context.gains().slice(1, 6).every((node, i) => node.connections[0] === (i === 3 ? context.nodes.find(n => n.kind === "pan") : context.gains()[0]))).toBe(true);
+    ambience.dispose();
+  });
+
+  it("follows the visual clock and camera pan without restarting on mute or clock freezes", () => {
+    const context = new FakeContext();
+    const ambience = createAmbience(context.asAudio());
+    const sample = { seconds: 2.2, along: 0, distance: 1, pan: -1 };
+    ambience.setMix({ ...quiet, sea: 1, surf: sample });
+    const seaGains = context.nodes.filter(n => n.kind === "filter").slice(2).map(n => n.connections[0] as FakeNode);
+    expect(seaGains[1]!.gain.events.at(-1)!.value).toBeCloseTo(0.32);
+    expect(context.nodes.find(n => n.kind === "pan")!.pan.events.at(-1)!.value).toBe(-0.8);
+    const eventCount = seaGains[1]!.gain.events.length;
+    context.currentTime += 20; // Context time cannot advance a frozen visual clock.
+    ambience.setMix({ ...quiet, sea: 1, surf: sample });
+    expect(seaGains[1]!.gain.events).toHaveLength(eventCount);
+    ambience.setMix({ ...quiet, sea: 1, surf: { ...sample, seconds: 5, pan: 1 } });
+    expect(seaGains[1]!.gain.events.at(-1)!.value).toBe(0);
+    expect(seaGains[2]!.gain.events.at(-1)!.value).toBeGreaterThan(0.04);
+    expect(context.nodes.find(n => n.kind === "pan")!.pan.events.at(-1)!.value).toBe(0.8);
+    ambience.mute();
+    ambience.setMix({ ...quiet, sea: 1, surf: sample });
+    const resumed = context.nodes.filter(n => n.kind === "filter").slice(-3).map(n => n.connections[0] as FakeNode);
+    expect(resumed[1]!.gain.events.at(-1)!.value).toBeCloseTo(0.32);
     ambience.dispose();
   });
 

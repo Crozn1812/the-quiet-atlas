@@ -326,7 +326,7 @@ describe("sea and water lifecycle", () => {
       expect(SEA_WAVE_PERIOD).toBeGreaterThanOrEqual(6);
       expect(SEA_WAVE_PERIOD).toBeLessThanOrEqual(10);
       expect(material.fragmentShader).toContain(`uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)}`);
-      expect(material.fragmentShader).toContain("cos(phase)");
+      expect(material.fragmentShader).toContain("surfCycle(uTime, vWaterWorld.x)");
       expect(material.fragmentShader).toContain("uSunWashColor");
       sea.setTime(3);
       const frozenTime = material.uniforms.uTime!.value;
@@ -348,12 +348,13 @@ describe("sea and water lifecycle", () => {
     } finally { sea.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s sea within 110 percent of its two-triangle budget", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s open sea at two triangles and adds one static surf draw", quality => {
     const sea = createSea(quality);
     try {
       expect(sea.mesh.geometry.index!.count / 3).toBeLessThanOrEqual(2 * 1.1);
       expect(sea.mesh.geometry.getAttribute("position").count).toBe(4);
-      expect(sea.mesh.children).toHaveLength(0);
+      expect(sea.mesh.children).toHaveLength(1);
+      expect(sea.mesh.children[0]!.userData.surf).toBe(true);
       expect(Array.isArray(sea.mesh.material)).toBe(false);
     } finally { sea.dispose(); }
   });

@@ -6,6 +6,7 @@ import { createWaterMaterial, SEA_SHORE_SAMPLES, type WaterMaterialOptions } fro
 import { WATER_LEVEL } from "./ribbon";
 import { SEA_INLAND_OVERLAP } from "./bounds";
 import { createWaterSurface, type WaterSurface } from "./surface";
+import { createSurf } from "../shore/surf";
 
 export const SEA_SIZE = 800;
 /** Render coverage exceeds the 2 km cinematic view; shore sampling keeps its original 800 m span. */
@@ -72,8 +73,11 @@ export function createSea(quality: Quality, options: Pick<WaterMaterialOptions, 
   geometry.setIndex([0, 1, 2, 1, 3, 2]);
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-  return createWaterSurface(geometry, createWaterMaterial(quality, {
+  const surface = createWaterSurface(geometry, createWaterMaterial(quality, {
     ...options, surface: "sea", skyMix: 1,
     shoreline: { minX: shoreLeft, width: SEA_SIZE, z: shore, valid: shoreValidity(shoreLeft, near, shore) },
   }));
+  const surf = createSurf(() => surface.mesh.material);
+  surface.mesh.add(surf.mesh);
+  return { ...surface, dispose() { surf.dispose(); surface.dispose(); } };
 }
