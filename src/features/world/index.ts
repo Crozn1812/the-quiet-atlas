@@ -1295,7 +1295,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const animDt = canSimulate(state) ? dt : 0;
     animator.update(animDt, vehicle.mode === "ride" || rider.transitioning || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(vehicleDt);
-    fish.update(animDt, reducedMotion);
+    fish.update(animDt, reducedMotion, player.position, quality);
     updateDawnShafts(animDt, reducedMotion);
     if (vehicleControls.dismountPending) getOffVehicle();
     let introFrame: IntroFrame | undefined;

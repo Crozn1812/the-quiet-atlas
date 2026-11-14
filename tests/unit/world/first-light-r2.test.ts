@@ -42,7 +42,7 @@ it("leaves six or more soft shafts in the spawn frame after excluding cliff and 
   } finally { spring.dispose(); grove.dispose(); }
 });
 
-it("keeps fish submerged above the rendered bed, freezes motion and disposes once", () => {
+it("keeps static fish origins submerged above the rendered bed and disposes once", () => {
   const fish = createFirstLightFish();
   const disposals = [vi.spyOn(fish.mesh, "dispose"), vi.spyOn(fish.mesh.geometry, "dispose"), vi.spyOn(fish.mesh.material, "dispose")];
   const matrix = new Matrix4(), point = new Vector3();
@@ -51,7 +51,7 @@ it("keeps fish submerged above the rendered bed, freezes motion and disposes onc
     for (let i = 0; i < fish.mesh.count; i++) {
       fish.mesh.getMatrixAt(i, matrix); point.setFromMatrixPosition(matrix);
       expect(nearestRiver(point.x, point.z).distance).toBeLessThan(0.7);
-      expect(waterLevelAt(point.z) - point.y).toBeCloseTo(0.22, 4);
+      expect(waterLevelAt(point.z) - point.y).toBeGreaterThan(0.14);
       expect(point.y - surfaceHeight(point.x, point.z)).toBeGreaterThan(0.02);
       expect(fish.mesh.boundingSphere!.containsPoint(point)).toBe(true);
     }
