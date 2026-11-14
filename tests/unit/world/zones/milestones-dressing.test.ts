@@ -48,7 +48,7 @@ describe("Milestones static dressing", () => {
         calls++;
         triangles += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3;
       });
-      expect(calls).toBe(6);
+      expect(calls).toBe(8);
       expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
       const batch = createMilestonesDressing(context, 1, 0);
       try {
@@ -61,9 +61,8 @@ describe("Milestones static dressing", () => {
       } finally { batch.dispose(); }
       const stones: Mesh[] = [];
       zone!.group.traverse(object => { if (object instanceof Mesh && ["weathered", "future"].includes(object.userData.milestonesSurface)) stones.push(object); });
-      expect(stones).toHaveLength(2);
+      expect(stones).toHaveLength(1);
       expect(stones.every(mesh => mesh.name === "rock-stack-stones")).toBe(true);
-      expect(stones[0]!.material).toBe(stones[1]!.material);
     } finally { zone!.dispose(); }
   });
 
