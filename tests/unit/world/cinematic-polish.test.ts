@@ -3,6 +3,7 @@ import { Color, Fog, Mesh, Triangle, PerspectiveCamera, Raycaster, Scene, Shader
 import { createIntro, introAtmosphere } from "../../../src/features/world/cinematic/intro";
 import { createEnding, endingAtmosphere } from "../../../src/features/world/cinematic/ending";
 import { createFarLandscape } from "../../../src/features/world/scene/far-landscape";
+import { installFarRaycast } from "./far-raycast";
 import { createSea } from "../../../src/features/world/water/sea";
 import { createRiverRibbon } from "../../../src/features/world/water/ribbon";
 import { SECRETS } from "../../../src/features/story/secrets";
@@ -36,7 +37,7 @@ it("keeps the postcard foreground on open water or detailed upward-facing terrai
   const landscape = createFarLandscape();
   const sea = createSea("High");
   const river = createRiverRibbon("High");
-  landscape.mesh.raycast = Mesh.prototype.raycast;
+  const releaseRaycast = installFarRaycast(landscape.mesh);
   sea.mesh.updateMatrixWorld(true);
   const tiles = tilesForPathRange(pathLength() * 0.8, pathLength()).map(({ ix, iz }) => {
     const mesh = createTileMesh(buildTile(ix, iz), landscape.mesh.material);
@@ -83,7 +84,7 @@ it("keeps the postcard foreground on open water or detailed upward-facing terrai
     ray.setFromCamera(new Vector2(0.97 * 2 - 1, 1 - 0.8 * 2), cameraAt(ending.sample(34.5), 16 / 9));
     expect(ray.intersectObjects([sea.mesh, river.mesh])[0]!.object).toBe(sea.mesh);
   } finally {
-    river.dispose(); landscape.dispose(); sea.dispose();
+    releaseRaycast(); river.dispose(); landscape.dispose(); sea.dispose();
     tiles.forEach(tile => tile.geometry.dispose());
   }
 });
@@ -168,7 +169,7 @@ it("keeps the low sunset inside the postcard frames and retains the camera's coa
 it("covers below-horizon rays with the existing landscape or sea at every review timestamp", () => {
   const landscape = createFarLandscape();
   const sea = createSea("High");
-  landscape.mesh.raycast = Mesh.prototype.raycast;
+  const releaseRaycast = installFarRaycast(landscape.mesh);
   sea.mesh.updateMatrixWorld(true);
   try {
     const frames = [
@@ -186,7 +187,7 @@ it("covers below-horizon rays with the existing landscape or sea at every review
       }
     }
   } finally {
-    landscape.dispose();
+    releaseRaycast(); landscape.dispose();
     sea.mesh.material.dispose();
     sea.dispose();
   }

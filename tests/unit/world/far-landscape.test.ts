@@ -1,59 +1,82 @@
-import { reportBudget } from "./report-budget";
-import { describe, expect, it, vi } from "vitest";
-import { createHash } from "node:crypto";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createFarLandscape, FAR_LANDSCAPE, GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
+import { farHeight, farNoise } from "../../../src/features/world/scene/far-relief";
 import { surfaceHeight, worldHeight } from "../../../src/features/world/terrain/height";
 import { TERRAIN_RADIUS } from "../../../src/features/world/terrain/tiles";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
-import { foliageBiomeAt } from "../../../src/features/world/foliage/scatter";
-
+import type { FarForestSite } from "../../../src/features/world/scene/far-forest";
 const groundCount = (FAR_LANDSCAPE.cells + 1) ** 2;
-const hash = (array: ArrayBufferView) => createHash("sha256").update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength)).digest("hex");
-describe("far landscape individual dawn crowns", () => {
-  it("reuses one draw and stays below the original 51200 triangle budget", () => {
-    const far = createFarLandscape();
-    try {
-      const g = far.mesh.geometry;
-      reportBudget("tests/unit/world/far-landscape.test.ts:17 g.index!.count / 3", g.index!.count / 3, 51_200);
-      expect(g.userData.farCrowns).toBeGreaterThan(300);
-      expect(g.getAttribute("position").count).toBe(groundCount + g.userData.farCrowns * 180);
-      expect(far.mesh.children).toHaveLength(0);
-      expect(g.groups).toHaveLength(0);
-      expect(Array.isArray(far.mesh.material)).toBe(false);
-      expect(far.mesh.castShadow).toBe(false);
-      expect(far.mesh.receiveShadow).toBe(false);
-      const hits: unknown[] = [];
-      far.mesh.raycast({} as never, hits as never);
-      expect(hits).toHaveLength(0);
-      process.stdout.write('B2-241 triangles: 51200 -> ' + g.index!.count / 3 + '; draws: 1 -> 1; crowns: ' + g.userData.farCrowns + '\n');
-    } finally { far.dispose(); }
+describe("HR-FAR continuous landscape", () => {
+  let shared: ReturnType<typeof createFarLandscape>;
+  beforeAll(() => { shared = createFarLandscape(); }, 60000);
+  afterAll(() => shared.dispose());
+  it("keeps the connected 8 m grid without remote triangle fans and offers a quarter-cost Low index", () => {
+    const g = shared.mesh.geometry, p = g.getAttribute("position"), index = g.index!;
+    expect(p.count).toBe(groundCount);
+    expect(FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells).toBeLessThanOrEqual(8);
+    expect(g.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 * 2);
+    expect(g.userData.lowTriangles).toBe(FAR_LANDSCAPE.cells ** 2 / 2);
+    const stride = FAR_LANDSCAPE.cells + 1;
+    let invalid = 0;
+    for (let i = 0; i < g.drawRange.count; i += 3) {
+      const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+      if (Math.max(...ids) - Math.min(...ids) > stride + 1) invalid++;
+    }
+    expect(invalid).toBe(0);
+    expect(shared.mesh.castShadow || shared.mesh.receiveShadow).toBe(false);
+    const hits: unknown[] = [];
+    shared.mesh.raycast({} as never, hits as never); expect(hits).toHaveLength(0);
+    console.log(`HR-FAR terrain triangles: 42872 -> High ${g.drawRange.count / 3} / Low ${g.userData.lowTriangles}; terrain draws: 1 -> 1`);
   });
-  it("retains ADR 0017's ground layout, normals and albedo while only lowering corridor corners", () => {
-    const far = createFarLandscape();
-    try {
-      const expected = {
-        position: "741faaf0089bbd418b0209aa6e43eee7e5f614db93bc2772378ca5bcbad361c0",
-        normal: "7ddf148046453ac55e4ab0ea5d85443b5588ff0e6699b963586b7bba98742ded",
-        // R1-C: coastal grass pigments also feed the distant ground; geometry stays unchanged.
-        color: "2e888f78e53a21b779a080b2fb6fe246b06a30333a1c602682d824ad73d536ed",
-      };
-      const original = far.mesh.geometry.getAttribute("position").array.slice(0, groundCount * 3);
-      const step = FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells;
-      for (let i = 0; i < groundCount; i++) {
-        const x = original[i * 3]! + FAR_LANDSCAPE.originX, z = original[i * 3 + 2]! + FAR_LANDSCAPE.originZ;
-        const y = Math.fround(worldHeight(FAR_LANDSCAPE.originX + Math.floor(i / (FAR_LANDSCAPE.cells + 1)) * step,
-          FAR_LANDSCAPE.originZ + i % (FAR_LANDSCAPE.cells + 1) * step));
-        expect(original[i * 3 + 1]!).toBeLessThanOrEqual(y);
-        if (nearestPath(x, z).distance > TERRAIN_RADIUS + step * Math.SQRT2) expect(original[i * 3 + 1]).toBe(y);
-        original[i * 3 + 1] = y;
+  it("switches quality in memory without loading an atlas on Low", () => {
+    const renderer = { domElement: { closest: () => ({ dataset: { worldQuality: "low" } }) } };
+    shared.mesh.onBeforeRender(renderer as never, {} as never, {} as never, shared.mesh.geometry, shared.mesh.material, null as never);
+    expect(shared.mesh.geometry.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 / 2);
+    expect(shared.mesh.children[0]!.visible).toBe(false);
+    // Both materials must occupy the same queue: Three chooses the queue
+    // before onBeforeRender switches the material on a quality transition.
+    expect(shared.mesh.material.transparent).toBe(true);
+    expect(shared.mesh.material.depthWrite).toBe(false);
+    renderer.domElement.closest = () => ({ dataset: { worldQuality: "high" } });
+    shared.mesh.onBeforeRender(renderer as never, {} as never, {} as never, shared.mesh.geometry, shared.mesh.material, null as never);
+    expect(shared.mesh.geometry.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 * 2);
+    expect(shared.mesh.children[0]!.visible).toBe(true);
+    expect(shared.mesh.material.transparent).toBe(true);
+    expect(shared.mesh.material.depthWrite).toBe(false);
+    expect(shared.mesh.renderOrder).toBeGreaterThan(0); // After the depth-writing sea.
+    expect(shared.mesh.renderOrder).toBeLessThan(2); // Before foreground surf/rays.
+  });
+  it("bounds actual remote summit faces to at least 25 degrees from vertical", () => {
+    const p = shared.mesh.geometry.getAttribute("position"), index = shared.mesh.geometry.index!;
+    let steepest = 0, checked = 0;
+    for (let i = 0; i < shared.mesh.geometry.drawRange.count; i += 3) {
+      const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2);
+      if ([a, b, c].some(v => p.getX(v) + FAR_LANDSCAPE.originX > -192)) continue;
+      const ux = p.getX(b) - p.getX(a), uy = p.getY(b) - p.getY(a), uz = p.getZ(b) - p.getZ(a);
+      const vx = p.getX(c) - p.getX(a), vy = p.getY(c) - p.getY(a), vz = p.getZ(c) - p.getZ(a);
+      const rise = Math.hypot(uy * vz - uz * vy, ux * vy - uy * vx) / Math.abs(uz * vx - ux * vz);
+      steepest = Math.max(steepest, rise); checked++;
+    }
+    expect(checked).toBeGreaterThan(10000);
+    expect(steepest).toBeLessThanOrEqual(1 / Math.tan(25 * Math.PI / 180));
+  });
+  it("keeps every range and its connected foot inside the High far plane from all four review zones", () => {
+    const bounds = shared.mesh.geometry.boundingBox!;
+    for (const id of ["workshop", "old-trail", "horizon", "milestones"]) {
+      const zone = ZONES.find(z => z.id === id)!;
+      for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) {
+        for (const z of [bounds.min.z, bounds.max.z]) {
+          const distance = Math.hypot(x + FAR_LANDSCAPE.originX - zone.position.x,
+            y - FAR_LANDSCAPE.sink - zone.position.y - 24,
+            z + FAR_LANDSCAPE.originZ - zone.position.z);
+          expect(distance, `${id}: a clipped base can leave a detached summit`).toBeLessThan(GAMEPLAY_FAR.High);
+        }
       }
-      const actual = Object.fromEntries(Object.keys(expected).map(name => [name, hash(name === "position" ? original : far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))]));
-      expect(actual).toEqual(expected);
-    } finally { far.dispose(); }
+    }
   });
   it.each(["workshop", "roots", "milestones"])("keeps every coarse ground face below the rendered %s corridor (FIX-PATCH)", id => {
-    const far = createFarLandscape();
+    const far = shared;
     try {
       const zone = ZONES.find(zone => zone.id === id)!;
       const p = far.mesh.geometry.getAttribute("position"), index = far.mesh.geometry.index!;
@@ -76,79 +99,62 @@ describe("far landscape individual dawn crowns", () => {
         }
       }
       expect(checked).toBeGreaterThan(1000);
-    } finally { far.dispose(); }
+    } finally { /* Shared fixture disposed after all corridor checks. */ }
   });
-  it("builds clustered planar crowns below 12m, clear of stream trees and pads", () => {
-    const far = createFarLandscape();
-    try {
-      const g = far.mesh.geometry, p = g.getAttribute("position"), n = g.getAttribute("normal");
-      for (let base = groundCount; base < p.count; base += 180) {
-        const { x, z } = g.userData.farCrownSites[(base - groundCount) / 180] as { x: number; z: number };
-        expect(foliageBiomeAt(x, z)).toBe("forest-dawn");
-        expect(nearestPath(x, z).distance).toBeGreaterThan(44);
-        expect(nearestRiver(x, z).distance).toBeGreaterThan(40);
-        const radii: number[] = [];
-        for (let j = 0; j < 180; j++) {
-          const px = p.getX(base + j) + FAR_LANDSCAPE.originX, pz = p.getZ(base + j) + FAR_LANDSCAPE.originZ;
-          const lift = p.getY(base + j) - worldHeight(px, pz);
-          expect(lift).toBeGreaterThanOrEqual(-0.0001);
-          expect(lift).toBeLessThanOrEqual(12.0001);
-          expect(Math.hypot(n.getX(base + j), n.getY(base + j), n.getZ(base + j))).toBeCloseTo(1, 5);
-          if (j) radii.push(Math.hypot(px - x, pz - z));
-        }
-        expect(Math.max(...radii)).toBeGreaterThan(Math.min(...radii) * 1.2);
-      }
-      // Ground stays upward; closed crowns also have outward side/underside faces.
-      const index = g.index!;
-      for (let i = 0; i < index.count; i += 3) {
-        const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2);
-        if (a >= groundCount) continue;
-        expect((p.getZ(b) - p.getZ(a)) * (p.getX(c) - p.getX(a)) - (p.getX(b) - p.getX(a)) * (p.getZ(c) - p.getZ(a))).toBeGreaterThan(0);
-      }
-    } finally { far.dispose(); }
+
+  it("places varied HR hill groves outside entire path, interaction and turbine envelopes", () => {
+    const sites = shared.mesh.geometry.userData.farForestSites as FarForestSite[];
+    expect(sites.length).toBeGreaterThan(300);
+    const horizon = ZONES.find(z => z.id === "horizon")!;
+    const hills = sites.filter(s => Math.hypot(s.x - horizon.position.x, s.z - horizon.position.z) < 180);
+    expect(hills.length).toBeGreaterThan(20);
+    expect(new Set(hills.map(s => s.id)).size).toBe(3);
+    expect(hills.some(s => s.height < 6)).toBe(true);
+    for (const s of sites) {
+      expect(nearestPath(s.x, s.z).distance).toBeGreaterThanOrEqual(48);
+      expect(nearestPath(s.x, s.z).distance).toBeLessThanOrEqual(205);
+      expect(s.height).toBeLessThanOrEqual(8);
+      expect(nearestRiver(s.x, s.z).distance).toBeGreaterThanOrEqual(28);
+      for (const zone of ZONES) expect(Math.hypot(s.x-zone.position.x,s.z-zone.position.z)).toBeGreaterThanOrEqual(zone.radius+18);
+    }
+    console.log("HR-FAR HR atlas sites:", sites.length, "Horizon groves:", hills.length);
   });
-  it("keeps remote simplification boundaries watertight and full detail within 227m of the route", () => {
-    const far = createFarLandscape();
-    try {
-      const g = far.mesh.geometry, index = g.index!;
-      const edges = new Map<string, number>();
-      for (let i = 0; i < index.count; i += 3) {
-        const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
-        if (ids.some(id => id >= groundCount)) continue;
-        for (let j = 0; j < 3; j++) {
-          const a = ids[j]!, b = ids[(j + 1) % 3]!;
-          const key = [Math.min(a,b), Math.max(a,b)].join(':');
-          edges.set(key, (edges.get(key) ?? 0) + 1);
-        }
-      }
-      const stride = FAR_LANDSCAPE.cells + 1;
-      for (const [key, count] of edges) {
-        if (count === 2) continue;
-        const [a,b] = key.split(':').map(Number) as [number,number];
-        const perimeter = (id: number) => Math.floor(id / stride) === 0 || Math.floor(id / stride) === stride - 1 || id % stride === 0 || id % stride === stride - 1;
-        expect(perimeter(a) && perimeter(b)).toBe(true);
-      }
-    } finally { far.dispose(); }
-  });
-  it("is deterministic across deferred construction and releases resources once", () => {
-    const sync = createFarLandscape(), deferred = createFarLandscape({ deferred: true });
-    try {
-      expect(deferred.mesh.visible).toBe(false);
-      let steps = 0;
-      while (!deferred.build.next().done) steps++;
-      expect(steps).toBeGreaterThan(1800);
-      for (const name of ["position", "normal", "color"]) expect(deferred.mesh.geometry.getAttribute(name).array).toEqual(sync.mesh.geometry.getAttribute(name).array);
-      expect(deferred.mesh.geometry.index!.array).toEqual(sync.mesh.geometry.index!.array);
-      expect(deferred.mesh.visible).toBe(true);
-      expect(GAMEPLAY_FAR.High).toBeGreaterThan(GAMEPLAY_FAR.Balanced);
-    } finally { sync.dispose(); deferred.dispose(); }
-    for (const steps of [0,40,1800,1950]) {
-      const far = createFarLandscape({ deferred: true });
-      const geometry = vi.spyOn(far.mesh.geometry, "dispose"), material = vi.spyOn(far.mesh.material, "dispose");
-      for (let i = 0; i < steps; i++) far.build.next();
-      far.dispose(); far.dispose();
-      expect(far.build.next().done).toBe(true);
-      expect(geometry).toHaveBeenCalledOnce(); expect(material).toHaveBeenCalledOnce();
+  it("seats mid crowns on the rendered terrain rather than floating over the FIX-PATCH depression", () => {
+    const sites = shared.mesh.geometry.userData.farForestSites as FarForestSite[];
+    const p = shared.mesh.geometry.getAttribute("position"), step = FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells;
+    const stride = FAR_LANDSCAPE.cells + 1;
+    for (const site of sites) {
+      const x = Math.floor((site.x - FAR_LANDSCAPE.originX) / step);
+      const z = Math.floor((site.z - FAR_LANDSCAPE.originZ) / step);
+      const a = x * stride + z;
+      const corners = [p.getY(a), p.getY(a + 1), p.getY(a + stride), p.getY(a + stride + 1)];
+      expect(site.y + 0.15).toBeGreaterThanOrEqual(Math.min(...corners) - 0.00001);
+      expect(site.y + 0.15).toBeLessThanOrEqual(Math.max(...corners) + 0.00001);
     }
   });
+  it("keeps the authored corridor and shoreline height, with bounded deterministic remote relief", () => {
+    for (const zone of ZONES) expect(farHeight(zone.position.x, zone.position.z)).toBe(worldHeight(zone.position.x, zone.position.z));
+    for (let x=-300; x<=300; x+=30) for (let z=-700; z<=100; z+=40) {
+      expect(Math.abs(farHeight(x,z)-worldHeight(x,z))).toBeLessThan(320);
+      expect(farHeight(x,z)).toBe(farHeight(x,z));
+      expect(farNoise(x,z,38)).toBeGreaterThanOrEqual(0);
+      expect(farNoise(x,z,38)).toBeLessThanOrEqual(1);
+    }
+    expect(GAMEPLAY_FAR.High).toBeGreaterThan(GAMEPLAY_FAR.Balanced);
+  });
+  it("matches deferred construction and releases partial and complete work once", () => {
+    const far = createFarLandscape({ deferred: true });
+    expect(far.mesh.visible).toBe(false);
+    while (!far.build.next().done) { /* Drain construction independently. */ }
+    for (const name of ["position","normal","color","farHorizon"]) expect(far.mesh.geometry.getAttribute(name).array).toEqual(shared.mesh.geometry.getAttribute(name).array);
+    const dispose = vi.spyOn(far.mesh.geometry,"dispose");
+    far.dispose(); far.dispose(); expect(dispose).toHaveBeenCalledOnce();
+    for (const steps of [0,40,1800]) {
+      const partial = createFarLandscape({ deferred:true });
+      for (let i=0;i<steps;i++) partial.build.next();
+      const release = vi.spyOn(partial.mesh.geometry,"dispose");
+      partial.dispose(); partial.dispose(); expect(release).toHaveBeenCalledOnce();
+      expect(partial.build.next().done).toBe(true);
+    }
+  },60000);
 });

@@ -1,13 +1,12 @@
-// Lead (batch 25): the gameplay camera used to clip at 100 m, so Duy's coast (sea horizon, the B2-173 peak, far
-// ridges) never reached the screen. This is one coarse, shadowless mesh of the whole landscape, coloured by the same
-// tile colouring. Ground stays below streamed detail; B2-241 adds individual distant dawn crowns.
-import { BufferAttribute, BufferGeometry, Color, IcosahedronGeometry, Mesh, Vector3, type Material } from "three";
+import { BufferAttribute, BufferGeometry, Color, Mesh, MeshBasicMaterial, type Material } from "three";
 import { hex } from "../art/palette";
 import { foliageBiomeAt } from "../foliage/scatter";
-import { farCanopyAt, farCrownSeed } from "../foliage/far-canopy";
+import { createFarMaterial } from "./far-material";
+import { farEase, farHeight, farNoise, limitFarSlopes } from "./far-relief";
+import { bakeFarHorizons } from "./far-shadows";
+import { createFarForest, farForestSites, type FarForestSite } from "./far-forest";
 import { nearestPath, nearestRiver } from "../terrain/samples";
-import { createRampMaterial, RAMP_PRESETS, RAMP_STEPS } from "../materials/ramp";
-import { waterLevelAt, worldHeight } from "../terrain/height";
+import { worldHeight } from "../terrain/height";
 import { createTileMesh } from "../terrain/mesh";
 import { TERRAIN_RADIUS, TILE_CELLS, TILE_SIZE } from "../terrain/tiles";
 import { WORLD_LENGTH } from "../layout/scale";
@@ -17,20 +16,21 @@ export const FAR_LANDSCAPE = Object.freeze({
   originX: -1024,
   originZ: -WORLD_LENGTH - 700,
   size: 2048,
-  cells: 160,
-  /** Sink ground below detail tiles; individual crowns sit above it. */
+  /** 8 m remote grid: a quarter of round 2's triangles, still one connected draw. */
+  cells: 256,
+  /** Sink ground below detail tiles; streamed HR crowns sit above it. */
   sink: 0.6,
 });
 
-/** Camera far plane per quality: Low keeps the old short view plus a margin; High shows the whole coast. */
-export const GAMEPLAY_FAR = Object.freeze({ Low: 260, Balanced: 500, High: 800 });
+/** High includes the full backdrop diagonal, so a frustum cannot cut off a
+ * range's foot while leaving its summit visible. Low retains its short view. */
+export const GAMEPLAY_FAR = Object.freeze({ Low: 260, Balanced: 500, High: 2400 });
 
 const canopyDeep = new Color(hex("forestDeep"));
 const canopyLight = new Color(hex("forestLight"));
-const canopyMist = new Color(hex("mist"));
 /** B2-239 lifted near forest ground to sunlit moss; the far canopy averages moss and crowns so tile edges stay hidden. */
 const canopyMoss = new Color(hex("grass")).lerp(new Color(hex("grassDry")), 0.64);
-const FAR_CANOPY_MOSS = 0.8;
+const FAR_CANOPY_MOSS = 0.38;
 
 /** Coarse faces can bridge a valley above the detailed ground despite the sink.
  * Bound each nearby corner by the lowest fine-grid sample of all adjacent faces.
@@ -38,7 +38,7 @@ const FAR_CANOPY_MOSS = 0.8;
  * backdrop inside the streamed corridor. Keep remote scenery and crowns intact. */
 function* seatFarGround(geometry: BufferGeometry) {
   const { originX, originZ, size, cells } = FAR_LANDSCAPE;
-  const step = size / cells, fineStep = TILE_SIZE / TILE_CELLS;
+  const step = size / cells * 2, fineStep = TILE_SIZE / TILE_CELLS;
   const positions = geometry.getAttribute("position");
   const heights = new Map<string, number>();
   for (let i = 0; i < positions.count; i++) {
@@ -80,7 +80,8 @@ function* paintFarCanopy(geometry: BufferGeometry, heights: Float32Array) {
       const wx = originX + x * step, wz = originZ + z * step;
       const height = heights[vertex]!;
       const biome = foliageBiomeAt(wx, wz);
-      const forested = biome === "forest-dawn" ? 1 : biome === "coast-dusk" ? Math.min(1, Math.max(0, (height - 4) / 6)) : 0.25;
+      const forested = biome === "forest-dawn" ? 1 : biome === "coast-dusk" ? Math.min(1, Math.max(0, (height - 4) / 6))
+        : farEase(0.32, 0.65, farNoise(wx, wz, 52)) * 0.9;
       const riverDistance = nearestRiver(wx, wz).distance;
       if (forested <= 0 || riverDistance < 14) continue;
       const dx = (heights[Math.min(cells, x + 1) * stride + z]! - heights[Math.max(0, x - 1) * stride + z]!) / (2 * step);
@@ -95,105 +96,6 @@ function* paintFarCanopy(geometry: BufferGeometry, heights: Float32Array) {
   colors.needsUpdate = true;
 }
 
-/** Trade remote ground interiors for separate crowns in the same draw. Full
- * resolution perimeter vertices keep the coarser ground fans watertight. */
-function* addFarCrowns(geometry: BufferGeometry) {
-  const { cells, size, originX, originZ } = FAR_LANDSCAPE;
-  const stride = cells + 1, step = size / cells;
-  const positions = Array.from(geometry.getAttribute("position").array);
-  const normals = Array.from(geometry.getAttribute("normal").array);
-  const colors = Array.from(geometry.getAttribute("color").array);
-  const indices: number[] = [];
-  for (let x = 0; x < cells; x += 8) {
-    yield;
-    for (let z = 0; z < cells; z += 8) {
-      const wx = originX + (x + 4) * step, wz = originZ + (z + 4) * step;
-      if (nearestPath(wx, wz).distance > 300) {
-        const ring: number[] = [];
-        for (let i = 0; i < 8; i++) ring.push((x + i) * stride + z);
-        for (let i = 0; i < 8; i++) ring.push((x + 8) * stride + z + i);
-        for (let i = 0; i < 8; i++) ring.push((x + 8 - i) * stride + z + 8);
-        for (let i = 0; i < 8; i++) ring.push(x * stride + z + 8 - i);
-        const center = (x + 4) * stride + z + 4;
-        for (let i = 0; i < 32; i++) indices.push(center, ring[(i + 1) % 32]!, ring[i]!);
-      } else {
-        for (let dx = 0; dx < 8; dx++) for (let dz = 0; dz < 8; dz++) {
-          const a = (x + dx) * stride + z + dz, b = a + stride;
-          indices.push(a, a + 1, b, b, a + 1, b + 1);
-        }
-      }
-    }
-  }
-  const capacity = Math.floor((cells * cells * 6 - indices.length) / 180);
-  const crownSites: { x: number; z: number }[] = [];
-  const shape = new IcosahedronGeometry(1, 0);
-  const shapePositions = shape.getAttribute("position");
-  const unique: Vector3[] = [], faces: number[] = [], slots = new Map<string, number>();
-  for (let i = 0; i < shapePositions.count; i++) {
-    const point = new Vector3().fromBufferAttribute(shapePositions, i);
-    const key = point.toArray().join(":");
-    if (!slots.has(key)) { slots.set(key, unique.length); unique.push(point); }
-    faces.push(slots.get(key)!);
-  }
-  shape.dispose();
-  let count = 0;
-  const color = new Color();
-  // World-space lattice, unrelated to tile edges; each site owns three closed clumps.
-  for (let gx = -14; gx <= 14; gx++) {
-    yield;
-    for (let gz = -12; gz <= 7; gz++) {
-      if (count >= capacity) continue;
-      const a = farCrownSeed(gx, gz), b = farCrownSeed(gz + 19, gx - 7);
-      const x = gx * 26 + (a - 0.5) * 6, z = gz * 26 + (b - 0.5) * 6;
-      if (foliageBiomeAt(x, z) !== "forest-dawn") continue;
-      const y = worldHeight(x, z);
-      const slope = Math.hypot(worldHeight(x + 2, z) - worldHeight(x - 2, z), worldHeight(x, z + 2) - worldHeight(x, z - 2)) / 4;
-      const mask = farCanopyAt(x, z, nearestRiver(x, z).distance, slope);
-      const edge = Math.max(0, Math.min(1, Math.min(384 - Math.abs(x), z + 312, 192 - z) / 48));
-      const fade = edge * edge * (3 - 2 * edge);
-      mask.weight *= fade;
-      mask.lift *= fade;
-      if (mask.weight < 0.01 || y < waterLevelAt(z) + 1) continue;
-      color.copy(canopyLight).lerp(canopyMoss, 0.3).lerp(canopyMist, 0.12 + a * 0.24);
-      // Closed, three-lobed faceted masses reuse the grove's icosahedral language.
-      // A coarser world lattice trades crown count for volume within the same draw/triangle cap.
-      for (let lobe = 0; lobe < 3; lobe++) {
-        const angle = b * Math.PI * 2 + lobe * Math.PI * 2 / 3;
-        const radius = (5.2 + a * 1.2) * mask.weight;
-        const cx = x + Math.cos(angle) * radius * 0.65;
-        const cz = z + Math.sin(angle) * radius * 0.65;
-        // Sample each shared corner once, even though faces have independent normals.
-        const corners = unique.map(point => {
-          const px = cx + (point.x * Math.cos(angle) - point.z * Math.sin(angle)) * radius;
-          const pz = cz + (point.x * Math.sin(angle) + point.z * Math.cos(angle)) * radius;
-          return new Vector3(px, worldHeight(px, pz) + mask.lift * (0.56 + lobe * 0.07)
-            + point.y * (3.2 + a * 0.4) * mask.weight, pz);
-        });
-        for (let face = 0; face < faces.length; face += 3) {
-          const triangle = [corners[faces[face]!]!, corners[faces[face + 1]!]!, corners[faces[face + 2]!]!];
-          const normal = triangle[1]!.clone().sub(triangle[0]!).cross(triangle[2]!.clone().sub(triangle[0]!)).normalize();
-          const base = positions.length / 3;
-          const pigment = color.clone().multiplyScalar(0.94 + (face % 4) * 0.025 + lobe * 0.015);
-          for (const point of triangle) {
-            positions.push(point.x - originX, point.y, point.z - originZ);
-            normals.push(normal.x, normal.y, normal.z);
-            colors.push(pigment.r, pigment.g, pigment.b);
-          }
-          indices.push(base, base + 1, base + 2);
-        }
-      }
-      crownSites.push({ x, z });
-      count++;
-    }
-  }
-  geometry.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
-  geometry.setAttribute("normal", new BufferAttribute(new Float32Array(normals), 3));
-  geometry.setAttribute("color", new BufferAttribute(new Float32Array(colors), 3));
-  geometry.setIndex(indices);
-  geometry.userData.farCrowns = count;
-  geometry.userData.farCrownSites = crownSites;
-}
-
 /** Same single draw and vertex data as the synchronous terrain factory. Only construction is sliced.
  * Small square patches reuse the terrain painter; they are copied into one mesh, never added to the scene.
  */
@@ -201,44 +103,61 @@ export function createFarLandscape({ deferred = false } = {}) {
   const { originX, originZ, size, cells, sink } = FAR_LANDSCAPE;
   const stride = cells + 1;
   const step = size / cells;
-  const material = createRampMaterial(RAMP_PRESETS.terrain, RAMP_STEPS.terrain);
-  material.color.setRGB(1, 1, 1);
   const firstLightView = { value: 0 };
-  const previousCompile = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
-  material.onBeforeCompile = (shader, renderer) => {
-    previousCompile(shader, renderer);
+  const material = createFarMaterial(firstLightView);
+  const lowMaterial = new MeshBasicMaterial({ vertexColors: true, depthWrite: false, transparent: true });
+  // Low shares the same clearing mask, but avoids PBR and crown detail shading.
+  lowMaterial.onBeforeCompile = shader => {
     shader.uniforms.firstLightView = firstLightView;
-    // Resident playable tiles stay visible. This remote low-detail backdrop is suppressed only
-    // while walking in the authored First Light clearing, never in the other zones or cinematics.
-    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float firstLightView;")
-      .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
-float firstLightDither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453);
-if (firstLightDither < firstLightView) discard;`);
+    shader.fragmentShader = "uniform float firstLightView;\n" + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>",
+      "#include <clipping_planes_fragment>\nif(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)<firstLightView) discard;");
   };
-  material.customProgramCacheKey = () => `${previousKey.call(material)}-first-light-far-view-v3`;
-  material.polygonOffset = true;
-  material.polygonOffsetFactor = 2;
-  material.polygonOffsetUnits = 4;
+  lowMaterial.customProgramCacheKey = () => "hr-far-low-v1";
   const geometry = new BufferGeometry();
   const mesh = new Mesh<BufferGeometry, Material>(geometry, material);
   mesh.position.set(originX, -sink, originZ);
   mesh.name = "far-landscape";
+  // Transparent sea writes depth at order 0. Test against it *after* its colour
+  // draw, so the sea cannot paint a straight far-plane edge over mountain feet.
+  // Keep foreground surf (2) and light ribbons (4) in front of this backdrop.
+  mesh.renderOrder = 1;
   mesh.visible = false;
   mesh.receiveShadow = false;
   mesh.castShadow = false;
   mesh.raycast = () => {};
   mesh.updateMatrixWorld(true);
   let disposed = false;
+  let highCount = 0, lowCount = 0;
+  let forest: ReturnType<typeof createFarForest> | undefined;
+  let forestRequested = false;
+  const sites: FarForestSite[] = [];
+  mesh.onBeforeRender = renderer => {
+    const low = renderer.domElement?.closest<HTMLElement>(".world-viewport")?.dataset.worldQuality === "low";
+    if (highCount) geometry.setDrawRange(low ? highCount : 0, low ? lowCount : highCount);
+    mesh.material = low ? lowMaterial : material;
+    material.prepareDepth(renderer, !low && firstLightView.value < 1);
+    if (forest) forest.group.visible = !low;
+  };
+  mesh.onAfterRender = renderer => {
+    const viewport = renderer.domElement?.closest<HTMLElement>(".world-viewport");
+    if (disposed || forestRequested || viewport && (viewport.dataset.worldQuality === "low" || viewport.dataset.worldBuild !== "done"
+      || viewport.dataset.worldIntro !== "done" || viewport.dataset.worldPaused === "true")) return;
+    forestRequested = true;
+    const gl = renderer.getContext(), debug = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debug && /swiftshader|llvmpipe|software/i.test(String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)))) return;
+    forest?.start(renderer);
+  };
   function* construct() {
     const heights = new Float32Array(stride * stride);
     const positions = new Float32Array(heights.length * 3);
     const normals = new Float32Array(positions.length);
     const colors = new Float32Array(positions.length);
-    const indices = new Uint16Array(cells * cells * 6);
+    const indices = new Uint32Array(cells * cells * 6);
     for (let x = 0; x <= cells; x++) {
       for (let z = 0; z <= cells; z++) {
         const vertex = z + x * stride;
-        heights[vertex] = worldHeight(originX + x * step, originZ + z * step);
+        heights[vertex] = farHeight(originX + x * step, originZ + z * step);
         positions.set([x * step, heights[vertex]!, z * step], vertex * 3);
         if (x < cells && z < cells) {
           const next = vertex + stride;
@@ -247,7 +166,9 @@ if (firstLightDither < firstLightView) discard;`);
       }
       yield;
     }
-    const patchCells = 4;
+    yield* limitFarSlopes(heights, cells, step, originX);
+    for (let i = 0; i < heights.length; i++) positions[i * 3 + 1] = heights[i]!;
+    const patchCells = 8;
     for (let x = 0; x < cells; x += patchCells) for (let z = 0; z < cells; z += patchCells) {
       const patchHeights = new Float32Array((patchCells + 1) ** 2);
       for (let px = 0; px <= patchCells; px++) for (let pz = 0; pz <= patchCells; pz++) {
@@ -271,7 +192,37 @@ if (firstLightDither < firstLightView) discard;`);
     geometry.setIndex(new BufferAttribute(indices, 1));
     yield* paintFarCanopy(geometry, heights);
     yield* seatFarGround(geometry);
-    yield* addFarCrowns(geometry);
+    geometry.computeVertexNormals();
+    yield* bakeFarHorizons(geometry, cells, step);
+    const cheap: number[] = [];
+    for (let x = 0; x < cells; x += 2) for (let z = 0; z < cells; z += 2) {
+      const a = x * stride + z, b = a + stride * 2;
+      cheap.push(a, a + 2, b, b, a + 2, b + 2);
+    }
+    // Both tier indices live in one GPU buffer; switching quality only moves the
+    // draw range, so repeated toggles cannot orphan an old element buffer.
+    highCount = indices.length; lowCount = cheap.length;
+    const tierIndices = new Uint32Array(highCount + lowCount);
+    tierIndices.set(indices); tierIndices.set(cheap, highCount);
+    geometry.setIndex(new BufferAttribute(tierIndices, 1));
+    geometry.setDrawRange(0, highCount);
+    yield* farForestSites(sites);
+    // Seat crowns on the rendered backdrop triangles, including FIX-PATCH's
+    // lowering; analytic height at a jittered site can float above coarse faces.
+    for (const site of sites) {
+      const u = (site.x - originX) / step, v = (site.z - originZ) / step;
+      const ix = Math.floor(u), iz = Math.floor(v), fx = u - ix, fz = v - iz;
+      const a = ix * stride + iz;
+      const p = geometry.getAttribute("position");
+      site.y = (fx + fz <= 1
+        ? p.getY(a) + (p.getY(a + stride) - p.getY(a)) * fx + (p.getY(a + 1) - p.getY(a)) * fz
+        : p.getY(a + stride + 1) + (p.getY(a + 1) - p.getY(a + stride + 1)) * (1 - fx)
+          + (p.getY(a + stride) - p.getY(a + stride + 1)) * (1 - fz)) - 0.15;
+    }
+    geometry.userData.farForestSites = sites;
+    geometry.userData.highTriangles = indices.length / 3;
+    geometry.userData.lowTriangles = cheap.length / 3;
+    forest = createFarForest(mesh, sites, originX, originZ, firstLightView);
     geometry.computeBoundingBox();
     yield;
     geometry.computeBoundingSphere();
@@ -287,8 +238,10 @@ if (firstLightDither < firstLightView) discard;`);
       disposed = true;
       build.return();
       mesh.removeFromParent();
+      forest?.dispose();
       geometry.dispose();
       material.dispose();
+      lowMaterial.dispose();
     },
   };
 }
