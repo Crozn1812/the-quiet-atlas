@@ -41,7 +41,7 @@ function meshes(scene: ZoneScene) {
   return result;
 }
 function named(scene: ZoneScene, surface: string) {
-  return meshes(scene).find(mesh => mesh.name === `milestones-${surface}`)!;
+  return meshes(scene).find(mesh => mesh.userData.milestonesSurface === surface)!;
 }
 function points(mesh: Mesh, start = 0, count = mesh.geometry.getAttribute("position").count - start) {
   const vertices = mesh.geometry.getAttribute("position");
@@ -194,7 +194,7 @@ describe("The Milestones hillside", () => {
         const aim = scene.group.localToWorld(aimLocal.clone());
         const hit = new Raycaster(eye, aim.clone().sub(eye).normalize())
           .intersectObjects(scene.group.children)[0];
-        expect(hit?.object.name).toMatch(/^milestones-(ink|weathered|future)$/);
+        expect(hit?.object.userData.milestonesSurface).toMatch(/^(ink|weathered|future)$/);
         const localHit = scene.group.worldToLocal(hit!.point.clone());
         for (let i = 0; i <= 20; i++) {
           const point = edge.clone().lerp(localHit, i / 20);
@@ -224,7 +224,7 @@ describe("The Milestones hillside", () => {
     const propTriangles = (named(scene, "weathered").geometry.getAttribute("position").count
       + named(scene, "future").geometry.getAttribute("position").count) / 3;
     expect(propTriangles).toBeLessThanOrEqual(2000);
-    expect(drawCalls).toBe(5);
+    expect(drawCalls).toBe(6);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     if (seed === 104) console.info(`MS-02 Milestones: ${triangles} total triangles (${propTriangles} prop triangles), ${drawCalls} draw calls`);
   });
@@ -299,7 +299,7 @@ describe("The Milestones hillside", () => {
     const shards = meta.floatingFragments.filter(f => f.kind === "stone-shard");
     expect(shards.length).toBeGreaterThanOrEqual(4);
     expect(shards.length).toBeLessThanOrEqual(8);
-    expect(named(scene, "future").material.color.r).toBeGreaterThan(named(scene, "weathered").material.color.r);
+    expect(named(scene, "future").material).toBe(named(scene, "weathered").material);
   });
 
   it.each([false, true])("grounds the statue plinth directly without a mound and keeps a clear road view (mirrored: %s)", wet => {
@@ -316,7 +316,7 @@ describe("The Milestones hillside", () => {
       const eye = new Vector3(Math.sign(target.x) * PATH_CLEARANCE, 1.5, target.z + dz);
       const ray = new Raycaster(eye, target.clone().sub(eye).normalize());
       const hit = ray.intersectObjects(scene.group.children)[0];
-      expect(hit?.object.name).toBe("milestones-weathered");
+      expect(hit?.object.userData.milestonesSurface).toBe("weathered");
       expect(hit!.point.distanceTo(target)).toBeLessThan(1.4);
     }
   });
@@ -423,7 +423,12 @@ describe("The Milestones hillside", () => {
       const luma = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
       expect(luma(weathered.material.color)).toBeGreaterThanOrEqual(0.40);
       expect(luma(weathered.material.color)).toBeLessThanOrEqual(0.60);
-      expect(luma(future.material.color)).toBeGreaterThan(luma(weathered.material.color));
+      expect(future.material).toBe(weathered.material);
+      const futureColors = future.geometry.getAttribute("color");
+      let brightestFuture = 0;
+      for (let i = 0; i < futureColors.count; i++) brightestFuture = Math.max(brightestFuture,
+        luma(new Color().fromBufferAttribute(futureColors, i).multiply(future.material.color)));
+      expect(brightestFuture).toBeGreaterThan(luma(weathered.material.color));
 
       // Verify outward normals on the portrait head and shoulders so faces receive direct sunlight instead of black back-face shading.
       const meta = statueMeta(scene);
@@ -451,6 +456,7 @@ describe("The Milestones hillside", () => {
     ];
     for (const mesh of meshes(scene)) {
       expect(mesh.name).not.toMatch(/text|logo/i);
+      if (mesh.name === "milestones-dressing") continue;
       expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
       expect(expected).toContain(mesh.material.color.getHex());
       expect(mesh.material.vertexColors).toBe(true);

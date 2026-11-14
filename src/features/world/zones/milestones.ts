@@ -11,6 +11,7 @@ import { createPineCrownV2 } from "../foliage/pine";
 import { createTreeTrunk } from "../foliage/shapes";
 import { createRampMaterial, RAMP_PRESETS } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
+import { createMilestonesDressing } from "./milestones-dressing";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
 } from "./types";
@@ -1063,9 +1064,10 @@ function materials(): Record<Surface, MeshToonMaterial> {
   const ramp = WORLD_DIRECTION.foliage.ramp;
   // The world ramp keeps blue-violet shadows; a paler custom tint washed the statue out to blue-white in the dim forest.
   const stoneRamp = { ...ramp };
+  const stone = createRampMaterial(WEATHERED_BASE_HEX, stoneRamp);
   const result = {
-    weathered: createRampMaterial(WEATHERED_BASE_HEX, stoneRamp),
-    future: createRampMaterial(FUTURE_BASE_HEX, stoneRamp),
+    weathered: stone,
+    future: stone,
     ink: createRampMaterial(INK_BASE_HEX, stoneRamp),
     needles: createRampMaterial(paletteColor({
       base: "grass", mix: "forestDeep", amount: 0.42, saturation: 1, brightness: 1,
@@ -1272,8 +1274,19 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     batches[surface].forEach(part => part.dispose());
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
+    if (surface === "future") {
+      // Keep the lighter planned stone in vertex pigment so both stone draws
+      // share one P2 material and avoid a second physical-uniform upload.
+      const tint = new Color(FUTURE_BASE_HEX), base = surfaces.weathered.color;
+      const colors = geometry.getAttribute("color");
+      for (let i = 0; i < colors.count; i++) colors.setXYZ(i,
+        colors.getX(i) * tint.r / base.r, colors.getY(i) * tint.g / base.g, colors.getZ(i) * tint.b / base.b);
+    }
     const mesh = new Mesh(geometry, surfaces[surface]);
-    mesh.name = `milestones-${surface}`;
+    // P2 recognises this stone-batch name; retain the zone surface identity for
+    // review tools without adding another atlas loader or material controller.
+    mesh.name = surface === "weathered" || surface === "future" ? "rock-stack-stones" : `milestones-${surface}`;
+    mesh.userData.milestonesSurface = surface;
     mesh.castShadow = mesh.receiveShadow = true;
     group.add(mesh);
   }
@@ -1326,6 +1339,8 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
   const middle = colliders[0]!.center.clone();
   // Interaction point on the front of the plinth at comfortable eye height (~1.38 m)
   const interactPosition = new Vector3(middle.x, groundAt(middle.x, middle.z) + 1.38, middle.z);
+  const dressing = createMilestonesDressing(context, side, offsetZ);
+  group.add(dressing.mesh);
 
   let disposed = false;
   return {
@@ -1335,10 +1350,11 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      dressing.dispose();
       group.traverse(object => {
         if (object instanceof Mesh) object.geometry.dispose();
       });
-      Object.values(surfaces).forEach(material => material.dispose());
+      new Set(Object.values(surfaces)).forEach(material => material.dispose());
       group.clear();
     },
   };
