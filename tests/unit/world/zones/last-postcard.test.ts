@@ -1,4 +1,4 @@
-import { Box3, Color, Group, Light, Mesh, MeshToonMaterial, Raycaster, Vector3, type BufferGeometry } from "three";
+import { Box3, Color, Group, Light, Mesh, MeshToonMaterial, MeshStandardMaterial, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -13,7 +13,7 @@ import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
 } from "../../../../src/features/world/zones/types";
 
-type PaintedMesh = Mesh<BufferGeometry, MeshToonMaterial>;
+type PaintedMesh = Mesh<BufferGeometry, MeshToonMaterial | MeshStandardMaterial>;
 const owned: ZoneScene[] = [];
 const flat: ZoneSceneContext = {
   seed: 108,
@@ -35,7 +35,7 @@ afterEach(() => {
 
 function meshes(group: Group): PaintedMesh[] {
   const result: PaintedMesh[] = [];
-  group.traverse(node => { if (node instanceof Mesh) result.push(node as PaintedMesh); });
+  group.traverse(node => { if (node instanceof Mesh && node.name !== "last-postcard-dressing") result.push(node as PaintedMesh); });
   return result;
 }
 
@@ -403,7 +403,7 @@ describe("last-postcard shore scene", () => {
         .map(vector => vector.toArray().map(value => Number(value.toFixed(6)))))).toEqual(expected);
       const count = meshes(scene.group).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
       expect(count).toBeLessThanOrEqual(1670 * 1.5);
-      expect(meshes(scene.group)).toHaveLength(8);
+      expect(meshes(scene.group)).toHaveLength(7);
       counts.push(count);
     }
     console.info(`last-postcard kit variants: ${Math.min(...counts)}–${Math.max(...counts)} triangles (before 1670)`);
@@ -474,7 +474,7 @@ describe("last-postcard shore scene", () => {
       const scene = zones.find(zone => zone.zoneId === "last-postcard")!;
       expect(scene).toBeDefined();
       expect(scene.colliders).toHaveLength(8);
-      expect(meshes(scene.group)).toHaveLength(8);
+      expect(meshes(scene.group)).toHaveLength(7);
       const heights = new Map<string, number>();
       const groundAt = (point: Vector3) => {
         const key = `${point.x},${point.z}`;
@@ -559,13 +559,13 @@ describe("last-postcard shore scene", () => {
     });
     for (const mesh of meshes(scene.group)) {
       const surface = mesh.name.replace("last-postcard-", "");
-      expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
+      expect(mesh.material).toBeInstanceOf(["wood", "paper"].includes(surface) ? MeshStandardMaterial : MeshToonMaterial);
       expect(mesh.material.color.toArray()).toEqual(recipes[surface]!.toArray());
       expect(mesh.material.vertexColors).toBe(true);
       expect(mesh.material.emissive.getHex()).toBe(0);
       expect(mesh.material.map).toBeNull();
       expect(mesh.material.transparent).toBe(false);
-      expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
+      if (!["wood", "paper"].includes(surface)) expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
       const colors = mesh.geometry.getAttribute("color");
       const positions = mesh.geometry.getAttribute("position");
       const shades = new Set<number>();
@@ -592,13 +592,13 @@ describe("last-postcard shore scene", () => {
             new Color(PALETTE.rock).lerp(new Color(PALETTE.dusk), 0.08),
             new Color(PALETTE.rockDark).lerp(new Color(PALETTE.dusk), 0.08))).toBe(true);
         } else {
-          expect(paletteBlend(rendered, recipes[surface]!)
+          expect((surface === "forestDeep" && paletteBlend(rendered, recipes.water!)) || paletteBlend(rendered, recipes[surface]!)
             || (/forestLight|forestDeep/.test(surface) && paletteBlend(rendered, new Color(PALETTE.grassDry)))).toBe(true);
         }
       }
       expect(shades.size).toBeGreaterThan(3);
     }
-    for (const pigment of ["forestDeep", "forestLight", "water"]) {
+    for (const pigment of ["forestDeep", "forestLight"]) {
       expect(meshes(scene.group).some(mesh => mesh.name.endsWith(pigment))).toBe(true);
     }
   });
@@ -630,7 +630,9 @@ describe("last-postcard shore scene", () => {
     const siblingResources = meshes(sibling.group).flatMap(mesh => [mesh.geometry, mesh.material]);
     const siblingSpies = siblingResources.map(resource => vi.spyOn(resource, "dispose"));
     for (const resource of siblingResources) expect(resources).not.toContain(resource);
-    const ramp = meshes(scene.group)[0]!.material.gradientMap!;
+    const toon = meshes(scene.group).map(mesh => mesh.material)
+      .find((material): material is MeshToonMaterial => material instanceof MeshToonMaterial)!;
+    const ramp = toon.gradientMap!;
     const rampSpy = vi.spyOn(ramp, "dispose");
     const before = transforms(scene.group);
     scene.dispose();
@@ -640,7 +642,7 @@ describe("last-postcard shore scene", () => {
     siblingSpies.forEach(spy => expect(spy).not.toHaveBeenCalled());
     expect(rampSpy).not.toHaveBeenCalled();
     expect(scene.group.parent).toBeNull();
-    expect(transforms(scene.group)).toEqual(before);
+    expect(transforms(scene.group)).toEqual(before.filter(node => (node as { name: string }).name !== "last-postcard-dressing"));
     sibling.dispose();
     disposeRampGradients();
     expect(rampSpy).toHaveBeenCalledTimes(1);

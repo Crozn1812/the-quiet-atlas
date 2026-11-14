@@ -1,9 +1,10 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry,
-  Float32BufferAttribute, Group, Mesh, Shape, Vector3, type MeshToonMaterial,
+  Float32BufferAttribute, Group, Mesh, Shape, Vector3, MeshStandardMaterial, type Material,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE, type PaletteKey } from "../art/palette";
+import { createLastPostcardDressing } from "./last-postcard-dressing";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
@@ -181,6 +182,10 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
 
   function add(part: BufferGeometry, surface: Surface, site?: Site, facing = 0, groundBottom = false,
     followTerrain = false, tint?: PaletteKey | Color) {
+    const originalSurface = surface;
+    // Share the leaf draw while preserving the blue pigment in vertex colours;
+    // this leaves one draw slot for the deferred library dressing.
+    if (surface === "water") surface = "forestDeep";
     if (site) {
       part.rotateY(facing + (site.sign < 0 ? Math.PI : 0)).translate(site.x, site.base, site.z);
       // Shore details follow the bank; platform furniture keeps its level deck height.
@@ -209,7 +214,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     const phase = (Math.imul(context.seed, 2654435761) >>> 0) / 4294967296 * Math.PI * 2;
     // Normalize kit pigments by the batch material, so wood/stone never receive a second dark tint.
     const base = surfaceColor(surface);
-    const pigment = tint instanceof Color ? tint : tint ? new Color(PALETTE[tint]) : base;
+    const pigment = tint instanceof Color ? tint : tint ? new Color(PALETTE[tint]) : surfaceColor(originalSurface);
     const kitColors = flat.getAttribute("color");
     for (let i = 0; i < positions.count; i++) {
       const wash = 0.96 + 0.025 * Math.sin(positions.getX(i) * 31 + positions.getZ(i) * 43 + phase)
@@ -347,17 +352,20 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
   }
 
   shoreHeights.clear();
-  const geometries: BufferGeometry[] = [], materials: MeshToonMaterial[] = [];
+  const geometries: BufferGeometry[] = [], materials: Material[] = [];
   for (const [parent, surfaces] of batches) {
     for (const [surface, parts] of surfaces) {
       const geometry = mergeGeometries(parts, false)!;
       parts.forEach(part => part.dispose());
       geometry.computeBoundingBox();
       geometry.computeBoundingSphere();
-      const material = createPropMaterial(surface === "wood" ? "wood" : "paper");
+      const material = surface === "wood" || surface === "paper"
+        ? new MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0 })
+        : createPropMaterial("paper");
       material.color.copy(surfaceColor(surface));
       const mesh = new Mesh(geometry, material);
       mesh.name = `last-postcard-${surface}`;
+      if (surface === "wood") mesh.userData.photoSurface = "bark";
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       parent.add(mesh);
@@ -365,6 +373,12 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
       materials.push(material);
     }
   }
+  const colliders = solidSites.map(site => ({
+    center: new Vector3(site.x, (site.bottom + site.base + site.height) / 2, site.z),
+    size: new Vector3(site.halfX * 2, site.base + site.height - site.bottom, site.halfZ * 2),
+  }));
+  const dressing = createLastPostcardDressing(context, platform, colliders);
+  group.add(dressing.mesh);
   let elapsed = 0, disposed = false;
   return {
     zoneId: "last-postcard",
@@ -373,10 +387,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
       position: new Vector3(mailbox.x, mailbox.base + 1.55 * 1.3, mailbox.z),
       label: { en: "The last mailbox", vi: "Hộp thư cuối đường" },
     },
-    colliders: solidSites.map(site => ({
-      center: new Vector3(site.x, (site.bottom + site.base + site.height) / 2, site.z),
-      size: new Vector3(site.halfX * 2, site.base + site.height - site.bottom, site.halfZ * 2),
-    })),
+    colliders,
     update(dt, reducedMotion) {
       if (disposed || reducedMotion || !Number.isFinite(dt) || dt <= 0) return;
       elapsed += Math.min(dt, 0.1);
@@ -386,6 +397,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      dressing.dispose();
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
       group.removeFromParent();
