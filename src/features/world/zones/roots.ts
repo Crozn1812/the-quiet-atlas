@@ -9,6 +9,7 @@ import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createStumpGeometry } from "../props/wood";
 import { createRootsDressing } from "./roots-dressing";
+import { createRootsTree } from "./roots-tree";
 import { bindRootsBoardGrain, createRootsBoardGeometry, createRootsPostGeometry, createRootsSign } from "./roots-sign";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
@@ -367,7 +368,7 @@ function addBarkFill(material: MeshToonMaterial, masked = false) {
  * Height is independent of the horizontal streaming radius; no per-frame work. */
 function createAncientTree(seed: number): BufferGeometry {
   const pieces: BufferGeometry[] = [];
-  const bark = new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.18).lerp(new Color(PALETTE.dusk), 0.12);
+  const bark = new Color("#64503a");
   const phase = (seed >>> 0) / 4294967296 * Math.PI * 2;
   function paint(source: BufferGeometry, color: Color, barkFill = 0) {
     const part = source.index ? source.toNonIndexed() : source;
@@ -428,7 +429,7 @@ function createAncientTree(seed: number): BufferGeometry {
         const at = radial(reach * (0.6 + lobe * 0.13), y + 8 + (lobe % 2) * 1.2, 0.2 + lobe * 0.25);
         paint(new IcosahedronGeometry(1, 1).scale(5.2 - tier * 0.6, 3.1, 4.3 - tier * 0.3)
           .rotateY(angle + lobe).translate(at.x, at.y, at.z),
-        new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.forestLight), 0.25 + lobe * 0.13));
+        new Color("#203a19").lerp(new Color("#486130"), lobe * 0.13));
       }
       if (tier === 0 && i % 2 === 0) {
         const end = radial(reach * 0.85, 3.2, 0.65);
@@ -563,6 +564,18 @@ export const createRootsScene: ZoneSceneFactory = context => {
   const group = new Group();
   group.name = "roots";
   let disposed = false;
+  let tree: ReturnType<typeof createRootsTree> | undefined;
+  const bindTree = () => {
+    const fallback = group.getObjectByName("roots-ancient-tree") as Mesh | undefined;
+    const trigger = group.getObjectByName("roots-wood") as Mesh | undefined;
+    if (tree || !fallback || !trigger) return;
+    tree = createRootsTree(fallback, trigger, { side, x: side * (STUMP_X + 0.0864), y: ground,
+      z: offsetZ, heightAt: context.heightAt, onDetail(active) {
+        const ink = group.getObjectByName("roots-ink"); if (ink) ink.visible = !active;
+        dressing?.setTreeDetail(active);
+      } });
+    group.add(tree.group);
+  };
   const buildTree = () => {
     if (disposed) return;
     const ancientGeometry = createAncientTree(context.seed);
@@ -587,6 +600,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
     ancientTree.name = "roots-ancient-tree";
     ancientTree.castShadow = true;
     group.add(ancientTree);
+    bindTree();
   };
   // Keep the detailed crown out of the synchronous spawn build and cancel it on teardown.
   let cancelTree = () => {};
@@ -631,6 +645,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
     mesh.receiveShadow = true;
     group.add(mesh);
   }
+  bindTree();
   return {
     zoneId: "roots", group, colliders,
     interactable: {
@@ -644,6 +659,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
       if (disposed) return;
       disposed = true;
       cancelTree();
+      tree?.dispose();
       dressing?.dispose();
       for (const child of group.children) {
         if (child instanceof Mesh && child !== skillsBoard?.mesh) { child.geometry.dispose(); child.material.dispose(); }

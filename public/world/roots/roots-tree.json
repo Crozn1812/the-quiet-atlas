@@ -1,0 +1,54 @@
+{
+  "license": "CC0-1.0",
+  "delivery": "after playable paint; Low uses procedural fallback; LOD0 within 26m / LOD1 beyond 32m",
+  "assets": [
+    {
+      "file": "roots-tree-lod0.glb",
+      "level": 0,
+      "triangles": 259007,
+      "materials": 3,
+      "textures": [
+        {
+          "uri": "../lib/hr-shared-a4bf881f3ca6989c.ktx2",
+          "bytes": 5162281
+        },
+        {
+          "uri": "../lib/hr-shared-d89702ff8fbce3c8.ktx2",
+          "bytes": 4894632
+        },
+        {
+          "uri": "../lib/hr-shared-4647bcc174d32efd.ktx2",
+          "bytes": 851984
+        }
+      ],
+      "drawCalls": 3,
+      "bytes": 2623160,
+      "ao": "baked vertex occlusion in trunk flutes and damp root feet",
+      "source": "tools/assets/blender/roots-tree-generate.mjs"
+    },
+    {
+      "file": "roots-tree-lod1.glb",
+      "level": 1,
+      "triangles": 104327,
+      "materials": 3,
+      "textures": [
+        {
+          "uri": "../lib/hr-shared-a4bf881f3ca6989c.ktx2",
+          "bytes": 5162281
+        },
+        {
+          "uri": "../lib/hr-shared-d89702ff8fbce3c8.ktx2",
+          "bytes": 4894632
+        },
+        {
+          "uri": "../lib/hr-shared-4647bcc174d32efd.ktx2",
+          "bytes": 851984
+        }
+      ],
+      "drawCalls": 3,
+      "bytes": 1198288,
+      "ao": "baked vertex occlusion in trunk flutes and damp root feet",
+      "source": "tools/assets/blender/roots-tree-generate.mjs"
+    }
+  ]
+}

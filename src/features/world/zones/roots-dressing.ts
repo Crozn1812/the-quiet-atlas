@@ -56,6 +56,10 @@ export function createRootsDressing(context: ZoneSceneContext, moss: BufferGeome
   const colors = moss.getAttribute("color");
   for (let i = 0; i < colors.count; i++) colors.setXYZ(i, colors.getX(i) * tint.r, colors.getY(i) * tint.g, colors.getZ(i) * tint.b);
   batchAttributes(moss);
+  // The first nine crests are the old tree's continuous root covers. The
+  // foot ferns/cut patches after them stay available on every quality tier.
+  const surface = moss.getAttribute("dressingSurface");
+  for (let i = 0; i < Math.min(surface.count, 9 * 48 * 3); i++) surface.setX(i, -2);
   const sites = rootsDressingSites(context, side, offsetZ);
   const parts = sites.map((site, index) => {
     let source: BufferGeometry;
@@ -82,5 +86,28 @@ export function createRootsDressing(context: ZoneSceneContext, moss: BufferGeome
   const batch = createLibraryBatch(fallback, sites, context.heightAt, load, moss);
   batch.mesh.name = "roots-moss";
   batch.mesh.userData.dressingSites = sites.length;
-  return batch;
+  // Only the retained tree moss: break its old continuous ribbons into damp
+  // islands. Library ferns, rocks, grass and logs keep their authored surfaces.
+  const compile = batch.mesh.material.onBeforeCompile;
+  const cacheKey = batch.mesh.material.customProgramCacheKey.bind(batch.mesh.material);
+  const detail = { value: 0 };
+  batch.mesh.material.onBeforeCompile = (shader, renderer) => {
+    compile(shader, renderer);
+    shader.uniforms.rootsTreeDetail = detail;
+    shader.vertexShader = "varying vec3 vRootsMossPosition;\n" + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvRootsMossPosition = position;");
+    shader.fragmentShader = "uniform float rootsTreeDetail; varying vec3 vRootsMossPosition;\n" + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace("#include <alphamap_fragment>", `
+if (rootsTreeDetail > 0.5 && vDressingSurface < -1.5) discard;
+if (vDressingSurface < -0.5) {
+  vec3 p = vRootsMossPosition;
+  float mossIsland = sin(p.x * 3.1 + p.z * 2.3) + sin(p.z * 5.7 - p.x);
+  float grain = sin(p.x * 89.0 + sin(p.z * 43.0) * 3.0) * sin(p.z * 77.0 + p.y * 53.0);
+  if (mossIsland + grain * 0.38 < 0.3) discard;
+  diffuseColor.rgb *= 0.48 + 0.28 * grain + 0.2 * smoothstep(0.3, 1.5, mossIsland);
+}
+#include <alphamap_fragment>`);
+  };
+  batch.mesh.material.customProgramCacheKey = () => cacheKey() + "|roots-tree-moss-islands-v1";
+  return { ...batch, setTreeDetail(active: boolean) { detail.value = active ? 1 : 0; } };
 }
