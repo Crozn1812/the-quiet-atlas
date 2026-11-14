@@ -6,6 +6,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
+| Q-48 | **Trần dung lượng cho đồ họa siêu thực** (ADR 0019). Đề xuất: High tải thêm gói chi tiết sau khi chơi được, tổng **60 MB**; Balanced ≤ 40 MB; Low giữ ≤ 30 MB. Thời gian tới lúc chơi được vẫn ≤ 10 s. Trả lời: đồng ý / số khác / giữ 30 MB | L3 | Không chặn (đang làm trong 30 MB) | Sớm | `docs/adr/0019-hyper-real-pass.md` |
 | Q-47 | **Checklist trước lần deploy đầu** (17 bước: Budgets, Paid plan, tên miền, ACM, OIDC role…) — chỉ làm khi bạn quyết định phát hành; Lead không chạm cloud | L5 | Chặn deploy (không chặn đồ họa) | Khi quyết định phát hành | `docs/runbook/release-checklist.md` |
 | Q-46 | ~~**Account Codex D (`.codex4`) hết credit**~~ **Đã có credit lại (kiểm 05:40 14/11), không cần làm gì.** ("workspace out of credits", 01:00 14/11). Nạp thêm credit hoặc báo bỏ account này | Đội Codex | Không (A/B/C vẫn chạy, chỉ chậm hơn) | Khi quay lại | Trang usage của workspace Codex; Lead tự chạy lại khi có credit |
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
