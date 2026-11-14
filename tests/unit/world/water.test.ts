@@ -326,7 +326,7 @@ describe("sea and water lifecycle", () => {
       const material = sea.mesh.material;
       expect(SEA_WAVE_PERIOD).toBeGreaterThanOrEqual(6);
       expect(SEA_WAVE_PERIOD).toBeLessThanOrEqual(10);
-      expect(material.fragmentShader).toContain(`uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)}`);
+      expect(material.fragmentShader).toContain("seaSlopes(vWaterWorld.xz, uTime)");
       expect(material.fragmentShader).toContain("surfCycle(uTime, vWaterWorld.x)");
       expect(material.fragmentShader).toContain("uSunWashColor");
       sea.setTime(3);
@@ -394,8 +394,9 @@ describe("sea and water lifecycle", () => {
     const edge = material.uniforms.uEdgeColor!.value as Color;
     const chroma = (color: Color) => Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
     const luma = (color: Color) => color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
-    expect(chroma(edge)).toBeLessThanOrEqual(chroma(previousEdge) * 0.7);
-    expect(luma(edge)).toBeLessThan(luma(previousEdge));
+    // HR-SEA R2: a readable, muted jade receives the warm sunset sky.
+    expect(chroma(edge)).toBeLessThan(chroma(previousEdge));
+    expect(luma(edge)).toBeGreaterThan(luma(previousEdge));
     expect(edge.g).toBeGreaterThanOrEqual(edge.b);
     expect(material.uniforms.uSkyMix!.value).toBe(1);
     sea.dispose();

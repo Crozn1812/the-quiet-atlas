@@ -74,29 +74,5 @@ it("has no along-flow correlation peak at any sampled lag from 0.5 to 8m", () =>
   } finally { material.dispose(); }
 });
 
-it("uses the same warped field for sea detail and advects without periodic lane/dash masks", () => {
-  const material = createWaterMaterial("High", { surface: "sea" });
-  try {
-    const source = material.fragmentShader;
-    const body = source.slice(source.indexOf("// Begin sea ripple scalars."), source.indexOf("// End sea ripple scalars."));
-    // RC-14 supplies continuous shore confidence to this unchanged noise field.
-    const evaluate = new Function("vWaterWorld", "uTime", "offshore", "shoreInfluence", "rippleDistanceFade", "mix", "smoothstep", "fract",
-      waterNoiseFunctions(source) + body.replace(/\bfloat\s+/g, "let ") + "return seaStroke;");
-    const sample = (x: number, y: number, time: number, offshore = 1, fade = 1, shoreInfluence = 1) =>
-      evaluate({ x, z: y }, time, offshore, shoreInfluence, fade, mix, smoothstep, fract) as number;
-    for (const block of [body, source.slice(source.indexOf("float across ="), source.indexOf("float riverBrush"))]) {
-      expect(block).not.toMatch(/\b(sin|cos|fract)\(/);
-    }
-    for (let i = 0; i < 200; i++) {
-      const x = i * 0.07, y = i * 0.17;
-      const value = sample(x, y, 0);
-      expect(sample(x, y + 0.5, 10)).toBeCloseTo(value, 10);
-      expect(sample(x, y, 0, 30)).toBeCloseTo(value * 0.05, 12);
-      expect(sample(x, y, 0, 1, 1, 0)).toBeCloseTo(value * 0.05, 12);
-      expect(sample(x, y, 0, 1, 0)).toBe(0);
-    }
-    expect(source).toContain("float x = across * 9.0;");
-    expect(source).toContain("float y = along * 3.0;");
-    expect(source).toContain("flow -= uTime * 0.05;");
-  } finally { material.dispose(); }
-});
+// HR-SEA replaces painted sea streaks with a mipmapped slope spectrum. Sea
+// continuity, normal ownership and freeze controls live in sea-sunset.test.ts.

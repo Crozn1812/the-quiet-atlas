@@ -5,6 +5,8 @@ import { lightingAt, type LightingGrade } from "../sky/grade";
 import type { Quality } from "../terrain";
 import { riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import { SURF_GLSL } from "../../audio/waves";
+import { createSeaNormal, SEA_OPTICS_GLSL } from "../shore/sea-optics";
+import { SEA_DEPTH_GLSL, type SeaDepthField } from "../shore/sea-depth";
 
 export const WATER_FLOW_SPEED = 0.05;
 export const SEA_WAVE_PERIOD = 8;
@@ -46,6 +48,8 @@ export interface WaterMaterialOptions {
   grade?: LightingGrade;
   /** Sampled outer coastline; absent on standalone materials and river ribbons. */
   shoreline?: { minX: number; width: number; z: readonly number[]; valid?: readonly number[] };
+  /** Sea-only static terrain field; ownership transfers to the material. */
+  seaDepth?: SeaDepthField;
 }
 
 const vertexShader = /* glsl */ `
@@ -162,6 +166,8 @@ const fragmentShader = /* glsl */ `
   // End water noise functions.
   #ifdef SEA_WATER
     ${SURF_GLSL}
+    ${SEA_OPTICS_GLSL}
+    ${SEA_DEPTH_GLSL}
   #endif
   float waterAbsorption(float depth) {
     return 1.0 - exp(-max(depth, 0.0) * 0.85);
@@ -178,7 +184,7 @@ const fragmentShader = /* glsl */ `
     float edge = abs(vWaterUv.x * 2.0 - 1.0);
     vec3 color = mix(uDeepColor, uEdgeColor, smoothstep(0.0, 1.0, edge));
     #ifdef SEA_WATER
-      // Metres offshore, rather than the quad's UV edge or sky grade, control the turquoise shallows.
+      // This finite coastline serves SURF-01 only, never water pigment/depth.
       float shoreSample = clamp((vWaterWorld.x - uShoreBounds.x) / uShoreBounds.y,
                                 0.0, 1.0) * ${(SEA_SHORE_SAMPLES - 1).toFixed(1)};
       int shoreIndex = int(min(floor(shoreSample), ${(SEA_SHORE_SAMPLES - 2).toFixed(1)}));
@@ -212,7 +218,19 @@ const fragmentShader = /* glsl */ `
       // squeezed its colour/reflection transition into a visible diagonal wedge.
       float shoreInfluence = mix(validA, validB, smoothstep(0.0, 1.0, weight))
         * smoothstep(0.0, 0.04, shoreZ - vWaterWorld.z) * uHasShore;
-      float shallows = (1.0 - smoothstep(12.0, 40.0, offshore)) * shoreInfluence;
+      float seaBedDepth = 3.0;
+      float seaCoverage = 1.0;
+      #ifdef SEA_DEPTH
+        vec2 depthUv = (vWaterWorld.xz - uSeaDepthBounds.xy) / uSeaDepthBounds.zw;
+        // Clamp to real boundary samples: the outer submerged shelf is already
+        // deep pigment. No rectangular falloff or extrapolated coast triangles.
+        depthUv = depthUv * (1.0 - 1.0 / uSeaDepthSize) + 0.5 / uSeaDepthSize;
+        vec2 terrainDepth = texture2D(uSeaDepth, depthUv).rg;
+        seaBedDepth = terrainDepth.r * 4.0 - 1.0;
+        seaCoverage = terrainDepth.g;
+        if (seaCoverage < 0.01) discard;
+      #endif
+      float shallows = seaShallows(seaBedDepth);
       color = mix(uDeepColor, uEdgeColor, shallows);
     #endif
     float rippleDistanceFade = 1.0 - smoothstep(15.0, 40.0, length(vWaterWorld - cameraPosition));
@@ -221,9 +239,7 @@ const fragmentShader = /* glsl */ `
       float bedDepth = mix(mix(vBedDepth.x, vBedDepth.y, min(vWaterUv.x * 2.0, 1.0)),
         mix(vBedDepth.y, vBedDepth.z, max(vWaterUv.x * 2.0 - 1.0, 0.0)), step(0.5, vWaterUv.x));
       #ifdef SEA_WATER
-        // A shallow seabed proxy follows the trusted coastline only; rejected
-        // inlet secants retain deep water rather than drawing a turquoise wedge.
-        bedDepth = mix(12.0, offshore * 0.09, shoreInfluence);
+        bedDepth = seaBedDepth;
       #else
         if (uHasStreamDepth > 0.5) {
           vec2 depthUv = vec2(vWaterUv.x, vWaterUv.y / uStreamLength);
@@ -232,9 +248,8 @@ const fragmentShader = /* glsl */ `
         }
       #endif
       float opticalDepth = waterAbsorption(bedDepth);
-      #ifdef SEA_WATER
-        color = mix(uEdgeColor, color, opticalDepth);
-      #else
+      // Sea pigment already follows actual depth; absorption controls opacity.
+      #ifndef SEA_WATER
         color = mix(uEdgeColor, uDeepColor, opticalDepth);
       #endif
     #endif
@@ -268,20 +283,12 @@ const fragmentShader = /* glsl */ `
     #endif
     #ifdef SEA_WATER
       // All sea motion shares the freezeable clock, including on Low.
-      float phase = uTime * ${(2 * Math.PI / SEA_WAVE_PERIOD).toFixed(10)};
       float surfPhase = surfCycle(uTime, vWaterWorld.x);
       float breakerDistance = mix(11.0, 0.0, smoothstep(0.0, 0.27, surfPhase));
       float breaker = exp(-pow((offshore - breakerDistance) / 0.65, 2.0))
         * (1.0 - smoothstep(0.27, 0.4, surfPhase)) * shoreInfluence * shoreValid;
-      float swell = waterField(vWaterWorld.x, vWaterWorld.z - uTime * 0.05) - 0.5;
-      float crossSwell = waterField(vWaterWorld.x + 0.11, vWaterWorld.z - uTime * 0.05) - 0.5;
-      // Begin sea ripple scalars. The broad sunset wash below remains sky reflection.
-      float seaDetail = mix(0.05, 1.0, (1.0 - smoothstep(2.0, 12.0, offshore)) * shoreInfluence);
-      float seaStroke = waterStreak(vWaterWorld.x, vWaterWorld.z - uTime * 0.05)
-        * seaDetail * rippleDistanceFade;
-      // End sea ripple scalars.
+      vec2 seaSurfaceSlopes = seaSlopes(vWaterWorld.xz, uTime);
       color = mix(color, uPaperColor, 0.00875);
-      color *= 1.0 + 0.24 * seaStroke;
       #ifdef C_WATER
         // Long, low swells turn toward shore; no CPU deformation or new water mesh.
         float longSwell = sin(vWaterWorld.z * 0.22 - uTime * 0.62 + sin(vWaterWorld.x * 0.025));
@@ -304,7 +311,7 @@ const fragmentShader = /* glsl */ `
         #endif
       #endif
       #ifdef SEA_WATER
-        surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * vec3(crossSwell, 0.0, swell) * 0.006 * seaStroke);
+        surfaceNormal = normalize(mat3(viewMatrix) * vec3(seaSurfaceSlopes.x, 1.0, seaSurfaceSlopes.y));
         #ifdef C_WATER
           // Optical crest slope lifts the lip before it breaks, on the same existing sea quad.
           float crestSlope = breaker * (offshore - breakerDistance) * 0.22;
@@ -319,10 +326,7 @@ const fragmentShader = /* glsl */ `
         reflection = (0.02 + 0.98 * pow(grazing, 5.0)) * SKY_REFLECTION;
       #endif
       #ifdef SEA_WATER
-        reflection *= mix(1.0, mix(0.35, 1.0, smoothstep(12.0, 160.0, offshore)), shoreInfluence);
-        // A restrained sky veil offshore opens into the actual sky at the horizon.
-        // Elevation only: no azimuth lobes or alternating camera-centred bands.
-        reflection *= mix(0.18, 2.0, smoothstep(0.995, 1.0, grazing));
+        reflection = 0.02 + 0.98 * pow(grazing, 5.0);
       #endif
       color = mix(color, uSkyHorizon, reflection);
       #ifdef C_WATER
@@ -350,77 +354,36 @@ const fragmentShader = /* glsl */ `
         color = mix(color, uSunWashColor, riverSunset);
       #endif
       #ifdef SEA_WATER
-        // Reflect the warm horizon on the sunward side and retain lit indigo
-        // elsewhere. This broad sky gradient is independent of the narrow glints.
+        // The reflected horizon follows the sun azimuth, with cool open sky
+        // on the other side. No camera-pitch masks or painted colour stripes.
         vec2 horizonRay = vWaterWorld.xz - cameraPosition.xz;
         vec2 horizonSun = uSunDirection.xz;
         float skyAlignment = dot(horizonRay, horizonSun)
           / max(length(horizonRay) * length(horizonSun), 0.0001);
-        // Begin sea horizon scalars.
-        float coolReflection = reflection * (1.0 - smoothstep(-0.15, 0.85, skyAlignment))
-          * (1.0 - smoothstep(0.995, 1.0, grazing));
-        // End sea horizon scalars.
-        color += (uDeepColor - uSkyHorizon) * coolReflection;
-        // Downward gameplay views need warm pigment, not a uniform sky veil.
-        // Camera pitch also covers distant water in the downward gameplay frame.
-        // viewMatrix[1][2] is the world-up component of the camera's backward axis.
-        // Near-horizontal ending frames retain their original grazing reflection.
-        // Begin sea sunset pigment scalars.
-        float sunsetFacing = smoothstep(-0.15, 0.95, skyAlignment);
-        float sunsetFrame = smoothstep(0.18, 0.42, viewMatrix[1][2]);
-        float sunsetDownview = max(1.0 - smoothstep(0.35, 0.65, grazing),
-          sunsetFrame * (1.0 - smoothstep(0.94, 0.995, grazing)));
-        float sunsetRange = 1.0 - smoothstep(80.0, 320.0, length(horizonRay));
-        float sunsetLowSun = smoothstep(0.0, 0.08, uSunDirection.y)
-          * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
-        float sunsetPigment = 0.12 * sunsetFacing * sunsetDownview * sunsetRange
-          * sunsetLowSun * mix(1.0, mix(0.35, 1.0, smoothstep(12.0, 40.0, offshore)), shoreInfluence);
-        // End sea sunset pigment scalars.
-        color = mix(color, uSunWashColor, sunsetPigment);
+        color += (uDeepColor - uSkyHorizon) * reflection * 0.45
+          * (1.0 - smoothstep(-0.15, 0.85, skyAlignment));
       #endif
     #endif
     #ifndef WATER_REFLECTION
       float reflection = 0.0;
     #endif
     #ifdef SEA_WATER
-      // A broad pigment wash along the sun/viewer axis, broken into soft brush marks.
-      // No specular power or hardcoded azimuth: changing the grade rotates the wash.
+      // Anisotropic microfacet slopes stretch the sun reflection toward the eye.
       vec2 sunAxis = uSunDirection.xz / max(length(uSunDirection.xz), 0.0001);
-      vec2 fromViewer = vWaterWorld.xz - cameraPosition.xz;
-      float alongSun = dot(fromViewer, sunAxis);
-      float signedAcrossSun = dot(fromViewer, vec2(-sunAxis.y, sunAxis.x));
-      float acrossSun = abs(signedAcrossSun);
-      // Sun wash scalars: also evaluated directly by the CPU colour regression.
-      float washWidth = mix(24.0, 5.6, smoothstep(12.0, 360.0, alongSun));
-      float washDistance = sqrt(alongSun * alongSun + acrossSun * acrossSun);
-      float distanceFade = 1.0 - smoothstep(120.0, 640.0, washDistance);
-      // tan(12 degrees): soften the entire sun corridor to zero at its edge.
-      float angularWidth = max(alongSun, 0.0) * 0.21255656;
-      float angularFade = 1.0 - smoothstep(0.0, max(angularWidth, 0.0001), acrossSun);
-      float wash = (1.0 - smoothstep(0.0, washWidth, acrossSun)) * angularFade;
-      wash *= smoothstep(0.0, 12.0, alongSun);
-      wash *= distanceFade;
-      wash *= smoothstep(0.0, 0.08, uSunDirection.y) * (1.0 - smoothstep(0.25, 0.8, uSunDirection.y));
-      float core = (1.0 - smoothstep(washWidth * 0.12, washWidth * 0.4, acrossSun))
-        * smoothstep(20.0, 220.0, alongSun);
-      // Break the entire wash, including its base/core, so it cannot form a continuous ray.
-      // Transverse soft bands compress with distance; lateral wobble keeps their edges organic.
-      float perspective = mix(1.0, 2.5, smoothstep(120.0, 600.0, alongSun));
-      // Subpixel gaps otherwise merge back into a straight ray, especially from the wide tour.
-      float washFootprint = fwidth(alongSun * 0.24 * perspective);
-      float glimmerFootprint = fwidth(alongSun * 1.7);
-      wash *= 1.0 - smoothstep(0.4, 1.2, washFootprint);
-      float washMarks = smoothstep(0.0, 0.65,
-        cos(alongSun * 0.24 * perspective + 0.3 * sin(signedAcrossSun * 0.3)));
-      // Thin transverse marks, interrupted every few metres across the sun axis.
-      float glimmer = smoothstep(0.72, 0.98, 0.5 + 0.5 * sin(alongSun * 1.7 + phase
-        + 0.35 * sin(signedAcrossSun * 0.42 + alongSun * 0.11)));
-      glimmer *= smoothstep(0.1, 0.8, 0.5 + 0.5 * sin(signedAcrossSun * 0.82 + 2.0 * sin(alongSun * 0.37)));
-      glimmer *= distanceFade;
-      glimmer *= 1.0 - smoothstep(0.4, 1.2, glimmerFootprint);
-      float washStrength = 0.7 * wash * washMarks * (0.5 + 0.14 * core + 0.24 * glimmer);
-      // End sun wash scalars.
-      color = mix(color, uSunWashColor, washStrength);
+      vec3 worldView = normalize(cameraPosition - vWaterWorld);
+      vec3 halfSun = normalize(worldView + uSunDirection);
+      vec2 halfSlope = halfSun.xz / max(halfSun.y, 0.08);
+      float halfAcross = dot(halfSlope - seaSurfaceSlopes, vec2(-sunAxis.y, sunAxis.x));
+      float halfAlong = dot(halfSlope - seaSurfaceSlopes, sunAxis);
+      float footprint = length(fwidth(vWaterWorld.xz));
+      float variance = 0.035 + min(footprint * 0.018, 0.07);
+      float facing = smoothstep(0.0, 0.06, uSunDirection.y)
+        * smoothstep(-0.05, 0.25, dot(-worldView.xz, sunAxis));
+      float glitter = seaGlitter(halfAcross, halfAlong, variance, facing);
+      color += uSunWashColor * glitter * 2.8;
+      // Sea aerosol merges the water into the sky without an exposed quad edge.
+      float mist = seaMist(length(cameraPosition - vWaterWorld), abs(worldView.y));
+      color = mix(color, uSkyHorizon, mist);
       float brush = 0.7 + 0.3 * sin(vWaterWorld.x * 1.7 + vWaterWorld.z * 2.7);
       float foam = 0.0;
       #ifdef C_WATER
@@ -436,6 +399,9 @@ const fragmentShader = /* glsl */ `
       // Reveal submerged shore stones; offshore and rejected secants stay opaque.
       opacity = mix(0.3, 1.0, smoothstep(0.0, 0.98, opticalDepth));
       opacity = mix(opacity, 1.0, clamp(reflection, 0.0, 1.0));
+    #endif
+    #ifdef SEA_WATER
+      opacity *= seaCoverage;
     #endif
     #ifndef SEA_WATER
       #ifdef RIVER_DEPTH
@@ -487,6 +453,8 @@ export class WaterMaterial extends ShaderMaterial {
   private lastSeconds: number | undefined = 0;
   private disposed = false;
   private readonly flowNormal?: DataTexture;
+  private readonly seaNormal?: DataTexture;
+  private readonly seaDepth?: DataTexture;
   private readonly edgePigment: Color;
   private readonly deepPigment: Color;
   private readonly irradiance = new Color();
@@ -510,6 +478,9 @@ export class WaterMaterial extends ShaderMaterial {
       // Clear green-turquoise banks, with denser pigment down the centre of the stream.
       edge.lerp(new Color(PALETTE.forestLight), 0.25);
       deep.copy(new Color(PALETTE.forestDeep).lerp(new Color(PALETTE.seaShallow), 0.6));
+    } else {
+      edge.set("#759b96");
+      deep.set("#104d70");
     }
     // Low streams keep the baked depth gradient and soft bank, without IBL.
     const defines: Record<string, number> = { SKY_REFLECTION: sea ? 0.5 : 0.72 };
@@ -517,6 +488,8 @@ export class WaterMaterial extends ShaderMaterial {
     if (!sea) defines.RIVER_DEPTH = 1;
     if (options.wetBank) defines.STREAM_WET_BANK = 1;
     if (sea) defines.SEA_WATER = 1;
+    if (sea && quality !== "Low") defines.SEA_NORMAL = 1;
+    if (sea && options.seaDepth) defines.SEA_DEPTH = 1;
     if (quality !== "Low") defines.WATER_FLOW = 1;
     if (quality !== "Low") defines.C_WATER = 1;
     if (quality === "High" || (!sea && quality !== "Low")) defines.WATER_RIPPLES = 1;
@@ -556,7 +529,7 @@ export class WaterMaterial extends ShaderMaterial {
       vertexShader,
       fragmentShader: sea ? fragmentShader.replace(/uniform sampler2D u(?:FlowNormal|StreamDepth);/g, "") : fragmentShader,
       fog: true,
-      transparent: !sea || quality !== "Low",
+      transparent: true,
       depthWrite: sea,
       // The existing coast terrain is flat at sea level; avoid coplanar flicker.
       polygonOffset: true,
@@ -568,6 +541,16 @@ export class WaterMaterial extends ShaderMaterial {
     if (!sea && quality !== "Low") {
       this.flowNormal = createFlowNormal();
       this.uniforms.uFlowNormal = { value: this.flowNormal };
+    }
+    if (sea) {
+      this.seaNormal = createSeaNormal(quality);
+      if (this.seaNormal) this.uniforms.uSeaNormal = { value: this.seaNormal };
+      if (options.seaDepth) {
+        this.seaDepth = options.seaDepth.texture;
+        this.uniforms.uSeaDepth = { value: this.seaDepth };
+        this.uniforms.uSeaDepthBounds = { value: options.seaDepth.bounds };
+        this.uniforms.uSeaDepthSize = { value: options.seaDepth.size };
+      }
     }
     this.edgePigment = edge;
     this.deepPigment = deep;
@@ -599,14 +582,14 @@ export class WaterMaterial extends ShaderMaterial {
     this.uniforms.uDeepColor!.value.copy(this.deepPigment).lerp(this.indigo, sea ? dusk * 0.8 : 0)
       .multiply(this.irradiance).multiplyScalar(absorption);
     if (sea) {
-      // Preserve deep blue under warm sun while brightness still follows incident light.
+      // Open-water scattering receives the whole sky hemisphere. Multiplying
+      // only by orange direct light crushed both turquoise and offshore blue.
       const energy = this.irradiance.r * 0.2126 + this.irradiance.g * 0.7152 + this.irradiance.b * 0.0722;
-      this.fill.copy(this.deepPigment).lerp(this.indigo, dusk).multiplyScalar(energy * absorption);
-      this.uniforms.uDeepColor!.value.lerp(this.fill, dusk * 0.85).multiplyScalar(1.85);
-      // Retain muted jade, with less neutral absorption in the clear shallows.
-      const edge = this.uniforms.uEdgeColor!.value as Color;
-      const grey = edge.r * 0.2126 + edge.g * 0.7152 + edge.b * 0.0722;
-      edge.lerp(this.fill.setRGB(grey, grey, grey), 0.5).multiplyScalar(0.75);
+      this.uniforms.uDeepColor!.value.copy(this.deepPigment).multiplyScalar(energy * 3.2);
+      this.uniforms.uEdgeColor!.value.copy(this.edgePigment).multiplyScalar(energy * 3.2);
+      // Shallow scattering takes a little of the warm sky, rather than keeping
+      // a saturated cyan pigment under an orange sunset. Sky radiance is intact.
+      this.uniforms.uEdgeColor!.value.lerp(this.fill.copy(grade.skyHorizon).multiplyScalar(energy * 3.2), 0.16);
     }
     if (!sea && coast > 0) {
       // Open-sky indigo fill retains blue energy under the low orange sun.
@@ -665,6 +648,8 @@ export class WaterMaterial extends ShaderMaterial {
     if (this.disposed) return;
     this.disposed = true;
     this.flowNormal?.dispose();
+    this.seaNormal?.dispose();
+    this.seaDepth?.dispose();
     super.dispose();
   }
 }
