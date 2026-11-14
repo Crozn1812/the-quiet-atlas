@@ -20,7 +20,7 @@
     "serve:out": "node tools/serve-out/index.mjs out",
     "test:e2e": "playwright test",
     "test:perf": "playwright test -c tests/perf/playwright.perf.config.ts",
-    "perf:lhci": "lhci autorun",
+    "perf:lhci": "lhci autorun --config=tools/checks/lighthouserc.cjs && node tools/checks/lighthouse-report.mjs",
     "build:cv": "node tools/cv/index.mjs",
     "build:og": "node tools/og/index.mjs",
     "build:artifacts": "pnpm build",
