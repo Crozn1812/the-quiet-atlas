@@ -1,9 +1,12 @@
-import { CylinderGeometry, Group, Mesh, MeshBasicMaterial } from "three";
+import { Group } from "three";
 import { VEHICLE_TRANSITION_SECONDS, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
 import { createGd110, disposeGd110, GD110_WHEEL_RADIUS } from "./mesh";
 import { vehicleAnimationDelta } from "./transition";
+import { installHrVehicle } from "./hr-runtime";
+import { createKickstand } from "./kickstand";
 
 export const MAX_VEHICLE_LEAN = 12 * Math.PI / 180;
+export const PARKED_VEHICLE_LEAN = 9 * Math.PI / 180;
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 const angleDelta = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
@@ -21,13 +24,7 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
   group.name = "vehicle_view";
   const bike = createGd110();
   group.add(bike);
-  const standPivot = new Group();
-  standPivot.name = "kickstand";
-  standPivot.position.set(0.15, 0.28, -0.16);
-  const stand = new Mesh(new CylinderGeometry(0.012, 0.017, 0.30, 5),
-    new MeshBasicMaterial({ color: 0x50483d }));
-  stand.position.y = -0.15;
-  standPivot.add(stand);
+  const standPivot = createKickstand();
   bike.add(standPivot);
   let standFold = 0;
   let transitionSeconds = 0;
@@ -36,6 +33,7 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
   let previous: { state: VehicleState; corridor: VehicleCorridor } | undefined;
   let lean = 0;
   let disposed = false;
+  const appearance = installHrVehicle(bike, () => transitionSeconds < VEHICLE_TRANSITION_SECONDS);
 
   return {
     group,
@@ -44,7 +42,10 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
     setReducedMotion(reduced: boolean): void {
       if (disposed) return;
       reducedMotion = reduced;
-      if (reduced) bike.rotation.z = lean = 0;
+      if (reduced) {
+        lean = 0;
+        bike.rotation.z = previous?.state.mode === "walk" ? PARKED_VEHICLE_LEAN : 0;
+      }
     },
     update(state: VehicleState, corridor: VehicleCorridor, dt: number): void {
       if (disposed) return;
@@ -86,16 +87,20 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
       const standTarget = state.mode === "ride" ? clamp((phase - .8) / .2, 0, 1) : 1 - clamp(phase / .25, 0, 1);
       standFold = reducedMotion ? Number(state.mode === "ride") : previous ? standTarget : Number(state.mode === "ride");
       standPivot.rotation.x = standFold * 1.5;
-      standPivot.rotation.z = 0.32 * (1 - standFold);
+      standPivot.rotation.z = .65 * standFold;
       lean = reducedMotion ? 0 : lean + (target - lean) * (1 - Math.exp(-8 * seconds));
       if (target === 0 && Math.abs(lean) < 1e-6) lean = 0;
-      bike.rotation.z = lean;
+      bike.rotation.z = lean + PARKED_VEHICLE_LEAN * (1 - standFold);
+      // Rotate about the tyre contact, keeping both rounded tyres on the floor.
+      bike.position.y = GD110_WHEEL_RADIUS * (1 - Math.cos(bike.rotation.z));
       previous = { state: { ...state }, corridor };
+      appearance.update();
     },
     dispose(): void {
       if (disposed) return;
       disposed = true;
       previous = undefined;
+      appearance.dispose();
       disposeGd110(bike);
       group.removeFromParent();
       group.clear();

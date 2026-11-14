@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialVehicle, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../../src/features/vehicle/model";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
 import { createGd110, disposeGd110, GD110_COLORS, GD110_WHEEL_RADIUS, GD110_WHEELBASE } from "../../../src/features/world/vehicle/mesh";
-import { createVehicleView, MAX_VEHICLE_LEAN } from "../../../src/features/world/vehicle/view";
+import { createVehicleView, MAX_VEHICLE_LEAN, PARKED_VEHICLE_LEAN } from "../../../src/features/world/vehicle/view";
 
 const straight: VehicleCorridor = {
   length: 100,
@@ -111,6 +111,24 @@ describe("GD110 procedural mesh", () => {
 });
 
 describe("vehicle view", () => {
+  it("parks nine degrees onto the left steel foot at ground height, then stows clear of the road", () => {
+    const view = makeView({ surfaceHeight: () => .4 });
+    const state = riding();
+    view.update({ ...state, mode: "walk", speed: 0 }, straight, 0);
+    const bike = view.riderFrame;
+    const stand = bike.getObjectByName("kickstand")!;
+    const foot = stand.getObjectByName("black_steel_stand_return_spring") as Mesh;
+    expect(bike.rotation.z).toBeCloseTo(9 * Math.PI / 180);
+    expect(stand.position.x).toBeLessThan(0);
+    view.group.updateMatrixWorld(true);
+    expect(Math.abs(new Box3().setFromObject(foot, true).min.y - .4)).toBeLessThan(.003);
+    view.setReducedMotion(true);
+    expect(bike.rotation.z).toBe(PARKED_VEHICLE_LEAN);
+    view.update(state, straight, 0);
+    expect(bike.rotation.z).toBe(0);
+    view.group.updateMatrixWorld(true);
+    expect(new Box3().setFromObject(foot, true).min.y).toBeGreaterThan(.52);
+  });
   it("folds the stand after mounting and lowers it before stepping off; reduced motion snaps", () => {
     const view = makeView();
     const state = riding();
@@ -202,7 +220,7 @@ describe("vehicle view", () => {
     const state = riding(corridor);
     view.update(state, corridor, .25);
     for (let i = 0; i < 120; i++) view.update({ ...state, mode: "walk", speed: 0 }, corridor, 1 / 60);
-    expect(view.group.getObjectByName("gd110")!.rotation.z).toBe(0);
+    expect(view.group.getObjectByName("gd110")!.rotation.z).toBe(PARKED_VEHICLE_LEAN);
     expect(view.group.visible).toBe(true);
   });
 

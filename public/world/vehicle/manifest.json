@@ -1,0 +1,62 @@
+{
+  "id": "hr-gd110",
+  "path": "/world/vehicle/vehicle-gd110.glb",
+  "delivery": "deferred after playable frame; hardware Balanced/High only",
+  "encoding": [
+    "EXT_meshopt_compression",
+    "KHR_texture_basisu",
+    "KHR_materials_clearcoat",
+    "KHR_materials_transmission"
+  ],
+  "textureDimensions": [
+    1024,
+    1024
+  ],
+  "textureBytes": [
+    425365,
+    861253,
+    770159
+  ],
+  "bytes": 3432224,
+  "sha256": "ef706ab77431a33bf61287db8341241f650ce7584764aecd0c685a5f4c8e47fc",
+  "triangles": 172936,
+  "materials": 3,
+  "textures": 3,
+  "lods": [
+    {
+      "level": 0,
+      "triangles": 115680,
+      "draws": 7
+    },
+    {
+      "level": 1,
+      "triangles": 57256,
+      "draws": 7
+    }
+  ],
+  "lodDistances": {
+    "far": 18,
+    "near": 15
+  },
+  "scale": 0.81,
+  "wheelRadius": 0.243,
+  "wheelbase": 1.0368,
+  "steeringPivot": [
+    0,
+    0.7371,
+    0.3483
+  ],
+  "riderSeat": [
+    0,
+    0.8019,
+    -0.2025
+  ],
+  "collider": "Existing simulation collider remains unchanged",
+  "fallback": "vehicle/mesh.ts; Low and software rasterizers; no GLB request",
+  "sources": [
+    "https://polyhaven.com/a/sand_01",
+    "https://polyhaven.com/license",
+    "https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "authoring": "tools/assets/blender/hr-gd110.py; original geometry and procedural maps dedicated to CC0"
+}
