@@ -17,3 +17,10 @@ Luật bắt buộc (CLAUDE.md §6, ADR 0018):
 Thay cây trong rừng/đồi bằng kho HR-TREE1: chọn biến thể theo sinh cảnh (ven suối, sườn đồi, rừng sâu, bìa rừng), xoay/tỉ lệ/nghiêng/màu lá ngẫu nhiên theo seed, **không hai cây giống nhau đứng gần**; tầng dưới tán: dương xỉ, bụi, cây con, gỗ mục; dây leo rủ từ cành. Gió lay theo tầng (thân/cành/lá) trong shader. Giữ collider, tán kín trời FL-03, cây elf Roots.
 Được sửa: `src/features/world/foliage/**`, test.
 
+
+### Ghi chú Lead sau review HR-TREE1 (af5795c)
+Kho 12 cây đã vào main (`public/world/lib/hr-tree-*`, snippet nối ở `tools/assets/blender/hr-trees-HANDOFF.md`). Lead thấy còn thiếu, xử lý ở runtime trong ticket này:
+- Lá **một màu xanh đậm phẳng** trên mọi cây → biến thiên màu lá theo cây/cụm (vàng-xanh non, xanh xám, lá úa lác đác), translucency khi ngược sáng, AO trong tán.
+- Dây leo khó thấy ở khoảng cách chơi → thêm dây leo rủ (vine strands) từ cành, đủ nhìn rõ trong ảnh High.
+- Tre (bamboo-*) giống bụi cây tròn → nếu không sửa được trong runtime thì ghi rõ, Lead mở HR-TREE1b.
+Ảnh cận + trung + xa cho ít nhất 4 khu có rừng.
