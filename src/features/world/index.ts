@@ -10,6 +10,7 @@ import { clampZoom, wrapYaw, springArm, ensureCameraBounds, filterCameraCandidat
 import { springObstacleBounds } from "./terrain/spring";
 import { createFirstLightFish } from "./water/fish";
 import { createStreambed } from "./water/streambed";
+import { createBirds } from "./fauna/birds";
 import { updateDawnShafts } from "./post/dawn-shafts";
 import { firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
@@ -240,6 +241,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const locomotion = createLocomotion(physics);
   const fish = createFirstLightFish(); scene.add(fish.group);
   const streambed = createStreambed(gpu); scene.add(streambed.group); dressing.defer(streambed.build());
+  const birds = createBirds(scene); dressing.defer(birds.build);
   const sun = composed.sun;
   gpu.shadowMap.enabled = sun.castShadow;
   // B2-045: rigged character (D-23) with Idle/Walk/Run; the loader falls back to the capsule on any failure.
@@ -560,6 +562,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     container.dispatchEvent(new CustomEvent("tqa:ambience", {
       bubbles: false,
       detail: ambienceMixAt({
+        bird: birds.listener(physics.position, camera),
         surf: surfAt(x, z, camera.matrixWorld.elements[0]!, camera.matrixWorld.elements[2]!, y - HEIGHT - waterLevelAt(z)),
         distanceToRiver: nearestRiver(x, z).distance,
         // Mean shoreline of shoreHeight; include elevation above the water surface.
@@ -1301,6 +1304,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     publishVehicle(vehicleDt);
     fish.update(animDt, reducedMotion, player.position, quality);
     streambed.update(animDt, reducedMotion, player.position, quality);
+    birds.update(animDt, reducedMotion, player.position, quality);
     updateDawnShafts(animDt, reducedMotion);
     if (vehicleControls.dismountPending) getOffVehicle();
     let introFrame: IntroFrame | undefined;
@@ -1515,6 +1519,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     dressing?.dispose();
     fish.dispose();
     streambed.dispose();
+    birds.dispose();
     composed.dispose();
     zoneScenes?.dispose();
     removeDressingTrimeshes?.();

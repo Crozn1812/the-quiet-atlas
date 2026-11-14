@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAmbience, CHIME_SCALE, DEFAULT_MASTER_VOLUME, MIX_RAMP_SECONDS } from "../../../src/features/audio/ambience";
 import { createAudioController } from "../../../src/features/audio/controller";
+import { birdLevel, birdPhrase } from "../../../src/features/audio/birds";
 import { ambienceMixAt, type AmbienceInputs, type AmbienceMix } from "../../../src/features/audio/mix";
 
 type Automation = { kind: "set" | "ramp" | "cancel"; value?: number; time: number };
@@ -30,6 +31,11 @@ class FakeNode {
   frequency = new FakeParam();
   Q = new FakeParam();
   pan = new FakeParam();
+  positionX = new FakeParam();
+  positionY = new FakeParam();
+  positionZ = new FakeParam();
+  panningModel = "equalpower";
+  rolloffFactor = 1;
   type = "sine";
   loop = false;
   buffer: unknown;
@@ -58,6 +64,7 @@ class FakeContext {
   }
   createGain() { return this.create("gain"); }
   createStereoPanner() { return this.create("pan"); }
+  createPanner() { return this.create("pan"); }
   createBiquadFilter() { return this.create("filter"); }
   createOscillator() { return this.create("oscillator"); }
   createBufferSource() { return this.create("noise"); }
@@ -115,6 +122,18 @@ function installContext() {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("pure ambience mix", () => {
+  it("attenuates positioned birds, permits gulls, and distinguishes original call contours", () => {
+    const bird = { distance: 2, pan: 1, species: 2, evening: 1 };
+    expect(birdLevel(bird)).toBe(1);
+    expect(birdLevel({ ...bird, distance: 16 })).toBeLessThan(1);
+    expect(birdLevel({ ...bird, distance: 35 })).toBe(0);
+    expect(birdLevel({ ...bird, distance: NaN })).toBe(0);
+    expect(ambienceMixAt({ ...coast, bird }).birds).toBeGreaterThan(0);
+    expect(ambienceMixAt({ ...coast, bird: { ...bird, distance: Infinity } }).birds).toBe(0);
+    const phrases = [0, 1, 2].map(species => birdPhrase(species, () => 0.5));
+    expect(new Set(phrases.map(call => call.pitch)).size).toBe(3);
+    expect(new Set(phrases.map(call => call.duration)).size).toBe(3);
+  });
   it("favours stream and birds at forest dawn, wind on hills, waves at the coast", () => {
     const dawn = ambienceMixAt(forest);
     const hills = ambienceMixAt(hill);
@@ -426,6 +445,28 @@ describe("synthesized graph", () => {
 });
 
 describe("opt-in audio controller", () => {
+  it("pans positioned calls, thins the evening schedule, and cancels old species and muted nodes", () => {
+    const context = new FakeContext(), ambience = createAmbience(context.asAudio());
+    const bird = { distance: 4, pan: -0.8, species: 0, evening: 0 };
+    ambience.setMix(ambienceMixAt({ ...forest, bird }));
+    const morning = context.birds()[0]!;
+    const morningDelay = morning.start.mock.calls[0]![0] - context.currentTime;
+    const pans = context.nodes.filter(node => node.kind === "pan");
+    expect(pans.at(-1)!.panningModel).toBe("HRTF");
+    expect(pans.at(-1)!.positionX.events.at(-1)!.value).toBe(-0.8);
+    ambience.setMix(ambienceMixAt({ ...coast, bird: { ...bird, species: 2, evening: 1, pan: 0.7 } }));
+    const evening = context.birds()[0]!;
+    expect(morning.disconnect).toHaveBeenCalledOnce();
+    expect(evening.start.mock.calls[0]![0] - context.currentTime).toBeGreaterThan(morningDelay);
+    expect(pans.at(-1)!.positionX.events.at(-1)!.value).toBe(0.7);
+    ambience.setMix(ambienceMixAt({ ...forest, bird: { ...bird, position: [-3, 2, -5] } }));
+    const spatial = pans.at(-1)!;
+    expect([spatial.positionX, spatial.positionY, spatial.positionZ].map(param => param.events.at(-1)!.value)).toEqual([-3, 2, -5]);
+    ambience.mute();
+    expect(context.birds()).toHaveLength(0);
+    expect(pans.every(node => node.disconnect.mock.calls.length === 1)).toBe(true);
+    ambience.dispose();
+  });
   it("does not create a context before enable and applies only the latest disabled inputs", async () => {
     const contexts = installContext();
     const controller = createAudioController();

@@ -1,5 +1,6 @@
 import { clampUnit, type AmbienceMix } from "./mix";
 import { surfCycle, surfEnvelope } from "./waves";
+import { birdLevel, birdPhrase, type BirdListener } from "./birds";
 
 export const MIX_RAMP_SECONDS = 1.5;
 export const DEFAULT_MASTER_VOLUME = 0.35;
@@ -138,6 +139,12 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
   }
 
   const birdRandom = randomFromSeed(seed ^ 0xb17d);
+  const birdPan = own(context.createPanner());
+  birdPan.panningModel = "HRTF";
+  // Distance attenuation already belongs to the spatial mix; avoid applying it twice.
+  birdPan.rolloffFactor = 0;
+  birdPan.connect(channels.birds);
+  let birdSample: BirdListener | undefined;
   let bird: { oscillator: OscillatorNode; envelope: GainNode } | undefined;
   let birdsEnabled = false;
   let disposed = false;
@@ -159,22 +166,28 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
     if (disposed || !birdsEnabled || bird) return;
     // Only one chirp is queued. onended schedules its successor on the audio clock,
     // so suspension/background throttling cannot accumulate a burst of catch-up calls.
-    const start = context.currentTime + 4 + birdRandom() * 5;
-    const duration = 0.12 + birdRandom() * 0.12;
-    const pitch = 1800 + birdRandom() * 1400;
+    const evening = birdSample ? clampUnit(birdSample.evening) : 0;
+    const start = context.currentTime + (4 + birdRandom() * 5) * (1 + evening * 3);
+    const phrase = birdSample ? birdPhrase(birdSample.species, birdRandom) : undefined;
+    const duration = phrase?.duration ?? 0.12 + birdRandom() * 0.12;
+    const pitch = phrase?.pitch ?? 1800 + birdRandom() * 1400;
     const oscillator = ownSource(context.createOscillator());
     const envelope = own(context.createGain());
     bird = { oscillator, envelope };
     oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(pitch, start);
-    oscillator.frequency.linearRampToValueAtTime(pitch + 650, start + duration * 0.35);
-    oscillator.frequency.linearRampToValueAtTime(pitch - 200, start + duration);
+    if (phrase) {
+      phrase.contour.slice(1).forEach((ratio, index) => oscillator.frequency.linearRampToValueAtTime(pitch * ratio, start + duration * (index + 1) / (phrase.contour.length - 1)));
+    } else {
+      oscillator.frequency.linearRampToValueAtTime(pitch + 650, start + duration * 0.35);
+      oscillator.frequency.linearRampToValueAtTime(pitch - 200, start + duration);
+    }
     envelope.gain.setValueAtTime(0, context.currentTime);
     envelope.gain.setValueAtTime(0, start);
     envelope.gain.linearRampToValueAtTime(0.12, start + 0.025);
     envelope.gain.linearRampToValueAtTime(0, start + duration);
     oscillator.connect(envelope);
-    envelope.connect(channels.birds);
+    envelope.connect(birdPan);
     oscillator.onended = () => {
       if (bird?.oscillator !== oscillator) return;
       releaseBird(false);
@@ -265,7 +278,18 @@ function createGraph(context: AudioContext, seed: number, volume: number) {
     setMix(mix: AmbienceMix) {
       for (const key of Object.keys(channels) as (keyof typeof channels)[]) fades[key](mix[key] ?? 0);
       updateSurf(mix);
-      birdsEnabled = clampUnit(mix.birds) > 0;
+      const nextBird = mix.bird;
+      // Cancel the old tree's pending call on teleports/species changes; never
+      // let a forest whistle play after the listener arrives at the shore.
+      if (nextBird?.species !== birdSample?.species) releaseBird(true);
+      birdSample = nextBird;
+      const pan = nextBird && Number.isFinite(nextBird.pan) ? Math.max(-1, Math.min(1, nextBird.pan)) : 0;
+      const position = nextBird?.position?.every(Number.isFinite) ? nextBird.position : [pan, 0, -Math.sqrt(1 - pan * pan)];
+      [birdPan.positionX, birdPan.positionY, birdPan.positionZ].forEach((param, axis) => {
+        param.cancelAndHoldAtTime(context.currentTime);
+        param.linearRampToValueAtTime(position[axis]!, context.currentTime + 0.06);
+      });
+      birdsEnabled = clampUnit(mix.birds) > 0 && (!nextBird || birdLevel(nextBird) > 0);
       if (birdsEnabled) scheduleBird();
       else releaseBird(true);
 
