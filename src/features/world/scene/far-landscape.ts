@@ -9,6 +9,7 @@ import { nearestPath, nearestRiver } from "../terrain/samples";
 import { createRampMaterial, RAMP_PRESETS, RAMP_STEPS } from "../materials/ramp";
 import { waterLevelAt, worldHeight } from "../terrain/height";
 import { createTileMesh } from "../terrain/mesh";
+import { TERRAIN_RADIUS, TILE_CELLS, TILE_SIZE } from "../terrain/tiles";
 import { WORLD_LENGTH } from "../layout/scale";
 
 export const FAR_LANDSCAPE = Object.freeze({
@@ -30,6 +31,35 @@ const canopyMist = new Color(hex("mist"));
 /** B2-239 lifted near forest ground to sunlit moss; the far canopy averages moss and crowns so tile edges stay hidden. */
 const canopyMoss = new Color(hex("grass")).lerp(new Color(hex("grassDry")), 0.64);
 const FAR_CANOPY_MOSS = 0.8;
+
+/** Coarse faces can bridge a valley above the detailed ground despite the sink.
+ * Bound each nearby corner by the lowest fine-grid sample of all adjacent faces.
+ * Linear terrain triangles cannot dip below those samples, so neither can this
+ * backdrop inside the streamed corridor. Keep remote scenery and crowns intact. */
+function* seatFarGround(geometry: BufferGeometry) {
+  const { originX, originZ, size, cells } = FAR_LANDSCAPE;
+  const step = size / cells, fineStep = TILE_SIZE / TILE_CELLS;
+  const positions = geometry.getAttribute("position");
+  const heights = new Map<string, number>();
+  for (let i = 0; i < positions.count; i++) {
+    if (i % (cells + 1) === 0) yield;
+    const x = originX + positions.getX(i), z = originZ + positions.getZ(i);
+    if (nearestPath(x, z).distance > TERRAIN_RADIUS + step * Math.SQRT2) continue;
+    let floor = positions.getY(i);
+    for (let gx = Math.floor((x - step) / fineStep); gx <= Math.ceil((x + step) / fineStep); gx++) {
+      for (let gz = Math.floor((z - step) / fineStep); gz <= Math.ceil((z + step) / fineStep); gz++) {
+        const key = `${gx}:${gz}`;
+        let height = heights.get(key);
+        if (height === undefined) {
+          height = Math.fround(worldHeight(gx * fineStep, gz * fineStep));
+          heights.set(key, height);
+        }
+        floor = Math.min(floor, height);
+      }
+    }
+    positions.setY(i, floor);
+  }
+}
 
 /**
  * Trees only stream along the path, so far slopes would read as bare lawn. Where the scatter grows forest (the
@@ -240,6 +270,7 @@ if (firstLightDither < firstLightView) discard;`);
     geometry.setAttribute("color", new BufferAttribute(colors, 3));
     geometry.setIndex(new BufferAttribute(indices, 1));
     yield* paintFarCanopy(geometry, heights);
+    yield* seatFarGround(geometry);
     yield* addFarCrowns(geometry);
     geometry.computeBoundingBox();
     yield;

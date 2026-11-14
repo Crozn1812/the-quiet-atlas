@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { createFarLandscape, FAR_LANDSCAPE, GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
-import { worldHeight } from "../../../src/features/world/terrain/height";
+import { surfaceHeight, worldHeight } from "../../../src/features/world/terrain/height";
+import { TERRAIN_RADIUS } from "../../../src/features/world/terrain/tiles";
+import { ZONES } from "../../../src/features/world/layout/zones";
 import { nearestPath, nearestRiver } from "../../../src/features/world/terrain/samples";
 import { foliageBiomeAt } from "../../../src/features/world/foliage/scatter";
 
@@ -26,7 +28,7 @@ describe("far landscape individual dawn crowns", () => {
       process.stdout.write('B2-241 triangles: 51200 -> ' + g.index!.count / 3 + '; draws: 1 -> 1; crowns: ' + g.userData.farCrowns + '\n');
     } finally { far.dispose(); }
   });
-  it("locks ADR 0017's relocated far ground vertices, normals and albedo", () => {
+  it("retains ADR 0017's ground layout, normals and albedo while only lowering corridor corners", () => {
     const far = createFarLandscape();
     try {
       const expected = {
@@ -35,8 +37,44 @@ describe("far landscape individual dawn crowns", () => {
         // R1-C: coastal grass pigments also feed the distant ground; geometry stays unchanged.
         color: "2e888f78e53a21b779a080b2fb6fe246b06a30333a1c602682d824ad73d536ed",
       };
-      const actual = Object.fromEntries(Object.keys(expected).map(name => [name, hash(far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))]));
+      const original = far.mesh.geometry.getAttribute("position").array.slice(0, groundCount * 3);
+      const step = FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells;
+      for (let i = 0; i < groundCount; i++) {
+        const x = original[i * 3]! + FAR_LANDSCAPE.originX, z = original[i * 3 + 2]! + FAR_LANDSCAPE.originZ;
+        const y = Math.fround(worldHeight(FAR_LANDSCAPE.originX + Math.floor(i / (FAR_LANDSCAPE.cells + 1)) * step,
+          FAR_LANDSCAPE.originZ + i % (FAR_LANDSCAPE.cells + 1) * step));
+        expect(original[i * 3 + 1]!).toBeLessThanOrEqual(y);
+        if (nearestPath(x, z).distance > TERRAIN_RADIUS + step * Math.SQRT2) expect(original[i * 3 + 1]).toBe(y);
+        original[i * 3 + 1] = y;
+      }
+      const actual = Object.fromEntries(Object.keys(expected).map(name => [name, hash(name === "position" ? original : far.mesh.geometry.getAttribute(name).array.slice(0, groundCount * 3))]));
       expect(actual).toEqual(expected);
+    } finally { far.dispose(); }
+  });
+  it.each(["workshop", "roots", "milestones"])("keeps every coarse ground face below the rendered %s corridor (FIX-PATCH)", id => {
+    const far = createFarLandscape();
+    try {
+      const zone = ZONES.find(zone => zone.id === id)!;
+      const p = far.mesh.geometry.getAttribute("position"), index = far.mesh.geometry.index!;
+      const step = FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells;
+      let checked = 0;
+      for (let i = 0; i < index.count; i += 3) {
+        const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+        if (ids.some(vertex => vertex >= groundCount)) continue;
+        const vertices = ids.map(vertex => ({ x: p.getX(vertex) + FAR_LANDSCAPE.originX,
+          y: p.getY(vertex) - FAR_LANDSCAPE.sink, z: p.getZ(vertex) + FAR_LANDSCAPE.originZ }));
+        if (vertices.every(v => Math.hypot(v.x - zone.position.x, v.z - zone.position.z) > zone.radius + step * Math.SQRT2)) continue;
+        for (let a = 0; a <= 12; a++) for (let b = 0; b <= 12 - a; b++) {
+          const weights = [a / 12, b / 12, 1 - (a + b) / 12];
+          const x = vertices.reduce((sum, v, j) => sum + v.x * weights[j]!, 0);
+          const z = vertices.reduce((sum, v, j) => sum + v.z * weights[j]!, 0);
+          if (nearestPath(x, z).distance > TERRAIN_RADIUS) continue;
+          const y = vertices.reduce((sum, v, j) => sum + v.y * weights[j]!, 0);
+          expect(y, `${id}: ${x},${z}`).toBeLessThanOrEqual(surfaceHeight(x, z) - FAR_LANDSCAPE.sink + 0.0001);
+          checked++;
+        }
+      }
+      expect(checked).toBeGreaterThan(1000);
     } finally { far.dispose(); }
   });
   it("builds clustered planar crowns below 12m, clear of stream trees and pads", () => {
