@@ -1,0 +1,40 @@
+{
+  "ticket": "HR-TREE1",
+  "technicalStatus": "PASS",
+  "photorealCloseupStatus": "NOT VERIFIED — source leaf detail and moss remain limitations",
+  "commands": [
+    { "command": "pnpm lint", "exitCode": 0, "warnings": 0 },
+    { "command": "pnpm typecheck", "exitCode": 0 },
+    { "command": "pnpm test", "exitCode": 0, "summary": "Test Files 174 passed (174); Tests 1856 passed (1856); Duration 73.99s" },
+    { "command": "NEXT_TEST_WASM_DIR=C:\\Users\\PC-LP\\AppData\\Local\\next-swc\\wasm\\package NEXT_BUILD_WEBPACK=1 pnpm build", "exitCode": 0, "invocations": 1 },
+    { "command": "E2E_PORT=4198 pnpm exec playwright test world --workers=2", "exitCode": 0, "summary": "43 passed (6.3m)", "config": "default", "cleanup": "Stopped verified private server PID 58084 at port 4198 after all tests completed; Windows Playwright server cleanup was hanging." },
+    { "command": "pnpm check:licenses", "exitCode": 0, "summary": "public files: 123; RESULT: PASS" },
+    { "command": "node tools/assets/blender/hr-trees-review.mjs", "exitCode": 0, "summary": "12 final packed trees, four nonempty impostor views each, transparent tile borders, no browser errors" },
+    { "command": "node tools/assets/blender/hr-trees-world-review.mjs", "exitCode": 0, "summary": "First Light High before/after + Low; 0 page errors; 0 HR asset requests" },
+    { "command": "git diff --check", "exitCode": 0 }
+  ],
+  "finalAssets": { "trees": 12, "ivyTrees": 7, "glbs": 36, "sharedTextures": 3, "publicBytes": 54535757, "glbBytes": 43626860, "sharedTextureBytes": 10908897 },
+  "manifest": { "appendOnly": true, "preservedEntries": 14, "addedEntries": 12 },
+  "staticOutput": {
+    "finalPublicAssetsMatchOut": true,
+    "note": "After the single build, corrected the offline impostor viewport/scissor, rebaked impostors, synced HR public files and manifest to out. Runtime source and original 14 entries unchanged. No second build. Final unit suite validates the corrected assets."
+  },
+  "pictures": {
+    "assetBeforeHigh": "before-high.png",
+    "assetAfterHigh": "after-high.png",
+    "assetLow": "low-impostor.png",
+    "worldBeforeHigh": "world-before-high.png",
+    "worldAfterHigh": "world-after-high.png",
+    "worldLow": "world-low-low.png",
+    "note": "World pictures are regression captures of the unchanged game, not proof of HR-TREE2 integration."
+  },
+  "performance": { "report": "metrics.json", "environment": "installed Edge, SwiftShader, shared workstation; renderer CDP TaskDuration excludes GPU-process CPU", "worldTimingReport": "world-metrics.json", "clickToPlayableMs": [8062.6, 8296.8, 8358.1], "intro": "QA skipped" },
+  "scope": { "runtimeModified": false, "dependenciesAdded": false, "downloads": false, "outOfScopeSourceFiles": [], "committed": false },
+  "knownLimits": [
+    "Photographed leaf islands are approximately 50–100 source pixels, repigmented from fallen CC0 leaves; a 2K atlas does not increase native leaf detail.",
+    "Moss is authored geometry with repigmented bark, not a moss scan.",
+    "Installed Three GLTFLoader does not handle KHR_materials_diffuse_transmission; viewer has a thin-leaf backlight approximation. HR-TREE2 must install equivalent foliage shading and configure production KTX2 decoding.",
+    "Existing flattenLibraryTree is incompatible with these detailed PBR primitives. Deferred loading, instancing, LOD switching and culling belong to HR-TREE2.",
+    "No integrated HR forest or Iris Xe benchmark; do not treat viewer FPS/renderer task data as those measurements."
+  ]
+}

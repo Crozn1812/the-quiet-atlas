@@ -1,0 +1,41 @@
+{
+  "note": "Same asset-only build and camera for before/after; new trees are not wired into the game. Timing includes menu and screenshot waits, NOT time to playable.",
+  "sessions": [
+    {
+      "label": "before",
+      "quality": "high",
+      "hrAssetRequests": [],
+      "errors": [],
+      "navigationThroughCaptureMs": 20787.5078,
+      "reportedQuality": "high",
+      "timeToPlayable": {
+        "clickToBuiltIntroDoneMs": 8062.600000023842,
+        "method": "DOM build=done + intro=done; QA skip intro; current game without HR integration"
+      }
+    },
+    {
+      "label": "after",
+      "quality": "high",
+      "hrAssetRequests": [],
+      "errors": [],
+      "navigationThroughCaptureMs": 21110.9323,
+      "reportedQuality": "high",
+      "timeToPlayable": {
+        "clickToBuiltIntroDoneMs": 8296.799999952316,
+        "method": "DOM build=done + intro=done; QA skip intro; current game without HR integration"
+      }
+    },
+    {
+      "label": "low",
+      "quality": "low",
+      "hrAssetRequests": [],
+      "errors": [],
+      "navigationThroughCaptureMs": 20110.459199999998,
+      "reportedQuality": "low",
+      "timeToPlayable": {
+        "clickToBuiltIntroDoneMs": 8358.100000023842,
+        "method": "DOM build=done + intro=done; QA skip intro; current game without HR integration"
+      }
+    }
+  ]
+}

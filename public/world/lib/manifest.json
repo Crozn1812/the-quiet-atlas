@@ -417,6 +417,2070 @@
         }
       ],
       "derivation": "Deterministic project-original geometry; dedicated to CC0"
+    },
+    {
+      "id": "hr-tree-buttress-emergent",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 61501,
+      "architecture": "buttress",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-buttress-emergent-lod0.glb",
+          "triangles": 244904,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-buttress-emergent-lod0.glb",
+          "bytes": 2269448,
+          "sha256": "9504d2677620421443a729d52137d534861b5da4bb3ea7365057036c6e6a80dc"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-buttress-emergent-lod1.glb",
+          "triangles": 59070,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-buttress-emergent-lod1.glb",
+          "bytes": 624764,
+          "sha256": "5cf84bba8ae4ec0656202a8f6aa0663104c1abcf2e952a378f81c49e58980780"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -6.3653042403612226,
+          -0.10927452892065048,
+          -9.404004189899062
+        ],
+        "max": [
+          10.000883826390275,
+          22.2633113861084,
+          9.967089745929336
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-buttress-emergent-impostor.glb",
+        "path": "/world/lib/hr-tree-buttress-emergent-impostor.glb",
+        "bytes": 891760,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "206cc7829308d9526c9db9b5175258506a72ef39c4b0e840ae05f346fe6f7d37",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          1.8177897930145264,
+          11.077018428593874,
+          0.2815427780151367
+        ],
+        "frame": 28.402356280051475,
+        "tileOpaquePixels": [
+          152861,
+          161811,
+          152866,
+          161805
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-buttress-fluted",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 61712,
+      "architecture": "buttress",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-buttress-fluted-lod0.glb",
+          "triangles": 225504,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-buttress-fluted-lod0.glb",
+          "bytes": 2097312,
+          "sha256": "5dca07ae1cc4fd5227c7c2e2b343473a0d5ebed75247a653d30f573904788a63"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-buttress-fluted-lod1.glb",
+          "triangles": 54920,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-buttress-fluted-lod1.glb",
+          "bytes": 580900,
+          "sha256": "c6738db51feec5162e296ff79f4268e3122e6f3c0a5d52a87717d1ec4eb9e4da"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -6.437396198738277,
+          -0.10927452892065048,
+          -7.217614981009962
+        ],
+        "max": [
+          7.464793831337154,
+          18.570831298828125,
+          7.020357462241652
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-buttress-fluted-impostor.glb",
+        "path": "/world/lib/hr-tree-buttress-fluted-impostor.glb",
+        "bytes": 1084256,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "33702a070f7941d2437f7b967b930e5067827fb3d56fd87ce346a5281fcd8a38",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.5136988162994385,
+          9.230778384953737,
+          -0.09862875938415527
+        ],
+        "frame": 22.287458198398955,
+        "tileOpaquePixels": [
+          200312,
+          191265,
+          200312,
+          191264
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-spreading-crown",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 61923,
+      "architecture": "spreading",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-spreading-crown-lod0.glb",
+          "triangles": 263520,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-spreading-crown-lod0.glb",
+          "bytes": 2452112,
+          "sha256": "284ce61ef11558bde452d18940545fbbbfbb2102d06cf6bcfb76a5c94c449991"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-spreading-crown-lod1.glb",
+          "triangles": 60274,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-spreading-crown-lod1.glb",
+          "bytes": 644972,
+          "sha256": "cd926c1e3fa2f984f0dabc95d5c7a6c13591a990eec73b4289238b1f43331dec"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -8.880180358886719,
+          -0.12713633909097055,
+          -8.41657610906143
+        ],
+        "max": [
+          11.100327491760254,
+          17.253289554856924,
+          11.532223425040433
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-spreading-crown-impostor.glb",
+        "path": "/world/lib/hr-tree-spreading-crown-impostor.glb",
+        "bytes": 560728,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "c56d9bbdfbb5320dcb0e30d16ebeb48a6fc63355e71b730fc2e240537acc7a28",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          1.1100735664367676,
+          8.563076607882977,
+          1.557823657989502
+        ],
+        "frame": 31.62240807296228,
+        "tileOpaquePixels": [
+          95946,
+          98607,
+          95945,
+          98557
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-umbrella-crown",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 62134,
+      "architecture": "umbrella",
+      "branchLevels": 4,
+      "ivy": false,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-umbrella-crown-lod0.glb",
+          "triangles": 275948,
+          "materials": 3,
+          "textures": 3,
+          "drawCalls": 3,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-umbrella-crown-lod0.glb",
+          "bytes": 2587884,
+          "sha256": "076fd2f87f21d6a6531ed444f516f601acb30c0c8d7fb8fa98e871be5deedcb5"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-umbrella-crown-lod1.glb",
+          "triangles": 59952,
+          "materials": 3,
+          "textures": 3,
+          "drawCalls": 3,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-umbrella-crown-lod1.glb",
+          "bytes": 655980,
+          "sha256": "4b977d9c89003c8d483acfcfd3fd85884265d5bacbd2e0b4c7b30e6dd40b4a19"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -7.356242508273699,
+          -0.11333306056324055,
+          -8.649330139160156
+        ],
+        "max": [
+          8.165021271091081,
+          15.89375826639,
+          8.21413516998291
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-umbrella-crown-impostor.glb",
+        "path": "/world/lib/hr-tree-umbrella-crown-impostor.glb",
+        "bytes": 721216,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "3f9c6b426a63171de609c88222badb9a1265bd02156b16399874677ef89430a8",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.4043893814086914,
+          7.89021260291338,
+          -0.21759748458862305
+        ],
+        "frame": 25.669415132203497,
+        "tileOpaquePixels": [
+          127896,
+          131532,
+          127894,
+          131533
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-slender-upright",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 62345,
+      "architecture": "slender",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-slender-upright-lod0.glb",
+          "triangles": 205320,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-slender-upright-lod0.glb",
+          "bytes": 1880848,
+          "sha256": "722aec2b4863ce5c8d65cb9f76ea841a96fb206dbd0ceecfd0164eca1c31e815"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-slender-upright-lod1.glb",
+          "triangles": 49704,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-slender-upright-lod1.glb",
+          "bytes": 520912,
+          "sha256": "76da5ab082da715ce999bd15addb149e13575249177c42e92340598f7afc34a2"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -3.9533612866736947,
+          -0.10927452892065048,
+          -4.5388668203434746
+        ],
+        "max": [
+          4.675020470175892,
+          15.92374038696289,
+          4.208905043610076
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-slender-upright-impostor.glb",
+        "path": "/world/lib/hr-tree-slender-upright-impostor.glb",
+        "bytes": 833912,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "8bf03b2a5b5261061b5cb63c35dbfd6a6d47e633eea6646abcb03326f78e2518",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.36082959175109863,
+          7.90723292902112,
+          -0.16498088836669922
+        ],
+        "frame": 17.956976705789568,
+        "tileOpaquePixels": [
+          156826,
+          148305,
+          156828,
+          148314
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-slender-forked",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 62556,
+      "architecture": "forked",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-slender-forked-lod0.glb",
+          "triangles": 215020,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-slender-forked-lod0.glb",
+          "bytes": 1996156,
+          "sha256": "3f37585144ce99ea5c2d7b89055195f37b99f5c6458befa7f4a223907c249ec0"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-slender-forked-lod1.glb",
+          "triangles": 51826,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-slender-forked-lod1.glb",
+          "bytes": 547708,
+          "sha256": "d5151ad4fe7bebeeefb9caf2f56f659b981c2ab97a2ac2b3d8d109666083256c"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -5.681286425871508,
+          -0.10927452892065048,
+          -4.650496667448755
+        ],
+        "max": [
+          6.0653186753221915,
+          14.95947265625,
+          5.237750714842554
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-slender-forked-impostor.glb",
+        "path": "/world/lib/hr-tree-slender-forked-impostor.glb",
+        "bytes": 1086064,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "2b4c6d3df446d17413c71579e40c9328f84b36b92a98c782265f6d81fd773cde",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.1920161247253418,
+          7.425099063664675,
+          0.2936270236968994
+        ],
+        "frame": 17.197021671174397,
+        "tileOpaquePixels": [
+          204194,
+          199549,
+          204194,
+          199556
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-bamboo-clump",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 62767,
+      "architecture": "bamboo",
+      "branchLevels": 3,
+      "ivy": false,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-bamboo-clump-lod0.glb",
+          "triangles": 287860,
+          "materials": 3,
+          "textures": 3,
+          "drawCalls": 3,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-bamboo-clump-lod0.glb",
+          "bytes": 2571660,
+          "sha256": "765e8cda8721dea5fe5e8426f529961488122fd9f4acfad56a8938cdab483f9d"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-bamboo-clump-lod1.glb",
+          "triangles": 100058,
+          "materials": 3,
+          "textures": 3,
+          "drawCalls": 3,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-bamboo-clump-lod1.glb",
+          "bytes": 956544,
+          "sha256": "76c33f29d5cf1e2a6f459783ade48b71332f265724306233e5c7bba2724eb27b"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -3.3868070825301784,
+          -0.008117482997477055,
+          -4.367486195301314
+        ],
+        "max": [
+          5.451629756327786,
+          12.169540405273438,
+          4.074034886097213
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-bamboo-clump-impostor.glb",
+        "path": "/world/lib/hr-tree-bamboo-clump-impostor.glb",
+        "bytes": 1274196,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "df19514a04a39832e6d6c33f8fd460570ab658da4d7f1c89ec56a07529417bd2",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          1.0324113368988037,
+          6.08071146113798,
+          -0.14672565460205078
+        ],
+        "frame": 13.688638163673524,
+        "tileOpaquePixels": [
+          249178,
+          239526,
+          249200,
+          239529
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-bamboo-arching",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 62978,
+      "architecture": "bamboo",
+      "branchLevels": 3,
+      "ivy": false,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-bamboo-arching-lod0.glb",
+          "triangles": 392068,
+          "materials": 3,
+          "textures": 3,
+          "drawCalls": 3,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-bamboo-arching-lod0.glb",
+          "bytes": 3534328,
+          "sha256": "0f611bc17fcbb3dda5447e135eb70282b61a38b3d7baecf79e133a3558cca84f"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-bamboo-arching-lod1.glb",
+          "triangles": 136242,
+          "materials": 3,
+          "textures": 3,
+          "drawCalls": 3,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-bamboo-arching-lod1.glb",
+          "bytes": 1308592,
+          "sha256": "eea022a41ab7c58d6b3db5c932920e8eb25f88361f9d15146562c7c82af56d4c"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -4.855403946444816,
+          -0.008815817946723925,
+          -5.974108695983887
+        ],
+        "max": [
+          5.656317280337638,
+          10.158940547557703,
+          5.573736190795898
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-bamboo-arching-impostor.glb",
+        "path": "/world/lib/hr-tree-bamboo-arching-impostor.glb",
+        "bytes": 865212,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "f4f7540b499395e46393d5a097bcae816d6d4ba2ebc1ec879fa5309740e4eb71",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.40045666694641113,
+          5.07506236480549,
+          -0.20018625259399414
+        ],
+        "frame": 17.489545204749607,
+        "tileOpaquePixels": [
+          155328,
+          169512,
+          155327,
+          169502
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-leaning-riverside",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 63189,
+      "architecture": "leaning",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-leaning-riverside-lod0.glb",
+          "triangles": 224720,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-leaning-riverside-lod0.glb",
+          "bytes": 2103580,
+          "sha256": "ee617b201f5b860b949a8ecbe1838eb673588af71f895cc87b6de5df2e068eef"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-leaning-riverside-lod1.glb",
+          "triangles": 54136,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-leaning-riverside-lod1.glb",
+          "bytes": 575964,
+          "sha256": "3f6950ee327defe057bf45516fd576264482d168a776c9b15689f2d3cce2decf"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -3.669182750483034,
+          -0.10927452892065048,
+          -5.789672961635295
+        ],
+        "max": [
+          9.687227222223758,
+          14.71072769165039,
+          5.654478660030071
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-leaning-riverside-impostor.glb",
+        "path": "/world/lib/hr-tree-leaning-riverside-impostor.glb",
+        "bytes": 959720,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "6e7c569a42a85fc40f84962fc7949219e0140914be41400754272dd33cd1ffb0",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          3.0090222358703618,
+          7.30072658136487,
+          -0.0675971508026123
+        ],
+        "frame": 19.699341644218308,
+        "tileOpaquePixels": [
+          179006,
+          174463,
+          179009,
+          174386
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-fallen-living",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 63400,
+      "architecture": "fallen",
+      "branchLevels": 4,
+      "ivy": true,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-fallen-living-lod0.glb",
+          "triangles": 195620,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-fallen-living-lod0.glb",
+          "bytes": 1831992,
+          "sha256": "efd337bc08d538ad74620582c85970e82232a5ea4ab912c681bb4ad60943bf89"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-fallen-living-lod1.glb",
+          "triangles": 47676,
+          "materials": 4,
+          "textures": 3,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            },
+            {
+              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+              "bytes": 851984,
+              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
+            }
+          ],
+          "path": "/world/lib/hr-tree-fallen-living-lod1.glb",
+          "bytes": 504544,
+          "sha256": "adab8bf238ee0c294823744d1ece49ab21a1d20699c2aef7b08e98ae5a43431c"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -1.0597645044326782,
+          -0.5558287690443056,
+          -5.575486576602272
+        ],
+        "max": [
+          12.652237892150879,
+          5.704899031953241,
+          5.542002594516091
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-fallen-living-impostor.glb",
+        "path": "/world/lib/hr-tree-fallen-living-impostor.glb",
+        "bytes": 472500,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "9b8b754dcbae654f17ca33a1391b587408a21c99790ea0f504bb8791a8c41444",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          5.7962366938591,
+          2.5745351314544678,
+          -0.01674199104309082
+        ],
+        "frame": 19.771016319935658,
+        "tileOpaquePixels": [
+          97190,
+          73044,
+          97191,
+          73043
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-dead-snag",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 63611,
+      "architecture": "dead",
+      "branchLevels": 4,
+      "ivy": false,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-dead-snag-lod0.glb",
+          "triangles": 160804,
+          "materials": 2,
+          "textures": 2,
+          "drawCalls": 2,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            }
+          ],
+          "path": "/world/lib/hr-tree-dead-snag-lod0.glb",
+          "bytes": 1354936,
+          "sha256": "898ff0b5b5951acc113f7c922bbe1622c2431f5cd02ecbd5457a961d06912a53"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-dead-snag-lod1.glb",
+          "triangles": 34846,
+          "materials": 2,
+          "textures": 2,
+          "drawCalls": 2,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            }
+          ],
+          "path": "/world/lib/hr-tree-dead-snag-lod1.glb",
+          "bytes": 335948,
+          "sha256": "20e0b8923675b76eef85a1f359058894fca7f1b830d999be47b2117551483893"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -3.602159584182864,
+          -0.1424398124217987,
+          -4.8337736539673415
+        ],
+        "max": [
+          5.48852380575574,
+          15.172440528869629,
+          4.69625381754156
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-dead-snag-impostor.glb",
+        "path": "/world/lib/hr-tree-dead-snag-impostor.glb",
+        "bytes": 516240,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "47f49cf9a760c1be3e39ae7110fa11e788dcb2917e7f3ad4ffdd79f8f46e17a4",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.943182110786438,
+          7.515000358223915,
+          -0.06875991821289062
+        ],
+        "frame": 17.1526659822464,
+        "tileOpaquePixels": [
+          58262,
+          57961,
+          58253,
+          57947
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
+    },
+    {
+      "id": "hr-tree-dead-forked",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 63822,
+      "architecture": "dead",
+      "branchLevels": 4,
+      "ivy": false,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-dead-forked-lod0.glb",
+          "triangles": 186880,
+          "materials": 2,
+          "textures": 2,
+          "drawCalls": 2,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            }
+          ],
+          "path": "/world/lib/hr-tree-dead-forked-lod0.glb",
+          "bytes": 1599452,
+          "sha256": "1bfc2d7fc0bdb824082a455cf8d15e8de5660b109af462d18dd6568646dd1cbd"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-dead-forked-lod1.glb",
+          "triangles": 40298,
+          "materials": 2,
+          "textures": 2,
+          "drawCalls": 2,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+              "bytes": 5162281,
+              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+            },
+            {
+              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+              "bytes": 4894632,
+              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
+            }
+          ],
+          "path": "/world/lib/hr-tree-dead-forked-lod1.glb",
+          "bytes": 391132,
+          "sha256": "d69014bd49f0dad580686e135539992348648a9b73c0f30e1cb26c33248e5acf"
+        }
+      ],
+      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -5.2617405184777715,
+          -0.10082077980041504,
+          -5.301900040555103
+        ],
+        "max": [
+          6.178468538192127,
+          12.541630744934082,
+          6.760265004086597
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-dead-forked-impostor.glb",
+        "path": "/world/lib/hr-tree-dead-forked-impostor.glb",
+        "bytes": 433388,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "12fc0127ad7cbb3bf225b0a967cb0263c365bc37fa975a9aec9612566ff65522",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          0.45836400985717773,
+          6.2204049825668335,
+          0.7291824817657471
+        ],
+        "frame": 18.619447025876948,
+        "tileOpaquePixels": [
+          39939,
+          39270,
+          39925,
+          39252
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
     }
   ]
 }
