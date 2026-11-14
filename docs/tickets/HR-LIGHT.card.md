@@ -16,3 +16,6 @@ Luật bắt buộc (CLAUDE.md §6, ADR 0018):
 ## HR-LIGHT — Ánh sáng, khí quyển, mặt đất (toàn cảnh)
 Tia nắng xuyên tán (god rays), sương mù theo độ cao và khoảng cách (aerial perspective), bóng mềm tiếp xúc, AO dưới tán đậm hơn; mặt đất rừng: thảm lá mục, rễ nổi, cỏ 3D dày ở chỗ sáng (instanced, shader). Grading theo taste brief, exposure tự nhiên. Chỉ High/Balanced; Low giữ như cũ.
 Được sửa: `src/features/world/post/**`, `sky/**`, `foliage/ground*.ts`, test. Không sửa cây (HR-TREE2).
+
+### Ghi chú Lead (14/11 19:25)
+PERF-HR (Codex C) đang sửa LOD/shadow/cull trong `foliage/**` và có thể chạm `post/**` (độ phân giải hậu kỳ). Để tránh xung đột: hiệu ứng mới đặt trong **file mới** (vd. `post/god-rays.ts`, `post/aerial.ts`, `foliage/ground-litter.ts`), chỉ sửa tối thiểu file post hiện có để nối. Mục tiêu hiệu năng của PERF-HR (High ≥ 60 FPS trên RTX 3060) áp dụng cả cho hiệu ứng mới: đo FPS High trước/sau và ghi lại.
