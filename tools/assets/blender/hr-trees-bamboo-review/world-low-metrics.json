@@ -1,0 +1,42 @@
+{
+  "label": "low",
+  "quality": "low",
+  "errors": [],
+  "requests": [
+    "lib/hr-tree-bamboo-arching-lod0.glb"
+  ],
+  "poses": [
+    {
+      "position": [
+        31.518230725631902,
+        11.2801642036438,
+        -40.797556716688625
+      ],
+      "target": [
+        42.207481384277344,
+        14.227692098617553,
+        -22.938871383666992
+      ]
+    }
+  ],
+  "player": {
+    "x": 7.2158966064453125,
+    "y": 8.248209953308105,
+    "z": 3.4520106315612793
+  },
+  "bambooSites": [],
+  "reportedQuality": "low",
+  "timing": {
+    "clicked": 204.20000000298023,
+    "playable": 10832.10000000149
+  },
+  "timeToPlayableMs": 10627.89999999851,
+  "render": {
+    "frames": 501,
+    "fps": 100,
+    "drawCalls": 38,
+    "triangles": 254494,
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "cpuTaskMsPerSecond": 250.30404789524025
+}

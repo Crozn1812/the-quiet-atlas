@@ -1484,15 +1484,11 @@
         {
           "level": 0,
           "file": "hr-tree-bamboo-clump-lod0.glb",
-          "triangles": 287860,
+          "triangles": 212593,
           "materials": 3,
-          "textures": 3,
-          "drawCalls": 3,
+          "textures": 2,
+          "drawCalls": 4,
           "textureDimensions": [
-            [
-              2048,
-              2048
-            ],
             [
               2048,
               2048
@@ -1502,39 +1498,19 @@
               2048
             ]
           ],
-          "sharedTextures": [
-            {
-              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
-              "bytes": 5162281,
-              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
-            },
-            {
-              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
-              "bytes": 4894632,
-              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
-            },
-            {
-              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
-              "bytes": 851984,
-              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
-            }
-          ],
+          "sharedTextures": [],
           "path": "/world/lib/hr-tree-bamboo-clump-lod0.glb",
-          "bytes": 2571660,
-          "sha256": "765e8cda8721dea5fe5e8426f529961488122fd9f4acfad56a8938cdab483f9d"
+          "bytes": 7639444,
+          "sha256": "e9b2ad7601430515fec84c1854fc426318324fac5e9fe6c5d8b0edea13e25772"
         },
         {
           "level": 1,
           "file": "hr-tree-bamboo-clump-lod1.glb",
-          "triangles": 100058,
+          "triangles": 112517,
           "materials": 3,
-          "textures": 3,
-          "drawCalls": 3,
+          "textures": 2,
+          "drawCalls": 4,
           "textureDimensions": [
-            [
-              2048,
-              2048
-            ],
             [
               2048,
               2048
@@ -1544,52 +1520,50 @@
               2048
             ]
           ],
-          "sharedTextures": [
-            {
-              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
-              "bytes": 5162281,
-              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
-            },
-            {
-              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
-              "bytes": 4894632,
-              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
-            },
-            {
-              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
-              "bytes": 851984,
-              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
-            }
-          ],
+          "sharedTextures": [],
           "path": "/world/lib/hr-tree-bamboo-clump-lod1.glb",
-          "bytes": 956544,
-          "sha256": "76c33f29d5cf1e2a6f459783ade48b71332f265724306233e5c7bba2724eb27b"
+          "bytes": 6560768,
+          "sha256": "be5caa6061033deb1ed46f1a9eaa060575921b913fb1bd6bfc42b7f6c085e47d"
         }
       ],
-      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "culmCount": 19,
+      "nodeSpacingMeters": 0.42,
+      "leafAspectRatio": [
+        9,
+        14
+      ],
+      "habitat": "edge",
+      "wind": {
+        "attribute": "_HR_WIND",
+        "culmMax": 0.12,
+        "branchMax": 0.36,
+        "leaf": 1,
+        "runtime": "Existing HR material alpha-cutout classification adds leaf flutter; _HR_WIND reserved for per-vertex weighting."
+      },
+      "derivation": "Original Blender swept segmented culms; smooth repigmented Poly Haven pine_bark grain; authored lanceolate outlines/veins with forest_floor photo variation; shoots/sheaths/litter; no bamboo scan claim",
       "delivery": "deferred-after-play",
       "textureMaxDimension": 2048,
       "low": "impostor or existing procedural fallback; never preload LOD0",
       "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
       "bounds": {
         "min": [
-          -3.3868070825301784,
-          -0.008117482997477055,
-          -4.367486195301314
+          -3.7295808132608155,
+          -0.05099999159574509,
+          -3.7316771805703426
         ],
         "max": [
-          5.451629756327786,
-          12.169540405273438,
-          4.074034886097213
+          5.333692484708569,
+          13.229398727416992,
+          3.9357498944222713
         ]
       },
       "impostor": {
         "file": "hr-tree-bamboo-clump-impostor.glb",
         "path": "/world/lib/hr-tree-bamboo-clump-impostor.glb",
-        "bytes": 1274196,
+        "bytes": 733836,
         "triangles": 2,
         "drawCalls": 1,
-        "sha256": "df19514a04a39832e6d6c33f8fd460570ab658da4d7f1c89ec56a07529417bd2",
+        "sha256": "22c913290cd41a33dff48126524ded678ed4581391cc8be9722f7344d00445a2",
         "textureDimensions": [
           2048,
           2048
@@ -1602,16 +1576,16 @@
           270
         ],
         "center": [
-          1.0324113368988037,
-          6.08071146113798,
-          -0.14672565460205078
+          0.802055835723877,
+          6.5891993679106236,
+          0.10203635692596436
         ],
-        "frame": 13.688638163673524,
+        "frame": 14.874046565294266,
         "tileOpaquePixels": [
-          249178,
-          239526,
-          249200,
-          239529
+          113139,
+          101175,
+          113147,
+          101185
         ],
         "tileBorderOpaquePixels": 0,
         "uvRects": [
@@ -1659,15 +1633,11 @@
         {
           "level": 0,
           "file": "hr-tree-bamboo-arching-lod0.glb",
-          "triangles": 392068,
+          "triangles": 193013,
           "materials": 3,
-          "textures": 3,
-          "drawCalls": 3,
+          "textures": 2,
+          "drawCalls": 4,
           "textureDimensions": [
-            [
-              2048,
-              2048
-            ],
             [
               2048,
               2048
@@ -1677,39 +1647,19 @@
               2048
             ]
           ],
-          "sharedTextures": [
-            {
-              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
-              "bytes": 5162281,
-              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
-            },
-            {
-              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
-              "bytes": 4894632,
-              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
-            },
-            {
-              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
-              "bytes": 851984,
-              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
-            }
-          ],
+          "sharedTextures": [],
           "path": "/world/lib/hr-tree-bamboo-arching-lod0.glb",
-          "bytes": 3534328,
-          "sha256": "0f611bc17fcbb3dda5447e135eb70282b61a38b3d7baecf79e133a3558cca84f"
+          "bytes": 7451736,
+          "sha256": "db3e05e90b024a2140d6c7eed363dccbcec58f2ff93cb3448ee17727d0fa7596"
         },
         {
           "level": 1,
           "file": "hr-tree-bamboo-arching-lod1.glb",
-          "triangles": 136242,
+          "triangles": 102162,
           "materials": 3,
-          "textures": 3,
-          "drawCalls": 3,
+          "textures": 2,
+          "drawCalls": 4,
           "textureDimensions": [
-            [
-              2048,
-              2048
-            ],
             [
               2048,
               2048
@@ -1719,52 +1669,50 @@
               2048
             ]
           ],
-          "sharedTextures": [
-            {
-              "path": "/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
-              "bytes": 5162281,
-              "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
-            },
-            {
-              "path": "/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
-              "bytes": 4894632,
-              "sha256": "d89702ff8fbce3c83e387fa98a9586cdeb93db240e57118543edd4f5077c5f09"
-            },
-            {
-              "path": "/world/lib/hr-shared-4647bcc174d32efd.ktx2",
-              "bytes": 851984,
-              "sha256": "4647bcc174d32efd58e0d13571fa3f1a82d5d7b5aeef0ad134b67e95dae0b399"
-            }
-          ],
+          "sharedTextures": [],
           "path": "/world/lib/hr-tree-bamboo-arching-lod1.glb",
-          "bytes": 1308592,
-          "sha256": "eea022a41ab7c58d6b3db5c932920e8eb25f88361f9d15146562c7c82af56d4c"
+          "bytes": 6464680,
+          "sha256": "bb2378fc0d8bff995ac6e403144d2d0cb9b6b3237d6e755464eb8ba3a76411ca"
         }
       ],
-      "derivation": "Original geometry-node curve sweeps; photographed CC0 bark and repigmented traced leaf clusters; procedural root moss; intact folded sprigs expanded 1.75x around their own centers",
+      "culmCount": 17,
+      "nodeSpacingMeters": 0.42,
+      "leafAspectRatio": [
+        9,
+        14
+      ],
+      "habitat": "edge",
+      "wind": {
+        "attribute": "_HR_WIND",
+        "culmMax": 0.12,
+        "branchMax": 0.36,
+        "leaf": 1,
+        "runtime": "Existing HR material alpha-cutout classification adds leaf flutter; _HR_WIND reserved for per-vertex weighting."
+      },
+      "derivation": "Original Blender swept segmented culms; smooth repigmented Poly Haven pine_bark grain; authored lanceolate outlines/veins with forest_floor photo variation; shoots/sheaths/litter; no bamboo scan claim",
       "delivery": "deferred-after-play",
       "textureMaxDimension": 2048,
       "low": "impostor or existing procedural fallback; never preload LOD0",
       "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
       "bounds": {
         "min": [
-          -4.855403946444816,
-          -0.008815817946723925,
-          -5.974108695983887
+          -6.505424499511719,
+          -0.05141759648392519,
+          -5.623249148028805
         ],
         "max": [
-          5.656317280337638,
-          10.158940547557703,
-          5.573736190795898
+          6.411980152130127,
+          10.842850342238645,
+          6.808476542132809
         ]
       },
       "impostor": {
         "file": "hr-tree-bamboo-arching-impostor.glb",
         "path": "/world/lib/hr-tree-bamboo-arching-impostor.glb",
-        "bytes": 865212,
+        "bytes": 431720,
         "triangles": 2,
         "drawCalls": 1,
-        "sha256": "f4f7540b499395e46393d5a097bcae816d6d4ba2ebc1ec879fa5309740e4eb71",
+        "sha256": "c1d257069721a8bf5dba28a6593cc61ec919294bf72bb3038fecc0bf13f9405a",
         "textureDimensions": [
           2048,
           2048
@@ -1777,16 +1725,16 @@
           270
         ],
         "center": [
-          0.40045666694641113,
-          5.07506236480549,
-          -0.20018625259399414
+          -0.0467221736907959,
+          5.395716372877359,
+          0.592613697052002
         ],
-        "frame": 17.489545204749607,
+        "frame": 20.079171413606936,
         "tileOpaquePixels": [
-          155328,
-          169512,
-          155327,
-          169502
+          57837,
+          54156,
+          57887,
+          54130
         ],
         "tileBorderOpaquePixels": 0,
         "uvRects": [
@@ -4324,6 +4272,155 @@
       "delivery": "deferred-after-play",
       "textureMaxDimension": 2048,
       "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-tree-bamboo-riverside",
+      "category": "tree",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/forest_floor"
+      ],
+      "seed": 64361,
+      "architecture": "bamboo",
+      "branchLevels": 3,
+      "ivy": false,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-tree-bamboo-riverside-lod0.glb",
+          "triangles": 124045,
+          "materials": 3,
+          "textures": 2,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [],
+          "path": "/world/lib/hr-tree-bamboo-riverside-lod0.glb",
+          "bytes": 6738920,
+          "sha256": "a28568564a9d84284bbbdcfce5282445405d38082e5b0221d701afdc6075bfe7"
+        },
+        {
+          "level": 1,
+          "file": "hr-tree-bamboo-riverside-lod1.glb",
+          "triangles": 65721,
+          "materials": 3,
+          "textures": 2,
+          "drawCalls": 4,
+          "textureDimensions": [
+            [
+              2048,
+              2048
+            ],
+            [
+              2048,
+              2048
+            ]
+          ],
+          "sharedTextures": [],
+          "path": "/world/lib/hr-tree-bamboo-riverside-lod1.glb",
+          "bytes": 6100124,
+          "sha256": "040608023c179ddd7dba74628f1b4622918e7ccf34e1be080a9a204f5f6c0bc6"
+        }
+      ],
+      "culmCount": 13,
+      "nodeSpacingMeters": 0.42,
+      "leafAspectRatio": [
+        9,
+        14
+      ],
+      "habitat": "river",
+      "wind": {
+        "attribute": "_HR_WIND",
+        "culmMax": 0.12,
+        "branchMax": 0.36,
+        "leaf": 1,
+        "runtime": "Existing HR material alpha-cutout classification adds leaf flutter; _HR_WIND reserved for per-vertex weighting."
+      },
+      "derivation": "Original Blender swept segmented culms; smooth repigmented Poly Haven pine_bark grain; authored lanceolate outlines/veins with forest_floor photo variation; shoots/sheaths/litter; no bamboo scan claim",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "low": "impostor or existing procedural fallback; never preload LOD0",
+      "integration": "Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.",
+      "bounds": {
+        "min": [
+          -2.169716609952057,
+          -0.04716036841273308,
+          -5.200886581185332
+        ],
+        "max": [
+          5.863444580075348,
+          9.90717887878418,
+          4.568747375252715
+        ]
+      },
+      "impostor": {
+        "file": "hr-tree-bamboo-riverside-impostor.glb",
+        "path": "/world/lib/hr-tree-bamboo-riverside-impostor.glb",
+        "bytes": 551548,
+        "triangles": 2,
+        "drawCalls": 1,
+        "sha256": "8df91fa4b67390f0cb57f7708b4f324ea64479fa8447288d8783f82328ed00a2",
+        "textureDimensions": [
+          2048,
+          2048
+        ],
+        "views": 4,
+        "azimuthDegrees": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "center": [
+          1.8468639850616455,
+          4.930009255185723,
+          -0.3160696029663086
+        ],
+        "frame": 14.166004504115387,
+        "tileOpaquePixels": [
+          78077,
+          82369,
+          78093,
+          82371
+        ],
+        "tileBorderOpaquePixels": 0,
+        "uvRects": [
+          [
+            0,
+            0.5,
+            0.5,
+            1
+          ],
+          [
+            0.5,
+            0.5,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.5
+          ]
+        ],
+        "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
+      }
     }
   ]
 }

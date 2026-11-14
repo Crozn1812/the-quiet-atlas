@@ -4,15 +4,20 @@ import { it, expect } from 'vitest';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { MeshoptDecoder } from 'meshoptimizer';
+import { Matrix4, Vector3 } from 'three';
 
-it('ships twelve distinct licensed HR trees with decodable LODs and baked four-view impostors', async () => {
+it('ships thirteen distinct licensed HR trees with decodable LODs and baked four-view impostors', async () => {
   await MeshoptDecoder.ready;
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
   const manifest = JSON.parse(await readFile('public/world/lib/manifest.json', 'utf8'));
   const entries = manifest.assets.filter((e: { id: string }) => e.id.startsWith('hr-tree-'));
   const licenses = await readFile('assets/LICENSES.csv', 'utf8');
-  expect(entries).toHaveLength(12);
-  expect(new Set(entries.map((e: { seed: number }) => e.seed)).size).toBe(12);
+  expect(entries).toHaveLength(13);
+  expect(new Set(entries.map((e: { seed: number }) => e.seed)).size).toBe(13);
+  expect(entries.filter((e: { architecture: string }) => e.architecture === 'bamboo')
+    .map((e: { id: string }) => e.id).sort()).toEqual([
+    'hr-tree-bamboo-arching', 'hr-tree-bamboo-clump', 'hr-tree-bamboo-riverside',
+  ]);
   expect(entries.filter((e: { ivy: boolean }) => e.ivy).length).toBeGreaterThanOrEqual(5);
   const shapes = entries.map((e: { architecture: string }) => e.architecture);
   for (const shape of ['buttress', 'spreading', 'slender', 'bamboo', 'fallen', 'dead']) expect(shapes).toContain(shape);
@@ -67,6 +72,28 @@ it('ships twelve distinct licensed HR trees with decodable LODs and baked four-v
         expect(leaf.getExtension('KHR_materials_diffuse_transmission')).not.toBeNull();
         const sprigs = doc.getRoot().listMeshes().flatMap(m => m.listPrimitives()).find(p => p.getMaterial() === leaf)!;
         expect(new Set(Array.from(sprigs.getAttribute('TEXCOORD_0')!.getArray()!)).size).toBeGreaterThanOrEqual(6);
+      }
+      if (entry.architecture === 'bamboo' && lod !== entry.impostor) {
+        expect(entry.culmCount).toBeGreaterThanOrEqual(13);
+        expect(entry.nodeSpacingMeters).toBeCloseTo(.42);
+        expect(entry.leafAspectRatio[0]).toBeGreaterThanOrEqual(9);
+        const primitives = doc.getRoot().listMeshes().flatMap(m => m.listPrimitives());
+        const leaf = primitives.find(p => p.getMaterial()!.getName().includes('leaf-cutout'))!;
+        const wind = (p: typeof leaf) => Array.from(p.getAttribute('_HR_WIND')!.getArray()!);
+        expect(wind(leaf).every(v => v === 1)).toBe(true);
+        const culm = primitives.find(p => p.getMaterial()!.getName() === 'hr-bamboo-culm')!;
+        expect(Math.max(...wind(culm))).toBeLessThan(.37);
+        expect(Math.max(...wind(culm))).toBeGreaterThan(0);
+        for (const p of primitives) expect(p.getAttribute('COLOR_0')).not.toBeNull();
+        // A real clump has a substantial exposed, almost vertical lower culm.
+        const positions = culm.getAttribute('POSITION')!;
+        const node = doc.getRoot().listNodes().find(n => n.getMesh()?.listPrimitives().includes(culm))!;
+        const matrix = new Matrix4().fromArray(node.getWorldMatrix());
+        const lower = Array.from({ length: positions.getCount() }, (_, i) =>
+          new Vector3().fromArray(positions.getElement(i, [])).applyMatrix4(matrix).toArray())
+          .filter(p => p[1] > 1 && p[1] < 3);
+        expect(lower.length).toBeGreaterThan(300);
+        expect(lower.every(p => Math.hypot(p[0], p[2]) < 2)).toBe(true);
       }
     }
   }

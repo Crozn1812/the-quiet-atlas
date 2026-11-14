@@ -8,11 +8,12 @@ import { MeshoptEncoder } from 'meshoptimizer';
 import { createIO, statistics } from '../shared.mjs';
 
 const output = 'public/world/lib';
+const bambooOnly = process.argv.includes('--bamboo');
 const temporary = 'tmp/hr-trees';
-const evidence = 'tools/assets/blender/hr-trees-review';
+const evidence = bambooOnly ? 'tools/assets/blender/hr-trees-bamboo-review' : 'tools/assets/blender/hr-trees-review';
 await mkdir(evidence, { recursive: true });
 const io = await createIO();
-const inventory = JSON.parse(await readFile(`${temporary}/inventory.json`, 'utf8'));
+const inventory = JSON.parse(await readFile(`${temporary}/${bambooOnly ? 'bamboo-inventory' : 'inventory'}.json`, 'utf8'));
 const textureCache = new Map();
 const licenses = await readFile('assets/LICENSES.csv', 'utf8');
 const additions = [];
@@ -46,7 +47,7 @@ for (const entry of inventory) {
   for (const lod of entry.lods) {
     const document = await io.read(`${temporary}/${lod.file}`);
     for (const material of document.getRoot().listMaterials()) {
-      if (entry.architecture === 'bamboo' && material.getName().includes('bark')) {
+      if (!bambooOnly && entry.architecture === 'bamboo' && material.getName().includes('bark')) {
         material.setBaseColorFactor([.38,.69,.18,1]).setNormalScale(.18).setRoughnessFactor(.68);
       }
       if (material.getName().includes('leaf-cutout')) {
@@ -61,7 +62,7 @@ for (const entry of inventory) {
     // Blender exports six unique vertices per sprig; expand around that sprig,
     // never around the origin (which would detach leaves from their branches).
     for (const mesh of document.getRoot().listMeshes()) for (const primitive of mesh.listPrimitives()) {
-      if (!primitive.getMaterial()?.getName().includes('leaf-cutout')) continue;
+      if (entry.architecture === 'bamboo' || !primitive.getMaterial()?.getName().includes('leaf-cutout')) continue;
       const positions = primitive.getAttribute('POSITION');
       if (positions.getCount() % 6) throw new Error('Unexpected folded-sprig topology');
       for (let first = 0; first < positions.getCount(); first += 6) {
@@ -74,11 +75,14 @@ for (const entry of inventory) {
     await compress(document);
     await document.transform(dedup(), meshopt({ encoder: MeshoptEncoder }));
     const target = `${output}/${lod.file}`;
+    // Bamboo keeps its two KTX2 maps embedded: all new public files stay under
+    // the ticket's hr-tree-bamboo-* scope; no changes to shared tree textures.
+    if (bambooOnly) await io.write(target, document);
     // GLB allows external images. Keep geometry embedded, but share identical
     // 2K photographic maps across all 24 LODs and browser/GPU caches.
     const jsonDoc = await io.writeJSON(document, { format: 'GLTF' });
     const textures = [];
-    for (const image of jsonDoc.json.images ?? []) {
+    for (const image of bambooOnly ? [] : jsonDoc.json.images ?? []) {
       const bytes = jsonDoc.resources[image.uri];
       const sha256 = createHash('sha256').update(bytes).digest('hex');
       const file = `hr-shared-${sha256.slice(0,16)}.ktx2`;
@@ -99,7 +103,7 @@ for (const entry of inventory) {
     const header=Buffer.alloc(20);header.writeUInt32LE(0x46546c67,0);header.writeUInt32LE(2,4);
     header.writeUInt32LE(28+jsonPadded.length+binPadded.length,8);header.writeUInt32LE(jsonPadded.length,12);header.writeUInt32LE(0x4e4f534a,16);
     const binHeader=Buffer.alloc(8);binHeader.writeUInt32LE(binPadded.length,0);binHeader.writeUInt32LE(0x004e4942,4);
-    await writeFile(target,Buffer.concat([header,jsonPadded,binHeader,binPadded]));
+    if (!bambooOnly) await writeFile(target,Buffer.concat([header,jsonPadded,binHeader,binPadded]));
     const root = document.getRoot();
     const drawCalls = root.listMeshes().reduce((sum,m) => sum+m.listPrimitives().length,0);
     const textureDimensions = root.listTextures().map(t => {
@@ -109,24 +113,40 @@ for (const entry of inventory) {
     Object.assign(lod, statistics(document), { drawCalls, textureDimensions, sharedTextures: textures,
       path: `/world/lib/${lod.file}`, bytes: (await stat(target)).size,
       sha256: createHash('sha256').update(await readFile(target)).digest('hex') });
-    if (!licenses.includes(`${target},`)) additions.push(`${target},Poly Haven / The Quiet Atlas original geometry,CC0-1.0,yes,yes,yes,none,${entry.source.join('; ')}; https://polyhaven.com/license; tools/assets/blender/hr-trees.py,2048 KTX2 UASTC,${lod.materials},LOD${lod.level},none`);
+    if (!licenses.includes(`${target},`)) additions.push(`${target},Poly Haven / The Quiet Atlas original geometry,CC0-1.0,yes,yes,yes,none,${entry.source.join('; ')}; https://polyhaven.com/license; tools/assets/blender/${bambooOnly ? 'hr-trees-bamboo.py' : 'hr-trees.py'},2048 KTX2 UASTC,${lod.materials},LOD${lod.level},none`);
   }
   Object.assign(entry, { delivery: 'deferred-after-play', textureMaxDimension: 2048,
     branchLevels: entry.architecture === 'bamboo' ? 3 : 4,
     low: 'impostor or existing procedural fallback; never preload LOD0',
     // Assets have their natural metre scale; fallen assets deliberately remain horizontal.
     integration: 'Keep distinct PBR primitives. Existing flattenLibraryTree is incompatible.' });
-  entry.derivation += '; intact folded sprigs expanded 1.75x around their own centers';
+  if (entry.architecture !== 'bamboo') entry.derivation += '; intact folded sprigs expanded 1.75x around their own centers';
   console.info(entry.id, entry.lods.map(l=>`${l.triangles}tri/${l.bytes}B/${l.drawCalls}draw`).join(' | '));
 }
 
 // Append only; never replace or reorder an approved manifest entry/metadata.
 // Rebuild this ticket's entries only; preserve every other entry byte-for-byte
 // at the object level and in its original order.
-manifest.assets = manifest.assets.filter(a=>!inventory.some(e=>e.id===a.id));
-manifest.assets.push(...inventory);
+for (const entry of inventory) {
+  const index = manifest.assets.findIndex(a => a.id === entry.id);
+  if (index < 0) manifest.assets.push(entry);
+  else manifest.assets[index] = entry;
+}
 await writeFile(`${output}/manifest.json`, JSON.stringify(manifest,null,2)+'\n');
 if (additions.length) await appendFile('assets/LICENSES.csv',(licenses.endsWith('\n')?'':'\n')+additions.join('\n')+'\n');
+if (bambooOnly) {
+  const csv = await readFile('assets/LICENSES.csv', 'utf8');
+  const rows = csv.split('\n').map(row => {
+    if (!row.startsWith(`${output}/hr-tree-bamboo-`)) return row;
+    const fields = row.split(',');
+    fields[1] = 'Poly Haven photographs / The Quiet Atlas authored bamboo derivative';
+    fields[7] = 'https://polyhaven.com/a/pine_bark; https://polyhaven.com/a/forest_floor; https://polyhaven.com/license; tools/assets/blender/hr-trees-bamboo.py';
+    const lod = inventory.flatMap(e => e.lods).find(l => fields[0] === `${output}/${l.file}`);
+    if (lod) fields[9] = String(lod.materials);
+    return fields.join(',');
+  });
+  await writeFile('assets/LICENSES.csv', rows.join('\n'));
+}
 await writeFile(`${evidence}/inventory.json`,JSON.stringify(inventory,null,2)+'\n');
 console.info('LOD GLB bytes:',inventory.flatMap(e=>e.lods).reduce((s,l)=>s+l.bytes,0));
 console.info('Shared KTX2 bytes:',[...sharedTextures.values()].reduce((s,t)=>s+t.bytes,0));

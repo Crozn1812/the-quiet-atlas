@@ -66,7 +66,7 @@ async function single(id,level=0,before=false) {
     subject.position.sub(c).add(bounds.getCenter(new T.Vector3()));
   }
   const view=fit(bounds); floor.visible=true; scene.background=new T.Color('#aabfbc'); scene.fog=new T.Fog('#aabfbc',60,160); label.style.display='block';
-  label.textContent=`${before?'BEFORE — existing broadleaf':'HR-TREE1 — '+id} · ${level===2?'impostor':'LOD'+level}`;
+  label.textContent=`${before?'BEFORE — existing broadleaf':(id.includes('bamboo')?'HR-TREE1b — ':'HR-TREE1 — ')+id} · ${level===2?'impostor':'LOD'+level}`;
   renderer.render(scene,camera);
   return {...view,triangles:renderer.info.render.triangles,drawCalls:renderer.info.render.calls};
 }

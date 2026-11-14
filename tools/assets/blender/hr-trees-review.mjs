@@ -10,11 +10,12 @@ import { meshopt } from '@gltf-transform/functions';
 import { MeshoptEncoder } from 'meshoptimizer';
 import { createIO } from '../shared.mjs';
 
-const evidence='tools/assets/blender/hr-trees-review';
+const bambooOnly=process.argv.includes('--bamboo');
+const evidence=bambooOnly?'tools/assets/blender/hr-trees-bamboo-review':'tools/assets/blender/hr-trees-review';
 await mkdir(evidence,{recursive:true});
 const io=await createIO();
 const manifest=JSON.parse(await readFile('public/world/lib/manifest.json','utf8'));
-const entries=manifest.assets.filter(a=>a.id.startsWith('hr-tree-'));
+const entries=manifest.assets.filter(a=>a.id.startsWith(bambooOnly?'hr-tree-bamboo-':'hr-tree-'));
 const server=await createServer({server:{host:'127.0.0.1',port:4197,strictPort:true},plugins:[{
   name:'hr-trees-review',configureServer(s){s.middlewares.use('/hr-trees.html',(_req,res)=>{
     res.setHeader('Content-Type','text/html');res.end('<!doctype html><meta charset="utf-8"><link rel="icon" href="data:,"><title>HR tree asset review</title><script type="module" src="/tools/assets/blender/hr-trees-viewer.mjs"></script>');
@@ -68,21 +69,33 @@ try {
       uvRects:[[0,.5,.5,1],[.5,.5,1,1],[0,0,.5,.5],[.5,0,1,.5]],
       usage:'Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting.'};
     const csv=await readFile('assets/LICENSES.csv','utf8');
-    if(!csv.includes(path+','))await appendFile('assets/LICENSES.csv',`${path},Poly Haven / The Quiet Atlas original bake,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_bark; https://polyhaven.com/a/forest_floor; https://polyhaven.com/license; tools/assets/blender/hr-trees.py,2048 KTX2 UASTC,1,impostor,none\n`);
+    if(!csv.includes(path+','))await appendFile('assets/LICENSES.csv',`${path},Poly Haven / The Quiet Atlas original bake,CC0-1.0,yes,yes,yes,none,https://polyhaven.com/a/pine_bark; https://polyhaven.com/a/forest_floor; https://polyhaven.com/license; tools/assets/blender/${bambooOnly?'hr-trees-bamboo.py':'hr-trees.py'},2048 KTX2 UASTC,1,impostor,none\n`);
     console.info('BAKED',entry.id,entry.impostor.bytes);
   }
   await writeFile('public/world/lib/manifest.json',JSON.stringify(manifest,null,2)+'\n');
   // Reload metadata so the same viewer can now inspect the shipped impostor.
   await page.reload();await page.waitForFunction(()=>window.__hr);
   const id=entries[0].id;
-  await page.evaluate(id=>window.__hr.single(id,0,true),id);
+  async function showVariant(variant) {
+    if(bambooOnly) {
+      await page.unroute('**/world/lib/manifest.json');
+      await page.unroute('**/world/lib/hr-tree-bamboo-*.glb');
+      if(variant==='A') {
+        await page.route('**/world/lib/manifest.json',route=>route.fulfill({path:'tmp/hr-trees-bamboo-before/manifest.json',contentType:'application/json'}));
+        await page.route('**/world/lib/hr-tree-bamboo-*.glb',route=>route.fulfill({path:'tmp/hr-trees-bamboo-before/'+route.request().url().split('/').at(-1),contentType:'model/gltf-binary'}));
+      }
+      await page.reload();await page.waitForFunction(()=>window.__hr);
+    }
+    return page.evaluate(({id,variant,bambooOnly})=>window.__hr.single(id,0,!bambooOnly&&variant==='A'),{id,variant,bambooOnly});
+  }
+  await showVariant('A');
   await page.screenshot({path:`${evidence}/before-high.png`});
-  await page.evaluate(id=>window.__hr.single(id),id);
+  await showVariant('B');
   await page.screenshot({path:`${evidence}/after-high.png`});
   report.low=await page.evaluate(id=>window.__hr.single(id,2),id);
   await page.screenshot({path:`${evidence}/low-impostor.png`});
   for(const variant of ['A','B','B','A']) {
-    await page.evaluate(({id,variant})=>window.__hr.single(id,0,variant==='A'),{id,variant});
+    await showVariant(variant);
     const cpu=async()=>Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m=>[m.name,m.value])).TaskDuration;
     const start=await cpu();const timing=await page.evaluate(()=>window.__hr.sample());const end=await cpu();
     report.abba.push({variant,...timing,cpuMsPerSecond:(end-start)*1000/timing.elapsedSeconds});

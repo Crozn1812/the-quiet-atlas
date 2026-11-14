@@ -9,6 +9,7 @@ import json
 import math
 import random
 import hashlib
+import runpy
 from pathlib import Path
 import numpy as np
 from mathutils import Vector
@@ -341,8 +342,17 @@ def main():
     moss=material('hr-root-moss',bpy.data.images.load(str(CACHE/'pine_bark-diff.jpg')))
     moss.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(.055,.105,.022,1)
     inventory=[]
+    bamboo_entries=None
     for index,spec in enumerate(SPECS):
         name,height,width,radius,count,_,has_ivy,shape=spec
+        if shape=='bamboo':
+            # Keep full-library regeneration on the corrected bamboo authoring
+            # path. Do not recreate the retired broadleaf-sprig bamboo bushes.
+            if bamboo_entries is None:
+                runpy.run_path(str(Path(__file__).with_name('hr-trees-bamboo.py')),run_name='__main__')
+                bamboo_entries=json.loads((OUT/'bamboo-inventory.json').read_text())
+            inventory.append(next(e for e in bamboo_entries if e['id']=='hr-tree-'+name))
+            continue
         paths,clusters,ivy=skeleton(spec,61501+index*211)
         entry=dict(id='hr-tree-'+name,category='tree',license='CC0-1.0',
                    source=['https://polyhaven.com/a/pine_bark','https://polyhaven.com/a/forest_floor'],
@@ -380,6 +390,8 @@ def main():
             bpy.data.objects.remove(obj,do_unlink=True)
         inventory.append(entry)
         print('HR-TREE exported',entry['id'], 'branches',len(paths),'sprigs',len(clusters),flush=True)
+    if bamboo_entries:
+        inventory.append(next(e for e in bamboo_entries if e['id']=='hr-tree-bamboo-riverside'))
     (OUT/'inventory.json').write_text(json.dumps(inventory,indent=2)+'\n')
 
 

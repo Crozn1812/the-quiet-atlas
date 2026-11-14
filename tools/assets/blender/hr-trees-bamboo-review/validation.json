@@ -1,0 +1,238 @@
+{
+  "ticket": "HR-TREE1b",
+  "generatedAt": "2026-11-14T16:20:07.965Z",
+  "buildInvocations": 1,
+  "build": {
+    "command": "NEXT_TEST_WASM_DIR=C:/Users/PC-LP/AppData/Local/next-swc/wasm/package NEXT_BUILD_WEBPACK=1 pnpm build",
+    "exitCode": 0,
+    "log": "tmp/hr-trees-bamboo-build.log"
+  },
+  "gate": {
+    "exitCode": 0,
+    "summary": "GATE PASS: lint, typecheck, Tests 1964 passed | 1 skipped (1965)",
+    "note": "First gate unit attempt had timeouts only; automatic retry passed.",
+    "log": "tmp/hr-trees-bamboo-gate.log"
+  },
+  "commands": [
+    {
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "warnings": 0,
+      "log": "tmp/hr-trees-bamboo-lint-final.log",
+      "note": "Final lint after Playwright temporary trace cleanup; an overlapping run saw only generated trace JS errors."
+    },
+    {
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "log": "tmp/hr-trees-bamboo-typecheck.log"
+    },
+    {
+      "command": "pnpm test",
+      "exitCode": 0,
+      "summary": "Test Files 189 passed (189); Tests 1964 passed | 1 skipped (1965)",
+      "log": "tmp/hr-trees-bamboo-test.log"
+    },
+    {
+      "command": "pnpm check:assets",
+      "exitCode": 1,
+      "status": "FAIL",
+      "errors": [
+        "roots/roots-tree-lod0.glb: expected <type>-<name>.glb; type must be tree, rock, cliff, prop, character, or vehicle (optional hr- prefix).",
+        "roots/roots-tree-lod1.glb: expected <type>-<name>.glb; type must be tree, rock, cliff, prop, character, or vehicle (optional hr- prefix)."
+      ],
+      "log": "tmp/hr-trees-bamboo-assets.log"
+    },
+    {
+      "command": "node tools/assets/check-budgets.mjs public/world/lib",
+      "exitCode": 0,
+      "status": "PASS",
+      "errors": [],
+      "log": "tmp/hr-trees-bamboo-assets-lib.log"
+    },
+    {
+      "command": "pnpm check:licenses",
+      "exitCode": 0,
+      "summary": "public files: 154; RESULT: PASS",
+      "log": "tmp/hr-trees-bamboo-licenses.log"
+    }
+  ],
+  "e2e": {
+    "command": "E2E_PORT=4398 pnpm exec playwright test world --workers=2",
+    "status": "PASS",
+    "expected": 43,
+    "log": "tmp/hr-trees-bamboo-e2e.log",
+    "exitCode": 0,
+    "passed": 43,
+    "summary": "43 passed (7.1m)",
+    "cleanup": "Verified node PID 23160 bound to task port 4398 with StartTime matching log creation; stopped only this server after all tests passed; runner exited 0."
+  },
+  "export": {
+    "manifestSha256": "ab89916f38aafddf1337020dc62667a706f3584dd7429304b95f8313b9e2c319",
+    "manifestMatchesPublic": true,
+    "files": {
+      "hr-tree-bamboo-clump-lod0.glb": {
+        "bytes": 7639444,
+        "sha256": "e9b2ad7601430515fec84c1854fc426318324fac5e9fe6c5d8b0edea13e25772",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-clump-lod1.glb": {
+        "bytes": 6560768,
+        "sha256": "be5caa6061033deb1ed46f1a9eaa060575921b913fb1bd6bfc42b7f6c085e47d",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-clump-impostor.glb": {
+        "bytes": 733836,
+        "sha256": "22c913290cd41a33dff48126524ded678ed4581391cc8be9722f7344d00445a2",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-arching-lod0.glb": {
+        "bytes": 7451736,
+        "sha256": "db3e05e90b024a2140d6c7eed363dccbcec58f2ff93cb3448ee17727d0fa7596",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-arching-lod1.glb": {
+        "bytes": 6464680,
+        "sha256": "bb2378fc0d8bff995ac6e403144d2d0cb9b6b3237d6e755464eb8ba3a76411ca",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-arching-impostor.glb": {
+        "bytes": 431720,
+        "sha256": "c1d257069721a8bf5dba28a6593cc61ec919294bf72bb3038fecc0bf13f9405a",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-riverside-lod0.glb": {
+        "bytes": 6738920,
+        "sha256": "a28568564a9d84284bbbdcfce5282445405d38082e5b0221d701afdc6075bfe7",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-riverside-lod1.glb": {
+        "bytes": 6100124,
+        "sha256": "040608023c179ddd7dba74628f1b4622918e7ccf34e1be080a9a204f5f6c0bc6",
+        "matchesManifest": true
+      },
+      "hr-tree-bamboo-riverside-impostor.glb": {
+        "bytes": 551548,
+        "sha256": "8df91fa4b67390f0cb57f7708b4f324ea64479fa8447288d8783f82328ed00a2",
+        "matchesManifest": true
+      }
+    }
+  },
+  "publicBytes": {
+    "beforeGlb": 10510532,
+    "afterGlb": 42672776,
+    "deltaGlb": 32162244,
+    "deltaManifest": 1892,
+    "extraSharedTextures": 0,
+    "deltaTotal": 32164136
+  },
+  "world": [
+    {
+      "label": "before",
+      "errors": [],
+      "quality": "high",
+      "timeToPlayableMs": 9340.70000000298,
+      "render": {
+        "frames": 502,
+        "fps": 100,
+        "drawCalls": 189,
+        "triangles": 4069547,
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "cpuTaskMsPerSecond": 514.8440352184464,
+      "poses": [
+        {
+          "position": [
+            31.518230725631902,
+            11.2801642036438,
+            -40.797556716688625
+          ],
+          "target": [
+            42.207481384277344,
+            14.227692098617553,
+            -22.938871383666992
+          ]
+        }
+      ]
+    },
+    {
+      "label": "after",
+      "errors": [],
+      "quality": "high",
+      "timeToPlayableMs": 12745.89999999851,
+      "render": {
+        "frames": 502,
+        "fps": 100,
+        "drawCalls": 192,
+        "triangles": 3851609,
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "cpuTaskMsPerSecond": 609.2834239223416,
+      "poses": [
+        {
+          "position": [
+            31.518230725631902,
+            11.2801642036438,
+            -40.797556716688625
+          ],
+          "target": [
+            42.207481384277344,
+            14.227692098617553,
+            -22.938871383666992
+          ]
+        }
+      ]
+    },
+    {
+      "label": "low",
+      "errors": [],
+      "quality": "low",
+      "timeToPlayableMs": 10627.89999999851,
+      "render": {
+        "frames": 501,
+        "fps": 100,
+        "drawCalls": 38,
+        "triangles": 254494,
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "cpuTaskMsPerSecond": 250.30404789524025,
+      "poses": [
+        {
+          "position": [
+            31.518230725631902,
+            11.2801642036438,
+            -40.797556716688625
+          ],
+          "target": [
+            42.207481384277344,
+            14.227692098617553,
+            -22.938871383666992
+          ]
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Global check:assets fails only on unchanged roots/roots-tree-lod0.glb and roots/roots-tree-lod1.glb naming, outside this ticket.",
+    "Riverside is registered in manifest but is not selected by the fixed HR_TREE_IDS runtime pool.",
+    "Game pictures show an existing First Light clump 23.55m from the stream centre; not a water-edge placement.",
+    "Textures are authored derivatives of cached CC0 pine_bark and forest_floor, not live bamboo scans.",
+    "Runtime classifies leaf alpha materials for extra flutter; _HR_WIND is preserved but not read by the current runtime shader."
+  ],
+  "unrelatedManifestUnchanged": true,
+  "worldSameCamera": true,
+  "scope": "No src, dependency, config, docs, e2e or perf test edits; no commit.",
+  "acceptance": {
+    "status": "NOT FULLY MET",
+    "outstanding": [
+      "Global check:assets has two unchanged roots filename errors outside scope.",
+      "Riverside-at-water placement needs the Lead to extend the fixed HR runtime selection pool.",
+      "Art/photoreal acceptance and live bamboo scan textures are not claimed."
+    ]
+  },
+  "bambooToolArtifacts": [
+    "hr-trees-bamboo-HANDOFF.md",
+    "hr-trees-bamboo-review",
+    "hr-trees-bamboo-world-review.mjs",
+    "hr-trees-bamboo.py"
+  ]
+}
