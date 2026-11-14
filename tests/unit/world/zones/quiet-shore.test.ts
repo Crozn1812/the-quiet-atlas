@@ -88,7 +88,7 @@ describe("quiet-shore procedural place", () => {
     for (const seed of [0, 1, 2, 107, 108, 177, 2026, 0xffffffff]) {
       const scene = create({ seed });
       const triangles = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-      expect(triangles).toBeLessThanOrEqual(3693 * 1.5);
+      expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
       expect(meshes(scene).length).toBeLessThanOrEqual(8);
       for (const node of scene.group.children.filter(node => node.userData.batches)) {
         expect(propVertices(scene, node.name).length / 3).toBeLessThanOrEqual(node.name.startsWith("fence-") ? 600 : 2000);
@@ -153,7 +153,7 @@ describe("quiet-shore procedural place", () => {
     const drawCalls = batches.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(500);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(triangles).toBeLessThanOrEqual(3693 * 1.5); // Pre-r4 seed 107: 3693 triangles.
+    expect(triangles).toBeLessThanOrEqual(5465 * 1.25); // Before direction-C dressing, seed 107.
     expect(drawCalls).toBe(7);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
     expect(new Set(batches.map(mesh => mesh.material)).size).toBe(batches.length);
@@ -197,9 +197,10 @@ describe("quiet-shore procedural place", () => {
         new Vector3().fromBufferAttribute(creamPositions, i)).filter(p => envelope.containsPoint(p));
       expect(bikeCream.length).toBeGreaterThan(0);
       const keys = new Box3().setFromPoints(propVertices(scene, "piano", "cream")).expandByScalar(0.0001);
+      const dog = new Box3().setFromPoints(propVertices(scene, "dog", "cream")).expandByScalar(0.0001);
       for (let i = 0; i < creamPositions.count; i++) {
         const p = new Vector3().fromBufferAttribute(creamPositions, i);
-        expect(envelope.containsPoint(p) || keys.containsPoint(p)).toBe(true);
+        expect(envelope.containsPoint(p) || keys.containsPoint(p) || dog.containsPoint(p)).toBe(true);
       }
       const box = new Box3().setFromPoints(bike);
       expect(box.getSize(new Vector3()).z).toBeGreaterThan(1.8);
@@ -295,6 +296,7 @@ describe("quiet-shore procedural place", () => {
 
   it("has an open straight roof, hanging guitar, radio and a compact wooden porch bench", () => {
     const scene = create();
+    expect(scene.group.getObjectByName("dog")!.userData.batches.every((range: { mesh: string }) => range.mesh === "quiet-shore-cream")).toBe(true);
     const roof = new Box3().setFromObject(scene.group.getObjectByName("quiet-shore-roof")!);
     const body = scene.group.getObjectByName("quiet-shore-guitar") as PaintedMesh;
     const ink = scene.group.getObjectByName("quiet-shore-ink") as PaintedMesh;
@@ -442,12 +444,12 @@ describe("quiet-shore procedural place", () => {
     expect(above.intersectObjects(meshes(scene))[0]?.object.name).toBe("quiet-shore-roof");
   });
 
-  it("uses palette-only pigments without tinting kit colours twice, and matte ramp materials", () => {
+  it("preserves authored pigments and opts timber into P2, with one matte dressing batch", () => {
     const scene = create();
     const colors: Record<string, Color> = {
       wood: new Color(PALETTE.dusk).lerp(new Color(PALETTE.rockDark), 0.62),
       roof: new Color(PALETTE.cloud).lerp(new Color(PALETTE.rock), 0.32),
-      leaf: new Color(PALETTE.grass),
+      leaf: new Color(0xffffff),
       piano: new Color(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.45),
       guitar: new Color(PALETTE.dusk).lerp(new Color(PALETTE.sand), 0.45),
       ink: new Color(PALETTE.ink),
@@ -478,10 +480,15 @@ describe("quiet-shore procedural place", () => {
       expect(mesh.material.emissive.getHex()).toBe(0);
       expect(mesh.material.map).toBeNull();
       expect(mesh.material.transparent).toBe(false);
-      expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
+      if (key === "leaf") {
+        expect(mesh.material.customProgramCacheKey()).toBe("gfx-z-library-batch-v1");
+        expect(mesh.material).toMatchObject({ roughness: 0.96, metalness: 0 });
+      } else expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
+      if (["wood", "piano", "guitar"].includes(key)) expect(mesh.userData.photoSurface).toBe("bark");
       const wash = mesh.geometry.getAttribute("color");
       expect(wash.count).toBe(mesh.geometry.getAttribute("position").count);
-      for (let i = 0; i < wash.count; i++) {
+      const authoredCount = mesh.geometry.userData.retainedVertices ?? wash.count;
+      for (let i = 0; i < authoredCount; i++) {
         const neutral = wash.getX(i) >= 0.914 && wash.getX(i) <= 1
           && wash.getY(i) === wash.getX(i) && wash.getZ(i) === wash.getX(i);
         const effective = new Color().fromBufferAttribute(wash, i).multiply(mesh.material.color);

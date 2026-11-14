@@ -7,6 +7,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
 import { createBenchGeometry, createFenceSpanGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
+import { createQuietShoreDressing } from "./quiet-shore-dressing";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
   type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
@@ -110,11 +111,6 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
   const joinery = (size: Point, seed: number) => fitPlank(size, plankVariants[((seed % 3) + 3) % 3]!);
   const darkWood = new Color(PALETTE.rockDark);
   const colliders: ZoneCollider[] = [];
-  let state = context.seed >>> 0;
-  const random = () => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
   // Build in a path-facing frame, then bake into zone-local geometry before merging.
   const localPoint = (x: number, y: number, z: number): Point =>
     [site.x + site.side * x, y, site.z + site.side * z];
@@ -369,7 +365,8 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
       const color = new Color(PALETTE.sand).lerp(new Color(PALETTE.rockDark), shade);
       part.setAttribute("color", new Float32BufferAttribute(
         Array.from({ length: part.getAttribute("position").count }, () => color.toArray()).flat(), 3));
-      add(part.translate(-1.76, stepTop, 0.54), "guitar");
+      // Keep fur in the untextured pigment draw when timber opts into P2.
+      add(part.translate(-1.76, stepTop, 0.54), "cream");
     };
     dogPart(new IcosahedronGeometry(1, 1).scale(0.235, 0.14, 0.29).translate(0.01, 0.14, -0.025));
     dogPart(new TorusGeometry(0.17, 0.045, 4, 8, Math.PI * 1.65).rotateX(Math.PI / 2)
@@ -394,8 +391,16 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     const rearGround = bikeHeight(-0.66), frontGround = bikeHeight(0.66);
     const pitch = Math.atan2(frontGround - rearGround, 1.32);
     const ground = (rearGround + frontGround) / 2;
-    const bikePart = (part: BufferGeometry, surface: Surface) =>
-      add(part.rotateX(-pitch).translate(bikeX, ground, bikeZ), surface);
+    const dullMetal = (part: BufferGeometry) => {
+      const color = new Color(PALETTE.ink).lerp(new Color(PALETTE.rock), 0.55);
+      part.setAttribute("color", new Float32BufferAttribute(
+        Array.from({ length: part.getAttribute("position").count }, () => color.toArray()).flat(), 3));
+      return part;
+    };
+    const bikePart = (part: BufferGeometry, surface: Surface) => {
+      if (surface === "wood") dullMetal(part);
+      add(part.rotateX(-pitch).translate(bikeX, ground, bikeZ), surface === "wood" ? "cream" : surface);
+    };
     const bikeBox = (size: Point, center: Point, surface: Surface) =>
       bikePart(new BoxGeometry(...size).translate(...center), surface);
     for (const z of [-0.66, 0.66]) {
@@ -420,8 +425,8 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     bikePart(rod([-0.12, 0.45, -0.28], [-0.35, 0.015, -0.4], 0.022), "wood");
     // Pad below the kickstand follows heightAt; wheels follow their individual contact heights.
     const standGround = height(bikeX - 0.35, bikeZ - 0.4);
-    add(rod([bikeX - 0.35, standGround, bikeZ - 0.4],
-      [bikeX - 0.35, ground + 0.2, bikeZ - 0.4], 0.025), "wood");
+    add(dullMetal(rod([bikeX - 0.35, standGround, bikeZ - 0.4],
+      [bikeX - 0.35, ground + 0.2, bikeZ - 0.4], 0.025)), "cream");
     const bottom = Math.min(rearGround, frontGround, standGround);
     const top = Math.max(rearGround, frontGround) + 1.2;
     collider([bikeX, (bottom + top) / 2, bikeZ], [0.9, top - bottom, 2.15]);
@@ -461,35 +466,26 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     });
   }
 
-  for (const [x, z] of [[1.5, -4.4], [3, 5.4], [-0.6, 4.9]] as const) {
-    const p = localPoint(x, 0, z);
-    if (!dryFootprint(context, p[0], p[2], 0.65, 0.65)) continue;
-    for (let i = 0; i < 9; i++) {
-      const angle = random() * Math.PI * 2, r = random() * 0.34;
-      const bx = x + Math.cos(angle) * r, bz = z + Math.sin(angle) * r;
-      const y = height(bx, bz), h = 0.35 + random() * 0.43;
-      const blade = new BufferGeometry();
-      blade.setAttribute("position", new Float32BufferAttribute([
-        -0.035, 0, 0, 0.035, 0, 0, 0.12, h * 0.6, 0.025,
-        -0.035, 0, 0, 0.12, h * 0.6, 0.025, 0.22, h, 0.01,
-        0, 0, -0.035, 0, 0, 0.035, -0.04, h * 0.75, 0.08,
-      ], 3));
-      blade.computeVertexNormals();
-      add(blade.rotateY(angle).translate(bx, y + 0.015, bz), "leaf");
-    }
-  }
-
+  // Library grass replaces the old 81-triangle blade patches within the same draw.
   const owned: { geometry: BufferGeometry; material: MeshToonMaterial }[] = [];
+  let dressing: ReturnType<typeof createQuietShoreDressing> | undefined;
   plankVariants.forEach(geometry => geometry.dispose());
   for (const [surface, geometries] of parts) {
     const geometry = mergeGeometries(geometries, false)!;
     geometries.forEach(part => part.dispose());
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
+    if (surface === "leaf") {
+      dressing = createQuietShoreDressing(context, geometry, site, colliders);
+      group.add(dressing.mesh);
+      continue;
+    }
     const material = pigment(surface);
     owned.push({ geometry, material });
     const mesh = new Mesh(geometry, material);
     mesh.name = `quiet-shore-${surface}`;
+    // P2 owns atlas loading, PBR replacement and Low fallback; no new textures.
+    if (surface === "wood" || surface === "piano" || surface === "guitar") mesh.userData.photoSurface = "bark";
     mesh.castShadow = surface !== "flower";
     mesh.receiveShadow = true;
     group.add(mesh);
@@ -505,6 +501,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      dressing?.dispose();
       for (const { geometry, material } of owned) {
         geometry.dispose();
         material.dispose();
