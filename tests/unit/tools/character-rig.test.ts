@@ -8,7 +8,7 @@ const readRig = () => readFile(
 describe('D-23 character rig script (static checks; Blender runs on Lead machine)', () => {
   it('reuses the approved builder and declares all three 30 fps cycles', async () => {
     const source = await readRig();
-    expect(source).toContain('from character import build_character, MAX_TRIANGLES');
+    expect(source).toContain('from character import build_character');
     expect(source).toContain('model = build_character()');
     expect(source).toMatch(/^FPS = 30$/m);
     expect(source).toMatch(/^ACTION_FRAMES = \{"Idle": 120, "Walk": 30, "Run": 21\}$/m);

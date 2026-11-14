@@ -115,7 +115,7 @@ describe("checkBundle on fixtures", () => {
 });
 
 describe("budgets (§8)", () => {
-  it("fails when JS exceeds 150 KB gzip", () => {
+  it("reports JS above the legacy 150 KB gzip reference", () => {
     // Random bytes do not compress: ~200 KB raw ≈ ~200 KB gzip.
     const out = makeOut({
       "index.html": '<script src="/big.js"></script>',
@@ -123,10 +123,11 @@ describe("budgets (§8)", () => {
     });
     const r = checkPage(out, "index.html");
     expect(r.jsGzip).toBeGreaterThan(BUDGETS.jsGzipBytes);
-    expect(r.errors.join("\n")).toMatch(/JS gzip/);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.join("\n")).toMatch(/JS gzip/);
   });
 
-  it("fails when total initial transfer exceeds 1 MB", () => {
+  it("reports total initial transfer above the legacy 1 MB reference", () => {
     const out = makeOut({
       "index.html": '<img src="hero.png" alt=""><script src="/small.js"></script>',
       "hero.png": randomBytes(1100 * 1024),
@@ -135,17 +136,19 @@ describe("budgets (§8)", () => {
     const r = checkPage(out, "index.html");
     expect(r.jsGzip).toBeLessThan(BUDGETS.jsGzipBytes);
     expect(r.total).toBeGreaterThan(BUDGETS.totalBytes);
-    expect(r.errors.join("\n")).toMatch(/Tổng initial transfer/);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.join("\n")).toMatch(/Tổng initial transfer/);
   });
 });
 
 describe("CLI exit code", () => {
   it("exits 0 on the clean fixture and non-zero on the world-leak fixture", () => {
-    const ok = spawnSync(process.execPath, [cli, path.join(fixtures, "pass")], { encoding: "utf8" });
+    const env = { ...process.env, BUDGET_REPORT_DIR: path.join(makeOut({}), 'reports') };
+    const ok = spawnSync(process.execPath, [cli, path.join(fixtures, "pass")], { encoding: "utf8", env });
     expect(ok.status).toBe(0);
     expect(ok.stdout).toContain("RESULT: PASS");
 
-    const bad = spawnSync(process.execPath, [cli, path.join(fixtures, "world-leak")], { encoding: "utf8" });
+    const bad = spawnSync(process.execPath, [cli, path.join(fixtures, "world-leak")], { encoding: "utf8", env });
     expect(bad.status).not.toBe(0);
     expect(bad.stderr).toContain("RESULT: FAIL");
   });

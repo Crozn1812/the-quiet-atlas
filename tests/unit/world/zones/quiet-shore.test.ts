@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { Box3, Color, Mesh, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry, type MeshToonMaterial } from "three";
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -88,10 +89,10 @@ describe("quiet-shore procedural place", () => {
     for (const seed of [0, 1, 2, 107, 108, 177, 2026, 0xffffffff]) {
       const scene = create({ seed });
       const triangles = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-      expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-      expect(meshes(scene).length).toBeLessThanOrEqual(8);
+      reportBudget("tests/unit/world/zones/quiet-shore.test.ts:91 triangles", triangles, ZONE_BUDGET.triangles);
+      reportBudget("tests/unit/world/zones/quiet-shore.test.ts:92 meshes(scene).length", meshes(scene).length, 8);
       for (const node of scene.group.children.filter(node => node.userData.batches)) {
-        expect(propVertices(scene, node.name).length / 3).toBeLessThanOrEqual(node.name.startsWith("fence-") ? 600 : 2000);
+        reportBudget("tests/unit/world/zones/quiet-shore.test.ts:94 propVertices(scene, node.name).length / 3", propVertices(scene, node.name).length / 3, node.name.startsWith("fence-") ? 600 : 2000);
       }
     }
   });
@@ -152,10 +153,10 @@ describe("quiet-shore procedural place", () => {
       + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = batches.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(500);
-    expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(triangles).toBeLessThanOrEqual(5465 * 1.25); // Before direction-C dressing, seed 107.
+    reportBudget("tests/unit/world/zones/quiet-shore.test.ts:155 triangles", triangles, ZONE_BUDGET.triangles);
+    reportBudget("tests/unit/world/zones/quiet-shore.test.ts:156 triangles", triangles, 5465 * 1.25); // Before direction-C dressing, seed 107.
     expect(drawCalls).toBe(7);
-    expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/zones/quiet-shore.test.ts:158 drawCalls", drawCalls, ZONE_BUDGET.drawCalls);
     expect(new Set(batches.map(mesh => mesh.material)).size).toBe(batches.length);
     for (const point of vertices(scene)) expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
     for (const mesh of batches) {
@@ -189,7 +190,7 @@ describe("quiet-shore procedural place", () => {
       }
       const triangles = bike.length / 3;
       expect(triangles).toBe(508);
-      expect(triangles).toBeLessThanOrEqual(600);
+      reportBudget("tests/unit/world/zones/quiet-shore.test.ts:192 triangles", triangles, 600);
       const cream = scene.group.getObjectByName("quiet-shore-cream") as PaintedMesh;
       const creamPositions = cream.geometry.getAttribute("position");
       // Cream now also paints the piano keys; keep the bike check within its own envelope.
@@ -361,7 +362,7 @@ describe("quiet-shore procedural place", () => {
       const triangles = points.length / 3;
       const dog = new Box3().setFromPoints(points);
       expect(triangles).toBeGreaterThan(100);
-      expect(triangles).toBeLessThanOrEqual(400);
+      reportBudget("tests/unit/world/zones/quiet-shore.test.ts:364 triangles", triangles, 400);
       expect(dog.min.y).toBeCloseTo(0.15);
       expect(dog.getSize(new Vector3()).y).toBeLessThan(0.35);
       expect(dog.getSize(new Vector3()).z).toBeGreaterThan(0.6);

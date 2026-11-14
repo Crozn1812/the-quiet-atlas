@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { BufferGeometry, Color, Group, InstancedMesh, Mesh, MeshStandardMaterial, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -97,11 +98,11 @@ describe("horizon: a quiet sea-facing overlook", () => {
     const triangles = drawn.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = drawn.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(500);
-    expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+    reportBudget("tests/unit/world/zones/horizon.test.ts:100 triangles", triangles, ZONE_BUDGET.triangles);
     const base = drawn.filter(mesh => mesh.name !== "horizon-dressing");
     expect(base.reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0)).toBe(1262);
     expect(drawCalls).toBe(8);
-    expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/zones/horizon.test.ts:104 drawCalls", drawCalls, ZONE_BUDGET.drawCalls);
     expect(new Set(drawn.map(mesh => mesh.material)).size).toBe(6);
     expect(scene.colliders).toHaveLength(5);
     for (const mesh of drawn) {
@@ -131,7 +132,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
       const scene = create({ ...flat, seed });
       const triangles = meshes(scene.group).filter(mesh => mesh.name !== "horizon-dressing")
         .reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-      expect(triangles).toBeLessThanOrEqual(852 * 1.5);
+      reportBudget("tests/unit/world/zones/horizon.test.ts:134 triangles", triangles, 852 * 1.5);
       expect(meshes(scene.group)).toHaveLength(8);
       expect(scene.colliders.map(box => ({ center: box.center.toArray(), size: box.size.toArray() }))).toEqual([
         { center: [4.65, 0.75, 0], size: [1.05, 1.5, 0.75] },
@@ -261,7 +262,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
             node.geometry.index?.count ?? node.geometry.getAttribute("position").count) / 3 * (node instanceof InstancedMesh ? node.count : 1);
         });
         const before = after - added;
-        expect(after).toBeLessThanOrEqual(before * 1.25);
+        reportBudget("tests/unit/world/zones/horizon.test.ts:264 after", after, before * 1.25);
         process.stdout.write(`GFX-Z-horizon High world t=${t}: ${before} -> ${after} triangles; horizon delta=${added}\n`);
       }
       // Report host timing; keep the correctness gate independent of other workers' CPU load.

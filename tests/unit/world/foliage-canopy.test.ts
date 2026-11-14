@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { expect, it } from "vitest";
 import { createFoliage, foliageVariantAt } from "../../../src/features/world/foliage/instances";
 import { MIN_TREE_DISTANCE, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
@@ -58,7 +59,7 @@ it("closes 85% of 10 m coastal hillside cells with real crown radii, including t
 });
 
 it("stays within +25% of 2841 instances and reuses the existing mesh draws", () => {
-  expect(forest.length).toBeLessThanOrEqual(Math.floor(2841 * 1.25));
+  reportBudget("tests/unit/world/foliage-canopy.test.ts:61 forest.length", forest.length, Math.floor(2841 * 1.25));
   const foliage = createFoliage(forest.length);
   try {
     foliage.setTiles(forest);
@@ -69,7 +70,7 @@ it("stays within +25% of 2841 instances and reuses the existing mesh draws", () 
     const draws = wideForests.reduce((sum, trees) => sum + 2 * new Set(trees.map(tree =>
       `${tree.kind}:${foliageVariantAt(tree.x, tree.z, foliage.species[tree.kind].variants.length)}`)).size, 0);
     // Measured on HEAD before B2-159 over these same 240 m corridor tiles.
-    expect(draws).toBeLessThanOrEqual(1246);
+    reportBudget("tests/unit/world/foliage-canopy.test.ts:72 draws", draws, 1246);
     process.stdout.write(`B2-159 instances: 2046 -> ${forest.length}; old cap=2841, +25% cap=3551; active mesh draws: 1246 -> ${draws}\n`);
   } finally { foliage.dispose(); }
 });

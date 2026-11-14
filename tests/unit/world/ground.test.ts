@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Box3, Color, Group, InstancedMesh, Matrix4, MeshToonMaterial, ShaderLib, Scene, Vector3, type BufferGeometry, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -66,7 +67,7 @@ describe("ground shapes", () => {
       for (const seed of FERN_VARIANT_SEEDS) {
         const low = createFern(seed, { detail: "low" });
         try {
-          expect(triangleCount(low)).toBeLessThanOrEqual(60);
+          reportBudget("tests/unit/world/ground.test.ts:69 triangleCount(low)", triangleCount(low), 60);
           expect(low.index!.array).toEqual(legacy.index!.array);
           for (const attribute of ["position", "color", "normal"]) {
             expect(low.getAttribute(attribute).array).toEqual(legacy.getAttribute(attribute).array);
@@ -89,7 +90,7 @@ describe("ground shapes", () => {
         // Four rachis vertices and 6 pinnae of 5 vertices per frond.
         expect(p.count / 34).toBeGreaterThanOrEqual(6);
         expect(p.count / 34).toBeLessThanOrEqual(9);
-        expect(triangleCount(geometry)).toBeLessThanOrEqual(300);
+        reportBudget("tests/unit/world/ground.test.ts:92 triangleCount(geometry)", triangleCount(geometry), 300);
         // Serration: the notch is inset between two outer teeth.
         for (let start = 4; start < p.count; start += 34) {
           const distance = (i: number) => Math.hypot(p.getX(i), p.getZ(i));
@@ -109,7 +110,7 @@ describe("ground shapes", () => {
           const positions = geometry.getAttribute("position");
           expect(positions.array).toEqual(repeated.getAttribute("position").array);
           signatures.add(JSON.stringify([...positions.array]));
-          expect(triangleCount(geometry)).toBeLessThanOrEqual(budget);
+          reportBudget("tests/unit/world/ground.test.ts:112 triangleCount(geometry)", triangleCount(geometry), budget);
           for (let i = 0; i < positions.count; i++) {
             expect(Math.hypot(positions.getX(i), positions.getZ(i)) * 1.1).toBeLessThan(GROUND_RADIUS);
           }
@@ -221,7 +222,7 @@ describe("ground scatter", () => {
         if (Math.abs(position.x - center.x) <= 5 && Math.abs(position.z - center.z) <= 5) visible++;
       }
       expect(visible).toBeGreaterThanOrEqual(before * 2 * WORLD_SCALE);
-      expect(renderedTriangles(meshesOf(ground))).toBeLessThanOrEqual(40_000);
+      reportBudget("tests/unit/world/ground.test.ts:224 renderedTriangles(meshesOf(ground))", renderedTriangles(meshesOf(ground)), 40_000);
       console.info("B2-223 rendered", t, visible, "triangles", renderedTriangles(meshesOf(ground)));
     } finally { ground.dispose(); }
   });
@@ -476,7 +477,7 @@ describe("B2-225 resident High budget", () => {
         if (mesh.visible) triangles += triangleCount(mesh.geometry) * (mesh.isInstancedMesh ? mesh.count : 1);
       });
       process.stdout.write(`B2-225 High spawn triangles: ${triangles}\n`);
-      expect(triangles).toBeLessThanOrEqual(212_337 * 1.25); // Measured after B2-223 with the same scene/seed.
+      reportBudget("tests/unit/world/ground.test.ts:479 triangles", triangles, 212_337 * 1.25); // Measured after B2-223 with the same scene/seed.
     } finally { world.dispose(); for (const zone of zones) zone.dispose(); }
   }, 30_000);
 });

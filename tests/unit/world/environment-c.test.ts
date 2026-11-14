@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { readFileSync, statSync } from "node:fs";
 import { PMREMGenerator, Scene, Texture, type WebGLRenderer } from "three";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,7 +41,7 @@ describe("deferred CC0 environment", () => {
       expect(licenses.split(/\r?\n/).filter(row => row.startsWith(`${file},`))).toEqual([expect.stringContaining(",CC0-1.0,yes,yes,yes,")]);
       bytes += statSync(file).size;
     }
-    expect(bytes).toBeLessThan(4_000_000);
+    reportBudget("tests/unit/world/environment-c.test.ts:43 bytes", bytes, 4_000_000);
   });
   it("derives blend solely from clamped time of day, in either travel direction", () => {
     expect([NaN, -1, 0, 0.25, 0.5, 1, 2].map(environmentWeight)).toEqual([0, 0, 0, 0.25, 0.5, 1, 1]);

@@ -69,7 +69,8 @@ jobs:
       - name: Check asset licenses
         run: pnpm check:licenses
 
-      - name: Check world asset budgets
+      # ADR 0019: size/triangles report only; integrity still blocks before OIDC.
+      - name: Report world assets and check integrity
         run: pnpm check:assets
 
       - name: Assume site deploy role via OIDC

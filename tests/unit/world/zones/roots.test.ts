@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { createHash } from "node:crypto";
 import {
   Box3, BufferGeometry, Color, Mesh, MeshStandardMaterial, MeshToonMaterial, Raycaster, Vector3,
@@ -248,13 +249,13 @@ describe("The Roots procedural zone", () => {
     const drawCalls = parts.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(1000);
     // RT-02 revision: ADR 0015 allows the bespoke tree below 25,000 triangles.
-    expect(triangles).toBeLessThanOrEqual(25000);
-    expect(drawCalls).toBeLessThanOrEqual(8);
+    reportBudget("tests/unit/world/zones/roots.test.ts:251 triangles", triangles, 25000);
+    reportBudget("tests/unit/world/zones/roots.test.ts:252 drawCalls", drawCalls, 8);
     const wood = parts.filter(mesh => /roots-(wood|ink)$/.test(mesh.name));
     const rootTriangles = 9 * (12 * 16 + 12);
     const woodTriangles = wood.reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-    expect(rootTriangles).toBeLessThanOrEqual(2000);
-    expect(woodTriangles - rootTriangles).toBeLessThanOrEqual(2000);
+    reportBudget("tests/unit/world/zones/roots.test.ts:256 rootTriangles", rootTriangles, 2000);
+    reportBudget("tests/unit/world/zones/roots.test.ts:257 woodTriangles - rootTriangles", woodTriangles - rootTriangles, 2000);
     expect(new Set(parts.map(mesh => mesh.material)).size).toBe(parts.length);
     for (const mesh of parts) {
       expect(mesh.geometry.groups).toHaveLength(0);
@@ -263,7 +264,7 @@ describe("The Roots procedural zone", () => {
         expect(Math.hypot(positions.getX(i), positions.getZ(i))).toBeLessThanOrEqual(ZONE_BUDGET.radius);
       }
     }
-    expect(buildTimes[3]).toBeLessThanOrEqual(200);
+    reportBudget("tests/unit/world/zones/roots.test.ts:266 buildTimes[3]", buildTimes[3], 200);
     console.info(`roots: ${triangles} triangles, ${drawCalls} draw calls`);
     console.info(`roots median build: ${buildTimes[3]!.toFixed(2)} ms`,
       Object.fromEntries(parts.map(mesh => [mesh.name, mesh.geometry.getAttribute("position").count / 3])));

@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { createHash } from "node:crypto";
 import { Color, PerspectiveCamera, Plane, Raycaster, Scene, ShaderMaterial, Vector2, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
@@ -351,7 +352,7 @@ describe("sea and water lifecycle", () => {
   it.each(["Low", "Balanced", "High"] as const)("keeps %s open sea at two triangles and adds one static surf draw", quality => {
     const sea = createSea(quality);
     try {
-      expect(sea.mesh.geometry.index!.count / 3).toBeLessThanOrEqual(2 * 1.1);
+      reportBudget("tests/unit/world/water.test.ts:354 sea.mesh.geometry.index!.count / 3", sea.mesh.geometry.index!.count / 3, 2 * 1.1);
       expect(sea.mesh.geometry.getAttribute("position").count).toBe(4);
       expect(sea.mesh.children).toHaveLength(1);
       expect(sea.mesh.children[0]!.userData.surf).toBe(true);

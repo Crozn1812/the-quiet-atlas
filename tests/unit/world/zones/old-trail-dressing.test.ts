@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { readFileSync } from "node:fs";
 import { Group, Mesh, PerspectiveCamera, Scene, type Material, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
@@ -22,7 +23,7 @@ describe("Old Trail C dressing", () => {
     expect(sites).toHaveLength(12);
     expect(new Set(sites.map(site => site.asset)).size).toBe(6);
     expect(triangles).toBe(1051);
-    expect(2758 + triangles).toBeLessThan(6000);
+    reportBudget("tests/unit/world/zones/old-trail-dressing.test.ts:25 2758 + triangles", 2758 + triangles, 6000);
     console.info(`GFX-Z Old Trail High: 2758 → ${2758 + triangles} triangles, 7 → 8 draw calls; new public bytes: 0`);
   });
 

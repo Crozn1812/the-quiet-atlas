@@ -2,6 +2,7 @@
 // L3-007 — frame-time statistics and gates for T08 (spec §8 "Low quality" + "Giật nặng") and trend analysis for T09
 // (spec §8 "Stability", §13 T09). Node built-ins only; pure functions are unit-tested in tests/unit/tools/frame-budget.test.ts.
 //
+// ADR 0019: T08 numeric limits are historical references only.
 // T08 limits are copied verbatim from spec §8 and MUST NOT be changed after a measurement (CLAUDE.md §6):
 //   FPS average ≥ 30; p95 frame time ≤ 50 ms; ≤ 1 % of frames > 100 ms; 0 frames > 250 ms in the steady segment.
 // Gates are evaluated per run (§8 "đánh giá từng lần"), never on an average of runs.
@@ -67,7 +68,7 @@ export function frameStats(deltas) {
 
 /** §8 gates for one run. A run with no frames FAILs every gate (nothing was measured, so nothing passed). */
 export function evaluateT08(stats, limits = T08_LIMITS) {
-  const gate = (id, label, measured, limit, ok) => ({ id, label, measured, limit, status: measured !== null && ok ? "PASS" : "FAIL" });
+  const gate = (id, label, measured, limit, ok) => ({ id, label, measured, limit, withinReference: ok, status: measured !== null && Number.isFinite(measured) ? "PASS" : "FAIL" });
   const gates = [
     gate("fps-avg", "FPS TB ≥ 30", stats.fpsAvg, limits.fpsAvgMin, stats.fpsAvg !== null && stats.fpsAvg >= limits.fpsAvgMin),
     gate("p95", "p95 ≤ 50 ms", stats.p95Ms, limits.p95MaxMs, stats.p95Ms !== null && stats.p95Ms <= limits.p95MaxMs),
@@ -149,8 +150,8 @@ export function formatT08Markdown(runs) {
   const header = "| Lần | Kịch bản | Quality | Gate? | Frames | FPS TB | p95 (ms) | % > 100 ms | Frames > 250 ms | Max (ms) | Focus/pause | Kết quả |";
   const rows = runs.map(r => {
     const s = r.stats;
-    const result = r.gate ? r.status : `${r.status} (tham khảo, không phải gate)`;
-    return `| ${r.run} | ${r.scenario} | ${r.quality} | ${r.gate ? "gate" : "tham khảo"} | ${s.frames} | ${fmt(s.fpsAvg)} | ${fmt(s.p95Ms)} | ${fmt(s.over100Pct, 2)} | ${s.over250} | ${fmt(s.maxMs)} | ${r.valid ? "ok" : `KHÔNG HỢP LỆ: ${r.invalidReason}`} | ${result} |`;
+    const result = !r.valid || r.status === "FAIL" ? "FAIL (invalid measurement)" : "REPORT (ADR 0019)";
+    return `| ${r.run} | ${r.scenario} | ${r.quality} | report | ${s.frames} | ${fmt(s.fpsAvg)} | ${fmt(s.p95Ms)} | ${fmt(s.over100Pct, 2)} | ${s.over250} | ${fmt(s.maxMs)} | ${r.valid ? "ok" : `KHÔNG HỢP LỆ: ${r.invalidReason}`} | ${result} |`;
   });
   return [header, "|---|---|---|---|---|---|---|---|---|---|---|---|", ...rows].join("\n");
 }

@@ -34,13 +34,12 @@ describe('classic vehicle Blender source contract', () => {
     expect(script).toContain('if with_tote:');
   });
 
-  it('enforces both export budgets and prints measured triangles', () => {
-    expect(script).toContain('MAX_TRIANGLES = 8000');
-    expect(script).toContain('MAX_BYTES = 400000');
+  it('prints export measurements and retains the GLB output contract', () => {
     expect(script).toContain('calc_loop_triangles()');
-    expect(script).toContain('if triangles > MAX_TRIANGLES:');
-    expect(script).toContain('if size > MAX_BYTES:');
+    expect(script).toContain('os.path.getsize(output)');
+    expect(script).toContain('return output');
     expect(script).toContain('print(f"Triangles:');
+    expect(script).toContain('print(f"Bytes:');
   });
 
   it('renders all three approval views from the shared model', () => {

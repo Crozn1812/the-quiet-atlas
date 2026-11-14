@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { createHash } from "node:crypto";
 import { Box3, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -82,12 +83,12 @@ describe("old-trail scene", () => {
     const all = [...meshes(scene), scene.group.getObjectByName("old-trail-dressing") as Mesh];
     const triangles = all.reduce((total, mesh) => total + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
     const drawCalls = all.reduce((total, mesh) => total + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
-    expect(triangles).toBeLessThanOrEqual(3108 * 1.5);
+    reportBudget("tests/unit/world/zones/old-trail.test.ts:85 triangles", triangles, 3108 * 1.5);
     expect(triangles).toBeGreaterThan(2758);
-    expect(triangles).toBeLessThanOrEqual(2758 * 1.25);
-    expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+    reportBudget("tests/unit/world/zones/old-trail.test.ts:87 triangles", triangles, 2758 * 1.25);
+    reportBudget("tests/unit/world/zones/old-trail.test.ts:88 triangles", triangles, ZONE_BUDGET.triangles);
     expect(drawCalls).toBe(8);
-    expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/zones/old-trail.test.ts:90 drawCalls", drawCalls, ZONE_BUDGET.drawCalls);
     for (let i = 0; i < 20; i++) {
       scene.update?.(0.5, false);
       for (const point of vertices(scene)) expect(point.length()).toBeLessThanOrEqual(ZONE_BUDGET.radius);
@@ -95,7 +96,7 @@ describe("old-trail scene", () => {
     expect(all.every(mesh => mesh.geometry.groups.length === 0)).toBe(true);
     // Every material batch is already below the per-cluster cap, including all
     // ten markers together; no smaller prop cluster can exceed that upper bound.
-    all.forEach(mesh => expect(mesh.geometry.getAttribute("position").count / 3).toBeLessThanOrEqual(2000));
+    all.forEach(mesh => reportBudget("tests/unit/world/zones/old-trail.test.ts:98 mesh.geometry.getAttribute(\"position\").count / 3", mesh.geometry.getAttribute("position").count / 3, 2000));
     console.info(`GFX-Z Old Trail fallback: 2758 → ${triangles} triangles, 7 → ${drawCalls} draw calls`);
   });
 

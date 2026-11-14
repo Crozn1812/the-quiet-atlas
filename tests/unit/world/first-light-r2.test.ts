@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { expect, it, vi } from "vitest";
 import { Box3, Matrix4, Mesh, PerspectiveCamera, Ray, Raycaster, ShaderLib, Vector2, Vector3, type MeshBasicMaterial, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { createFirstLightFish } from "../../../src/features/world/water/fish";
@@ -76,7 +77,7 @@ it("adds branching and overlapping crowns within the existing instanced tree bud
     const old = createFirstLightTree(variant), dense = createDenseFirstLightTree(variant);
     const oldSize = old.boundingBox!.getSize(new Vector3()), size = dense.boundingBox!.getSize(new Vector3());
     expect(size.x).toBeGreaterThan(oldSize.x * 1.1);
-    expect(dense.getAttribute("position").count / 3).toBeLessThan(350);
+    reportBudget("tests/unit/world/first-light-r2.test.ts:79 dense.getAttribute(\"position\").count / 3", dense.getAttribute("position").count / 3, 350);
     console.info(`FL-03 tree ${variant}: ${old.getAttribute("position").count / 3} -> ${dense.getAttribute("position").count / 3} triangles; 3 shared draws`);
     old.dispose(); dense.dispose();
   }
@@ -92,7 +93,7 @@ it("keeps the forest roof above the camera and releases its single batch cleanly
     expect(bottom - surfaceHeight(site.position.x, site.position.z)).toBeGreaterThan(7.5);
   }
   expect(ceiling.group.children).toHaveLength(1);
-  expect(ceiling.mesh.count * bounds.getAttribute("position").count / 3).toBeLessThan(20000);
+  reportBudget("tests/unit/world/first-light-r2.test.ts:95 ceiling.mesh.count * bounds.getAttribute(\"position\").count / 3", ceiling.mesh.count * bounds.getAttribute("position").count / 3, 20000);
   ceiling.setQuality("Low"); expect(ceiling.mesh.visible).toBe(false);
   ceiling.setQuality("High"); expect(ceiling.mesh.visible).toBe(true);
   ceiling.dispose(); ceiling.dispose(); releases.forEach(release => expect(release).toHaveBeenCalledOnce());

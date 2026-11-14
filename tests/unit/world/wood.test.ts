@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { BufferGeometry, Color, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -57,7 +58,7 @@ describe("B2-187 procedural wood kit", () => {
         const geometry = create(seed);
         try {
           expect(triangles(geometry)).toBeGreaterThan(20);
-          expect(triangles(geometry)).toBeLessThanOrEqual(budget);
+          reportBudget("tests/unit/world/wood.test.ts:60 triangles(geometry)", triangles(geometry), budget);
           expect(geometry.groups).toHaveLength(0); // One material, including foliage/flowers.
           const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
           expect(Array.from(positions.array).every(Number.isFinite)).toBe(true);

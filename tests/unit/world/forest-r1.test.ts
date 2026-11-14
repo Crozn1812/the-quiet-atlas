@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { expect, it, vi } from "vitest";
 import { Matrix4, Vector3 } from "three";
 import { FOREST_ATMOSPHERE_TRANSITION } from "../../../src/features/world/art/direction";
@@ -33,7 +34,7 @@ it("keeps three instanced silhouettes deterministic across quality switches and 
       forest.setQuality(quality);
       expect(forest.meshes.reduce((sum, mesh) => sum + mesh.count, 0)).toBe(Math.round(trees.length * PRESETS[quality].density));
       for (const mesh of forest.meshes) {
-        expect(mesh.geometry.getAttribute("position").count / 3).toBeLessThanOrEqual(1500);
+        reportBudget("tests/unit/world/forest-r1.test.ts:36 mesh.geometry.getAttribute(\"position\").count / 3", mesh.geometry.getAttribute("position").count / 3, 1500);
         for (let i = 0; i < mesh.count; i++) {
           const matrix = new Matrix4(); mesh.getMatrixAt(i, matrix);
           expect(matrix.elements.every(Number.isFinite)).toBe(true);

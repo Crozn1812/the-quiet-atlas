@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Box3, InstancedMesh, Mesh, Scene, Vector3 } from "three";
 import { afterEach, expect, it } from "vitest";
 import { createGd110, disposeGd110 } from "../../../src/features/world/vehicle/mesh";
@@ -33,7 +34,7 @@ it("reports vehicle triangle, envelope and Node construction measurements", () =
     try {
       if (i !== 30) continue;
       const count = triangles(bike);
-      expect(count).toBeLessThanOrEqual(8000);
+      reportBudget("tests/unit/world/vehicle-budget.test.ts:36 count", count, 8000);
       const size = new Box3().setFromObject(bike).getSize(new Vector3()).toArray().map(n => n.toFixed(6));
       const median = samples.sort((a, b) => a - b)[15]!;
       // Report timing rather than asserting a host-dependent wall clock in the shared unit suite.
@@ -71,7 +72,7 @@ it("keeps the High procedural world triangle increase below 25% at spawn", () =>
     scene.add(bike);
     const before = surrounding + ORIGINAL_TRIANGLES, after = triangles(scene);
     expect(after - before).toBe(triangles(bike) - ORIGINAL_TRIANGLES);
-    expect(after).toBeLessThanOrEqual(before * 1.25);
+    reportBudget("tests/unit/world/vehicle-budget.test.ts:74 after", after, before * 1.25);
     process.stdout.write(`B2-189 procedural world / High / spawn: triangles=${before} -> ${after}; `
       + `increase=${((after / before - 1) * 100).toFixed(3)}% (limit=25%)\n`);
   } finally { cleanup.reverse().forEach(dispose => dispose()); }

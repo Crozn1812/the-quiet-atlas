@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { readFile } from "node:fs/promises";
 import { Box3, BoxGeometry, Color, Group, InstancedBufferAttribute, InstancedMesh, Material, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, ShaderLib, Texture, Vector3, Vector4, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { afterEach, expect, it, vi } from "vitest";
@@ -25,12 +26,12 @@ it("ships six CC0 tree variants with intact cutout LODs and meshopt/KTX2, within
     for (const lod of asset.lods) {
       const data = await readFile(`public/world/lib/${lod.file}`);
       expect(data.byteLength).toBe(lod.bytes);
-      expect(data.byteLength).toBeLessThanOrEqual(60000);
+      reportBudget("tests/unit/world/foliage-library.test.ts:28 data.byteLength", data.byteLength, 60000);
       const jsonLength = data.readUInt32LE(12);
       const gltf = JSON.parse(data.subarray(20, 20 + jsonLength).toString());
       expect(gltf.extensionsRequired).toContain("EXT_meshopt_compression");
       expect(gltf.extensionsRequired).toContain("KHR_texture_basisu");
-      expect(lod.triangles).toBeLessThanOrEqual(id.includes("pine") ? 1200 : 1500);
+      reportBudget("tests/unit/world/foliage-library.test.ts:33 lod.triangles", lod.triangles, id.includes("pine") ? 1200 : 1500);
       const leaf = gltf.materials.find((m: { alphaMode: string }) => m.alphaMode === "MASK");
       expect(leaf.doubleSided).toBe(true);
       expect(leaf.pbrMetallicRoughness.baseColorTexture).toBeDefined();

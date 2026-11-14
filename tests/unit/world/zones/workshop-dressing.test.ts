@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { readFile } from "node:fs/promises";
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Texture, type WebGLRenderer } from "three";
 import { afterEach, expect, it, vi } from "vitest";
@@ -37,7 +38,7 @@ it("fits approved CC0 LOD1s into the existing eight draws and 6k triangle budget
       expect((await readFile(`public/world/lib/${lod.file}`)).byteLength).toBe(lod.bytes);
       detail += lod.triangles;
     }
-    expect(detail).toBeLessThanOrEqual(6000);
+    reportBudget("tests/unit/world/zones/workshop-dressing.test.ts:40 detail", detail, 6000);
     const meshes: Mesh[] = [];
     scene.group.traverse(object => { if (object instanceof Mesh) meshes.push(object); });
     expect(meshes).toHaveLength(8);

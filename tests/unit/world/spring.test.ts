@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { expect, it } from "vitest";
 import { Box3, Mesh, Raycaster, Vector3 } from "three";
 import { createSpring, springObstacleBounds } from "../../../src/features/world/terrain/spring";
@@ -79,12 +80,12 @@ it("keeps the 20-40 m mountain and its solids off the walking route with an open
     for (const solid of spring.colliders.slice(0, 2)) {
       expect(Math.abs(solid.center.clone().sub(spring.origin).dot(right)) - solid.radius).toBeGreaterThan(0.6);
     }
-    expect(spring.cliff.geometry.getAttribute("position").count / 3).toBeLessThan(4000);
+    reportBudget("tests/unit/world/spring.test.ts:82 spring.cliff.geometry.getAttribute(\"position\").count / 3", spring.cliff.geometry.getAttribute("position").count / 3, 4000);
     const meshes = spring.group.children.filter((child): child is Mesh => child instanceof Mesh);
     const triangles = meshes.reduce((sum, mesh) => sum
       + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
-    expect(meshes.length).toBeLessThanOrEqual(4);
-    expect(triangles).toBeLessThanOrEqual(4500);
+    reportBudget("tests/unit/world/spring.test.ts:86 meshes.length", meshes.length, 4);
+    reportBudget("tests/unit/world/spring.test.ts:87 triangles", triangles, 4500);
     console.info(`FL-03 source: ${triangles} triangles, ${meshes.length} draws, 0 public asset bytes`);
   } finally { spring.dispose(); spring.dispose(); }
   expect(spring.group.children).toHaveLength(0);

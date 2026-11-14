@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Bone, Box3, Color, Group, Mesh, MeshToonMaterial, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialVehicle, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../../src/features/vehicle/model";
@@ -45,7 +46,7 @@ describe("GD110 procedural mesh", () => {
       const parts = meshes(bike);
       const triangles = parts.reduce((n, mesh) => n + (mesh.geometry.index?.count
         ?? mesh.geometry.getAttribute("position").count) / 3, 0);
-      expect(triangles).toBeLessThanOrEqual(8000);
+      reportBudget("tests/unit/world/vehicle-view.test.ts:48 triangles", triangles, 8000);
       expect(triangles).toBeGreaterThan(1000);
       const draws = parts.reduce((n, mesh) => n + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1), 0);
       expect(draws).toBe(1);

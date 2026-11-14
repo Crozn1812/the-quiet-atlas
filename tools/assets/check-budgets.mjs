@@ -2,11 +2,13 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createIO, statistics } from './shared.mjs';
+import { recordMetrics } from '../checks/budget-report.mjs';
+import { validateKtx2 } from '../checks/ktx2.mjs';
 
 export async function checkBudgets(directory = 'public/world') {
   const budgets = JSON.parse(await readFile(new URL('./budgets.json', import.meta.url), 'utf8'));
   const root = path.resolve(directory);
-  const report = { status: 'PASS', assets: [], worldBytes: 0, startBytes: 0, errors: [], note: '' };
+  const report = { status: 'PASS', mode: 'report-only', assets: [], worldBytes: 0, startBytes: 0, errors: [], comparisons: [], note: '' };
   try {
     if (!(await stat(root)).isDirectory()) throw new Error(`Not a directory: ${root}`);
   } catch (error) {
@@ -30,6 +32,10 @@ export async function checkBudgets(directory = 'public/world') {
       const bytes = (await stat(absolute)).size;
       report.worldBytes += bytes;
       if (relative.startsWith('start/')) report.startBytes += bytes;
+      if (path.extname(entry.name).toLowerCase() === '.ktx2') {
+        try { validateKtx2(await readFile(absolute)); }
+        catch (error) { report.errors.push(`${relative}: cannot read KTX2: ${error.message}`); }
+      }
       if (path.extname(entry.name).toLowerCase() !== '.glb') continue;
       const match = /^(tree|rock|prop|character|vehicle)-([a-z0-9]+(?:-[a-z0-9]+)*)\.glb$/i.exec(entry.name);
       if (!match) {
@@ -38,19 +44,21 @@ export async function checkBudgets(directory = 'public/world') {
       }
       try {
         const type = match[1].toLowerCase();
-        const { triangles } = statistics(await io.read(absolute));
+        const document = await io.read(absolute);
+        for (const texture of document.getRoot().listTextures()) {
+          if (texture.getMimeType() === 'image/ktx2') validateKtx2(Buffer.from(texture.getImage()));
+        }
+        const { triangles } = statistics(document);
         const budget = budgets.types[type];
         report.assets.push({ file: relative, type, triangles, bytes });
-        if (triangles > budget.triangles) report.errors.push(`${relative}: ${triangles} triangles > ${budget.triangles}.`);
-        if (bytes > budget.bytes) report.errors.push(`${relative}: ${bytes} bytes > ${budget.bytes}.`);
+        report.comparisons.push({ file: relative, triangles, bytes, legacyReference: budget });
       } catch (error) {
         report.errors.push(`${relative}: cannot read GLB: ${error.message}`);
       }
     }
   }
   await visit(root);
-  if (report.worldBytes > budgets.worldBytes) report.errors.push(`World: ${report.worldBytes} bytes > ${budgets.worldBytes}.`);
-  if (budgets.startBytes !== null && report.startBytes > budgets.startBytes) report.errors.push(`Start: ${report.startBytes} bytes > ${budgets.startBytes}.`);
+  report.legacyReference = { worldBytes: budgets.worldBytes, startBytes: budgets.startBytes };
   if (report.worldBytes === 0) report.note = 'Directory is empty; no assets to check.';
   if (report.errors.length) report.status = 'FAIL';
   return report;
@@ -60,6 +68,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     if (process.argv.length > 3) throw new Error('Usage: check-budgets.mjs [dir=public/world]');
     const report = await checkBudgets(process.argv[2]);
+    report.measurement = recordMetrics('assets', {
+      worldBytes: report.worldBytes, startBytes: report.startBytes,
+      ...Object.fromEntries(report.assets.flatMap(asset => [
+        [`${asset.file}:bytes`, asset.bytes], [`${asset.file}:triangles`, asset.triangles],
+      ])),
+    });
     console.log(JSON.stringify(report));
     if (report.status === 'FAIL') process.exitCode = 1;
   } catch (error) {

@@ -19,6 +19,7 @@ export interface FrameGate {
   label: string;
   measured: number | null;
   limit: number;
+  withinReference: boolean;
   status: "PASS" | "FAIL";
 }
 

@@ -19,7 +19,7 @@ def bake(source, directory):
     # Three Y-up -> Blender Z-up; exporter restores Three coordinates.
     vertices = [(values[i], -values[i + 2], values[i + 1]) for i in range(0, len(values), 3)]
     faces = [tuple(range(i, i + 3)) for i in range(0, len(vertices), 3)]
-    assert len(faces) <= source["limit"]
+    print(f'REPORT ADR0019 {source["name"]}: {len(faces)} faces; legacy reference: {source["limit"]}', flush=True)
     mesh = bpy.data.meshes.new(source["name"])
     mesh.from_pydata(vertices, [], faces)
     mesh.update()

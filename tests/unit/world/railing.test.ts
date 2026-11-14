@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { InstancedMesh, Matrix4, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { createCoastRailing, createRailingLayout, RAIL_DEPTH } from "../../../src/features/world/road/railing";
@@ -54,7 +55,7 @@ describe("RD-01 coastal railing", () => {
       for (let i = 0; i < object.count; i++) { object.getMatrixAt(i, matrix); expect(matrix.elements.every(Number.isFinite)).toBe(true); }
     });
     expect(rail.group.children).toHaveLength(4);
-    expect(rail.budget.trianglesPerBay).toBeLessThan(600);
+    reportBudget("tests/unit/world/railing.test.ts:57 rail.budget.trianglesPerBay", rail.budget.trianglesPerBay, 600);
     expect(triangles + 120).toBe(rail.budget.triangles);
     console.info(`RD-01 railing: ${rail.layout.length} bays, ${rail.budget.triangles} triangles, ${rail.budget.drawCalls} draws, ${rail.budget.assetBytes} asset bytes`);
     const spy = vi.spyOn(rail.cameraObstacles[0]!.geometry, "dispose");

@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { createHash } from "node:crypto";
 import { Box3, Color, CylinderGeometry, MeshBasicMaterial, Mesh, MeshStandardMaterial, MeshToonMaterial, PerspectiveCamera, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -87,13 +88,13 @@ describe("First Light pine clearing", () => {
     const objects = meshes(scene);
     const count = objects.reduce((sum, mesh) => sum + triangles(mesh.geometry), 0);
     expect(count).toBeGreaterThan(1000);
-    expect(count).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+    reportBudget("tests/unit/world/zones/first-light.test.ts:90 count", count, ZONE_BUDGET.triangles);
     // B2-220 adds a welcome still life; retain the current baseline growth cap.
-    expect(count).toBeLessThanOrEqual(6000);
-    expect(count).toBeLessThanOrEqual(5176 * 1.25);
+    reportBudget("tests/unit/world/zones/first-light.test.ts:92 count", count, 6000);
+    reportBudget("tests/unit/world/zones/first-light.test.ts:93 count", count, 5176 * 1.25);
     expect(objects).toHaveLength(8);
-    expect(count).toBeLessThanOrEqual(5176 * 1.5);
-    expect(objects.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/zones/first-light.test.ts:95 count", count, 5176 * 1.5);
+    reportBudget("tests/unit/world/zones/first-light.test.ts:96 objects.length", objects.length, ZONE_BUDGET.drawCalls);
     expect(new Set(objects.map(mesh => mesh.material)).size).toBe(objects.length);
     for (const mesh of objects) {
       expect(mesh).toBeInstanceOf(Mesh);
@@ -201,9 +202,8 @@ describe("First Light pine clearing", () => {
           return surfaceHeight(p.x, p.z) <= waterLevelAt(p.z);
         },
       }));
-      expect(meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0))
-        .toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-      expect(meshes(scene).length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+      reportBudget("tests/unit/world/zones/first-light.test.ts:204 meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0)", meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0), ZONE_BUDGET.triangles);
+      reportBudget("tests/unit/world/zones/first-light.test.ts:206 meshes(scene).length", meshes(scene).length, ZONE_BUDGET.drawCalls);
     } finally {
       placed.forEach(scene => scene.dispose());
     }
@@ -304,7 +304,7 @@ describe("First Light pine clearing", () => {
       }
       if (surface === "sun") {
         // B2-151: two subdivided veils with feathered vertex alpha (no longer a solid plank), 0.12-0.18 opacity.
-        expect(triangles(mesh.geometry)).toBeLessThanOrEqual(200);
+        reportBudget("tests/unit/world/zones/first-light.test.ts:307 triangles(mesh.geometry)", triangles(mesh.geometry), 200);
         expect(mesh.material.transparent).toBe(true);
         expect(mesh.material.opacity).toBeGreaterThanOrEqual(0.12);
         expect(mesh.material.opacity).toBeLessThanOrEqual(0.18);
@@ -396,7 +396,7 @@ describe("First Light pine clearing", () => {
       expect(foot).toBeGreaterThanOrEqual(-0.1);
       expect(foot).toBeLessThanOrEqual(0.05);
       expect(count).toBeGreaterThan(0);
-      expect(count).toBeLessThanOrEqual(2000);
+      reportBudget("tests/unit/world/zones/first-light.test.ts:399 count", count, 2000);
     }
   });
 
@@ -581,7 +581,7 @@ describe("First Light pine clearing", () => {
     const times = Array.from({ length: 5 }, () => {
       const start = performance.now(); create(); return performance.now() - start;
     }).sort((a, b) => a - b);
-    expect(times[2]).toBeLessThanOrEqual(200);
+    reportBudget("tests/unit/world/zones/first-light.test.ts:584 times[2]", times[2], 200);
     const scene = scenes.at(-1)!;
     console.info("B2-220 First Light:", meshes(scene).reduce((n, m) => n + triangles(m.geometry), 0),
       "triangles;", meshes(scene).length, "calls; median", times[2], "ms");

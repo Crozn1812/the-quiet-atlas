@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Color, Matrix3, Matrix4, Ray, ShaderLib, SRGBColorSpace, Vector2, Vector3, type InstancedMesh, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { describe, expect, it } from "vitest";
 import { paletteColor, WORLD_DIRECTION } from "../../../src/features/world/art/direction";
@@ -173,18 +174,18 @@ describe("broadleaf forest corridor (B2-170)", () => {
 
   it("stays below the existing 240 m cap and +25% of the measured population without adding draws", () => {
     // HEAD before B2-170: 1676 trees, 1186 active tiled draws, old cap 3551.
-    expect(trees.length).toBeLessThanOrEqual(Math.floor(1676 * 1.25));
-    expect(trees.length).toBeLessThanOrEqual(3551);
+    reportBudget("tests/unit/world/foliage-forest.test.ts:176 trees.length", trees.length, Math.floor(1676 * 1.25));
+    reportBudget("tests/unit/world/foliage-forest.test.ts:177 trees.length", trees.length, 3551);
     const foliage = createFoliage(trees.length);
     try {
       foliage.setTiles(trees);
       expect(foliage.group.children).toHaveLength(10);
       const variants = Object.values(foliage.species).flatMap(species => species.variants);
       expect(variants.reduce((sum, variant) => sum + variant.trunks.count + variant.crowns.count, 0)).toBe(trees.length * 2);
-      for (const variant of variants) expect((variant.trunks.geometry.index!.count + variant.crowns.geometry.index!.count) / 3).toBeLessThanOrEqual(600);
+      for (const variant of variants) reportBudget("tests/unit/world/foliage-forest.test.ts:184 (variant.trunks.geometry.index!.count + variant.crowns.geometry.index!.count) / 3", (variant.trunks.geometry.index!.count + variant.crowns.geometry.index!.count) / 3, 600);
       const draws = populations.reduce((sum, population) => sum + 2 * new Set(population.map(tree =>
         `${tree.kind}:${foliageVariantAt(tree.x, tree.z, foliage.species[tree.kind].variants.length)}`)).size, 0);
-      expect(draws).toBeLessThanOrEqual(1186);
+      reportBudget("tests/unit/world/foliage-forest.test.ts:187 draws", draws, 1186);
       process.stdout.write(`B2-170 240 m / High: trees=1676 -> ${trees.length}; mesh instances=${trees.length * 2}; draws=1186 -> ${draws}; slots=10\n`);
     } finally { foliage.dispose(); }
   });

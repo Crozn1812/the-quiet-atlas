@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { createHash } from "node:crypto";
 import { Box3, BufferGeometry, Color, Group, Mesh, MeshToonMaterial, PointLight, Raycaster, Scene, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -60,7 +61,7 @@ describe("workshop bank set-piece", () => {
     let triangles = 0;
     const parts = meshes(scene);
     expect(parts.length).toBeGreaterThan(0);
-    expect(parts.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/zones/workshop.test.ts:63 parts.length", parts.length, ZONE_BUDGET.drawCalls);
     for (const mesh of parts) {
       const geometry = mesh.geometry;
       triangles += (geometry.index?.count ?? geometry.getAttribute("position").count) / 3;
@@ -77,8 +78,8 @@ describe("workshop bank set-piece", () => {
         expect(b.clone().sub(a).cross(c.clone().sub(a)).length()).toBeGreaterThan(1e-9);
       }
     }
-    expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(triangles).toBeLessThanOrEqual(3680 * 1.5); // B2-203: round-4 growth ceiling.
+    reportBudget("tests/unit/world/zones/workshop.test.ts:80 triangles", triangles, ZONE_BUDGET.triangles);
+    reportBudget("tests/unit/world/zones/workshop.test.ts:81 triangles", triangles, 3680 * 1.5); // B2-203: round-4 growth ceiling.
     const pigments = parts.map(mesh => mesh.material);
     expect(new Set(pigments).size).toBe(7); // The animated sprig shares moss with the roof.
     console.info(`Workshop budget: ${triangles} triangles, ${parts.length} draw calls`);
@@ -232,7 +233,7 @@ describe("workshop bank set-piece", () => {
       expect(workshop).toBeDefined();
       expect(workshop.group.position.y).toBe(surfaceHeight(workshop.layout.position.x, workshop.layout.position.z));
       expect(workshop.target.position.toArray().every(Number.isFinite)).toBe(true);
-      expect(meshes(workshop).length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+      reportBudget("tests/unit/world/zones/workshop.test.ts:235 meshes(workshop).length", meshes(workshop).length, ZONE_BUDGET.drawCalls);
     } finally {
       placed.forEach(zone => zone.dispose());
     }
@@ -427,7 +428,7 @@ describe("workshop bank set-piece", () => {
       expect(p.y).toBeLessThanOrEqual(0.4 + 1e-6);
     }
     const total = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-    expect(total).toBeLessThanOrEqual(3680 * 1.5);
+    reportBudget("tests/unit/world/zones/workshop.test.ts:430 total", total, 3680 * 1.5);
   });
 
   it("exports the workshop target with the exact EN/VI labels and a reachable bench centre", () => {
@@ -518,10 +519,10 @@ describe("workshop bank set-piece", () => {
     for (const seed of [0, 1, 2, 103, 0xffffffff]) {
       const scene = create({ seed });
       const counts = scene.group.userData.trianglesByCluster as Record<string, number>;
-      for (const count of Object.values(counts)) expect(count).toBeLessThanOrEqual(2000);
+      for (const count of Object.values(counts)) reportBudget("tests/unit/world/zones/workshop.test.ts:521 count", count, 2000);
       const total = meshes(scene).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
       expect(Object.values(counts).reduce((sum, count) => sum + count, 0)).toBe(total);
-      expect(total).toBeLessThanOrEqual(3680 * 1.5);
+      reportBudget("tests/unit/world/zones/workshop.test.ts:524 total", total, 3680 * 1.5);
     }
     expect(planks).toHaveBeenCalled();
     expect(posts).toHaveBeenCalled();
@@ -583,7 +584,7 @@ describe("workshop bank set-piece", () => {
         triangles += count / 3 * instances;
       });
       console.info("World High at workshop, visible geometry triangles:", triangles);
-      expect(triangles).toBeLessThanOrEqual(153796 * 1.25); // Same Node High composition before B2-203.
+      reportBudget("tests/unit/world/zones/workshop.test.ts:586 triangles", triangles, 153796 * 1.25); // Same Node High composition before B2-203.
     } finally { world.dispose(); zones.forEach(zone => zone.dispose()); }
   }, 30000);
 

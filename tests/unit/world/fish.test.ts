@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Matrix4, Vector3, type Color } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { PATH_BRIDGES } from "../../../src/features/world/layout/path";
@@ -19,8 +20,8 @@ describe("FISH-01 procedural schools", () => {
       expect(fish.group.children).toEqual([fish.mesh]);
       expect(fish.mesh.geometry.groups).toHaveLength(0);
       const triangles = fish.mesh.geometry.index!.count / 3;
-      expect(triangles).toBeLessThanOrEqual(120);
-      expect(triangles * fish.mesh.count).toBeLessThanOrEqual(8000);
+      reportBudget("tests/unit/world/fish.test.ts:22 triangles", triangles, 120);
+      reportBudget("tests/unit/world/fish.test.ts:23 triangles * fish.mesh.count", triangles * fish.mesh.count, 8000);
       expect(fish.mesh.material.transparent).toBe(false);
       expect(fish.mesh.material.uniforms.fogColor).toBeDefined();
       const back = fish.mesh.material.uniforms.uBack!.value as Color;

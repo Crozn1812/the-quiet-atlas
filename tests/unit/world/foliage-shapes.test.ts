@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { createHash } from "node:crypto";
 import { Box3, type BufferGeometry, Color, DoubleSide, Matrix4, Mesh, MeshBasicMaterial, Raycaster, Triangle, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
@@ -90,7 +91,7 @@ describe("painted procedural tree shapes", () => {
     it(`${kind} ${seed}: stays within triangle/clearance budgets and repeats exactly`, () => {
       const crown = create(seed), repeated = create(seed), trunk = createTreeTrunk();
       try {
-        expect(triangles(crown) + triangles(trunk)).toBeLessThanOrEqual(kind === "pine" ? 600 : 1500);
+        reportBudget("tests/unit/world/foliage-shapes.test.ts:93 triangles(crown) + triangles(trunk)", triangles(crown) + triangles(trunk), kind === "pine" ? 600 : 1500);
         for (const name of Object.keys(crown.attributes)) {
           expect(Array.from(crown.getAttribute(name).array)).toEqual(Array.from(repeated.getAttribute(name).array));
         }

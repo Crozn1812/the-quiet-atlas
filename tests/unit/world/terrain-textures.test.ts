@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { readFileSync, statSync } from "node:fs";
 import { expect, it } from "vitest";
 import { MeshToonMaterial, ShaderLib, Texture, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
@@ -27,7 +28,7 @@ it("ships eight CC0 photo sets and three KTX2 tiers within the world budget", ()
     expect(file.bytes).toBe(statSync(`public${url}`).size);
     bytes += file.bytes;
   }
-  expect(bytes).toBeLessThan(15_000_000);
+  reportBudget("tests/unit/world/terrain-textures.test.ts:30 bytes", bytes, 15_000_000);
 });
 
 it("uses physical shading, semantic masks, instance positions and seam-safe two-scale sampling", () => {

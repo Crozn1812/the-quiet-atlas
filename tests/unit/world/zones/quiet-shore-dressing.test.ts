@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { readFileSync } from "node:fs";
 import { BoxGeometry, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene,
   Vector3, type WebGLRenderer } from "three";
@@ -115,10 +116,10 @@ describe("Quiet Shore direction-C dressing", () => {
       const fallbackTotal = meshes.reduce((sum, mesh) => sum + triangles(mesh), 0);
       const retained = leaf.geometry.userData.retainedVertices / 3;
       const high = fallbackTotal - triangles(leaf) + retained + sites.reduce((sum, site) => sum + costs[site.asset], 0);
-      expect(meshes.length).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
-      expect(fallbackTotal).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-      expect(high).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-      expect(high).toBeLessThanOrEqual(5465 * 1.25);
+      reportBudget("tests/unit/world/zones/quiet-shore-dressing.test.ts:118 meshes.length", meshes.length, ZONE_BUDGET.drawCalls);
+      reportBudget("tests/unit/world/zones/quiet-shore-dressing.test.ts:119 fallbackTotal", fallbackTotal, ZONE_BUDGET.triangles);
+      reportBudget("tests/unit/world/zones/quiet-shore-dressing.test.ts:120 high", high, ZONE_BUDGET.triangles);
+      reportBudget("tests/unit/world/zones/quiet-shore-dressing.test.ts:121 high", high, 5465 * 1.25);
       process.stdout.write(`GFX-Z-quiet-shore: ${JSON.stringify({ fallback: fallbackTotal, high, draws: meshes.length,
         sites, addedAssetBytes: 0, anchor: zone!.group.position.toArray(), rotation: zone!.group.quaternion.toArray(), scale: zone!.group.scale.toArray() })}\n`);
     } finally { zone!.dispose(); }

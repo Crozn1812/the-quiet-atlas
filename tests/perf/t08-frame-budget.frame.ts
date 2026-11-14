@@ -8,6 +8,7 @@
 // is NOT RUN: the hook exists only with mountWorld({debug:true}), which the UI never passes.
 // A run is INVALID (and its test fails) if the window lost focus / the world paused during the measured 60 s.
 // HEADED Edge, maximised, real DPR — see playwright.frame.config.ts. T08_RUNS / T08_SCENARIOS (comma list) narrow a run.
+import { recordMetrics } from "../../tools/checks/budget-report.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "../e2e/test"; // skips the opening cinematic: T08 measures gameplay frames
@@ -54,6 +55,7 @@ for (let run = 1; run <= RUNS; run++) {
       const deltas = deltasFromTimestamps(recording.stamps, from, to);
       const stats = frameStats(deltas);
       const { gates, status } = evaluateT08(stats);
+      console.log(JSON.stringify(recordMetrics(`frame-${scenario.id}-run${run}`, { fpsAvg: stats.fpsAvg ?? 0, p95Ms: stats.p95Ms ?? 0, over100Pct: stats.over100Pct ?? 0, over250: stats.over250 })));
       const inWindow = recording.events.filter(e => e.t >= from && e.t <= to);
       const interruptions = inWindow.filter(
         e => e.type === "window-blur" || e.type === "visibility-hidden" || (e.type === "world-state" && (e.detail as { paused?: boolean })?.paused === true),
@@ -101,9 +103,7 @@ for (let run = 1; run <= RUNS; run++) {
 
       expect(errors, errors.join("\n")).toEqual([]);
       expect(invalidReasons, "measurement validity (focus/pause/quality)").toEqual([]);
-      if (scenario.gate) {
-        expect(gates.filter(g => g.status === "FAIL").map(g => `${g.label}: ${g.measured}`), `§8 Low gates, run ${run}`).toEqual([]);
-      }
+      expect(gates.filter(g => g.status === "FAIL").map(g => `${g.label}: ${g.measured}`), `measurement availability, run ${run}`).toEqual([]);
     });
   }
 }

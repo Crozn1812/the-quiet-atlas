@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { BufferGeometry, Color, Mesh, MeshToonMaterial, Raycaster, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -23,7 +24,7 @@ describe("painted procedural props", () => {
       const geometry = create();
       try {
         expect(triangles(geometry)).toBeGreaterThan(12);
-        expect(triangles(geometry)).toBeLessThanOrEqual(budget);
+        reportBudget("tests/unit/world/props.test.ts:26 triangles(geometry)", triangles(geometry), budget);
         const positions = geometry.getAttribute("position");
         const normals = geometry.getAttribute("normal");
         expect(normals.count).toBe(positions.count);

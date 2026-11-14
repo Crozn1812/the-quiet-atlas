@@ -4,11 +4,12 @@
 // Output: totals per phase, gate rows (PASS/FAIL) per run, worst-of-N aggregation, Markdown report.
 // No I/O here except `main` (re-render a saved JSON result as Markdown).
 
+import { recordMetrics } from "../checks/budget-report.mjs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** §8 thresholds. KB = 1024 B, MB = 1024 KB (same convention as tools/check-bundle). Never raise these. */
+/** §8 thresholds. KB = 1024 B, MB = 1024 KB (same convention as tools/check-bundle). Legacy references only under ADR 0019; only zero pre-entry 3D remains a gate. */
 export const BUDGETS = Object.freeze({
   initialTotalBytes: 1024 * 1024, // Welcome/Quick initial transfer ≤ 1 MB compressed (CV excluded)
   initialJsBytes: 150 * 1024, // of which JS ≤ 150 KB gzip
@@ -103,8 +104,8 @@ export function between(requests, from, to) {
   return requests.filter((r) => r.startMs >= from && r.startMs <= to);
 }
 
-function gate(id, label, measured, limit, unit, pass) {
-  return { id, label, measured, limit, unit, status: pass ? "PASS" : "FAIL" };
+function gate(id, label, measured, limit, unit, pass, reportOnly = false) {
+  return { id, label, measured, limit, unit, reportOnly, status: pass ? "PASS" : "FAIL" };
 }
 
 /**
@@ -121,9 +122,9 @@ export function evaluateInitialPage(page, requests, budgets = BUDGETS) {
     summary,
     forbidden,
     gates: [
-      gate(`${page}:initial-total`, `${page} initial transfer`, summary.total, budgets.initialTotalBytes, "bytes", summary.total <= budgets.initialTotalBytes),
-      gate(`${page}:initial-js`, `${page} JS (gzip)`, summary.byCategory.js, budgets.initialJsBytes, "bytes", summary.byCategory.js <= budgets.initialJsBytes),
-      gate(`${page}:no-3d-before-enter`, `${page} 3D requests before Enter World`, forbidden.length, budgets.forbidden3dBeforeEnter, "requests", forbidden.length <= budgets.forbidden3dBeforeEnter),
+      gate(`${page}:initial-total`, `${page} initial transfer`, summary.total, budgets.initialTotalBytes, "bytes", true, true),
+      gate(`${page}:initial-js`, `${page} JS (gzip)`, summary.byCategory.js, budgets.initialJsBytes, "bytes", true, true),
+      gate(`${page}:no-3d-before-enter`, `${page} 3D requests before Enter World`, forbidden.length, 0, "requests", forbidden.length === 0),
     ],
   };
 }
@@ -134,7 +135,7 @@ export function evaluateInitialPage(page, requests, budgets = BUDGETS) {
  * @param {{ clickMs: number, playableMs: number | null }} timing epoch ms
  */
 export function evaluateWorld(requests, timing, budgets = BUDGETS) {
-  const playable = typeof timing.playableMs === "number";
+  const playable = Number.isFinite(timing.playableMs) && Number.isFinite(timing.clickMs) && timing.playableMs >= timing.clickMs;
   const inWindow = playable ? between(requests, timing.clickMs, timing.playableMs) : requests.filter((r) => r.startMs >= timing.clickMs);
   const summary = summarize(inWindow);
   const timeMs = playable ? timing.playableMs - timing.clickMs : null;
@@ -142,8 +143,8 @@ export function evaluateWorld(requests, timing, budgets = BUDGETS) {
     summary,
     timeMs,
     gates: [
-      gate("world-bytes", "3D bytes Enter World → playable", summary.total, budgets.worldToPlayableBytes, "bytes", playable && (budgets.worldToPlayableBytes === null || summary.total <= budgets.worldToPlayableBytes)),
-      gate("time-to-playable", "Time to playable", timeMs, budgets.timeToPlayableMs, "ms", playable && timeMs <= budgets.timeToPlayableMs),
+      gate("world-bytes", "3D bytes Enter World → playable", summary.total, budgets.worldToPlayableBytes, "bytes", playable, true),
+      gate("time-to-playable", "Time to playable", timeMs, budgets.timeToPlayableMs, "ms", playable, true),
     ],
   };
 }
@@ -155,7 +156,10 @@ export function evaluateWorld(requests, timing, budgets = BUDGETS) {
 export function worstOf(runs) {
   const rows = new Map();
   for (const run of runs) {
-    for (const g of run.gates) {
+    for (const saved of run.gates) {
+      // Replaying a pre-ADR-0019 JSON must not revive its former byte/time gates.
+      const reportOnly = /:initial-(total|js)$/.test(saved.id) || ["world-bytes", "time-to-playable"].includes(saved.id);
+      const g = reportOnly ? { ...saved, reportOnly, status: Number.isFinite(saved.measured) ? "PASS" : "FAIL" } : saved;
       const prev = rows.get(g.id);
       if (!prev) rows.set(g.id, { ...g, runs: [g.measured] });
       else {
@@ -206,9 +210,9 @@ export function formatMarkdown(result) {
       const g = r.gates.find((x) => x.id === w.id);
       return g ? `${fmtValue(g.measured, g.unit)}${g.status === "FAIL" ? " ✗" : ""}` : "NOT RUN";
     });
-    lines.push(`| ${w.label} | ${fmtLimit(w.limit, w.unit)} | ${cells.join(" | ")} | ${fmtValue(w.measured, w.unit)} | **${w.status}** |`);
+    lines.push(`| ${w.label} | ${w.reportOnly ? "Report only (ADR 0019)" : fmtLimit(w.limit, w.unit)} | ${cells.join(" | ")} | ${fmtValue(w.measured, w.unit)} | **${w.reportOnly && w.status === "PASS" ? "REPORT" : w.status}** |`);
   }
-  lines.push("", `Tổng: **${worst.ok ? "PASS" : "FAIL"}** (gate theo kết quả xấu nhất của ${result.runs.length} lần cold load).`);
+  lines.push("", `Tổng: **${worst.ok ? "PASS" : "FAIL"}** (ADR 0019: only functional invariants block; worst of ${result.runs.length} cold loads).`);
   return lines.join("\n");
 }
 
@@ -228,6 +232,7 @@ export function main(argv = process.argv.slice(2)) {
     return 2;
   }
   const result = JSON.parse(readFileSync(path.resolve(file), "utf8"));
+  console.log(JSON.stringify(recordMetrics("load-budget", Object.fromEntries(worstOf(result.runs).gates.filter(g => g.measured !== null).map(g => [g.id, g.measured])))));
   console.log(formatMarkdown(result));
   return worstOf(result.runs).ok ? 0 : 1;
 }

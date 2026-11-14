@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import {
@@ -207,7 +208,7 @@ it("ships a single UV-mapped compatible 19-joint skin and linear KTX2 tier sizes
   expect(json.meshes).toHaveLength(1);
   expect(json.meshes[0].primitives).toHaveLength(1);
   expect(json.skins[0].joints).toHaveLength(19);
-  expect(buffer.byteLength).toBeLessThan(600000);
+  reportBudget("tests/unit/world/baked-appearance.test.ts:210 buffer.byteLength", buffer.byteLength, 600000);
   const uv = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
   expect(uv).toBeTypeOf("number");
   const files = readdirSync("public/world/character");

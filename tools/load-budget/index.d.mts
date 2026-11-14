@@ -4,7 +4,7 @@ export interface Budgets {
   initialTotalBytes: number;
   initialJsBytes: number;
   forbidden3dBeforeEnter: number;
-  worldToPlayableBytes: number;
+  worldToPlayableBytes: number | null;
   timeToPlayableMs: number;
 }
 
@@ -33,7 +33,8 @@ export interface Gate {
   id: string;
   label: string;
   measured: number | null;
-  limit: number;
+  limit: number | null;
+  reportOnly?: boolean;
   unit: "bytes" | "ms" | "requests";
   status: "PASS" | "FAIL";
 }

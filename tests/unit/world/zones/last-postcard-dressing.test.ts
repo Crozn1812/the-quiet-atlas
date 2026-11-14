@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 ﻿import { BoxGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "three";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
@@ -34,8 +35,8 @@ describe("Last Postcard C dressing", () => {
         if (!(object instanceof Mesh)) return;
         calls++; triangles += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3;
       });
-      expect(calls).toBe(8); expect(calls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
-      expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+      expect(calls).toBe(8); reportBudget("tests/unit/world/zones/last-postcard-dressing.test.ts:37 calls", calls, ZONE_BUDGET.drawCalls);
+      reportBudget("tests/unit/world/zones/last-postcard-dressing.test.ts:38 triangles", triangles, ZONE_BUDGET.triangles);
       let detailed = 0;
       for (const site of sites) {
         const bytes = readFileSync(`public/world/lib/${site.asset}-lod1.glb`);
@@ -44,7 +45,7 @@ describe("Last Postcard C dressing", () => {
           detailed += gltf.accessors[part.indices ?? part.attributes.POSITION].count / 3;
       }
       const base = triangles - dressing.geometry.getAttribute("position").count / 3;
-      expect(base + detailed).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+      reportBudget("tests/unit/world/zones/last-postcard-dressing.test.ts:47 base + detailed", base + detailed, ZONE_BUDGET.triangles);
       console.info(`GFX-Z-last-postcard detailed: ${base + detailed} triangles / ${calls} draws`);
       expect(scene.colliders).toHaveLength(8);
       expect(scene.interactable.position.toArray()).toEqual([4.75, expect.closeTo(2.135, 6), -0.45]);

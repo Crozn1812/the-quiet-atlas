@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Color, Matrix4, Vector3 } from "three";
 import { expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -30,7 +31,7 @@ function coastalPosition(tree: { x: number; z: number }) {
 it("concentrates forest trees in continuous clumps and keeps each tile below 180 trees", () => {
   const area = [0, 0], count = [0, 0];
   for (const tile of tiles) {
-    expect(scatterTile(tile).length).toBeLessThanOrEqual(180);
+    reportBudget("tests/unit/world/foliage-natural.test.ts:33 scatterTile(tile).length", scatterTile(tile).length, 180);
     for (let x = 2; x < TILE_SIZE; x += 4) for (let z = 2; z < TILE_SIZE; z += 4) {
       const px = tile.ix * TILE_SIZE + x, pz = tile.iz * TILE_SIZE + z;
       if (foliageBiomeAt(px, pz) !== "forest-dawn" || isFoliageExcluded(px, pz)) continue;
@@ -109,8 +110,8 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
   // beyond it. These are the unmodified seed's populations, not raised caps.
   const wideTiles = tilesAlongPath(240);
   const wideForest = wideTiles.flatMap(tile => scatterTile(tile));
-  expect(wideForest.length).toBeLessThanOrEqual(2841);
-  for (const tile of wideTiles) expect(scatterTile(tile).length).toBeLessThanOrEqual(180);
+  reportBudget("tests/unit/world/foliage-natural.test.ts:112 wideForest.length", wideForest.length, 2841);
+  for (const tile of wideTiles) reportBudget("tests/unit/world/foliage-natural.test.ts:113 scatterTile(tile).length", scatterTile(tile).length, 180);
   const coast = wideForest.filter(tree => foliageBiomeAt(tree.x, tree.z) === "coast-dusk");
   const stretch = coast.filter(tree => {
     const path = coastalPosition(tree);
@@ -183,8 +184,8 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
         .filter(tree => isDeepCrown(tree.x, tree.z)).length;
       expect(total).toBe(count);
       expect(deepCount).toBe(expectedDeep);
-      expect(Object.values(foliage.species).flatMap(species => species.variants)
-        .flatMap(variant => [variant.trunks, variant.crowns]).filter(mesh => mesh.count > 0).length).toBeLessThanOrEqual(4);
+      reportBudget("coastal foliage draws", Object.values(foliage.species).flatMap(species => species.variants)
+        .flatMap(variant => [variant.trunks, variant.crowns]).filter(mesh => mesh.count > 0).length, 4);
     }
   } finally { foliage.dispose(); }
   console.info(`B2-153: inland=${inland.length}, seaward=${seaward.length}, deep=${inland.filter(tree => isDeepCrown(tree.x, tree.z)).length}; instances=${wideForest.length}/2841`);

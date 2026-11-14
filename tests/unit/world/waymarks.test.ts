@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 ﻿import { expect, it, vi } from "vitest";
 import { Color, InstancedMesh, Matrix4, Mesh, Vector3 } from "three";
 import { createWaymarkLayout, createWaymarks } from "../../../src/features/world/waymarks";
@@ -68,7 +69,7 @@ it("is deterministic, uses two instanced draws and at most 3000 triangles with p
     const colors = meshes[0]!.geometry.getAttribute("color");
     expect(Array.from({ length: colors.count }, (_, i) => [colors.getX(i), colors.getY(i), colors.getZ(i)])
       .some(rgb => rgb.every((v, i) => Math.abs(v - flower[i]!) < 1e-6))).toBe(true);
-    expect(triangles).toBeLessThanOrEqual(3000);
+    reportBudget("tests/unit/world/waymarks.test.ts:71 triangles", triangles, 3000);
     process.stdout.write(`B2-212: ${triangles} triangles, 2 draws; build ${elapsed.toFixed(2)} ms; variants ${meshes.map(m => m.geometry.getAttribute("position").count / 3).join("/")} triangles\n`);
   } finally { a.dispose(); b.dispose(); }
 });

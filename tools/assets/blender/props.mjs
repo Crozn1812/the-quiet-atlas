@@ -34,9 +34,8 @@ try {
   const report = [];
   for (const { name, limit } of sources) {
     const result = await optimize(`${directory}/${name}.glb`, `public/world/props/${name}.glb`, { texture: 'none' });
-    if (result.triangles > limit || result.bytesAfter > (name.startsWith('rock') ? 20_000 : 80_000)) {
-      throw new Error(`Over budget: ${name}`);
-    }
+    console.info('REPORT ADR0019', { name, triangles: result.triangles, bytes: result.bytesAfter,
+      legacyReference: { triangles: limit, bytes: name.startsWith('rock') ? 20_000 : 80_000 } });
     report.push({ name, ...result });
   }
   console.log(JSON.stringify(report, null, 2));

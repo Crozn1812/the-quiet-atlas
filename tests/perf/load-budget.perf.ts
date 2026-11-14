@@ -11,6 +11,7 @@
 //   (drawArrays/drawElements/…Instanced/drawRangeElements), and the next animation frame has started
 //   (i.e. that frame was handed to the compositor). Timestamp = start of that next frame.
 // Gates are evaluated per run and on the worst run (tools/load-budget). Results → test-results/load-budget/.
+import { recordMetrics } from "../../tools/checks/budget-report.mjs";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -296,6 +297,8 @@ for (const locale of LOCALES) {
     }
 
     const result = { measuredAt: new Date().toISOString(), locale, machine, network: NETWORK, runs };
+    const measurement = recordMetrics(`load-${locale}-cpu${CPU_THROTTLE}`, Object.fromEntries(worstOf(runs).gates.filter(g => g.measured !== null).map(g => [g.id, g.measured!])));
+    console.log(JSON.stringify(measurement));
     const markdown = formatMarkdown(result);
     // EN keeps the L3-004 file names (load-budget.json/.md); other locales get a suffix (load-budget-vi.json/.md).
     const name = `load-budget${locale === "en" ? "" : `-${locale}`}${CPU_THROTTLE > 1 ? `-cpu${CPU_THROTTLE}x` : ""}`;
@@ -307,7 +310,6 @@ for (const locale of LOCALES) {
     const worst = worstOf(runs);
     if (CPU_THROTTLE > 1) {
       test.info().annotations.push({ type: "reference-only", description: `CPU throttling ${CPU_THROTTLE}× (ADR 0007 "mô phỏng máy yếu"): not a gate; result ${worst.ok ? "within" : "outside"} §8 limits` });
-      return;
     }
     expect(worst.gates.filter(g => g.status === "FAIL").map(g => `${g.label}: ${g.measured}`), "§8 gates (worst of runs)").toEqual([]);
   });

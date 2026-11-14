@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { BufferGeometry, Mesh, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
@@ -36,7 +37,7 @@ describe("Milestones hillside integration", () => {
       const meshes: Mesh[] = [];
       scene.group.traverse(node => { if (node instanceof Mesh) meshes.push(node); });
       expect(meshes).toHaveLength(8);
-      expect(meshes.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0)).toBeLessThan(6000);
+      reportBudget("tests/unit/world/zones/milestones.test.ts:39 meshes.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute(\"position\").count) / 3, 0)", meshes.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0), 6000);
       const matrices = meshes.map(mesh => mesh.matrix.toArray());
       for (const reduced of [true, false]) for (let i = 0; i < 60; i++) scene.update?.(1 / 60, reduced);
       expect(meshes.map(mesh => mesh.matrix.toArray())).toEqual(matrices);

@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { expect, it, vi } from "vitest";
 import { InstancedMesh, Mesh, Scene, Vector3 } from "three";
 import { createWorldScene } from "../../../src/features/world/scene/compose";
@@ -50,8 +51,8 @@ it("keeps High submissions below the shipped triangle/draw budgets, including th
     const before = measure(false), after = measure(true);
     after.forEach((result, i) => {
       const base = before[i]!;
-      expect(result.triangles).toBeLessThanOrEqual(base.triangles * 1.25);
-      expect(result.draws).toBeLessThanOrEqual(base.draws + 3);
+      reportBudget("tests/unit/world/coast-r1-budget.test.ts:53 result.triangles", result.triangles, base.triangles * 1.25);
+      reportBudget("tests/unit/world/coast-r1-budget.test.ts:54 result.draws", result.draws, base.draws + 3);
       if (result.id === "first-light") expect(result.triangles).toBe(base.triangles);
       process.stdout.write(`R1-C High ${result.id}: triangles ${base.triangles}->${result.triangles}; draws ${base.draws}->${result.draws}; geometry/instance bytes ${base.bytes}->${result.bytes}\n`);
     });

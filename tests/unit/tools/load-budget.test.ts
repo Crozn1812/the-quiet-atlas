@@ -86,15 +86,15 @@ describe("evaluateInitialPage (§8 rows 1–2)", () => {
     expect(r.gates.map((g) => g.status)).toEqual(["PASS", "PASS", "PASS"]);
   });
 
-  it("fails JS over 150 KB, total over 1 MB and any 3D request", () => {
+  it("reports JS/total above legacy references and fails any 3D request", () => {
     const r = evaluateInitialPage("Welcome", [
       req("/a.js", 151 * KB, { resourceType: "Script" }),
       req("/hero.png", 900 * KB, { resourceType: "Image" }),
       req("/m/tree.glb", 10),
     ]);
     const byId = Object.fromEntries(r.gates.map((g) => [g.id, g]));
-    expect(byId["Welcome:initial-js"]?.status).toBe("FAIL");
-    expect(byId["Welcome:initial-total"]?.status).toBe("FAIL");
+    expect(byId["Welcome:initial-js"]?.status).toBe("PASS");
+    expect(byId["Welcome:initial-total"]?.status).toBe("PASS");
     expect(byId["Welcome:no-3d-before-enter"]?.status).toBe("FAIL");
     expect(r.forbidden).toHaveLength(1);
   });
@@ -120,9 +120,9 @@ describe("evaluateWorld (§8 rows 3 and time to playable)", () => {
     expect(r.gates.map((g) => g.status)).toEqual(["PASS", "PASS"]);
   });
 
-  it("reports bytes without a cap (ADR 0015) and still fails over 10 s", () => {
+  it("reports bytes and time above 10 s without caps (ADR 0019)", () => {
     const r = evaluateWorld(requests, { clickMs: 1_000, playableMs: 12_000 });
-    expect(r.gates.map((g) => g.status)).toEqual(["PASS", "FAIL"]);
+    expect(r.gates.map((g) => g.status)).toEqual(["PASS", "PASS"]);
   });
 
   it("fails when the player never became controllable", () => {
@@ -135,14 +135,14 @@ describe("evaluateWorld (§8 rows 3 and time to playable)", () => {
 describe("worstOf (§8: gate on the worst of 3 cold loads)", () => {
   const run = (bytes: number, ms: number | null) => evaluateWorld([req("/w.js", bytes, { startMs: 1 })], { clickMs: 0, playableMs: ms });
 
-  it("takes the largest value per gate; one failing run fails the gate", () => {
+  it("reports the largest value across runs without failing on time", () => {
     const w = worstOf([run(1 * MB, 2_000), run(2 * MB, 11_000), run(1.5 * MB, 3_000)]);
     const time = w.gates.find((g) => g.id === "time-to-playable");
     expect(time?.measured).toBe(11_000);
     expect(time?.runs).toEqual([2_000, 11_000, 3_000]);
-    expect(time?.status).toBe("FAIL");
+    expect(time?.status).toBe("PASS");
     expect(w.gates.find((g) => g.id === "world-bytes")?.measured).toBe(2 * MB);
-    expect(w.ok).toBe(false);
+    expect(w.ok).toBe(true);
   });
 
   it("treats a missing measurement as worst and passes only when every run passes", () => {
@@ -151,11 +151,17 @@ describe("worstOf (§8: gate on the worst of 3 cold loads)", () => {
     expect(worstOf([]).ok).toBe(false);
   });
 
+  it("replays historical over-limit rows as reports while retaining functional failures", () => {
+    const gates = run(90 * MB, 30_000).gates.map(g => ({ ...g, reportOnly: undefined, status: "FAIL" as const }));
+    expect(worstOf([{ gates }]).ok).toBe(true);
+    expect(worstOf([{ gates: [...gates, { id: "W:no-3d-before-enter", label: "3D", measured: 1, limit: 0, unit: "requests", status: "FAIL" }] }]).ok).toBe(false);
+  });
+
   it("renders a Markdown table with per-run columns and the worst column", () => {
     const md = formatMarkdown({ runs: [{ label: "Lần 1", gates: run(1 * MB, 2_000).gates }, { label: "Lần 2", gates: run(1 * MB, 12_000).gates }] });
     expect(md).toContain("| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Xấu nhất | Kết quả |");
-    expect(md).toMatch(/Time to playable \| ≤ 10 s \| 2\.00 s \| 12\.00 s ✗ \| 12\.00 s \| \*\*FAIL\*\*/);
-    expect(md).toContain("Tổng: **FAIL**");
+    expect(md).toContain("Time to playable | Report only (ADR 0019) | 2.00 s | 12.00 s | 12.00 s | **REPORT**");
+    expect(md).toContain("Tổng: **PASS**");
   });
 });
 
@@ -176,12 +182,13 @@ describe("CLI", () => {
     tmpDirs.push(dir);
     const ok = path.join(dir, "ok.json");
     const bad = path.join(dir, "bad.json");
-    const gates = (ms: number) => evaluateWorld([req("/w.js", 1 * MB, { startMs: 1 })], { clickMs: 0, playableMs: ms }).gates;
+    const gates = (ms: number | null) => evaluateWorld([req("/w.js", 1 * MB, { startMs: 1 })], { clickMs: 0, playableMs: ms }).gates;
     writeFileSync(ok, JSON.stringify({ runs: [{ label: "Lần 1", gates: gates(3_000) }] }));
-    writeFileSync(bad, JSON.stringify({ runs: [{ label: "Lần 1", gates: gates(30_000) }] }));
-    const pass = spawnSync(process.execPath, [cli, ok], { encoding: "utf8" });
+    writeFileSync(bad, JSON.stringify({ runs: [{ label: "Lần 1", gates: gates(null) }] }));
+    const env = { ...process.env, BUDGET_REPORT_DIR: path.join(dir, 'reports') };
+    const pass = spawnSync(process.execPath, [cli, ok], { encoding: "utf8", env });
     expect(pass.status).toBe(0);
     expect(pass.stdout).toContain("Tổng: **PASS**");
-    expect(spawnSync(process.execPath, [cli, bad], { encoding: "utf8" }).status).toBe(1);
+    expect(spawnSync(process.execPath, [cli, bad], { encoding: "utf8", env }).status).toBe(1);
   });
 });

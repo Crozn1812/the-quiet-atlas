@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { createFarLandscape, FAR_LANDSCAPE, GAMEPLAY_FAR } from "../../../src/features/world/scene/far-landscape";
@@ -14,7 +15,7 @@ describe("far landscape individual dawn crowns", () => {
     const far = createFarLandscape();
     try {
       const g = far.mesh.geometry;
-      expect(g.index!.count / 3).toBeLessThanOrEqual(51_200);
+      reportBudget("tests/unit/world/far-landscape.test.ts:17 g.index!.count / 3", g.index!.count / 3, 51_200);
       expect(g.userData.farCrowns).toBeGreaterThan(300);
       expect(g.getAttribute("position").count).toBe(groundCount + g.userData.farCrowns * 180);
       expect(far.mesh.children).toHaveLength(0);

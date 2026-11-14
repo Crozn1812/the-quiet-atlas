@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
 import { mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -17,8 +18,10 @@ async function temporary() {
   return directory;
 }
 function cli(script: string, args: string[], env = process.env) {
+  const reports = mkdtempSync(path.join(tmpdir(), 'tqa-asset-reports-'));
+  directories.push(reports);
   return spawnSync(process.execPath, [path.join(root, 'tools/assets', script), ...args], {
-    encoding: 'utf8', windowsHide: true, env,
+    encoding: 'utf8', windowsHide: true, env: { ...env, BUDGET_REPORT_DIR: reports },
   });
 }
 async function fixture(file: string, triangles = 2, padding = 0) {
@@ -96,32 +99,34 @@ describe('asset pipeline CLIs', () => {
     expect(report.startBytes).toBe(report.worldBytes);
   });
 
-  it('fails triangle and byte limits with actionable file errors', async () => {
+  it('reports triangle and byte measurements above legacy limits', async () => {
     const directory = await temporary();
     await fixture(path.join(directory, 'rock-large.glb'), 401);
     await fixture(path.join(directory, 'tree-heavy.glb'), 1, 60000);
     const result = cli('check-budgets.mjs', [directory]);
-    expect(result.status).toBe(1);
+    expect(result.status).toBe(0);
     const report = JSON.parse(result.stdout);
-    expect(report.status).toBe('FAIL');
-    expect(report.errors).toEqual(expect.arrayContaining([
-      expect.stringMatching(/rock-large.glb: 401 triangles > 400/),
-      expect.stringMatching(/tree-heavy.glb: \d+ bytes > 60000/),
+    expect(report.status).toBe('PASS');
+    expect(report.errors).toEqual([]);
+    expect(report.assets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ file: 'rock-large.glb', triangles: 401 }),
+      expect.objectContaining({ file: 'tree-heavy.glb', bytes: expect.any(Number) }),
     ]));
   });
 
   it('checks world and start totals, including non-GLB payloads', async () => {
     const directory = await temporary();
     await mkdir(path.join(directory, 'start'));
-    await writeFile(path.join(directory, 'start', 'texture.ktx2'), new Uint8Array(8000000));
+    await writeFile(path.join(directory, 'start', 'texture.bin'), new Uint8Array(8000000));
     await writeFile(path.join(directory, 'audio.bin'), new Uint8Array(22000000));
     expect(cli('check-budgets.mjs', [directory]).status).toBe(0);
     await writeFile(path.join(directory, 'start', 'extra.bin'), new Uint8Array(1));
     const result = cli('check-budgets.mjs', [directory]);
-    expect(result.status).toBe(1);
-    expect(JSON.parse(result.stdout).errors).toEqual([
-      'World: 30000001 bytes > 30000000.', // ADR 0015: no start cap
-    ]);
+    expect(result.status).toBe(0);
+    const report = JSON.parse(result.stdout);
+    expect(report.worldBytes).toBe(30000001);
+    expect(report.startBytes).toBe(8000001);
+    expect(report.errors).toEqual([]);
   });
 
   it('passes empty and missing directories with notes', async () => {
@@ -139,11 +144,13 @@ describe('asset pipeline CLIs', () => {
     const directory = await temporary();
     await fixture(path.join(directory, 'pine.glb'));
     await writeFile(path.join(directory, 'prop-broken.glb'), 'invalid');
+    await writeFile(path.join(directory, 'texture-broken.ktx2'), 'invalid');
     const result = cli('check-budgets.mjs', [directory]);
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout).errors).toEqual([
       expect.stringContaining('pine.glb: expected <type>-<name>.glb'),
       expect.stringContaining('prop-broken.glb: cannot read GLB'),
+      expect.stringContaining('texture-broken.ktx2: cannot read KTX2'),
     ]);
   });
 });

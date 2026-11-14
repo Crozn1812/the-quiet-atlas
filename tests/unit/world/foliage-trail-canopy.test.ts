@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Matrix4, ShaderLib, Vector3, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { expect, it } from "vitest";
 import { TRUNK_HEIGHT } from "../../../src/features/world/foliage/colliders";
@@ -116,7 +117,7 @@ it("renders every selected trail shape 12–16 m high with trunk width <=1.4x an
         const vertices = ids.map(id => new Vector3().fromBufferAttribute(positions, id).applyMatrix4(matrix));
         for (let j = 0; j < 3; j++) expect(vertices[j]!.distanceTo(vertices[(j + 1) % 3]!)).toBeLessThanOrEqual(6);
       }
-      expect(shape.index!.count / 3).toBeLessThanOrEqual(700);
+      reportBudget("tests/unit/world/foliage-trail-canopy.test.ts:119 shape.index!.count / 3", shape.index!.count / 3, 700);
       // The final 84 vertices are fourteen section pairs making three limbs.
       for (let i = positions.count - 84; i < positions.count; i += 6) {
         for (const offset of [0, 3]) {
@@ -177,12 +178,12 @@ it("reports the foliage geometry budget after fuller pine needles", () => {
       return sum + triangles(variants[foliageVariantAt(tree.x, tree.z, variants.length)]!);
     }, 0);
     const sizes = Object.entries(foliage.species).map(([kind, species]) => `${kind}=${species.variants.map(triangles).join("/")}`);
-    expect(trees.length).toBeLessThanOrEqual(1801);
+    reportBudget("tests/unit/world/foliage-trail-canopy.test.ts:180 trees.length", trees.length, 1801);
     // B2-191b: 552-triangle needle-mass crowns replace B2-194's thin pines.
     // Keep the pre-B2-194 corridor baseline and +25% ceiling used by foliage.test.ts.
     // ADR 0017 shortens the sampled corridor; retain the original triangle cap.
     expect(total).toBeGreaterThan(0);
-    expect(total).toBeLessThanOrEqual(736223 * 1.25);
+    reportBudget("tests/unit/world/foliage-trail-canopy.test.ts:185 total", total, 736223 * 1.25);
     expect(foliage.group.children).toHaveLength(10);
     process.stdout.write(`B2-196 240 m / High: trees=${trees.length}; triangles=${total}; ${sizes.join("; ")}; mesh slots=${foliage.group.children.length}\n`);
   } finally { foliage.dispose(); }

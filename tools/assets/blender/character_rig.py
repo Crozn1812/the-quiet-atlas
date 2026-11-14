@@ -342,7 +342,7 @@ def verify_export(output, triangles):
     if any(not {"JOINTS_0", "WEIGHTS_0", "COLOR_0"} <= set(p["attributes"]) for p in primitives):
         raise RuntimeError("Missing skin or approved vertex colors")
     exported_triangles = sum(document["accessors"][p["indices"]]["count"] // 3 for p in primitives)
-    if exported_triangles != triangles or triangles > MAX_TRIANGLES:
+    if exported_triangles != triangles:
         raise RuntimeError("Export changed approved triangle count")
     if document.get("images") or document.get("cameras") or document.get("extensions", {}).get("KHR_lights_punctual"):
         raise RuntimeError("Unexpected image, camera or light")

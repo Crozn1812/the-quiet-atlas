@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Color, DataTexture, InstancedMesh, Matrix4, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
@@ -204,8 +205,8 @@ describe("wooden path bridges", () => {
         draws++;
         triangles += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3 * object.count;
       });
-      expect(draws).toBeLessThanOrEqual(3);
-      expect(triangles).toBeLessThanOrEqual(6000);
+      reportBudget("tests/unit/world/bridges.test.ts:207 draws", draws, 3);
+      reportBudget("tests/unit/world/bridges.test.ts:208 triangles", triangles, 6000);
       expect(first.budget).toEqual({ drawCalls: draws, triangles });
       console.info(`Bridges: ${first.bridges.length} crossings, ${draws} draw calls, ${triangles} rendered triangles`);
     } finally { first.dispose(); second.dispose(); }

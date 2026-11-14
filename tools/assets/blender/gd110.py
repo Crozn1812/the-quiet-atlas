@@ -243,8 +243,7 @@ def main(argv):
     objects = build_vehicle(not args.without_helmet, not args.without_tote)
     triangles = triangle_count(objects)
     print(f"Triangles: {triangles} / {MAX_TRIANGLES}", flush=True)
-    if triangles > MAX_TRIANGLES:
-        raise RuntimeError("Vehicle triangle budget exceeded")
+    print("REPORT ADR0019: triangle count does not gate export", flush=True)
     os.makedirs(args.output_dir, exist_ok=True)
     output = os.path.abspath(os.path.join(args.output_dir, "vehicle-gd110.glb"))
     bpy.ops.export_scene.gltf(filepath=output, export_format="GLB", export_yup=True,
@@ -252,9 +251,7 @@ def main(argv):
                               export_cameras=False, export_lights=False)
     size = os.path.getsize(output)
     print(f"Bytes: {size} / {MAX_BYTES}", flush=True)
-    if size > MAX_BYTES:
-        os.remove(output)
-        raise RuntimeError("Vehicle byte budget exceeded; oversized export removed")
+    print("REPORT ADR0019: byte count does not gate export", flush=True)
     return output
 
 

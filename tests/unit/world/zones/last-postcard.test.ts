@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { Box3, Color, Group, Light, Mesh, MeshToonMaterial, MeshStandardMaterial, Raycaster, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -209,9 +210,9 @@ describe("last-postcard shore scene", () => {
       }
     }
     expect(triangles).toBeGreaterThan(0);
-    expect(triangles).toBeLessThanOrEqual(1670 * 1.5);
-    expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/zones/last-postcard.test.ts:212 triangles", triangles, 1670 * 1.5);
+    reportBudget("tests/unit/world/zones/last-postcard.test.ts:213 triangles", triangles, ZONE_BUDGET.triangles);
+    reportBudget("tests/unit/world/zones/last-postcard.test.ts:214 drawCalls", drawCalls, ZONE_BUDGET.drawCalls);
     expect(new Set(meshes(scene.group).map(mesh => mesh.material)).size).toBe(drawCalls);
     console.info(`last-postcard: ${triangles} triangles, ${drawCalls} draw calls`);
   });
@@ -329,7 +330,7 @@ describe("last-postcard shore scene", () => {
     for (const spy of [rocks, posts, planks]) {
       for (const result of spy.mock.results) {
         expect(result.type).toBe("return");
-        expect(result.value.getAttribute("position").count / 3).toBeLessThanOrEqual(400);
+        reportBudget("tests/unit/world/zones/last-postcard.test.ts:332 result.value.getAttribute(\"position\").count / 3", result.value.getAttribute("position").count / 3, 400);
       }
     }
     const counts = scene.colliders.map(() => 0);
@@ -345,7 +346,7 @@ describe("last-postcard shore scene", () => {
         if (owner >= 0) counts[owner]!++;
       }
     }
-    expect(Math.max(...counts)).toBeLessThanOrEqual(2000);
+    reportBudget("tests/unit/world/zones/last-postcard.test.ts:348 Math.max(...counts)", Math.max(...counts), 2000);
     console.info(`last-postcard prop clusters: ${counts.join(", ")} triangles`);
   });
 
@@ -402,7 +403,7 @@ describe("last-postcard shore scene", () => {
       expect(scene.colliders.map(collider => [collider.center, collider.size]
         .map(vector => vector.toArray().map(value => Number(value.toFixed(6)))))).toEqual(expected);
       const count = meshes(scene.group).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
-      expect(count).toBeLessThanOrEqual(1670 * 1.5);
+      reportBudget("tests/unit/world/zones/last-postcard.test.ts:405 count", count, 1670 * 1.5);
       expect(meshes(scene.group)).toHaveLength(7);
       counts.push(count);
     }
@@ -521,7 +522,7 @@ describe("last-postcard shore scene", () => {
       const currentZone = meshes(zones.find(zone => zone.zoneId === "last-postcard")!.group)
         .reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
       const before = after - currentZone + 1670;
-      expect(after).toBeLessThanOrEqual(before * 1.25);
+      reportBudget("tests/unit/world/zones/last-postcard.test.ts:524 after", after, before * 1.25);
       console.info(`last-postcard High world t=0.9: ${before} -> ${after} triangles; zone 1670 -> ${currentZone}`);
     } finally {
       composed.dispose();

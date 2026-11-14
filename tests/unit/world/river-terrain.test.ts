@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { describe, expect, it } from "vitest";
 import { pathLength, pathPointAt, PATH_BRIDGES } from "../../../src/features/world/layout/path";
 import { riverPointAt, riverTangentAt } from "../../../src/features/world/layout/river";
@@ -188,9 +189,9 @@ describe("64 m terrain tiles", () => {
     expect(all.size).toBe(tiles.length);
     expect(tiles).toEqual(tilesAlongPath(32));
     expect(tiles.length).toBeGreaterThan(25);
-    expect(tiles.length).toBeLessThan(100);
+    reportBudget("tests/unit/world/river-terrain.test.ts:191 tiles.length", tiles.length, 100);
     expect(TILE_HEIGHT_BYTES).toBe(4356);
-    expect(tiles.length * TILE_HEIGHT_BYTES).toBeLessThan(1024 * 1024);
+    reportBudget("tests/unit/world/river-terrain.test.ts:193 tiles.length * TILE_HEIGHT_BYTES", tiles.length * TILE_HEIGHT_BYTES, 1024 * 1024);
     for (let i = 0; i <= 500; i++) {
       const p = pathPointAt(i / 500);
       for (const [dx, dz] of [[0, 0], [32, 0], [-32, 0], [0, 32], [0, -32]]) {

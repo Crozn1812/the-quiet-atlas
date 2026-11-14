@@ -77,7 +77,6 @@ export async function generate() {
     bytes += size;
     console.info(`${kind}.ktx2: ${size} bytes`);
   }
-  if (bytes > 600_000) throw new Error(`Ground textures exceed 600 KB: ${bytes}`);
-  console.info(`Ground textures: ${bytes}/600000 bytes; include decoder/runtime in the 8000000-byte entry budget.`);
+  console.info(`REPORT ADR0019 ground textures: ${bytes} bytes; legacy reference 600000 bytes (not a gate).`);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await generate();

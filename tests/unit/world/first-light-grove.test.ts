@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { describe, expect, it } from 'vitest';
 import { createFirstLightGrove, createFirstLightTree, firstLightCameraPitch, firstLightGroveWeight, inFirstLightGrove } from '../../../src/features/world/foliage/first-light-grove';
 import { surfaceHeight } from '../../../src/features/world/scene/compose';
@@ -12,7 +13,7 @@ describe('FirstLight bounded woodland prototype',()=>{
  it('keeps geometry faceted, deterministic and under tree budget',()=>{
   const gs=[0,1,2].map(createFirstLightTree);
   expect(new Set(gs.map(g=>Array.from(g.getAttribute('position').array).slice(0,30).join(','))).size).toBe(3);
-  for(const g of gs){expect(g.getAttribute('position').count/3).toBeLessThanOrEqual(1200);expect(g.index).toBeNull();g.dispose();}
+  for(const g of gs){reportBudget("tests/unit/world/first-light-grove.test.ts:15 g.getAttribute('position').count/3", g.getAttribute('position').count/3, 1200);expect(g.index).toBeNull();g.dispose();}
  });
  it('builds a bounded grove with dry clear trunks and stable collision across quality',()=>{
   const grove=createFirstLightGrove(surfaceHeight,[]);

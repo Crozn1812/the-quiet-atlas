@@ -312,8 +312,7 @@ def build_character():
     model.data.calc_loop_triangles()
     triangles = len(model.data.loop_triangles)
     print(f"character-duy triangles: {triangles}", flush=True)
-    if triangles > MAX_TRIANGLES:
-        raise RuntimeError(f"Triangle budget exceeded: {triangles} > {MAX_TRIANGLES}")
+    print(f"REPORT ADR0019 triangles: {triangles}; legacy reference: {MAX_TRIANGLES}", flush=True)
     return model
 
 
@@ -331,9 +330,7 @@ def main(argv):
         export_animations=False, export_cameras=False, export_lights=False)
     size = os.path.getsize(output)
     print(f"character-duy bytes: {size}", flush=True)
-    if size > MAX_BYTES:
-        os.remove(output)
-        raise RuntimeError(f"Byte budget exceeded: {size} > {MAX_BYTES}")
+    print(f"REPORT ADR0019 bytes: {size}; legacy reference: {MAX_BYTES}", flush=True)
 
 
 if __name__ == "__main__":

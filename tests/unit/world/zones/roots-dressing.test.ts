@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { readFileSync } from "node:fs";
 import { BoxGeometry, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene,
   type WebGLRenderer } from "three";
@@ -121,8 +122,8 @@ describe("Roots dressing", () => {
       // All 14 sites is a conservative bound if the real path/water rejects some.
       const sites = rootsDressingSites(context, Math.sign(zone!.interactable.position.x), zone!.interactable.position.z);
       const upperDetail = before + sites.reduce((sum, site) => sum + costs[site.asset], 0);
-      expect(all.length).toBeLessThanOrEqual(8);
-      expect(upperDetail).toBeLessThanOrEqual(before * 1.25);
+      reportBudget("tests/unit/world/zones/roots-dressing.test.ts:124 all.length", all.length, 8);
+      reportBudget("tests/unit/world/zones/roots-dressing.test.ts:125 upperDetail", upperDetail, before * 1.25);
       console.info("GFX-Z-roots budget:", { before, fallback: fallbackTotal, highUpperBound: upperDetail,
         drawCallsBefore: all.length, drawCallsAfter: all.length, sites: mesh.userData.dressingSites, addedAssetBytes: 0 });
       console.info("GFX-Z-roots pose:", zone!.group.position.toArray(), zone!.group.quaternion.toArray());

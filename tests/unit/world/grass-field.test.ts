@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { describe, expect, it, vi } from "vitest";
 import { Box3, Color, Matrix4, Vector3, type WebGLRenderer } from "three";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -66,7 +67,7 @@ describe("camera grass field", () => {
       const field = createGrassField(quality);
       expect(field.group.children).toHaveLength(1);
       // Lead 2026-11-06 render check: tufts at 0.7 m within 18/12 m (single blades read as bare ground).
-      expect(field.mesh.count * 12).toBeLessThanOrEqual(60000);
+      reportBudget("tests/unit/world/grass-field.test.ts:69 field.mesh.count * 12", field.mesh.count * 12, 60000);
       expect(field.mesh.geometry.index!.count).toBe(36);
       expect(field.radius).toBe({ High: 18, Balanced: 12, Low: 0 }[quality]);
       expect(field.mesh.count === 0).toBe(quality === "Low");

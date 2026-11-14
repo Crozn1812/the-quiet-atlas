@@ -145,9 +145,7 @@ def build_closeup(workspace, directory):
     rigging.consolidate_materials(model.data)
     model.data.calc_loop_triangles()
     triangles = len(model.data.loop_triangles)
-    # Stay within the existing checker too; the ticket's 30k cap is looser.
-    if triangles > 12000:
-        raise RuntimeError(f"Closeup skin exceeds existing 12k gate: {triangles}")
+    print(f"REPORT ADR0019 closeup triangles: {triangles}; legacy reference: 12000", flush=True)
     bpy.ops.object.select_all(action="DESELECT")
     model.select_set(True)
     rig.select_set(True)

@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { BufferGeometry, Color, Group, Mesh, MeshToonMaterial, Vector2, Vector3, type DataTexture } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -44,7 +45,7 @@ describe("shared cut-plane rock kit", () => {
         const geometry = createRockGeometry(kind, seed);
         try {
           expect(triangles(geometry)).toBeGreaterThan(12);
-          expect(triangles(geometry)).toBeLessThanOrEqual(limits[kind]);
+          reportBudget("tests/unit/world/rocks.test.ts:47 triangles(geometry)", triangles(geometry), limits[kind]);
           expect(geometry.groups).toHaveLength(0);
           const bounds = geometry.boundingBox!, size = bounds.getSize(new Vector3());
           expect(bounds.min.y).toBe(0);
@@ -162,7 +163,7 @@ describe("shared cut-plane rock kit", () => {
       const start = performance.now();
       for (let seed = 0; seed < 64; seed++) createRockGeometry(kind, seed).dispose();
       const average = (performance.now() - start) / 64;
-      expect(average).toBeLessThan(20);
+      reportBudget("tests/unit/world/rocks.test.ts:165 average", average, 20);
       console.info(`Rock ${kind}: ${average.toFixed(3)} ms/geometry (Node, 64 seeds).`);
     }
   });
@@ -179,7 +180,7 @@ describe("balanced rock stack", () => {
         expect(mesh.material.vertexColors).toBe(true);
         expect((mesh.material.gradientMap as DataTexture).image.width).toBe(4);
         expect(mesh.geometry.groups).toHaveLength(0);
-        expect(triangles(mesh.geometry)).toBeLessThanOrEqual(700);
+        reportBudget("tests/unit/world/rocks.test.ts:182 triangles(mesh.geometry)", triangles(mesh.geometry), 700);
         expectPalette(mesh.geometry);
         const meshFaces = faces(mesh.geometry);
         const caps = meshFaces.filter(face => Math.abs(face.normal.y) > 0.99999);

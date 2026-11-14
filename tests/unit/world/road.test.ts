@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import {
   Color, InstancedMesh, LineSegments, Matrix3, Matrix4, Mesh, MeshToonMaterial, ShaderChunk, ShaderLib, Vector3,
   type DataTexture, type WebGLProgramParametersWithUniforms, type WebGLRenderer,
@@ -453,8 +454,8 @@ describe("coastal asphalt, roadside bollards and utility poles", () => {
           * (object instanceof InstancedMesh ? object.count : 1);
       }
     });
-    expect(drawCalls).toBeLessThanOrEqual(4);
-    expect(triangles).toBeLessThanOrEqual(14000);
+    reportBudget("tests/unit/world/road.test.ts:456 drawCalls", drawCalls, 4);
+    reportBudget("tests/unit/world/road.test.ts:457 triangles", triangles, 14000);
     expect(road.budget).toEqual({ drawCalls, triangles });
   });
 

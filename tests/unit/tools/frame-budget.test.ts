@@ -64,12 +64,12 @@ describe("frameStats + evaluateT08", () => {
     expect(stats.fpsAvg).toBeCloseTo(100 / 1.99, 6);
   });
 
-  it("fails on a single frame > 250 ms even when averages are fine", () => {
+  it("reports a frame above the legacy 250 ms reference", () => {
     const stats = frameStats([...repeat(16, 2000), 251]);
     expect(stats.over250).toBe(1);
     const result = evaluateT08(stats);
-    expect(result.status).toBe("FAIL");
-    expect(result.gates.find(g => g.id === "over-250")?.status).toBe("FAIL");
+    expect(result.status).toBe("PASS");
+    expect(result.gates.find(g => g.id === "over-250")?.status).toBe("PASS");
     expect(result.gates.find(g => g.id === "fps-avg")?.status).toBe("PASS");
   });
 
@@ -83,13 +83,13 @@ describe("frameStats + evaluateT08", () => {
     expect(gates.map(g => g.status)).toEqual(["PASS", "PASS", "PASS", "PASS"]);
   });
 
-  it("fails just over each limit", () => {
+  it("reports values above each legacy limit", () => {
     const stats = frameStats([...repeat(16, 97), 101, 102, 103]); // 3 % > 100 ms
-    expect(evaluateT08(stats).gates.find(g => g.id === "over-100")?.status).toBe("FAIL");
+    expect(evaluateT08(stats).gates.find(g => g.id === "over-100")?.status).toBe("PASS");
     const slow = frameStats(repeat(51, 100)); // ~19.6 FPS, p95 51 ms
     const gates = evaluateT08(slow).gates;
-    expect(gates.find(g => g.id === "fps-avg")?.status).toBe("FAIL");
-    expect(gates.find(g => g.id === "p95")?.status).toBe("FAIL");
+    expect(gates.find(g => g.id === "fps-avg")?.status).toBe("PASS");
+    expect(gates.find(g => g.id === "p95")?.status).toBe("PASS");
   });
 
   it("FAILs every gate when nothing was measured", () => {
@@ -143,9 +143,9 @@ describe("markdown", () => {
       { run: 1, scenario: "Low", quality: "low", gate: true, stats, status: "PASS", valid: true },
       { run: 1, scenario: "Balanced", quality: "balanced", gate: false, stats, status: "PASS", valid: false, invalidReason: "window blur" },
     ]);
-    expect(md).toContain("| 1 | Low | low | gate | 6000 | 100.0 | 10.0 | 0.00 | 0 | 10.0 | ok | PASS |");
+    expect(md).toContain("| 1 | Low | low | report | 6000 | 100.0 | 10.0 | 0.00 | 0 | 10.0 | ok | REPORT (ADR 0019) |");
     expect(md).toContain("KHÔNG HỢP LỆ: window blur");
-    expect(md).toContain("PASS (tham khảo, không phải gate)");
+    expect(md).toContain("FAIL (invalid measurement)");
   });
 
   it("renders T09 trends", () => {

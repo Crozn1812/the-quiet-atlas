@@ -59,8 +59,7 @@ describe('character Blender authoring scripts (static Node checks)', () => {
     expect(source).toContain('os.path.abspath(argv[0])');
     expect(source).toContain('"character-duy.glb"');
     expect(source).toContain('calc_loop_triangles()');
-    expect(source).toContain('MAX_TRIANGLES = 12000');
-    expect(source).toContain('MAX_BYTES = 600000');
+    expect(source).toContain('print(f"character-duy bytes:');
     expect(source).toContain('os.path.getsize(output)');
     expect(source).toContain('print(f"character-duy triangles:');
     expect(source).toMatch(/inputs\["Roughness"\]\.default_value = 1/);

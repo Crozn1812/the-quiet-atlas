@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Box3, BoxGeometry, type BufferGeometry, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Ray, Raycaster, Scene, ShaderLib, type WebGLProgramParametersWithUniforms, type WebGLRenderer, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
@@ -108,7 +109,7 @@ describe("tile foliage", () => {
     expect(stats.hill.count / stats.hill.area).toBeLessThan(forestDensity * 0.6);
     expect(stats["coast-dusk"].count).toBe(0);
     // B2-170 permits +25% while concentrating trees around the forest trail.
-    expect(total).toBeLessThanOrEqual(Math.floor(577 * 1.25));
+    reportBudget("tests/unit/world/foliage.test.ts:111 total", total, Math.floor(577 * 1.25));
     console.info(`B2-018 route: ${total} trees across ${route.length} tiles; density (trees/tile): forest=${forestDensity.toFixed(2)}, hill=${(stats.hill.count / stats.hill.area).toFixed(2)}, coast=${(stats["coast-dusk"].count / stats["coast-dusk"].area).toFixed(2)}`);
   });
 });
@@ -298,7 +299,7 @@ describe("procedural foliage variants", () => {
         }
       }
       expect(afterDraws).toBe(beforeDraws);
-      expect(after).toBeLessThanOrEqual(before * 1.25);
+      reportBudget("tests/unit/world/foliage.test.ts:301 after", after, before * 1.25);
       expect(forests.flat().length).toBeGreaterThan(1000);
       // B2-191b replaces tiny blades with closed, notched needle masses and
       // visible tubes: 552 crown + the unchanged 42-triangle trunk. Keep B2-194's baseline/cap.
@@ -334,7 +335,7 @@ describe("procedural foliage variants", () => {
         const before = after - extra;
         // R1 forest, hill and coast batches all replace the larger historic crowns.
         expect(extra).toBeLessThan(0);
-        expect(after).toBeLessThanOrEqual(before * 1.25);
+        reportBudget("tests/unit/world/foliage.test.ts:337 after", after, before * 1.25);
         // Eager props/character/post are unchanged; adding them only reduces this ratio.
         process.stdout.write(`B2-182b resident world / High / t=${t}: triangles=${before} -> ${after}; increase=${((after / before - 1) * 100).toFixed(3)}%\n`);
       }

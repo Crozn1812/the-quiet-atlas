@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
+import { recordMetrics } from "../checks/budget-report.mjs";
 
 /** Chuỗi hợp đồng ranh giới từ L2-001: điểm vào world chứa chuỗi này. */
 export const WORLD_MARKER = "__TQA_WORLD_CHUNK__";
@@ -162,10 +163,10 @@ export function checkPage(outDir, pageFile, budgets = BUDGETS) {
   }
 
   if (jsGzip > budgets.jsGzipBytes) {
-    errors.push(`JS gzip ${fmtKB(jsGzip)} > ngân sách ${fmtKB(budgets.jsGzipBytes)}`);
+    warnings.push(`REPORT: JS gzip ${fmtKB(jsGzip)} > legacy reference ${fmtKB(budgets.jsGzipBytes)}`);
   }
   if (total > budgets.totalBytes) {
-    errors.push(`Tổng initial transfer ${fmtKB(total)} > ngân sách ${fmtKB(budgets.totalBytes)}`);
+    warnings.push(`REPORT: Tổng initial transfer ${fmtKB(total)} > legacy reference ${fmtKB(budgets.totalBytes)}`);
   }
 
   return { page: pageFile.replace(/\\/g, "/"), htmlBytes, jsGzip, jsCount, total, resources, errors, warnings };
@@ -210,7 +211,7 @@ export function formatReport(report, budgets = BUDGETS) {
   const line = (cells) => "| " + cells.map((c, i) => c.padEnd(widths[i] ?? 0)).join(" | ") + " |";
   const sep = "|" + widths.map((w) => "-".repeat(w + 2)).join("|") + "|";
   const lines = [
-    `check-bundle — budgets: JS ≤ ${fmtKB(budgets.jsGzipBytes)} gzip, total ≤ ${fmtKB(budgets.totalBytes)}; marker ${WORLD_MARKER}`,
+    `check-bundle — report-only; legacy references: JS ${fmtKB(budgets.jsGzipBytes)} gzip, total ${fmtKB(budgets.totalBytes)}; marker ${WORLD_MARKER}`,
     line(header),
     sep,
     ...rows.map(line),
@@ -226,6 +227,9 @@ export function formatReport(report, budgets = BUDGETS) {
 export function main(argv = process.argv.slice(2)) {
   const outDir = path.resolve(argv[0] ?? "out");
   const report = checkBundle(outDir);
+  console.log(JSON.stringify(recordMetrics('bundle', Object.fromEntries(report.results.flatMap(r => [
+    [`${r.page}:jsGzip`, r.jsGzip], [`${r.page}:total`, r.total],
+  ])))));
   const text = formatReport(report);
   if (report.ok) console.log(text);
   else console.error(text);

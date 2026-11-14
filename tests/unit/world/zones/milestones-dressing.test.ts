@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { readFileSync } from "node:fs";
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
@@ -49,14 +50,14 @@ describe("Milestones static dressing", () => {
         triangles += (object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3;
       });
       expect(calls).toBe(8);
-      expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+      reportBudget("tests/unit/world/zones/milestones-dressing.test.ts:52 triangles", triangles, ZONE_BUDGET.triangles);
       const batch = createMilestonesDressing(context, 1, 0);
       try {
         const fallbackTriangles = batch.mesh.geometry.getAttribute("position").count / 3;
         const detailTriangles = milestonesDressingSites(context, 1, 0).reduce((sum, site) => sum + assetTriangles(site.asset), 0);
-        expect(fallbackTriangles).toBeLessThanOrEqual(700);
-        expect(detailTriangles).toBeLessThanOrEqual(2000);
-        expect(2639 + detailTriangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
+        reportBudget("tests/unit/world/zones/milestones-dressing.test.ts:57 fallbackTriangles", fallbackTriangles, 700);
+        reportBudget("tests/unit/world/zones/milestones-dressing.test.ts:58 detailTriangles", detailTriangles, 2000);
+        reportBudget("tests/unit/world/zones/milestones-dressing.test.ts:59 2639 + detailTriangles", 2639 + detailTriangles, ZONE_BUDGET.triangles);
         expect(batch.mesh.material).toBeInstanceOf(MeshStandardMaterial);
       } finally { batch.dispose(); }
       const stones: Mesh[] = [];

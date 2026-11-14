@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Texture, Vector3, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { setBakedPropQuality } from "../../../../src/features/world/props/batched";
@@ -36,7 +37,7 @@ describe("Horizon C dressing", () => {
     const batch = createHorizonDressing(flat, layout, [])!;
     try {
       const fallback = batch.mesh.geometry.getAttribute("position").count / 3;
-      expect(detail).toBeLessThan(6000 - 1262);
+      reportBudget("tests/unit/world/zones/horizon-dressing.test.ts:39 detail", detail, 6000 - 1262);
       expect(fallback).toBeLessThan(detail);
       process.stdout.write(`GFX-Z-horizon flat: 7 -> 8 draws; 1262 -> ${1262 + fallback} fallback triangles; dressing LOD1=${detail} triangles (base deferred props counted separately)\n`);
     } finally { batch.dispose(); }

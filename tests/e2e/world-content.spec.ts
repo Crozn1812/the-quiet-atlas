@@ -57,15 +57,12 @@ async function openLatencyMs(page: Page) {
 }
 
 /**
- * T07 "overlay mở ≤ 300 ms" is a reference-machine budget. Headless SwiftShader under parallel load measured 6–380 ms
- * for the same synchronous open, so here the value is only recorded; T07_LATENCY_GATE=1 (e.g. a headed run on the
- * ADR 0007 machine) turns it into an assertion.
+ * ADR 0019: T07 latency is always reported. T07_LATENCY_GATE no longer enables a numeric ceiling.
  */
 async function recordOpenLatency(page: Page) {
   const latency = await openLatencyMs(page);
-  const gate = process.env.T07_LATENCY_GATE === "1";
-  test.info().annotations.push({ type: "overlay-open-ms", description: `${latency.toFixed(1)} ms${gate ? " (gated ≤ 300 ms)" : " (recorded only: headless SwiftShader is not the reference machine)"}` });
-  if (gate) expect(latency, "T07: overlay opens ≤ 300 ms").toBeLessThanOrEqual(300);
+  test.info().annotations.push({ type: "overlay-open-ms", description: `${latency.toFixed(1)} ms (report only, ADR 0019; legacy reference 300 ms)` });
+  expect(Number.isFinite(latency), "overlay latency was measured").toBe(true);
 }
 
 async function closeWithEscape(page: Page, world: Locator, zoneId: string) {

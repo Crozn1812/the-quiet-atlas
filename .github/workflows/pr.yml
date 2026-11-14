@@ -45,6 +45,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Restore the last successful measurement; unique keys avoid an immutable stale baseline.
+      - name: Restore budget measurements
+        uses: actions/cache@v4
+        with:
+          path: test-results/budget-reports
+          key: budget-reports-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            budget-reports-${{ runner.os }}-${{ github.ref_name }}-
+            budget-reports-${{ runner.os }}-main-
+
       - name: Lint
         run: pnpm lint
 
@@ -57,11 +67,11 @@ jobs:
       - name: Build (static export)
         run: pnpm build
 
-      - name: Check bundle (no 3D before Enter World, §8 budgets)
+      - name: Check bundle (0 pre-entry 3D; bytes report only, ADR 0019)
         run: node tools/check-bundle/index.mjs out
 
-      # B2-022 — §7.3/§8: ngân sách từng asset world + tổng ≤ 30 MB, nhóm start ≤ 8 MB (public/world rỗng → PASS kèm ghi chú).
-      - name: Check world asset budgets
+      # ADR 0019: bytes/triangles are reports; unreadable assets still fail before deployment.
+      - name: Report world assets and check integrity
         run: pnpm check:assets
 
       # L3-002 — §4.6 quét rò rỉ (luật riêng R1–R6) trên nội dung nguồn + artifact build.
@@ -101,10 +111,8 @@ jobs:
       - name: E2E (Playwright + axe-core)
         run: pnpm exec playwright test
 
-      # L3-004 — §8 / Q18 cold-cache load budget: 3 cold loads, CDP 10 Mbps / RTT 100 ms, gzip like CloudFront,
-      # gate on the worst run. Runner = bundled Chromium + SwiftShader, NOT the ADR 0007 reference machine:
-      # byte gates are machine-independent; time-to-playable here is a regression signal, not the T08 result.
-      - name: Load budget trace (§8, Q18)
+      # ADR 0019: keep the method, report bytes/time, gate functional invariants including zero pre-entry 3D.
+      - name: Load measurements and functional gates (ADR 0019)
         run: pnpm exec playwright test -c tests/perf/playwright.perf.config.ts
 
       # L3-004 — Lighthouse CI (§8 Quick web UX, lab): LCP ≤ 2.5 s, CLS ≤ 0.1, TBT ≤ 200 ms as lab proxy for INP;
@@ -119,8 +127,12 @@ jobs:
           "$chrome" --version
           echo "CHROME_PATH=$chrome" >> "$GITHUB_ENV"
 
-      - name: Lighthouse CI (filesystem reports only)
-        run: pnpm exec lhci autorun
+      - name: Lighthouse CI (latency reports; CLS gate; filesystem only)
+        run: pnpm exec lhci autorun --config=tools/checks/lighthouserc.cjs
+
+      - name: Compare Lighthouse measurements
+        if: ${{ !cancelled() }}
+        run: node tools/checks/lighthouse-report.mjs
 
       # Đợt 11: log job cần đăng nhập — đưa từng assertion lỗi + số đo ra annotation (đọc công khai được).
       # ADR 0011: gate theo trung vị 5 lần, nên bước này chạy MỌI lần để lần xấu nhất luôn hiện ra.
@@ -134,7 +146,8 @@ jobs:
           for (const a of JSON.parse(fs.readFileSync(p, "utf8"))) {
             if (a.passed) continue;
             const url = (a.url || "").replace(/^https?:\/\/[^/]+/, "");
-            console.log(`::error title=lhci ${a.auditId}::${url} ${a.auditProperty || ""} ${a.operator} ${a.expected}, found ${Math.round(a.actual * 1000) / 1000} (values ${(a.values || []).map(v => Math.round(v)).join("/")})`);
+            const level = ["largest-contentful-paint", "total-blocking-time", "categories:accessibility"].includes(a.auditId) ? "warning" : "error";
+            console.log(`::${level} title=lhci ${a.auditId}::${url} ${a.auditProperty || ""} ${a.operator} ${a.expected}, found ${Math.round(a.actual * 1000) / 1000} (values ${(a.values || []).map(v => Math.round(v)).join("/")})`);
           }
           for (const f of fs.readdirSync(".lighthouseci").filter(f => f.startsWith("lhr-") && f.endsWith(".json"))) {
             const r = JSON.parse(fs.readFileSync(".lighthouseci/" + f, "utf8")); const a = r.audits;
@@ -150,6 +163,7 @@ jobs:
         with:
           name: perf-reports
           path: |
+            test-results/budget-reports/
             test-results/load-budget/
             test-results/lhci/
             .lighthouseci/

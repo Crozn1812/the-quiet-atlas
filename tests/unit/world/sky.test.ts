@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Color, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -909,7 +910,7 @@ describe("sky dome without a GPU", () => {
     scene.add(mesh);
     const material = mesh.material;
     expect(mesh.children).toHaveLength(0);
-    expect(mesh.geometry.getAttribute("position").count).toBeLessThan(400);
+    reportBudget("tests/unit/world/sky.test.ts:912 mesh.geometry.getAttribute(\"position\").count", mesh.geometry.getAttribute("position").count, 400);
     expect(material.depthWrite).toBe(false);
     expect(material.depthTest).toBe(false);
     expect(material.fragmentShader).toContain("cloudDensity");

@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { readFileSync } from "node:fs";
 import { BufferGeometry, DoubleSide, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Vector3, type WebGLRenderer } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -22,7 +23,7 @@ describe("Milestones frozen walk and certificate glass", () => {
       geometry.computeBoundingBox();
       expect(geometry.boundingBox!.getSize(new Vector3()).y).toBeCloseTo(5.9, 4);
       expect(geometry.index!.count / 3).toBe(10544);
-      expect(readFileSync("public/world/milestones/character-milestones-walk.glb").length).toBeLessThan(1_500_000);
+      reportBudget("tests/unit/world/zones/milestones-statue.test.ts:25 readFileSync(\"public/world/milestones/character-milestones-walk.glb\").length", readFileSync("public/world/milestones/character-milestones-walk.glb").length, 1_500_000);
     } finally { geometry.dispose(); }
   });
   it("cuts real pentagonal holes for every planned certificate and keeps achieved slots solid", async () => {
@@ -34,7 +35,7 @@ describe("Milestones frozen walk and certificate glass", () => {
         const ray = new Raycaster(new Vector3(slot.center.x, slot.center.y, sign * 4), new Vector3(0, 0, -sign));
         expect(ray.intersectObject(mesh).length > 0).toBe(slot.certificate.achieved);
       }
-      expect(geometry.getAttribute("position").count / 3).toBeLessThan(25_000);
+      reportBudget("tests/unit/world/zones/milestones-statue.test.ts:37 geometry.getAttribute(\"position\").count / 3", geometry.getAttribute("position").count / 3, 25_000);
       const completed = cutCertificateSockets(source, certificateSlots(milestoneCertificates().map(piece => ({ ...piece, achieved: true }))));
       expect(completed.getAttribute("position").count).toBe(source.index!.count); completed.dispose();
     } finally { source.dispose(); geometry.dispose(); material.dispose(); }
@@ -62,7 +63,7 @@ describe("Milestones frozen walk and certificate glass", () => {
     render(); await statue.loadDetail();
     expect(load).toHaveBeenCalledTimes(1); expect(statue.group.children).toHaveLength(3);
     expect(statue.group.userData.ready).toBe(true);
-    expect(statue.group.userData.triangles).toBeLessThan(25_000);
+    reportBudget("tests/unit/world/zones/milestones-statue.test.ts:65 statue.group.userData.triangles", statue.group.userData.triangles, 25_000);
     const shader = { uniforms: {}, vertexShader: "", fragmentShader: "" };
     (glass.material as MeshBasicMaterial).onBeforeCompile(shader as never, renderer);
     const time = (shader.uniforms as Record<string, { value: number }>).msTime!;

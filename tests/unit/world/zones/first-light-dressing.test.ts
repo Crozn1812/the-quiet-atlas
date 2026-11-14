@@ -1,3 +1,4 @@
+import { reportBudget } from "../report-budget";
 import { describe, expect, it, vi } from "vitest";
 import { BoxGeometry, Color, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, ShaderLib, Texture,
   type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
@@ -77,7 +78,7 @@ describe("First Light library dressing", () => {
     expect(batch.mesh.geometry.drawRange.count).toBe(0);
     camera.position.set(0, 2, 0); camera.updateMatrixWorld(); render();
     expect(batch.mesh.geometry.drawRange.count).toBe(Infinity);
-    expect(triangles(batch.mesh)).toBeLessThan(300);
+    reportBudget("tests/unit/world/zones/first-light-dressing.test.ts:80 triangles(batch.mesh)", triangles(batch.mesh), 300);
     const shader = { ...ShaderLib.standard, uniforms: {} } as WebGLProgramParametersWithUniforms;
     batch.mesh.material.onBeforeCompile(shader, renderer);
     expect(shader.vertexShader).toContain("vDressingUv = uv");

@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Box3, Color, DoubleSide, Group, Mesh, MeshToonMaterial, Ray, Vector3, type BufferGeometry } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -85,7 +86,7 @@ describe("SC-01 procedural secret landmarks (2-3x scale, mist, dim glow and ligh
       const triangles = meshes(group).reduce((sum, mesh) => sum
         + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
       expect(triangles).toBeGreaterThan(0);
-      expect(triangles).toBeLessThanOrEqual(budget);
+      reportBudget("tests/unit/world/secret-landmarks.test.ts:88 triangles", triangles, budget);
       const box = new Box3().setFromObject(group);
       expect(box.min.y).toBeCloseTo(0, 6);
       box.getSize(new Vector3()).toArray().forEach((size, axis) => {

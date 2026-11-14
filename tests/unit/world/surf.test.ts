@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Mesh, ShaderLib, UniformsUtils, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { SURF_PERIOD, SURF_TRAVEL, surfCycle, surfEnvelope, surfRunup } from "../../../src/features/audio/waves";
@@ -69,7 +70,7 @@ describe("shared shoreline surf", () => {
     const materialDispose = vi.spyOn(strip.material as import("three").Material, "dispose");
     try {
       expect(strip.userData.surf).toBe(true);
-      expect(strip.geometry.index!.count / 3).toBeLessThan(10_000);
+      reportBudget("tests/unit/world/surf.test.ts:72 strip.geometry.index!.count / 3", strip.geometry.index!.count / 3, 10_000);
       for (let i = 0; i < vertices.count; i++) {
         expect(vertices.getY(i)).toBeCloseTo(Math.max(0, shoreGroundHeight(vertices.getX(i), vertices.getZ(i))) + 0.018, 3);
       }

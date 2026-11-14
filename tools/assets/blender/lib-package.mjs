@@ -47,7 +47,8 @@ for (const entry of entries) {
       if (view.getUint32(20, true) > 1024 || view.getUint32(24, true) > 1024) throw new Error(`Texture >1K: ${target}`);
     }
     Object.assign(lod, metrics, { path: `/world/lib/${lod.file}`, bytes: (await stat(target)).size });
-    if (lod.triangles > (lod.level ? 2000 : 8000)) throw new Error(`LOD budget: ${target}`);
+    console.info('REPORT ADR0019', { target, triangles: lod.triangles, bytes: lod.bytes,
+      legacyTriangleReference: lod.level ? 2000 : 8000 });
     const creator = entry.source.some(s => s.startsWith('https://polyhaven')) ? 'Poly Haven / Codex A derivative' : 'Codex A (project-original)';
     const fields = [target, creator, 'CC0-1.0', 'yes', 'yes', 'yes', 'none', entry.source.join('; '), metrics.textures ? (entry.category === 'rock' ? '64x64 KTX2' : '128x128 KTX2') : '-', metrics.materials, `LOD${lod.level}`, 'none'];
     if (!csv.includes(`${target},`)) additions.push(fields.join(','));

@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Box3, type BufferGeometry, Color, DoubleSide, InstancedMesh, Mesh, MeshBasicMaterial, Raycaster, Scene, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -93,7 +94,7 @@ describe("Da Lat pine V2", () => {
         expect(bounds.max.y - bounds.min.y).toBeLessThanOrEqual(legacyHeight * 1.05);
         expect(bounds.min.y).toBe(-TRUNK_HEIGHT);
         expect(bounds.max.y + TRUNK_HEIGHT).toBeCloseTo(height, 5);
-        expect(triangles(geometry) + triangles(trunk)).toBeLessThanOrEqual(600);
+        reportBudget("tests/unit/world/pine.test.ts:96 triangles(geometry) + triangles(trunk)", triangles(geometry) + triangles(trunk), 600);
         expect(geometry.groups).toHaveLength(0);
         expect(Object.keys(geometry.attributes).sort()).toEqual(["color", "normal", "position", "surface"]);
         expect(geometry.boundingSphere!.radius).toBeGreaterThan(0);
@@ -261,7 +262,7 @@ describe("Da Lat pine V2", () => {
           expect(Array.from(first.getAttribute(name).array)).toEqual(Array.from(second.getAttribute(name).array));
         }
         expect(Array.from(first.index!.array)).toEqual(Array.from(second.index!.array));
-        expect(triangles(first) + 42).toBeLessThanOrEqual(600);
+        reportBudget("tests/unit/world/pine.test.ts:264 triangles(first) + 42", triangles(first) + 42, 600);
         if (PINE_VARIANT_SEEDS.includes(seed as typeof PINE_VARIANT_SEEDS[number])) {
           silhouettes.add(JSON.stringify(Array.from(first.getAttribute("position").array)));
         }
@@ -283,7 +284,7 @@ describe("Da Lat pine V2", () => {
       return samples.sort((a, b) => a - b)[Math.floor(samples.length / 2)]!;
     };
     const before = medianTime(createPineCrown), after = medianTime(createPineCrownV2);
-    expect(after - before).toBeLessThanOrEqual(20);
+    reportBudget("tests/unit/world/pine.test.ts:286 after - before", after - before, 20);
     process.stdout.write(`B2-191 construction median: ${before.toFixed(3)} -> ${after.toFixed(3)} ms\n`);
   });
 
@@ -318,7 +319,7 @@ describe("Da Lat pine V2", () => {
         }
         const before = after - delta + groundSaving;
         reports.push(`t=${t}: ${before} -> ${after}`);
-        expect(after, reports.join("; ")).toBeLessThanOrEqual(before * 1.25);
+        reportBudget("tests/unit/world/pine.test.ts:321 after", after, before * 1.25);
       }
       expect(affectedInstances).toBeGreaterThan(0);
       process.stdout.write(`B2-194 High streamed scene (same submitted instances, colour pass, unchanged trunks/broadleaves): ${reports.join("; ")}\n`);

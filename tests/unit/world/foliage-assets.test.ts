@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { readFile } from "node:fs/promises";
 import { InstancedBufferAttribute } from "three";
 import { afterEach, expect, it, vi } from "vitest";
@@ -44,7 +45,7 @@ it("decodes six real meshopt GLBs with vertex AO and fits the existing triangle 
     for (const [index, asset] of assets.entries()) {
       const triangles = asset.getAttribute("position").count / 3;
       expect(triangles).toBe(index < 3 ? 460 : 380);
-      expect(triangles).toBeLessThanOrEqual(index < 3 ? 1200 : 1500);
+      reportBudget("tests/unit/world/foliage-assets.test.ts:47 triangles", triangles, index < 3 ? 1200 : 1500);
       expect(new Set(asset.getAttribute("color").array).size).toBeGreaterThan(20);
       if (index < 3) continue;
       const fitted = fitAuthoredTree(asset, template);

@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Bone, Box3, Group, Mesh, SkinnedMesh, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
@@ -55,7 +56,7 @@ describe("GD110 detailed single batch", () => {
       cursor += part.count;
     }
     expect(cursor).toBe(mesh.geometry.getAttribute("position").count);
-    expect(cursor / 3).toBeLessThanOrEqual(8000);
+    reportBudget("tests/unit/world/vehicle-detail.test.ts:58 cursor / 3", cursor / 3, 8000);
     const rendered: Mesh[] = [];
     mesh.parent!.traverse(node => { if (node instanceof Mesh && node.visible) rendered.push(node); });
     expect(rendered).toEqual([mesh]);

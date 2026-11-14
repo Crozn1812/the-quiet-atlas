@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { readFile } from "node:fs/promises";
 import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
@@ -106,9 +107,9 @@ describe("G-03 original meshopt assets", () => {
         if (name.startsWith("rock")) shapes.add(JSON.stringify(Array.from(positions.getArray()!)));
       }
       expect(triangles).toBe(budget.triangles);
-      expect(triangles).toBeLessThanOrEqual(name.startsWith("rock-small") ? 200 : name.startsWith("rock") ? 400 : 600);
+      reportBudget("tests/unit/world/detailed-props.test.ts:109 triangles", triangles, name.startsWith("rock-small") ? 200 : name.startsWith("rock") ? 400 : 600);
       expect(buffer.byteLength).toBe(budget.bytes);
-      expect(buffer.byteLength).toBeLessThanOrEqual(name.startsWith("rock") ? 20_000 : 80_000);
+      reportBudget("tests/unit/world/detailed-props.test.ts:111 buffer.byteLength", buffer.byteLength, name.startsWith("rock") ? 20_000 : 80_000);
       expect(licenses).toContain(`public/world/props/${name}.glb,`);
     }
     expect(shapes.size).toBe(4);
@@ -146,7 +147,7 @@ describe("zone batch upgrades", () => {
         zone.group.traverse(object => {
           if (object instanceof Mesh) triangles += object.geometry.getAttribute("position").count / 3;
         });
-        expect(triangles).toBeLessThanOrEqual(6000);
+        reportBudget("tests/unit/world/detailed-props.test.ts:149 triangles", triangles, 6000);
       }
     } finally { zones.forEach(zone => zone.dispose()); spy.mockRestore(); }
   });
@@ -265,7 +266,7 @@ describe("deferred ground batches", () => {
     for (const child of ground.group.children as InstancedMesh[]) {
       triangles += child.count * child.geometry.getAttribute("position").count / 3;
     }
-    expect(triangles).toBeLessThanOrEqual(GROUND_TRIANGLE_LIMIT);
+    reportBudget("tests/unit/world/detailed-props.test.ts:268 triangles", triangles, GROUND_TRIANGLE_LIMIT);
     const variants = batch.geometry.getAttribute("groundVariant");
     expect(Array.from({ length: batch.count }, (_, i) => variants.getX(i))).toContain(2);
     ground.setQuality("Low");

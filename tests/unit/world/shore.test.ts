@@ -1,3 +1,4 @@
+import { reportBudget } from "./report-budget";
 import { Color, InstancedMesh, Matrix4, Mesh, Vector3 } from "three";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -155,7 +156,7 @@ describe("shore rendering and lifecycle", () => {
             * (object instanceof InstancedMesh ? object.count : 1);
         });
         const before = after - newShore + oldShore;
-        expect(after).toBeLessThanOrEqual(before * 1.25);
+        reportBudget("tests/unit/world/shore.test.ts:158 after", after, before * 1.25);
         console.info(`High world t=${t}: ${before} -> ${after} triangles; shore ${oldShore} -> ${newShore} (legacy rock comparison).`);
       }
     } finally { composed.dispose(); dressing.dispose(); zones.forEach(zone => zone.dispose()); far.dispose(); }
@@ -179,8 +180,8 @@ describe("shore rendering and lifecycle", () => {
     expect(shore.budget).toEqual({ triangles, drawCalls: meshes });
     expect(nonEmptyMeshes).toBe(2);
     expect(meshes).toBe(2);
-    expect(meshes).toBeLessThanOrEqual(SHORE_BUDGET.drawCalls);
-    expect(triangles).toBeLessThanOrEqual(SHORE_BUDGET.triangles);
+    reportBudget("tests/unit/world/shore.test.ts:182 meshes", meshes, SHORE_BUDGET.drawCalls);
+    reportBudget("tests/unit/world/shore.test.ts:183 triangles", triangles, SHORE_BUDGET.triangles);
     expect(triangles).toBeGreaterThan(15_000);
     console.info(`Shore budget: ${meshes} mesh slots, ${nonEmptyMeshes} non-empty meshes, ${triangles} triangles; ${layout.pebbles.length} pebbles, ${layout.boulders.length} boulders, ${layout.cairns.length} cairns.`);
   });
