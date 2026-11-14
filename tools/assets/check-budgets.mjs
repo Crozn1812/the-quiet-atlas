@@ -37,9 +37,9 @@ export async function checkBudgets(directory = 'public/world') {
         catch (error) { report.errors.push(`${relative}: cannot read KTX2: ${error.message}`); }
       }
       if (path.extname(entry.name).toLowerCase() !== '.glb') continue;
-      const match = /^(tree|rock|prop|character|vehicle)-([a-z0-9]+(?:-[a-z0-9]+)*)\.glb$/i.exec(entry.name);
+      const match = /^(?:hr-)?(tree|rock|cliff|prop|character|vehicle)-([a-z0-9]+(?:-[a-z0-9]+)*)\.glb$/i.exec(entry.name);
       if (!match) {
-        report.errors.push(`${relative}: expected <type>-<name>.glb; type must be tree, rock, prop, character, or vehicle.`);
+        report.errors.push(`${relative}: expected <type>-<name>.glb; type must be tree, rock, cliff, prop, character, or vehicle (optional hr- prefix).`);
         continue;
       }
       try {
@@ -49,7 +49,7 @@ export async function checkBudgets(directory = 'public/world') {
           if (texture.getMimeType() === 'image/ktx2') validateKtx2(Buffer.from(texture.getImage()));
         }
         const { triangles } = statistics(document);
-        const budget = budgets.types[type];
+        const budget = budgets.types[type === 'cliff' ? 'rock' : type];
         report.assets.push({ file: relative, type, triangles, bytes });
         report.comparisons.push({ file: relative, triangles, bytes, legacyReference: budget });
       } catch (error) {

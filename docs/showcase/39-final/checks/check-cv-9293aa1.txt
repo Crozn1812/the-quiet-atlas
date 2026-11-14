@@ -1,0 +1,4 @@
+$ node tools/cv/verify.mjs && node tools/cv/check-output.mjs
+en: extracted Nguyen Huu Bao Duy; metadata verified; 49400 bytes
+vi: extracted Nguyễn Hữu Bảo Duy; metadata verified; 56841 bytes
+Quick contact CV links, CV bilingual downloads, no-JS fallback, OG dimensions: verified

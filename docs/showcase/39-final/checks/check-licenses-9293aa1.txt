@@ -1,0 +1,4 @@
+$ node tools/check-licenses/index.mjs
+check-licenses (§7.3) — public files: 148 (excluding .gitkeep)
+
+RESULT: PASS

@@ -1,0 +1,13 @@
+$ node tools/check-bundle/index.mjs out
+{"mode":"report-only","measuredAt":"2026-11-14T12:28:34.429Z","previousAt":null,"metrics":{"index.html:jsGzip":137595,"index.html:total":143592,"en/index.html:jsGzip":137862,"en/index.html:total":200790,"vi/index.html:jsGzip":137862,"vi/index.html:total":201010,"en/quick/index.html:jsGzip":134174,"en/quick/index.html:total":162652,"vi/quick/index.html:jsGzip":134174,"vi/quick/index.html:total":163010,"404.html:jsGzip":137615,"404.html:total":143142},"delta":{"index.html:jsGzip":null,"index.html:total":null,"en/index.html:jsGzip":null,"en/index.html:total":null,"vi/index.html:jsGzip":null,"vi/index.html:total":null,"en/quick/index.html:jsGzip":null,"en/quick/index.html:total":null,"vi/quick/index.html:jsGzip":null,"vi/quick/index.html:total":null,"404.html:jsGzip":null,"404.html:total":null}}
+check-bundle — report-only; legacy references: JS 150.0 KB gzip, total 1024.0 KB; marker __TQA_WORLD_CHUNK__
+| Page                | HTML gz | JS files | JS gzip  | Total    | Status |
+|---------------------|---------|----------|----------|----------|--------|
+| index.html          | 2.0 KB  | 6        | 134.4 KB | 140.2 KB | PASS   |
+| en/index.html       | 3.8 KB  | 5        | 134.6 KB | 196.1 KB | PASS   |
+| vi/index.html       | 4.0 KB  | 5        | 134.6 KB | 196.3 KB | PASS   |
+| en/quick/index.html | 5.3 KB  | 4        | 131.0 KB | 158.8 KB | PASS   |
+| vi/quick/index.html | 5.6 KB  | 4        | 131.0 KB | 159.2 KB | PASS   |
+| 404.html            | 1.5 KB  | 6        | 134.4 KB | 139.8 KB | PASS   |
+
+RESULT: PASS
