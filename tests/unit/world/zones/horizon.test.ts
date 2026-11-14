@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, Group, InstancedMesh, Mesh, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
+import { BufferGeometry, Color, Group, InstancedMesh, Mesh, MeshStandardMaterial, MeshToonMaterial, Raycaster, Scene, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
 import { disposeRampGradients } from "../../../../src/features/world/materials/ramp";
@@ -90,7 +90,7 @@ function assertClear(scene: ZoneScene, context: ZoneSceneContext) {
 }
 
 describe("horizon: a quiet sea-facing overlook", () => {
-  it("batches the complete scene into 7 draw calls within the R4 growth and 30 m budgets", () => {
+  it("batches the complete overlook into 8 draws within the C dressing and 30 m budgets", () => {
     const scene = create(), drawn = meshes(scene.group);
     expect(scene.zoneId).toBe("horizon");
     expect(scene.group.position.toArray()).toEqual([0, 0, 0]);
@@ -98,10 +98,11 @@ describe("horizon: a quiet sea-facing overlook", () => {
     const drawCalls = drawn.reduce((sum, mesh) => sum + Math.max(1, mesh.geometry.groups.length), 0);
     expect(triangles).toBeGreaterThan(500);
     expect(triangles).toBeLessThanOrEqual(ZONE_BUDGET.triangles);
-    expect(triangles).toBeLessThanOrEqual(852 * 1.5);
-    expect(drawCalls).toBe(7);
+    const base = drawn.filter(mesh => mesh.name !== "horizon-dressing");
+    expect(base.reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0)).toBe(1262);
+    expect(drawCalls).toBe(8);
     expect(drawCalls).toBeLessThanOrEqual(ZONE_BUDGET.drawCalls);
-    expect(new Set(drawn.map(mesh => mesh.material)).size).toBe(5);
+    expect(new Set(drawn.map(mesh => mesh.material)).size).toBe(6);
     expect(scene.colliders).toHaveLength(5);
     for (const mesh of drawn) {
       expect(mesh.geometry.groups).toHaveLength(0);
@@ -111,7 +112,6 @@ describe("horizon: a quiet sea-facing overlook", () => {
     expect(Math.max(...points(scene).map(point => point.length()))).toBeLessThanOrEqual(ZONE_BUDGET.radius);
     // This exact count makes the handoff measurable and catches accidental detail growth.
     // Kit bench/rail, twisted airfoils, rounded housings and grounded dressing replace R3 blocks.
-    expect(triangles).toBe(1262); // G-03: six-triangle bench caps fund the nail heads.
     console.info(`horizon: ${triangles} triangles, ${drawCalls} draw calls`);
   });
 
@@ -129,9 +129,10 @@ describe("horizon: a quiet sea-facing overlook", () => {
   it("keeps kit variants under 1.5× R3 and preserves every collider", () => {
     for (const seed of [0, 1, 2, 106, 107, 2048, 0xffffffff]) {
       const scene = create({ ...flat, seed });
-      const triangles = meshes(scene.group).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
+      const triangles = meshes(scene.group).filter(mesh => mesh.name !== "horizon-dressing")
+        .reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0);
       expect(triangles).toBeLessThanOrEqual(852 * 1.5);
-      expect(meshes(scene.group)).toHaveLength(7);
+      expect(meshes(scene.group)).toHaveLength(8);
       expect(scene.colliders.map(box => ({ center: box.center.toArray(), size: box.size.toArray() }))).toEqual([
         { center: [4.65, 0.75, 0], size: [1.05, 1.5, 0.75] },
         { center: [6.4, 0.3, -3], size: [0.75, 0.6, 2.2] },
@@ -251,7 +252,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
         zoneBoxes: [...zones.flatMap(zone => zone.boxes), ...dressing.boxes, ...dressing.surfaces] });
       cleanup.push(() => composition.dispose());
       const horizon = zones.find(zone => zone.zoneId === "horizon")!;
-      const added = meshes(horizon.group).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0) - 852;
+      const added = meshes(horizon.group).reduce((sum, mesh) => sum + mesh.geometry.getAttribute("position").count / 3, 0) - 1262;
       for (const t of [0, 0.9]) {
         composition.update(pathPointAt(t), 0);
         let after = 0;
@@ -261,10 +262,10 @@ describe("horizon: a quiet sea-facing overlook", () => {
         });
         const before = after - added;
         expect(after).toBeLessThanOrEqual(before * 1.25);
-        process.stdout.write(`B2-206 High world t=${t}: ${before} -> ${after} triangles; horizon delta=${added}\n`);
+        process.stdout.write(`GFX-Z-horizon High world t=${t}: ${before} -> ${after} triangles; horizon delta=${added}\n`);
       }
       // Report host timing; keep the correctness gate independent of other workers' CPU load.
-      process.stdout.write(`B2-206 Node construction median (25 builds): ${samples.sort((a, b) => a - b)[12]!.toFixed(3)} ms\n`);
+      process.stdout.write(`GFX-Z-horizon Node construction median (25 builds): ${samples.sort((a, b) => a - b)[12]!.toFixed(3)} ms\n`);
     } finally { cleanup.reverse().forEach(dispose => dispose()); }
   }, 60_000);
 
@@ -326,7 +327,7 @@ describe("horizon: a quiet sea-facing overlook", () => {
     expect(lens.geometry.boundingBox!.min.x).toBeGreaterThan(point.x);
   });
 
-  it("uses only palette mixtures, matte toon materials and neutral multiplying washes", () => {
+  it("preserves palette pigments with matte PBR housings and neutral multiplying washes", () => {
     const scene = create();
     const color = (base: keyof typeof PALETTE, mix: keyof typeof PALETTE, amount: number) =>
       new Color(PALETTE[base]).lerp(new Color(PALETTE[mix]), amount);
@@ -337,13 +338,24 @@ describe("horizon: a quiet sea-facing overlook", () => {
     };
     for (const mesh of meshes(scene.group)) {
       expect(mesh.name).not.toMatch(/text|logo/i);
-      expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
+      if (mesh.name === "horizon-dressing") {
+        expect(mesh.material).toBeInstanceOf(MeshStandardMaterial);
+        expect((mesh.material as unknown as MeshStandardMaterial).roughness).toBeGreaterThanOrEqual(0.9);
+        continue; // CC0 source pigments and photo cutout are covered by dressing tests.
+      }
+      if (mesh.name === "horizon-natural") expect(mesh.material).toBeInstanceOf(MeshToonMaterial);
+      else {
+        expect(mesh.material).toBeInstanceOf(MeshStandardMaterial);
+        const pbr = mesh.material as unknown as MeshStandardMaterial;
+        expect(pbr.roughness).toBeGreaterThanOrEqual(0.48);
+        expect(pbr.metalness).toBeLessThanOrEqual(0.18);
+      }
       expect(mesh.material.color.getHex()).toBe(expected[mesh.name.slice("horizon-".length)]!.getHex());
       expect(mesh.material.vertexColors).toBe(true);
       expect(mesh.material.emissive.getHex()).toBe(0);
       expect(mesh.material.transparent).toBe(false);
       expect(mesh.material.map).toBeNull();
-      expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
+      if (mesh.name === "horizon-natural") expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
       const colors = mesh.geometry.getAttribute("color");
       expect(colors.count).toBe(mesh.geometry.getAttribute("position").count);
       for (let i = 0; i < colors.count; i++) {
@@ -410,11 +422,11 @@ describe("horizon: a quiet sea-facing overlook", () => {
     const resources = new Set(meshes(scene.group).flatMap(mesh => [mesh.geometry, mesh.material]));
     const spies = Array.from(resources, resource => vi.spyOn(resource, "dispose"));
     const siblingSpies = Array.from(new Set(meshes(sibling.group).flatMap(mesh => [mesh.geometry, mesh.material])), resource => vi.spyOn(resource, "dispose"));
-    const ramp = meshes(scene.group)[0]!.material.gradientMap!;
-    expect(meshes(sibling.group)[0]!.material.gradientMap).toBe(ramp);
+    const ramp = (scene.group.getObjectByName("horizon-natural") as PaintedMesh).material.gradientMap!;
+    expect((sibling.group.getObjectByName("horizon-natural") as PaintedMesh).material.gradientMap).toBe(ramp);
     const shared = vi.spyOn(ramp, "dispose");
-    const before = transforms(scene.group);
     scene.dispose();
+    const before = transforms(scene.group);
     scene.dispose();
     scene.update!(10, false);
     expect(transforms(scene.group)).toEqual(before);

@@ -1,6 +1,6 @@
 import {
   Box3, BufferGeometry, CircleGeometry, Color, CylinderGeometry, Float32BufferAttribute,
-  Group, Matrix4, Mesh, Quaternion, Ray, Vector3, type MeshToonMaterial,
+  Group, Matrix4, Mesh, MeshStandardMaterial, Quaternion, Ray, Vector3, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { HORIZON_BENCH_COPY } from "../../../i18n/railing";
@@ -17,12 +17,13 @@ import { HEIGHT } from "../scene";
 import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt } from "../terrain/height";
 import { nearestPath } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
+import { createHorizonDressing } from "./horizon-dressing";
 
 type Surface = "natural" | "paint" | "white" | "iron" | "lens";
 type Point = readonly [number, number, number];
 type Site = readonly [number, number];
 
-function pigment(surface: Surface): MeshToonMaterial {
+function pigment(surface: Surface): MeshToonMaterial | MeshStandardMaterial {
   const material = createPropMaterial("paper");
   switch (surface) {
     // Kit geometry already carries linear-space palette pigments: avoid tinting twice.
@@ -32,7 +33,14 @@ function pigment(surface: Surface): MeshToonMaterial {
     case "iron": material.color.set(PALETTE.rockDark).lerp(new Color(PALETTE.ink), 0.32); break;
     case "lens": material.color.set(PALETTE.seaDeep); break;
   }
-  return material;
+  if (surface === "natural") return material;
+  // Weathered painted housings, matte iron and dark glass respond to P1's IBL.
+  // These manufactured surfaces retain their pigments without a stone/bark photo.
+  const pbr = new MeshStandardMaterial({ color: material.color, vertexColors: true,
+    roughness: surface === "lens" ? 0.48 : surface === "iron" ? 0.86 : 0.94,
+    metalness: surface === "iron" ? 0.18 : 0 });
+  material.dispose();
+  return pbr;
 }
 
 /** Six-sided elliptical rings soften both ends of the nacelle (48 triangles). */
@@ -169,7 +177,7 @@ function builder(root: Group, context: ZoneSceneContext) {
       surfaces.set(surface, parts);
     },
     finish() {
-      const geometries: BufferGeometry[] = [], materials = new Map<Surface, MeshToonMaterial>();
+      const geometries: BufferGeometry[] = [], materials = new Map<Surface, MeshToonMaterial | MeshStandardMaterial>();
       const releaseDetails: (() => void)[] = [];
       for (const [parent, surfaces] of batches) {
         for (const [surface, parts] of surfaces) {
@@ -336,6 +344,8 @@ export const createHorizonScene: ZoneSceneFactory = context => {
     collider([x, z], [0.62, height + 0.25, 0.62]);
   });
   const dispose = build.finish();
+  const dressing = createHorizonDressing(context, { viewer, bench, rail }, colliders);
+  if (dressing) group.add(dressing.mesh);
   // The target lies in the gap between the two tubes. Preserve click ownership after removing
   // the grass disc by picking the existing viewer collider, without an invisible mesh or draw.
   const viewerBody = group.getObjectByName("horizon-iron") as Mesh;
@@ -366,6 +376,6 @@ export const createHorizonScene: ZoneSceneFactory = context => {
       if (reducedMotion || disposed || !Number.isFinite(dt) || dt <= 0) return;
       rotors.forEach((rotor, index) => { rotor.rotation.x = (rotor.rotation.x + dt * (0.085 + index * 0.008)) % (Math.PI * 2); });
     },
-    dispose() { if (!disposed) { disposed = true; dispose(); } },
+    dispose() { if (!disposed) { disposed = true; dressing?.dispose(); dispose(); } },
   };
 };
