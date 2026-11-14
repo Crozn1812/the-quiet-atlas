@@ -9,6 +9,7 @@ import { TELEPORT_TO_EVENT, TELEPORT_CANCEL_EVENT } from "../navigation/events";
 import { clampZoom, wrapYaw, springArm, ensureCameraBounds, filterCameraCandidates, INITIAL_ZOOM, CAMERA_CLEARANCE, KEY_YAW_SPEED, POINTER_YAW_SPEED, WHEEL_ZOOM_SPEED } from "./camera";
 import { springObstacleBounds } from "./terrain/spring";
 import { createFirstLightFish } from "./water/fish";
+import { createStreambed } from "./water/streambed";
 import { updateDawnShafts } from "./post/dawn-shafts";
 import { firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
@@ -238,6 +239,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let contextLost = false;
   const locomotion = createLocomotion(physics);
   const fish = createFirstLightFish(); scene.add(fish.group);
+  const streambed = createStreambed(gpu); scene.add(streambed.group); dressing.defer(streambed.build());
   const sun = composed.sun;
   gpu.shadowMap.enabled = sun.castShadow;
   // B2-045: rigged character (D-23) with Idle/Walk/Run; the loader falls back to the capsule on any failure.
@@ -1298,6 +1300,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     animator.update(animDt, vehicle.mode === "ride" || rider.transitioning || animDt === 0 ? 0 : moved < 2 ? moved / animDt : 0, (physics as { grounded?: boolean }).grounded ?? true);
     publishVehicle(vehicleDt);
     fish.update(animDt, reducedMotion, player.position, quality);
+    streambed.update(animDt, reducedMotion, player.position, quality);
     updateDawnShafts(animDt, reducedMotion);
     if (vehicleControls.dismountPending) getOffVehicle();
     let introFrame: IntroFrame | undefined;
@@ -1511,6 +1514,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     motionPreference?.removeEventListener("change", updateMotionPreference);
     dressing?.dispose();
     fish.dispose();
+    streambed.dispose();
     composed.dispose();
     zoneScenes?.dispose();
     removeDressingTrimeshes?.();
