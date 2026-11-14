@@ -4,6 +4,7 @@ import { installHrMaterial } from "../../../src/features/world/foliage/hr-materi
 import { bindHrForest, advanceHrTrees } from "../../../src/features/world/foliage/hr-runtime";
 import { chooseHrTrees, hrLeafTint, hrTreeLod, HR_TREE_IDS, treeRandom } from "../../../src/features/world/foliage/hr-variation";
 import { createHrVines, readHrParts, type HrAsset } from "../../../src/features/world/foliage/hr-library";
+import * as variation from "../../../src/features/world/foliage/hr-variation";
 
 const { acquire, release, assetDispose } = vi.hoisted(() => ({ acquire: vi.fn(), release: vi.fn(), assetDispose: vi.fn() }));
 vi.mock("../../../src/features/world/foliage/hr-library", async importOriginal => ({ ...await importOriginal<object>(), acquireHrTree: acquire }));
@@ -187,4 +188,32 @@ it("keeps a complete fallback on asset failure and uses hysteresis/culling for d
   finally { f.dispose(); }
   expect(hrTreeLod(10, true)).toBe(0); expect(hrTreeLod(24, true, 0)).toBe(0); expect(hrTreeLod(30, true, 0)).toBe(1);
   expect(hrTreeLod(72, true)).toBe(2); expect(hrTreeLod(61, true, 2)).toBe(2); expect(hrTreeLod(58, true, 2)).toBe(1); expect(hrTreeLod(210, true)).toBe(-1);
+});
+
+it("shares an architecture/LOD draw across source variants while retaining independent fades", async () => {
+  vi.useFakeTimers();
+  vi.spyOn(variation, "chooseHrTrees").mockImplementation(sites => sites.map(() => HR_TREE_IDS[0]));
+  const loaded = asset(); acquire.mockReturnValue({ ready: Promise.resolve(loaded), release });
+  const f = fixture(); f.binding.dispose();
+  const other = new InstancedMesh(new BoxGeometry(12, 18, 8).translate(0, 9, 0), new MeshStandardMaterial(), 1);
+  other.setMatrixAt(0, new Matrix4().makeTranslation(36, 1, 25));
+  other.geometry.setAttribute("crownAlpha", new InstancedBufferAttribute(new Float32Array([0.73]), 1));
+  f.scene.add(other); f.scene.updateMatrixWorld();
+  const binding = bindHrForest([f.mesh, other]);
+  try {
+    advanceHrTrees([f.mesh], 0.1, false); f.frame(); await vi.runAllTimersAsync(); f.frame();
+    expect(acquire).toHaveBeenCalledOnce();
+    const batches = f.scene.getObjectByName("hr-tree2-streamed")!.children.filter(child => child.name.endsWith("lod0"));
+    expect(batches).toHaveLength(1);
+    const replacement = batches[0]!.children[0] as InstancedMesh;
+    expect(replacement.count).toBe(2);
+    expect(replacement.geometry.getAttribute("hrFade").getX(0)).toBeCloseTo(0.37);
+    expect(replacement.geometry.getAttribute("hrFade").getX(1)).toBeCloseTo(0.73);
+    other.geometry.getAttribute("crownAlpha").setX(0, 0.91); f.frame();
+    expect(replacement.geometry.getAttribute("hrFade").getX(1)).toBeCloseTo(0.91);
+    binding.setQuality("Low"); expect(release).toHaveBeenCalledOnce();
+  } finally {
+    binding.dispose(); f.dispose(); other.dispose(); other.geometry.dispose(); other.material.dispose();
+    loaded.parts.forEach(part => { part.geometry.dispose(); part.material.dispose(); });
+  }
 });

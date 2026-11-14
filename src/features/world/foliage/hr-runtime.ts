@@ -45,7 +45,7 @@ export function advanceHrTrees(meshes: readonly Mesh[], dt: number, reducedMotio
   if (!reducedMotion && Number.isFinite(dt)) clock.x += Math.max(0, dt);
 }
 interface Site { x: number; z: number; source: InstancedMesh; index: number; matrix: Matrix4; bounds: Sphere; visible: boolean; id: HrTreeId; phase: number; tint: Color; level: number; canopy: boolean }
-interface Batch { group: Group; meshes: InstancedMesh[]; sites: Site[]; active: Site[]; fit: Matrix4; level: number }
+interface Batch { group: Group; meshes: InstancedMesh[]; sites: Site[]; active: Site[]; fits: Map<InstancedMesh, Matrix4>; level: number }
 
 /** Bind to the existing tile factories. The procedural forest remains playable
  * during streaming and is also the complete Low/network-failure path. */
@@ -131,25 +131,31 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
   function createBatch(asset: HrAsset, selected: Site[], level: number): Batch {
     maskFallbacks(); residencyDirty = true;
     const source = selected[0]!.source;
-    source.geometry.computeBoundingBox();
     const parts = options.canopyOnly ? asset.parts.filter(p => p.leaf && !p.vine) : asset.parts;
     const originalBounds = options.canopyOnly ? parts.reduce((b, p) => b.union(p.geometry.boundingBox!), new Box3()) : asset.bounds;
-    const target = source.geometry.boundingBox!, size = target.getSize(new Vector3()), old = originalBounds.getSize(new Vector3());
+    const old = originalBounds.getSize(new Vector3()), fits = new Map<InstancedMesh, Matrix4>();
     // Preserve the root at (0,0,0). Height and canopy spread follow the existing
     // approved envelope, retaining the FL-03 roof and physics root positions.
-    const fit = new Matrix4().makeScale(size.x / old.x, size.y / old.y, size.z / old.z);
     const id = selected[0]!.id;
-    if (!options.canopyOnly && (id.includes("dead") || id.includes("bamboo"))) {
-      const scale = size.y / old.y;
-      fit.makeScale(Math.min(size.x / old.x, scale), scale, Math.min(size.z / old.z, scale));
-    }
-    if (!options.canopyOnly && id.includes("fallen")) {
-      const scale = Math.min(size.x / old.x, size.z / old.z, 1.2);
-      fit.makeScale(scale, scale, scale);
-    }
-    if (options.canopyOnly) {
-      const center = target.getCenter(new Vector3()), origin = originalBounds.getCenter(new Vector3());
-      fit.premultiply(new Matrix4().makeTranslation(center.x, center.y, center.z)).multiply(new Matrix4().makeTranslation(-origin.x, -origin.y, -origin.z));
+    // A source variant changes only the instance fit, not the draw's geometry
+    // or material. Share one architecture/LOD batch across those variants.
+    for (const source of new Set(selected.map(site => site.source))) {
+      source.geometry.computeBoundingBox();
+      const target = source.geometry.boundingBox!, size = target.getSize(new Vector3());
+      const fit = new Matrix4().makeScale(size.x / old.x, size.y / old.y, size.z / old.z);
+      if (!options.canopyOnly && (id.includes("dead") || id.includes("bamboo"))) {
+        const scale = size.y / old.y;
+        fit.makeScale(Math.min(size.x / old.x, scale), scale, Math.min(size.z / old.z, scale));
+      }
+      if (!options.canopyOnly && id.includes("fallen")) {
+        const scale = Math.min(size.x / old.x, size.z / old.z, 1.2);
+        fit.makeScale(scale, scale, scale);
+      }
+      if (options.canopyOnly) {
+        const center = target.getCenter(new Vector3()), origin = originalBounds.getCenter(new Vector3());
+        fit.premultiply(new Matrix4().makeTranslation(center.x, center.y, center.z)).multiply(new Matrix4().makeTranslation(-origin.x, -origin.y, -origin.z));
+      }
+      fits.set(source, fit);
     }
     const batchGroup = new Group(); batchGroup.name = `${selected[0]!.id}-lod${level}`;
     const meshes = parts.map(part => {
@@ -182,10 +188,10 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       batchGroup.add(mesh); return mesh;
     });
     group.add(batchGroup);
-    return { group: batchGroup, meshes, sites: selected, active: [], fit, level };
+    return { group: batchGroup, meshes, sites: selected, active: [], fits, level };
   }
   function request(renderer: WebGLRenderer, selected: Site[], level: number) {
-    const key = `${fallbacks.indexOf(selected[0]!.source)}:${selected[0]!.id}:${level}`;
+    const key = `${selected[0]!.id}:${level}`;
     if (leases.has(key) || failed.has(key)) return;
     const generation = revision;
     const lease = acquireHrTree(renderer, selected[0]!.id, level); leases.set(key, lease);
@@ -230,9 +236,9 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
         // A roof is a crown slice, not a whole-tree billboard with a floating stem.
         if (options.canopyOnly && site.level === 2) site.level = 1;
         if (site.level < 0 || !site.visible) continue;
-        const key = `${fallbacks.indexOf(site.source)}:${site.id}:${site.level}`;
+        const key = `${site.id}:${site.level}`;
         let entry = pending.get(key);
-        if (!entry) { entry = { sites: sites.filter(s => s.source === site.source && s.id === site.id), level: site.level }; pending.set(key, entry); }
+        if (!entry) { entry = { sites: sites.filter(s => s.id === site.id), level: site.level }; pending.set(key, entry); }
       }
       // Yield to paint; the serial decoder queue requests only currently needed LODs.
       if (timer === undefined && [...pending.keys()].some(k => !leases.has(k) && !failed.has(k))) timer = setTimeout(() => {
@@ -248,7 +254,7 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       let faded = false;
       let count = 0;
       for (const site of active) {
-        if (changed) matrix.copy(site.matrix).multiply(batch.fit);
+        if (changed) matrix.copy(site.matrix).multiply(batch.fits.get(site.source)!);
         const fade = site.source.geometry.getAttribute("crownAlpha")?.getX(site.index) ?? 1;
         for (const mesh of batch.meshes) {
           if (changed) {

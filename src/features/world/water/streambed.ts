@@ -1,12 +1,13 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Mesh,
-  NoColorSpace, Object3D, PlaneGeometry, SRGBColorSpace, Vector3, type Material, type Texture, type WebGLRenderer } from "three";
+  NoColorSpace, Object3D, PlaneGeometry, Scene, SRGBColorSpace, Vector3, type Material, type Texture, type WebGLRenderer } from "three";
 import type { Quality } from "../terrain";
 import { PHOTO_TILE_SIZE, photoTextureUrls } from "../materials/cc0";
 import { createStreambedLayout, type BedItem, type BedReach } from "./streambed-layout";
 import { bedStoneColor, createBedFoamMaterial, createBedPlantMaterial, createBedStoneFallback, createBedStoneMaterial } from "./streambed-shader";
 import { roundBedStone } from "./streambed-geometry";
+import { createStreambedCuller, type StreambedCuller } from "./streambed-cull";
 
-interface Resident { group: Group; meshes: InstancedMesh[]; layout: BedReach; }
+interface Resident { group: Group; meshes: InstancedMesh[]; layout: BedReach; cullers: Map<InstancedMesh, StreambedCuller>; }
 
 /** Match the world's photo fallback on CPU rasterizers, even with High pinned. */
 export function streambedUsesLow(renderer: WebGLRenderer): boolean {
@@ -32,6 +33,7 @@ export function createStreambed(renderer: WebGLRenderer) {
   const transform = new Object3D(), tint = new Color();
 
   function clearResident(resident: Resident) {
+    for (const culler of resident.cullers.values()) culler.dispose();
     for (const mesh of resident.meshes) { mesh.dispose(); mesh.geometry.dispose(); }
     resident.group.removeFromParent(); resident.group.clear();
   }
@@ -126,10 +128,11 @@ export function createStreambed(renderer: WebGLRenderer) {
     // Leaves drift entirely on the GPU. Expand bounds for their full swept route.
     if (mode === 3 && mesh.boundingSphere) mesh.boundingSphere.radius += 0.5;
     resident.meshes.push(mesh); resident.group.add(mesh);
+    if (mode < 2) resident.cullers.set(mesh, createStreambedCuller(mesh));
   }
   function createReach(id: number) {
     const bed = layout!.reach(id), root = new Group(); root.position.copy(bed.center);
-    const resident: Resident = { group: root, meshes: [], layout: bed };
+    const resident: Resident = { group: root, meshes: [], layout: bed, cullers: new Map() };
     for (let variant = 0; variant < 8; variant++)
       batch(resident, "streambed-pebbles", rocks[Math.floor(variant / 2) * 3 + 1 + variant % 2]!, bed.pebbles.filter((_, i) => i % 8 === variant), 0);
     for (let variant = 0; variant < 4; variant++)
@@ -138,6 +141,9 @@ export function createStreambed(renderer: WebGLRenderer) {
     batch(resident, "streambed-leaves", planes[1]!, bed.leaves, 3);
     batch(resident, "streambed-foam", planes[2]!, bed.boulders, 4);
     residents.set(id, resident); group.add(root);
+    let owner = group.parent;
+    while (owner && !(owner instanceof Scene)) owner = owner.parent;
+    if (owner instanceof Scene) for (const culler of resident.cullers.values()) culler.register(owner);
     return resident;
   }
   // Explicit review opt-in, matching the world journey hook. ABBA never alters gameplay state.
@@ -185,6 +191,7 @@ export function createStreambed(renderer: WebGLRenderer) {
             const stone = mesh.name === "streambed-pebbles" || mesh.name === "streambed-boulders";
             mesh.visible = next !== "Low" || stone;
             mesh.count = Math.ceil(mesh.instanceMatrix.count * (next === "Low" && mesh.name === "streambed-pebbles" ? 0.25 : next === "Balanced" && mesh.name === "streambed-pebbles" ? 0.65 : 1));
+            resident.cullers.get(mesh)?.setLimit(mesh.count, next !== "Low");
           }
         } else if (distance < range && distance < nearest) { nearest = distance; candidate = id; }
       }

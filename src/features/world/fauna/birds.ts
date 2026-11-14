@@ -9,6 +9,13 @@ import { createBirdGeometry, createBirdMaterial } from "./geometry";
 import { createBirdAgent, stepBird, type BirdAgent } from "./flight";
 import { createBirdPerches } from "./perches";
 
+/** Preserve close anatomy; separate enter/leave distances avoid LOD chatter. */
+export function birdGeometryLod(distance: number, quality: Quality, coarse: boolean) {
+  if (quality === "Low") return true;
+  const near = quality === "High" ? 40 : 32;
+  return distance > near + (coarse ? 0 : 8);
+}
+
 /** Deferred, original geometry. One instanced batch per local flock, culled at 95 m. */
 export function createBirds(scene: Scene) {
   const group = new Group(); group.name = "hr-birds";
@@ -57,11 +64,12 @@ export function createBirds(scene: Scene) {
       const { mesh, agents, angles, flights } = batch;
       const center = agents[0]!.home;
       mesh.visible = Math.hypot(player.x - center.x, player.z - center.z) < (quality === "Low" ? 65 : 95);
-      mesh.geometry = quality === "Low" ? batch.low : batch.high;
       // Keep perch birds on Low, while reducing the airborne flock to three.
       let index = 0;
+      let nearest = Infinity;
       for (const [id, bird] of agents.entries()) {
         stepBird(bird, seconds, delta * (reduced ? 0.3 : 1), player);
+        nearest = Math.min(nearest, bird.position.distanceTo(player));
         if (!mesh.visible || quality === "Low" && id >= 3 && !bird.perched) continue;
         transform.position.copy(bird.position);
         const bank = bird.flight > 0 ? Math.sin(seconds * 0.3 + bird.phase) * (reduced ? 0.08 : 0.22) : 0;
@@ -74,6 +82,13 @@ export function createBirds(scene: Scene) {
         flights.setX(index++, bird.flight);
       }
       mesh.count = index; mesh.instanceMatrix.needsUpdate = true; angles.needsUpdate = true; flights.needsUpdate = true;
+      mesh.geometry = birdGeometryLod(nearest, quality, mesh.geometry === batch.low) ? batch.low : batch.high;
+      mesh.frustumCulled = quality !== "Low";
+      if (mesh.frustumCulled && mesh.visible) {
+        mesh.computeBoundingSphere();
+        // Shader wing rotation can move tips beyond the undeformed skin bounds.
+        if (mesh.boundingSphere) mesh.boundingSphere.radius += 0.4;
+      }
     }
   }
   function listener(player: Readonly<Vector3>, camera: Camera): BirdListener {

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { InstancedMesh, Matrix4, PerspectiveCamera, Scene, Vector3 } from "three";
 import { createBirdAgent, stepBird } from "../../../src/features/world/fauna/flight";
 import { createBirdGeometry } from "../../../src/features/world/fauna/geometry";
-import { createBirds } from "../../../src/features/world/fauna/birds";
+import { birdGeometryLod, createBirds } from "../../../src/features/world/fauna/birds";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { createBirdPerches } from "../../../src/features/world/fauna/perches";
 import { createFirstLightGrove } from "../../../src/features/world/foliage/first-light-grove";
@@ -10,6 +10,15 @@ import { surfaceHeight } from "../../../src/features/world/scene/compose";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 
 describe("birds in the world", () => {
+  it("keeps detailed nearby birds and uses hysteresis for distant High/Balanced flocks", () => {
+    expect(birdGeometryLod(10, "High", false)).toBe(false);
+    expect(birdGeometryLod(49, "High", false)).toBe(true);
+    expect(birdGeometryLod(44, "High", true)).toBe(true);
+    expect(birdGeometryLod(39, "High", true)).toBe(false);
+    expect(birdGeometryLod(41, "Balanced", false)).toBe(true);
+    expect(birdGeometryLod(31, "Balanced", true)).toBe(false);
+    expect(birdGeometryLod(0, "Low", false)).toBe(true);
+  });
   it("flushes only nearby perched birds, climbs continuously and lands after the player leaves", () => {
     const bird = createBirdAgent(new Vector3(0, 3, 0), 0.8, true);
     const far = new Vector3(40, 1, 40), near = new Vector3(1, 1, 1);

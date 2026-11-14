@@ -1,5 +1,6 @@
 import { Group, Mesh, MeshStandardMaterial, ShaderChunk, Texture, type Object3D, type WebGLRenderer } from "three";
 import type { Quality } from "../terrain";
+import { partitionCliffMesh } from "./first-light-cliff-cull";
 
 export type CliffLoader = (quality: Exclude<Quality, "Low">) => Promise<Group>;
 
@@ -83,6 +84,9 @@ export function createFirstLightCliffDetail(root: Object3D, renderer: WebGLRende
         object.castShadow = object.receiveShadow = true;
         object.raycast = () => {}; // Camera and movement keep the inexpensive authored proxies.
       });
+      const meshes: Mesh[] = [];
+      scene.traverse(object => { if (object instanceof Mesh) meshes.push(object); });
+      meshes.forEach(partitionCliffMesh);
       return scene;
     } finally { ktx.dispose(); }
   });

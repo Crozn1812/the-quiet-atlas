@@ -5,6 +5,7 @@ import { createEnvironment } from "../sky/environment";
 import type { Quality } from "../terrain";
 import { createPost } from "./cinematic";
 import { cinematicLook, type CinematicPresentation } from "../cinematic/presentation";
+import { cullStreambed } from "../water/streambed-cull";
 
 /** Direction C runtime. Retains the cinematic/compose API while replacing paper with native fog and HDR post. */
 export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Quality) {
@@ -29,6 +30,7 @@ export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Q
   return {
     render(scene: Scene, camera: PerspectiveCamera) {
       if (disposed) return;
+      if (quality !== "Low") cullStreambed(scene, camera);
       if (scene !== boundScene || camera !== boundCamera) {
         post?.dispose(); post = undefined;
         environment?.dispose(); environment = undefined;
