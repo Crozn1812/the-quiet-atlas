@@ -5,11 +5,11 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern } from "../foliage/ground";
-import { createSkillsBoard } from "../props/lettering";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createStumpGeometry } from "../props/wood";
 import { createRootsDressing } from "./roots-dressing";
+import { bindRootsBoardGrain, createRootsBoardGeometry, createRootsPostGeometry, createRootsSign } from "./roots-sign";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
   type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
@@ -456,11 +456,12 @@ export const createRootsScene: ZoneSceneFactory = context => {
   const boardX = -1.9, boardZ = -6;
   // Include the easel in the same dry-site and path-clearance validation as the roots.
   for (const x of [boardX - 1.45, boardX + 1.45]) {
-    parts.unshift({ geometry: new BoxGeometry(0.18, 4.9, 0.18).toNonIndexed()
+    parts.unshift({ geometry: createRootsPostGeometry()
       .translate(x, 2.4, boardZ), surface: "wood", solid: true });
   }
-  parts.unshift({ geometry: new BoxGeometry(3.4, 4.2, 0.16).toNonIndexed()
-    .translate(boardX, 2.9, boardZ), surface: "wood", solid: true });
+  parts.unshift({ geometry: createRootsBoardGeometry().translate(boardX, 2.9, boardZ),
+    collision: new BoxGeometry(3.4, 4.2, 0.16).toNonIndexed().translate(boardX, 2.9, boardZ),
+    surface: "wood", solid: true });
   let placement: Placement | undefined;
   // The approach end offers a broad shoulder on the authored terrain. Prefer it
   // after the origin so repeated world mounts do not exhaust the bank-side sites.
@@ -497,6 +498,9 @@ export const createRootsScene: ZoneSceneFactory = context => {
   for (const part of parts) {
     part.geometry.deleteAttribute("uv");
     const positions = part.geometry.getAttribute("position");
+    if (part.surface === "wood" && !part.geometry.hasAttribute("signGrain")) {
+      part.geometry.setAttribute("signGrain", new Float32BufferAttribute(new Float32Array(positions.count * 3), 3));
+    }
     const originalColors = part.geometry.getAttribute("color");
     const tint = part.surface === "wood"
       ? new Color(PALETTE.rock).lerp(new Color(PALETTE.rockDark), 0.46).lerp(new Color(PALETTE.dusk), 0.08)
@@ -519,6 +523,12 @@ export const createRootsScene: ZoneSceneFactory = context => {
         const first = new Vector3().fromBufferAttribute(positions, i);
         positions.setXYZ(i, positions.getX(i + 1), positions.getY(i + 1), positions.getZ(i + 1));
         positions.setXYZ(i + 1, first.x, first.y, first.z);
+        const grain = part.geometry.getAttribute("signGrain");
+        if (grain) {
+          const firstGrain = new Vector3().fromBufferAttribute(grain, i);
+          grain.setXYZ(i, grain.getX(i + 1), grain.getY(i + 1), grain.getZ(i + 1));
+          grain.setXYZ(i + 1, firstGrain.x, firstGrain.y, firstGrain.z);
+        }
         for (let channel = 0; channel < 3; channel++) {
           const value = colors[i * 3 + channel]!;
           colors[i * 3 + channel] = colors[(i + 1) * 3 + channel]!;
@@ -588,7 +598,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
     const id = setTimeout(buildTree, 50);
     cancelTree = () => clearTimeout(id);
   }
-  const skillsBoard = createSkillsBoard();
+  const skillsBoard = createRootsSign();
   if (skillsBoard) {
     skillsBoard.mesh.name = "roots-skills-board";
     skillsBoard.mesh.rotation.y = Math.PI;
@@ -616,6 +626,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
     const mesh = new Mesh(merged, material);
     mesh.name = `roots-${surface}`;
     if (surface === "wood" || surface === "ink") mesh.userData.photoSurface = "bark";
+    if (surface === "wood") bindRootsBoardGrain(mesh);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);

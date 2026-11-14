@@ -1,7 +1,7 @@
 import { reportBudget } from "../report-budget";
 import { createHash } from "node:crypto";
 import {
-  Box3, BufferGeometry, Color, Mesh, MeshStandardMaterial, MeshToonMaterial, Raycaster, Vector3,
+  Box3, BufferGeometry, Color, Mesh, MeshBasicMaterial, MeshStandardMaterial, MeshToonMaterial, Raycaster, Vector3,
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -9,6 +9,7 @@ import { disposeRampGradients } from "../../../../src/features/world/materials/r
 import { surfaceHeight } from "../../../../src/features/world/scene/compose";
 import { placeZoneScenes, ZONE_FACTORIES } from "../../../../src/features/world/zones";
 import { createRootsScene } from "../../../../src/features/world/zones/roots";
+import { content } from "../../../../src/content";
 import {
   PATH_CLEARANCE, ZONE_BUDGET, type ZoneScene, type ZoneSceneContext,
 } from "../../../../src/features/world/zones/types";
@@ -123,27 +124,33 @@ afterEach(() => {
 
 describe("The Roots procedural zone", () => {
   // RT-02 adds three dry-site-validated easel boxes beside the living tree.
-  it("paints the skills board at Roots, facing the path, and releases its texture once", () => {
+  it("paints the skills board at Roots, facing the path, and releases its texture once", async () => {
     const text = vi.fn();
-    const ctx = { fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fillText: text };
+    const ctx = { clearRect() {}, fillRect() {}, fillText: text };
     vi.stubGlobal("document", { createElement: () => ({ getContext: () => ctx }) });
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({
+      skills: content.profiles.find(profile => profile.locale === "en")!.skills,
+    }) })));
     try {
       const scene = create();
-      const board = scene.group.getObjectByName("roots-skills-board") as Mesh<import("three").PlaneGeometry, import("three").MeshBasicMaterial>;
+      const board = scene.group.getObjectByName("roots-skills-board") as Mesh<import("three").PlaneGeometry, MeshBasicMaterial>;
       expect(board).toBeDefined();
       const normal = new Vector3(0, 0, 1).applyEuler(board.rotation);
       expect(normal.angleTo(new Vector3(0, 0, -1))).toBeLessThanOrEqual(Math.PI / 6);
       expect(board.position.x - 1.7).toBeGreaterThan(PATH_CLEARANCE);
       expect(board.position.x - 1.7 - PATH_CLEARANCE).toBeLessThanOrEqual(2);
-      expect(board.geometry.parameters.width).toBeCloseTo(3.2);
+      expect(board.geometry.parameters.width).toBeCloseTo(3.4);
       expect(board.position.x).toBeGreaterThan(PATH_CLEARANCE);
+      await vi.waitFor(() => expect(text).toHaveBeenCalled());
       expect(text.mock.calls.flat()).toContain("Skills");
-      for (const label of ["AWS", "Azure", "Languages", "Network and", "Systems", "Tools"]) {
+      for (const label of content.profiles.find(profile => profile.locale === "en")!.skills.map(skill => skill.title)) {
         expect(text.mock.calls.flat()).toContain(label);
       }
       const canvas = board.material.map!.image as HTMLCanvasElement;
-      expect(canvas.width).toBe(800);
-      expect(canvas.height).toBe(1000);
+      expect(canvas.width).toBe(1536);
+      expect(canvas.height).toBe(1920);
+      expect(board.material.transparent).toBe(true);
+      expect(board.material.toneMapped).toBe(false);
       const release = vi.fn();
       board.material.map!.addEventListener("dispose", release);
       scene.dispose();
@@ -210,6 +217,11 @@ describe("The Roots procedural zone", () => {
         }
       }
       console.info("roots real terrain:", roots.interactable.position.toArray(), roots.target.position.toArray());
+      const board = roots.colliders.find(collider => Math.abs(collider.size.y - 4.2) < 0.1)!;
+      console.info("HR-ROOTS-SIGN review camera:", JSON.stringify({
+        position: roots.group.localToWorld(board.center.clone().add(new Vector3(-0.6, 0.2, -6))).toArray(),
+        target: roots.group.localToWorld(board.center.clone()).toArray(),
+      }));
       const total = zones.flatMap(meshes).reduce((sum, mesh) => sum
         + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position").count) / 3, 0);
       console.info(`B2-220 eight zones: ${total - 1484} -> ${total} triangles (+1484; First Light +1052, Roots +432 on rendered terrain)`);
@@ -575,7 +587,8 @@ describe("The Roots procedural zone", () => {
       [wood[0]!.clone().lerp(pigment("rockDark"), 0.6), wood[1]!.clone().lerp(pigment("rockDark"), 0.6)]];
     const ink = pigment("rockDark").lerp(pigment("forestDeep"), 0.35);
     const recipes: Record<string, [Color, Color][]> = {
-      "roots-wood": bark, "roots-ink": [...bark, [ink, ink]],
+      "roots-wood": [...bark, [new Color("#a58c68").multiplyScalar(0.94), new Color("#a58c68").multiplyScalar(0.99)]],
+      "roots-ink": [...bark, [ink, ink]],
       "roots-cut": [[pigment("sand").lerp(pigment("dusk"), 0.025), pigment("sand").lerp(pigment("rockDark"), 0.24)]],
       "roots-node": [[pigment("mist").lerp(pigment("rockDark"), 0.04), pigment("mist").lerp(pigment("rockDark"), 0.14)]],
     };
@@ -738,8 +751,9 @@ describe("The Roots procedural zone", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // RT-02 replaces the scaled forest kit with a bespoke tree and relocated skills easel.
-    expect(fingerprint).toBe("36a6ad2f0dd7edfd9c246a82a4e38ce5d3e8d23b54da2646ac9a8ec92068d55d");
+    // HR-ROOTS-SIGN replaces only the board face with six chipped, bevelled planks;
+    // the separate collider/interaction fingerprint above remains unchanged.
+    expect(fingerprint).toBe("f6165638710cc491c254d3b52da5e6987925119e8c7f28757ce6197170da5ad9");
   });
 
 });
