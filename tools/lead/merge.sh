@@ -7,6 +7,8 @@ ID="$1"; MSG="$2"
 REPO=D:/the-quiet-atlas
 . "$(dirname "$0")/worker-slot.sh"; WT="$(wt_for "$ID")"
 GATE="$REPO/tools/lead/gate.sh"
+if [ -d "$(git -C "$WT" rev-parse --git-path rebase-merge)" ] || [ -d "$(git -C "$WT" rev-parse --git-path rebase-apply)" ] || git -C "$WT" diff --name-only --diff-filter=U | grep -q .; then echo "$ID: worktree mid-rebase or has unmerged files"; exit 1; fi
+if git -C "$WT" grep -qE "^(<<<<<<<|>>>>>>>) " -- . ":!*.md"; then echo "$ID: conflict markers in worktree"; exit 1; fi
 if [ -n "$(git -C "$WT" status --porcelain)" ]; then
   git -C "$WT" add -A && git -C "$WT" commit -q -m "wip $ID" || { echo "$ID: wip commit failed"; exit 1; }
 fi
