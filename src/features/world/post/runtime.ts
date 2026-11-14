@@ -1,6 +1,8 @@
 import { Color, DirectionalLight, HemisphereLight, PCFShadowMap, Quaternion, Vector2, Vector3, type PerspectiveCamera, type Scene, type WebGLRenderer } from "three";
 import type { DirectedFog } from "../art/direction";
-import type { LightingGrade } from "../sky/grade";
+import { lightingAt, type LightingGrade } from "../sky/grade";
+import { createForestFloor } from "../foliage/ground-litter";
+import { createCanopyRays } from "./canopy-rays";
 import { createEnvironment } from "../sky/environment";
 import type { Quality } from "../terrain";
 import { createPost } from "./cinematic";
@@ -13,6 +15,20 @@ export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Q
   let post: ReturnType<typeof createPost> | undefined;
   let boundScene: Scene | undefined, boundCamera: PerspectiveCamera | undefined;
   let environment: ReturnType<typeof createEnvironment> | undefined;
+  let floor: ReturnType<typeof createForestFloor> | undefined;
+  let rays: ReturnType<typeof createCanopyRays> | undefined;
+  let lightEnabled = true;
+  // Transient A/B diagnostic, available only in the existing opt-in QA journey.
+  // This keeps the rebased tree/sign assets identical on both sides of the review.
+  const reviewLight = (event: Event) => {
+    if (typeof window === "undefined" || !(window as Window & { __tqaJourney?: boolean }).__tqaJourney) return;
+    lightEnabled = (event as CustomEvent).detail !== false;
+    if (floor) floor.group.visible = lightEnabled;
+    if (rays) rays.group.visible = lightEnabled;
+  };
+  if (typeof document !== "undefined") document.addEventListener("tqa:light-review", reviewLight);
+  let atmosphereGrade = lightingAt(0);
+  const reducedMotion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : undefined;
   let firstFrameDrawn = false;
   let deferredScene: Scene | undefined;
   let nextStartupDraw = 0;
@@ -34,6 +50,8 @@ export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Q
       if (scene !== boundScene || camera !== boundCamera) {
         post?.dispose(); post = undefined;
         environment?.dispose(); environment = undefined;
+        floor?.dispose(); floor = undefined;
+        rays?.dispose(); rays = undefined;
         boundScene = scene; boundCamera = camera;
         firstFrameDrawn = false;
       }
@@ -57,6 +75,14 @@ export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Q
         environment.setQuality(quality);
         environment.setTimeOfDay(timeOfDay);
       }
+      if (active && lightEnabled) {
+        if (!floor) { floor = createForestFloor(scene); scene.add(floor.group); }
+        floor.update(camera, quality, dt, reducedMotion?.matches);
+        if (!rays) { rays = createCanopyRays(); scene.add(rays.group); }
+        rays.update(camera, atmosphereGrade, quality, dt, reducedMotion?.matches);
+      }
+      post?.setGrade(atmosphereGrade);
+      post?.setAtmosphereEnabled(lightEnabled);
       const cameraMoving = camera.position.distanceToSquared(cameraPosition) > 0.000001
         || 1 - Math.abs(camera.quaternion.dot(cameraRotation)) > 0.000001;
       cameraPosition.copy(camera.position); cameraRotation.copy(camera.quaternion);
@@ -124,8 +150,10 @@ export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Q
       post?.dispose(); post = undefined;
       environment?.setQuality(next);
       if (next === "Low") renderer.shadowMap.enabled = false;
+      if (next === "Low") { floor?.dispose(); floor = undefined; }
+      if (next === "Low") { rays?.dispose(); rays = undefined; }
     },
-    setGrade(grade: LightingGrade) { fogColor.copy(grade.fogColor); hasGrade = true; },
+    setGrade(grade: LightingGrade) { atmosphereGrade = grade; fogColor.copy(grade.fogColor); hasGrade = true; },
     setTimeOfDay(value: number) { timeOfDay = value; environment?.setTimeOfDay(value); },
     setFog(options: DirectedFog) { fog = { ...options }; },
     setFogColorOverride(color: Readonly<Color> | null) { override = color ? new Color().copy(color) : null; },
@@ -135,7 +163,10 @@ export function createGradedPaperPass(renderer: WebGLRenderer, initialQuality: Q
     dispose() {
       if (disposed) return;
       disposed = true; post?.dispose(); environment?.dispose(); post = undefined;
+      floor?.dispose(); floor = undefined;
+      rays?.dispose(); rays = undefined;
       if (typeof document !== "undefined") document.removeEventListener("visibilitychange", visibility);
+      if (typeof document !== "undefined") document.removeEventListener("tqa:light-review", reviewLight);
     },
   };
 }

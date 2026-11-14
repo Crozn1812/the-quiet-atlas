@@ -60,15 +60,18 @@ describe("direction C runtime", () => {
     expect(renderer.shadowMap.enabled).toBe(false);
     expect(EffectComposer).not.toHaveBeenCalled();
     expect(createEnvironment).not.toHaveBeenCalled();
+    expect(scene.getObjectByName("hr-forest-floor")).toBeUndefined();
     pass.setQuality("Low"); pass.startDeferred(scene); pass.render(scene, camera);
     expect(EffectComposer).not.toHaveBeenCalled();
     expect(createEnvironment).not.toHaveBeenCalled();
     pass.setQuality("Balanced"); pass.render(scene, camera);
     expect(EffectComposer).toHaveBeenCalledOnce();
     expect(createEnvironment).toHaveBeenCalledOnce();
+    expect(scene.getObjectByName("hr-forest-floor")).toBeDefined();
     expect(renderer.shadowMap.enabled).toBe(true);
     pass.setQuality("Low"); pass.render(scene, camera);
     expect(renderer.shadowMap.enabled).toBe(false);
+    expect(scene.getObjectByName("hr-forest-floor")).toBeUndefined();
     expect(vi.mocked(createEnvironment).mock.results[0]!.value.setQuality).toHaveBeenLastCalledWith("Low");
     pass.dispose();
   });
@@ -200,6 +203,8 @@ describe("direction C runtime", () => {
     const ao = composer().passes.find(item => item instanceof GTAOPass) as GTAOPass;
     expect(ao.normalTexture).toBeUndefined();
     expect(ao.depthTexture).toBe(bokeh()!.uniforms.tDepth!.value);
+    const air = composer().passes.find(item => item instanceof ShaderPass && item.uniforms.airEnabled) as ShaderPass;
+    expect(air.uniforms.tDepth!.value).toBe(ao.depthTexture);
     expect(bokeh()!.material.defines.DEPTH_PACKING).toBe(0);
     const write = new WebGLRenderTarget(1, 1), read = new WebGLRenderTarget(1, 1);
     renderer.render.mockClear();
@@ -210,5 +215,25 @@ describe("direction C runtime", () => {
     const source = renderer.setRenderTarget.mock.calls.map(call => call[0]).find(target => target?.depthTexture === ao.depthTexture)!;
     expect([source.width, source.height]).toEqual([960, 720]);
     write.dispose(); read.dispose(); pass.dispose();
+  });
+  it("allows transient A/B only in the opt-in QA journey and removes its listener", () => {
+    const document = new EventTarget(), window = { __tqaJourney: false };
+    vi.stubGlobal("document", document); vi.stubGlobal("window", window);
+    const remove = vi.spyOn(document, "removeEventListener");
+    const { scene, camera, pass } = setup("High");
+    try {
+      pass.render(scene, camera); pass.render(scene, camera);
+      const event = Object.assign(new Event("tqa:light-review"), { detail: false });
+      document.dispatchEvent(event); pass.render(scene, camera);
+      expect(scene.getObjectByName("hr-forest-floor")!.visible).toBe(true);
+      window.__tqaJourney = true; document.dispatchEvent(event); pass.render(scene, camera);
+      expect(scene.getObjectByName("hr-forest-floor")!.visible).toBe(false);
+      expect(scene.getObjectByName("hr-canopy-rays")!.visible).toBe(false);
+      const air = composer().passes.find(item => item instanceof ShaderPass && item.uniforms.airEnabled) as ShaderPass;
+      expect(air.uniforms.airEnabled!.value).toBe(0);
+      document.dispatchEvent(Object.assign(new Event("tqa:light-review"), { detail: true }));
+      pass.render(scene, camera); expect(air.uniforms.airEnabled!.value).toBe(1);
+      pass.dispose(); expect(remove).toHaveBeenCalledWith("tqa:light-review", expect.any(Function));
+    } finally { pass.dispose(); vi.unstubAllGlobals(); }
   });
 });
