@@ -1,6 +1,7 @@
 import { type MeshToonMaterial, type Object3D, type WebGLRenderer } from "three";
 import type { Quality } from "../terrain";
 import { createPhotoSurfaces } from "../materials/cc0";
+import { createFirstLightCliffDetail } from "../zones/first-light-cliff-detail";
 
 export { createPhotoSurfaces as createTerrainDetail } from "../materials/cc0";
 
@@ -9,6 +10,7 @@ export function bindTerrainDetail(root: Object3D, material: MeshToonMaterial, in
   onError: (error: unknown) => void, deferred = false) {
   let quality = initialQuality;
   let controller: ReturnType<typeof createPhotoSurfaces> | undefined;
+  let cliff: ReturnType<typeof createFirstLightCliffDetail> | undefined;
   let started = false, disposed = false;
   let deferredRenderer: WebGLRenderer | undefined;
   const previous = material.onBeforeRender;
@@ -26,7 +28,8 @@ export function bindTerrainDetail(root: Object3D, material: MeshToonMaterial, in
     if (!controller.software && (deferred || dressingPending(renderer))) { deferredRenderer = renderer; return; }
     deferredRenderer = undefined;
     started = true;
-    await controller.setQuality(quality);
+    cliff ??= createFirstLightCliffDetail(root, renderer);
+    await Promise.all([controller.setQuality(quality), cliff.setQuality(controller.software ? "Low" : quality)]);
   };
   material.onBeforeRender = function (renderer, ...args) {
     previous.call(this, renderer, ...args);
@@ -43,6 +46,7 @@ export function bindTerrainDetail(root: Object3D, material: MeshToonMaterial, in
     },
     setQuality(next: Quality) {
       quality = next;
+      if (cliff) void cliff.setQuality(controller?.software ? "Low" : next);
       if (deferredRenderer) void ready(deferredRenderer).catch(onError);
       else if (controller) void controller.setQuality(next).catch(onError);
     },
@@ -51,6 +55,7 @@ export function bindTerrainDetail(root: Object3D, material: MeshToonMaterial, in
       disposed = true;
       deferredRenderer = undefined;
       material.onBeforeRender = previous;
+      cliff?.dispose();
       controller?.dispose();
     },
   };
