@@ -8,7 +8,7 @@ import { bindDawnShafts } from "../post/dawn-shafts";
 import { paletteColor, WORLD_DIRECTION } from "../art/direction";
 import type { PaletteKey } from "../art/palette";
 import { createFern } from "../foliage/ground";
-import { createFirstLightTree } from "../foliage/first-light-grove";
+import { createDetailedFirstLightTree as createFirstLightTree } from "../foliage/first-light-grove";
 import { pineHeight } from "../foliage/shapes";
 import { createRampMaterial } from "../materials/ramp";
 import { createLogGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";

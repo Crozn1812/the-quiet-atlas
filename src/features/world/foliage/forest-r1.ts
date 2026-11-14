@@ -9,7 +9,7 @@ import { createDenseFirstLightTree as createFirstLightTree, firstLightGroveWeigh
 import { foliageVariantAt, selectFoliageOccludingCrowns } from "./instances";
 import { createCrownFade } from "../crown-fade";
 import type { FoliageTree } from "./scatter";
-import { bindLibraryTree, TREE_LIBRARY_IDS } from "./library";
+import { bindHrForest } from "./hr-runtime";
 
 /** Route-distance biome blend, independent of travel direction and zone centres. */
 export function forestR1Weight(x: number, z: number, pathT = nearestPath(x, z).t) {
@@ -48,8 +48,7 @@ export function createForestR1Trees(trees: readonly FoliageTree[], options?: {
   const fades = meshes.map(mesh => createCrownFade(mesh, trees.length));
   // Retain three draws per streamed tile. Hill stands use the three conifers;
   // forest stands use the three overlapping broadleaf silhouettes.
-  const pines = trees.filter(tree => tree.kind === "pine").length > trees.length / 2;
-  const library = options ? [] : meshes.map((mesh, variant) => bindLibraryTree(mesh, TREE_LIBRARY_IDS[(pines ? 0 : 3) + variant]!));
+  const library = options ? [] : [bindHrForest(meshes)];
   const matrix = new Matrix4(), rotation = new Matrix4();
   function setQuality(quality: Quality) {
     library.forEach(binding => binding.setQuality(quality));

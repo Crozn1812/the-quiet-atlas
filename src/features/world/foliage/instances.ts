@@ -8,6 +8,7 @@ import { TRUNK_HEIGHT } from "./colliders";
 import type { FoliageTree } from "./scatter";
 import { createPineCrownV2 } from "./pine";
 import { resumeTreeLibraries } from "./library";
+import { advanceHrTrees } from "./hr-runtime";
 import { BROADLEAF_BATCH_SEEDS, BROADLEAF_VARIANT_SEEDS, createBroadleafCrown, createTreeTrunk, fitAuthoredTree, loadAuthoredTrees, mossColor, pineHeight, PINE_VARIANT_SEEDS } from "./shapes";
 
 export { createBroadleafCrown, createPineCrown } from "./shapes";
@@ -25,6 +26,7 @@ function advanceWind(wind: FoliageWind, dt: number, reducedMotion: boolean) {
 /** Index can animate compose's public mesh list without accessing tile internals. */
 export function updateFoliageWind(meshes: readonly Mesh[], dt: number, reducedMotion: boolean): void {
   if (dt > 0) resumeTreeLibraries(meshes);
+  advanceHrTrees(meshes, dt, reducedMotion);
   const updated = new Set<FoliageWind>();
   for (const mesh of meshes) for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
     const wind = foliageWinds.get(material);

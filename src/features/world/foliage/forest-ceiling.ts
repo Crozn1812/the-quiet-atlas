@@ -5,6 +5,7 @@ import { PALETTE } from "../art/palette";
 import { pathLength, pathPointAt } from "../layout/path";
 import { createRampMaterial } from "../materials/ramp";
 import type { Quality } from "../terrain";
+import { bindHrForest } from "./hr-runtime";
 
 /** A continuous, faceted understory roof. Static instances bridge the intentional
  * trunk exclusions around stations; neither the walking space nor colliders change. */
@@ -53,12 +54,14 @@ export function createForestCeiling(heightAt: (x: number, z: number) => number) 
   // crown fades, LoS tests or a frame callback.
   mesh.raycast = () => {};
   group.add(mesh);
+  const hr = bindHrForest([mesh], { canopyOnly: true });
   let disposed = false;
   return { group, mesh, sites,
-    setQuality(quality: Quality) { mesh.visible = quality !== "Low"; },
+    setQuality(quality: Quality) { hr.setQuality(quality); mesh.visible = quality !== "Low"; },
     dispose() {
       if (disposed) return;
       disposed = true;
+      hr.dispose();
       mesh.dispose(); geometry.dispose(); material.dispose(); group.removeFromParent(); group.clear();
     },
   };

@@ -188,10 +188,18 @@ describe("First Light pine clearing", () => {
       const scene = placed.find(zone => zone.zoneId === "first-light")!;
       expect(scene).toBeDefined();
       const worldPoint = (x: number, z: number) => new Vector3(x, 0, z).applyMatrix4(scene.group.matrixWorld);
+      // HR leaves repeat their five vertices across folded faces. Cache the
+      // unchanged terrain function while still checking every sampled point.
+      const terrain = new Map<string, number>();
+      const height = (p: Vector3) => {
+        const key = `${p.x}:${p.z}`;
+        if (!terrain.has(key)) terrain.set(key, surfaceHeight(p.x, p.z));
+        return terrain.get(key)!;
+      };
       checkPlacement(scene, context({
         heightAt(x, z) {
           const p = worldPoint(x, z);
-          return surfaceHeight(p.x, p.z) - scene.group.position.y;
+          return height(p) - scene.group.position.y;
         },
         onPath(x, z) {
           const p = worldPoint(x, z);
@@ -199,7 +207,7 @@ describe("First Light pine clearing", () => {
         },
         underWater(x, z) {
           const p = worldPoint(x, z);
-          return surfaceHeight(p.x, p.z) <= waterLevelAt(p.z);
+          return height(p) <= waterLevelAt(p.z);
         },
       }));
       reportBudget("tests/unit/world/zones/first-light.test.ts:204 meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0)", meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0), ZONE_BUDGET.triangles);

@@ -7,7 +7,8 @@ import { ZONES } from "../layout/zones";
 import { nearestPath, nearestRiver } from "../terrain/samples";
 import { waterLevelAt } from "../terrain/height";
 import type { Quality } from "../terrain";
-import { bindLibraryTree, TREE_LIBRARY_IDS } from "./library";
+import { bindHrForest } from "./hr-runtime";
+import { treeRandom } from "./hr-variation";
 
 const anchor = ZONES.find(zone => zone.id === "first-light")!;
 export const FIRST_LIGHT_SUN = new Vector3(-0.74, 0.57, 0.35).normalize();
@@ -93,13 +94,14 @@ function colored(geometry: BufferGeometry, pigment: Color) {
 
 /** Three hand-composed, faceted silhouettes; no boxes, texture or per-frame work. */
 export function createFirstLightTree(variant: number) { return buildFirstLightTree(variant, false); }
+export function createDetailedFirstLightTree(variant: number) { return buildFirstLightTree(variant, false, true); }
 export function createDenseFirstLightTree(variant: number) { return buildFirstLightTree(variant, true); }
-function buildFirstLightTree(variant: number, dense: boolean) {
+function buildFirstLightTree(variant: number, dense: boolean, detailed = false) {
   const parts: BufferGeometry[] = [];
   const bark = new Color(PALETTE.rockDark).lerp(new Color(PALETTE.dusk), 0.16);
   const leaf = new Color(PALETTE.forestLight).lerp(new Color(PALETTE.grass), 0.22).lerp(new Color(PALETTE.mist), 0.12);
   const stem = (a: Vector3, b: Vector3, bottom: number, top: number) => {
-    const g = new CylinderGeometry(top, bottom, a.distanceTo(b), dense ? 3 : 5, 1);
+    const g = new CylinderGeometry(top, bottom, a.distanceTo(b), dense ? 3 : detailed ? 10 : 5, 1);
     const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), b.clone().sub(a).normalize());
     g.applyQuaternion(q).translate(...a.clone().add(b).multiplyScalar(0.5).toArray());
     parts.push(colored(g, bark));
@@ -118,9 +120,35 @@ function buildFirstLightTree(variant: number, dense: boolean) {
     stem(new Vector3(lean * 0.5, 4.5 + i * 0.2, 0), new Vector3(dx * 0.8, y - 0.5, z * 0.7), 0.16, 0.05);
     if (dense) stem(new Vector3(dx * 0.5, y - 1.5, z * 0.4), new Vector3(dx * 1.35, y, z * 1.2 + 0.8), 0.075, 0.025);
     // Deep hanging crowns close the sky between distant trunks without new faces.
-    const g = new IcosahedronGeometry(1, 0).scale(sx * (dense ? 1.35 : 1), sy * (dense ? 1.7 : 1), sz * (dense ? 1.35 : 1)).rotateY(variant * 0.43 + i * 0.7).translate(dx, y - (dense ? 0.6 : 0), z);
     const pigment = leaf.clone().lerp(new Color(i % 2 ? PALETTE.grass : PALETTE.mist), 0.12 + i * 0.025);
-    parts.push(colored(g, pigment));
+    if (!detailed) {
+      const g = new IcosahedronGeometry(1, 0).scale(sx * (dense ? 1.35 : 1), sy * (dense ? 1.7 : 1), sz * (dense ? 1.35 : 1)).rotateY(variant * 0.43 + i * 0.7).translate(dx, y - (dense ? 0.6 : 0), z);
+      parts.push(colored(g, pigment));
+    } else {
+      // Landmark trees use this geometry-only API inside merged zone meshes.
+      // Folded individual leaves remove their large solid polyhedron crowns;
+      // the streamed forest/grove continues to use the cheap dense fallback.
+      const positions: number[] = [], colors: number[] = [], indices: number[] = [];
+      for (let j = 0; j < 110; j++) {
+        const seed = variant * 10000 + i * 300 + j;
+        const angle = treeRandom(seed, 0, 1) * Math.PI * 2;
+        const radial = Math.cbrt(treeRandom(seed, 0, 2)) * 0.75;
+        const vertical = treeRandom(seed, 0, 3) * 2 - 1;
+        const center = new Vector3(dx + Math.cos(angle) * sx * radial * Math.sqrt(1 - vertical * vertical), y + vertical * sy * radial, z + Math.sin(angle) * sz * radial * Math.sqrt(1 - vertical * vertical));
+        const length = 0.18 + treeRandom(seed, 0, 4) * 0.18;
+        const along = new Vector3(Math.cos(angle), 0.2 + treeRandom(seed, 0, 5) * 0.55, Math.sin(angle)).normalize().multiplyScalar(length);
+        const across = new Vector3(-Math.sin(angle), 0, Math.cos(angle)).multiplyScalar(length * 0.37);
+        const base = positions.length / 3;
+        const color = pigment.clone().lerp(new Color(j % 13 === 0 ? "#b5a35b" : "#a1bd72"), 0.12 + treeRandom(seed, 0, 6) * 0.28);
+        for (const point of [center.clone().sub(along), center.clone().add(across), center.clone().add(along), center.clone().sub(across), center.clone().add(new Vector3(0, 0.055, 0))]) {
+          positions.push(point.x, point.y, point.z); colors.push(color.r, color.g, color.b);
+        }
+        indices.push(base, base + 1, base + 4, base + 1, base + 2, base + 4, base + 2, base + 3, base + 4, base + 3, base, base + 4);
+      }
+      const g = new BufferGeometry(); g.setAttribute("position", new Float32BufferAttribute(positions, 3)); g.setAttribute("color", new Float32BufferAttribute(colors, 3)); g.setIndex(indices); g.computeVertexNormals();
+      g.setAttribute("uv", new Float32BufferAttribute(new Float32Array(positions.length / 3 * 2), 2));
+      const expanded = g.toNonIndexed(); g.dispose(); parts.push(expanded);
+    }
   }
   const merged = mergeGeometries(parts, false)!;
   parts.forEach(g => g.dispose());
@@ -291,7 +319,7 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   })();
   if (!deferredGround) while (!buildGround.next().done) { /* Standalone parity. */ }
   const maxCounts = meshes.map(m => m.count);
-  const library = meshes.map((mesh, variant) => bindLibraryTree(mesh, TREE_LIBRARY_IDS[3 + variant]!));
+  const library = [bindHrForest(meshes)];
   function setQuality(quality: Quality) {
     library.forEach(binding => binding.setQuality(quality));
     // Silhouette and collision remain stable; Low draws a spatially interleaved subset.
