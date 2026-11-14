@@ -69,6 +69,9 @@ jobs:
       - name: Check asset licenses
         run: pnpm check:licenses
 
+      - name: Check world asset budgets
+        run: pnpm check:assets
+
       - name: Assume site deploy role via OIDC
         uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
         with:
@@ -80,13 +83,23 @@ jobs:
 
       - name: Upload immutable assets first (retain previous releases)
         run: |
-          for prefix in _next/static world; do
+          for prefix in _next/static; do
             if [ -d "out/$prefix" ]; then
               aws s3 sync "out/$prefix/" "s3://$SITE_BUCKET/$prefix/" \
                 --cache-control 'public, max-age=31536000, immutable' \
                 --no-follow-symlinks --only-show-errors
             fi
           done
+
+      - name: Upload world assets before HTML (retain previous paths)
+        run: |
+          if [ -d out/world ]; then
+            # World filenames are not all content hashes. Refresh metadata even
+            # when bytes are unchanged; never delete assets used by open sessions.
+            aws s3 cp out/world/ "s3://$SITE_BUCKET/world/" --recursive \
+              --cache-control 'no-cache, max-age=0, must-revalidate' \
+              --no-follow-symlinks --only-show-errors
+          fi
 
       - name: Sync mutable files and remove obsolete mutable objects
         run: |
@@ -102,11 +115,14 @@ jobs:
             --cache-control 'no-cache, max-age=0, must-revalidate' \
             --no-follow-symlinks --only-show-errors
 
-      - name: Invalidate HTML and wait for completion
+      - name: Set explicit asset MIME types (also refresh unchanged metadata)
+        run: bash tools/checks/upload-asset-metadata.sh out "$SITE_BUCKET"
+
+      - name: Invalidate HTML and world and wait for completion
         run: |
-          # CloudFront only expands a wildcard at the END of a path. Keep the
-          # requested paths, and enumerate HTML + directory URLs for real coverage.
-          paths=('/*.html' '/' '/*/')
+          # CloudFront only expands a wildcard at the END of a path.
+          # Enumerate HTML + directory URLs and refresh stable world paths.
+          paths=('/' '/world/*')
           while IFS= read -r -d '' file; do
             path="/${file#out/}"
             paths+=("$path")

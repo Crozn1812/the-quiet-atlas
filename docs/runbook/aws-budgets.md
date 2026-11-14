@@ -134,3 +134,14 @@ Guardrail chi phí (L5-010 / Q25):
 ```
 
 Sau khi xong mục này mới chuyển sang `aws-paid-plan.md`.
+
+## Đối chiếu Terraform và release (REL-03)
+
+Prod mặc định `cost_guardrails_managed_by_terraform = false`: Budgets/SNS chi phí/Anomaly ở đây vẫn do Duy
+quản lý tay. Không bật `true` trước khi có kế hoạch import; Terraform dùng tên anomaly subscription
+`tqa-anomaly-alerts`, còn luồng console trên dùng `tqa-anomaly` — ghi đúng tên thực tế, không tạo thêm để khớp tên.
+Alarm CloudFront 5xx dùng topic vận hành riêng `tqa-site-alerts`; xác nhận subscription của cả hai topic.
+Điền `alert_email` hoặc `operational_alert_topic_arn` trong tfvars riêng trước prod plan/apply.
+Các ngưỡng Terraform dùng `GREATER_THAN`, nên alert Actual 10% của budget 10 USD kích khi **vượt** 1 USD;
+không hứa nhận ngay tại đúng 1 USD. Q25-a chỉ chứng minh SNS → email, Q25-c/d vẫn chờ sự kiện thực tế.
+Tiếp theo: [Paid plan](aws-paid-plan.md), rồi [release checklist](release-checklist.md).

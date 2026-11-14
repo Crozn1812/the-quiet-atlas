@@ -17,12 +17,18 @@ Chạy trên `main` sau khi merge (hoặc trong worktree tích hợp), tại th�
 | 6 | Bundle (0 chunk 3D trước Enter World) | `pnpm check:bundle` | có | Lead |
 | 7 | Leaks tùy biến (§4.6) | `pnpm check:leaks` | có | Lead |
 | 8 | Giấy phép asset (§7.3) | `pnpm check:licenses` | không | Lead |
+| 8a | Budget asset World | `pnpm check:assets` | không | Lead |
 | 9 | gitleaks (giống CI) | `node tools/checks/gitleaks.mjs` (cần `GITLEAKS_BIN`) | có | Lead |
 | 10 | E2E + axe | `pnpm test:e2e` | có | **L4** (một lần mỗi đợt merge) |
 | 11 | Load budget | `pnpm test:perf` | có | **L4** |
 | 12 | **Lighthouse CI** | `pnpm perf:lhci` (cần `CHROME_PATH`) | có | **L4** chạy; Lead chạy lại nếu L4 báo FAIL/BLOCKED hoặc đợt có đổi UI/bundle |
 
 Bước 4 phải xong trước các bước 5–12 (cùng một `out/`; đừng build lại giữa chừng).
+
+Windows từ 2026-11-12: Application Control chặn SWC native; trước **một lần build duy nhất** ở bước 4,
+đặt `$env:NEXT_TEST_WASM_DIR = 'C:\Users\PC-LP\AppData\Local\next-swc\wasm\package'` và
+`$env:NEXT_BUILD_WEBPACK = '1'`, rồi chạy `pnpm.cmd build:artifacts`. Trên GitHub Ubuntu dùng lệnh mặc định.
+REL-03 chỉ kiểm release kit, không thực hiện bước build/e2e/perf này.
 
 ## Phân công
 

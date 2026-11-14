@@ -34,7 +34,14 @@ Script chạy `fmt -check -recursive` (bootstrap, envs/prod, modules), `init -ba
 con và tắt IMDS. Exit: `0` PASS · `1` lỗi · `2` BLOCKED (không có terraform — không phải PASS).
 Sửa định dạng: `terraform fmt -recursive infra`.
 
-CI (`.github/workflows/pr.yml`, job `terraform`) chạy đúng script này khi `infra/**`, `tools/checks/terraform.mjs`
+Rà soát release gồm từng module riêng: `node tools/checks/release-terraform.mjs`. Lệnh này chạy checker trên,
+rồi init/validate `dns`, `monitoring`, `static-site` trong thư mục tạm có provider mặc định + alias us-east-1;
+copy lockfile prod ở chế độ readonly, xóa thư mục tạm sau khi kiểm. Child module có `configuration_aliases`
+phải được validate qua provider harness; chạy trực tiếp `validate` trong module sẽ thiếu alias.
+Máy offline có thể đặt `TF_CLI_CONFIG_FILE` trỏ tới cấu hình filesystem mirror cục bộ đã có provider đúng
+hash lockfile; không thêm `direct {}` nếu muốn bảo đảm không tải ngoài. Không đổi lockfile để né lỗi checksum.
+
+CI (`.github/workflows/pr.yml`, job `terraform`) chạy `node tools/checks/terraform.mjs` khi `infra/**`, `tools/checks/terraform.mjs`
 hoặc workflow đổi. Không có bước `plan`/`apply`, không `id-token`.
 
 Nâng phiên bản provider: sửa `version = "~> 6.71"` ở cả 5 file `versions.tf`, chạy
@@ -67,8 +74,9 @@ Average ≥ 1% trong 2 kỳ liên tiếp, mỗi kỳ 300 giây; thiếu dữ li�
 Budget/SNS email vẫn có độ trễ; đây không phải trần chi tiêu cứng.
 Khi bật Terraform quản lý cost guardrails, `alert_email` cũng bắt buộc để tránh topic chi phí không có người nhận.
 
-Nếu Duy làm Route 53/ACM bằng tay theo `domain-and-acm.md` thay vì Terraform: giữ `domain_name = ""` và báo Lead
-(cần thêm biến nhận ARN chứng chỉ có sẵn — chưa có trong bản nháp này).
+Nếu đã làm Route 53/ACM bằng tay theo `domain-and-acm.md`: báo Lead chuẩn bị import trước prod apply,
+tránh zone/cert trùng. `domain_name = ""` chỉ dùng cho site tạm ở `*.cloudfront.net`;
+prod chưa có biến nhận ARN chứng chỉ/hosted zone sẵn nên đặt rỗng không nối được custom domain.
 
 ## 4. Chạy bootstrap / prod (CHỈ khi Duy cho phép — ghi lại ai, khi nào)
 
@@ -81,11 +89,12 @@ terraform init
 terraform plan -out=bootstrap.tfplan                  # Duy đọc kỹ: chỉ S3 state, OIDC provider, IAM role
 terraform apply bootstrap.tfplan
 # Sao lưu terraform.tfstate của bootstrap ra nơi an toàn ngoài repo.
+# Điền alert_email hoặc operational_alert_topic_arn ở prod trước plan; mặc định rỗng sẽ bị precondition chặn.
 
 cd ../envs/prod
 Copy-Item backend.hcl.example backend.hcl             # bucket = output state_bucket_name — KHÔNG commit
 Copy-Item terraform.tfvars.example terraform.tfvars
-terraform init -backend-config=backend.hcl
+terraform init -reconfigure -backend-config=backend.hcl # cần -reconfigure sau lần init -backend=false
 terraform plan -out=prod.tfplan
 terraform apply prod.tfplan
 ```
@@ -137,7 +146,7 @@ Sau lần apply đầu (Duy chạy trong `infra/envs/prod`):
 
 ```powershell
 terraform output -raw site_bucket_name         # REL-01: SITE_BUCKET
-terraform output -raw distribution_id          # REL-01: DISTRIBUTION_ID; bootstrap: site_distribution_id
+terraform output -raw distribution_id          # REL-01: CF_DISTRIBUTION_ID; bootstrap: site_distribution_id
 terraform output -raw distribution_domain_name # SITE_URL tạm = https://<giá trị này>
 terraform output -json name_servers            # 4 NS đặt ở registrar cho nhbduy.id.vn
 terraform output -raw hosted_zone_id
@@ -146,14 +155,16 @@ terraform output -raw site_alert_topic_arn
 ```
 
 Thứ tự tên miền: lấy NS → đổi ở registrar → `Resolve-DnsName nhbduy.id.vn -Type NS` và
-`Resolve-DnsName nhbduy.id.vn -Type CAA` kiểm đúng zone → sửa `.tfvars` bật cert →
+[lệnh Node kiểm CAA](domain-and-acm.md#bước-5--caa-chỉ-cho-amazon-cấp-chứng-chỉ)
+(Windows có bản không hỗ trợ `Resolve-DnsName -Type CAA`) → sửa `.tfvars` bật cert →
 `terraform plan -out=prod.tfplan` → đọc plan → `terraform apply prod.tfplan`.
 Không đợi apply có ACM xong mới đổi NS: ACM cần delegation để validate.
 Giữ record CNAME validation cho tự gia hạn; dùng `SITE_URL=https://nhbduy.id.vn` khi build release tên miền.
 Xác nhận SNS, thử publish email; khi A2 được duyệt Duy có thể thử alarm bằng CloudWatch console
 `Set alarm state` (thử kênh ALARM/OK, không chứng minh metric đã vượt ngưỡng).
 Smoke test HTTPS apex/www, HTTP redirect, `/`, `/en/quick`, `/en/quick/`, một URL không tồn tại,
-security headers và S3 URL trực tiếp bị chặn. Job uptime theo lịch do REL-01/Lead nối trong `.github/`.
+security headers và S3 URL trực tiếp bị chặn. Workflow hiện chỉ PR checks và deploy thủ công;
+chưa có job uptime theo lịch, không xem đây là tính năng đã có của REL-01.
 
 ## 8. Ước tính chi phí A2 (USD/tháng, trước credit)
 

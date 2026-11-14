@@ -7,6 +7,20 @@
 
 Ký hiệu: `<domain>` = tên miền apex Duy mua (ví dụ dạng `baoduy.<tld>` — Duy chọn), `www.<domain>` = bản www.
 
+## Luồng release hiện tại (REL-02 / REL-03)
+
+Tên miền đã chọn là `nhbduy.id.vn`; không cần mua lại nếu registrar vẫn báo Active. Theo
+[Terraform §3–4](terraform.md#3-thứ-tự-a2-khi-duy-giao-a2--111-114): lần prod đầu đặt
+`domain_name = "nhbduy.id.vn"`, `dns_certificate_enabled = false` để tạo zone/CAA và CloudFront;
+lấy output `name_servers` đổi NS tại registrar (Bước 4 dưới), kiểm NS và CAA công khai, rồi Duy duyệt
+plan/apply lần hai với `dns_certificate_enabled = true`. Terraform tạo ACM us-east-1, CNAME validation,
+alias A/AAAA và gắn chứng chỉ vào distribution; đợi ACM Issued trước deploy tên miền.
+
+Trong luồng Terraform, các bước console 3, 5, 6, 7 dưới dùng để đối chiếu kết quả; **không tạo thêm**
+zone/cert/record bằng tay. Nếu đã có resource tạo tay, Lead phải chuẩn bị import phù hợp trước apply;
+prod hiện chưa có biến nhận sẵn hosted-zone/certificate ARN. Không đổi NS sang một zone trùng mới tạo.
+Thứ tự đầy đủ: [release checklist](release-checklist.md).
+
 ---
 
 ## Bước 1 — Chọn TLD và registrar (Q-09)
@@ -84,7 +98,16 @@ Tạo **trước** khi yêu cầu chứng chỉ ACM (Bước 6). Route 53 → ho
 nslookup -type=CAA <domain> 8.8.8.8
 ```
 
-(Nếu `nslookup` của Windows không hiện CAA, dùng `Resolve-DnsName -Name <domain> -Type CAA -Server 8.8.8.8`; nếu cả hai đều không hỗ trợ, dùng một trang tra DNS công khai và chỉ nhập tên miền.) Phải thấy đủ các dòng ở trên, không có CA khác.
+Nếu công cụ DNS của Windows không hỗ trợ CAA, dùng Node đã cài cho repo (thay tên miền thật):
+
+```powershell
+@'
+import { resolveCaa } from "node:dns/promises";
+console.log(await resolveCaa("nhbduy.id.vn"));
+'@ | node --input-type=module
+```
+
+Phải thấy đủ các dòng ở trên, không có CA khác.
 
 ## Bước 6 — Chứng chỉ ACM ở **us-east-1**
 
