@@ -1,5 +1,23 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## Đợt siêu thực (HR) — cập nhật 15/11 04:50 (Claude-Lead)
+
+**Merge thêm từ 14/11 19:20** (Lead tự build lại + e2e world sau mỗi merge):
+| Commit | Ticket | Kiểm tra trên main |
+|---|---|---|
+| 156d63c | HR-TREE1b: tre thật (3 kiểu bụi) | gate PASS (unit 1973/1 skip); e2e world lượt đầu **42/43**: `World /en/` timeout 20 s khi máy tải nặng; chạy lại `world.spec.ts` trên cùng build **2/2 PASS** |
+| 8651de8 | HR-GD110: xe GD110 siêu thực từ Blender, 3,43 MB | gate PASS (unit 1988/1 skip); e2e world **43/43 PASS**; worker đo High khi lái 88–92 FPS (RTX 3060) |
+| f3a8ca2 | HR-TERRAIN-CLIFF: vách dốc thành vách đá có gờ, relief, mép gồ ghề | gate PASS (unit 1998/1 skip); e2e world **43/43 PASS**; ABBA góc tán 70,5 → 67,6 FPS (−4,1%) |
+
+**Đang dở:**
+- **HR-PROPS2** (cây đồi/biển, cỏ, lá khô): vòng đầu đạt phần lớn. Trả vòng 1: phi lao ven biển trơ cành, lá lơ lửng, FPS 51–57 ở vài lượt. Đã chuyển từ C sang B; chạy lại lúc 07:02.
+- **HR-FAR-B** (núi xa): HR-FAR đã qua 2 vòng trả, dãy núi đã có hình thật. Còn 4 điểm: màu bạc, tán đốm da báo, đỉnh kim lơ lửng, Milestones 52 FPS. Patch được giữ lại, chờ account rảnh.
+- **HR-SKY** (mây/bầu trời vật lý): card sẵn, chưa giao.
+
+**Năng lực Codex:** A và C chạm giới hạn TUẦN đến 20/11; D hết credit; chỉ còn B (giới hạn ngắn hạn, mở lại 07:00). Xem Q-49, Q-51.
+**Chưa chạy:** gate cuối (full e2e, load/Lighthouse/ABBA, FPS High kể cả Roots 15 m, final showcase) — NOT RUN, làm sau khi các HR ticket xong. T08/T09 Iris Xe — NOT RUN (chỉ Duy).
+
+
 ## Đợt siêu thực (HR) — trạng thái 14/11 19:20 (Claude-Lead)
 
 Duy chấm world `c8531eb` **4/10** và yêu cầu siêu thực; Duy bỏ mọi **trần** ngân sách (ADR 0019: số đo chỉ báo cáo; license, leak, không chunk 3D trước Enter World, lỗi console, e2e chức năng vẫn chặn). Main hiện `7026dac`, **chưa push** (push chỉ khi Duy duyệt).
