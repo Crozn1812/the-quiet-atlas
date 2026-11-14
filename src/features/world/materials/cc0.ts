@@ -2,6 +2,8 @@ import { Color, LoadingManager, Mesh, MeshBasicMaterial, MeshStandardMaterial, M
   type Material, type Object3D, type Texture, type WebGLRenderer } from "three";
 import type { Quality } from "../terrain";
 import { COAST_SAND_Z } from "../layout/scale";
+import { cliffWeathering, weatherSpringCliff } from "./cliff";
+import { createTerrainCliffs } from "../terrain/cliffs";
 
 export type PhotoSurface = "terrain" | "rock" | "road" | "bark" | "ground";
 export const PHOTO_TILE_SIZE = { Low: 512, Balanced: 1024, High: 2048 } as const;
@@ -105,7 +107,7 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
     shader.uniforms.photoTileSize = { value: size };
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
       varying vec3 photoWorld; varying vec3 photoWorldNormal; varying vec4 photoMask;
-      ${kind === "terrain" ? "attribute vec4 cc0Surface;" : ""}`)
+      ${kind === "terrain" ? "attribute vec4 cc0Surface; attribute vec2 cliffSurface; varying vec2 photoCliffMask;" : ""}`)
       .replace("#include <project_vertex>", `#include <project_vertex>
         vec4 photoPosition = vec4(transformed, 1.0);
         vec3 photoN = objectNormal;
@@ -115,7 +117,8 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
         #endif
         photoWorld = (modelMatrix * photoPosition).xyz;
         photoWorldNormal = ${kind === "ground" ? "vec3(0.0, 1.0, 0.0)" : "normalize(mat3(modelMatrix) * photoN)"};
-        photoMask = ${kind === "terrain" ? "cc0Surface" : kind === "ground" ? "vec4(groundVariant, 0.0, 0.0, 0.0)" : "vec4(0.0)"};`);
+        photoMask = ${kind === "terrain" ? "cc0Surface" : kind === "ground" ? "vec4(groundVariant, 0.0, 0.0, 0.0)" : "vec4(0.0)"};
+        ${kind === "terrain" ? "photoCliffMask = cliffSurface;" : ""}`);
     const selection = kind === "terrain" ? `
       float baseTile = photoMask.x > 0.5 ? 0.0 : 1.0;
       float overlayTile = 5.0;
@@ -125,10 +128,16 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
       float sandWeight = photoMask.w * (1.0 - smoothstep(${COAST_SAND_Z[0].toFixed(1)}, ${COAST_SAND_Z[1].toFixed(1)}, photoWorld.z));
       if (sandWeight > overlay) { overlay = sandWeight; overlayTile = 3.0; }
       float cliff = 1.0 - smoothstep(0.57, 0.82, abs(photoN.y));
+      ${size === 512 ? "" : `
+      // Photos and geometric normals break the grass/rock edge at sub-cell scale.
+      float cliffPatch = cliffNoise(photoWorld * 1.1) - 0.5;
+      cliff = (1.0 - smoothstep(0.55 + cliffPatch * 0.1, 0.83 + cliffPatch * 0.08, abs(photoN.y)))
+        * photoCliffMask.y;
+      `}
       if (cliff > overlay) { overlay = cliff; overlayTile = 4.0; }
     ` : `float baseTile = ${kind === "road" ? "6.0" : kind === "bark" ? "7.0" : kind === "ground" ? "(photoMask.x > 1.5 ? 7.0 : 4.0)" : "4.0"};
       float overlayTile = baseTile; float overlay = 0.0;`;
-    shader.fragmentShader = shader.fragmentShader.replace("void main() {", `${fragment}\nvoid main() {`)
+    shader.fragmentShader = shader.fragmentShader.replace("void main() {", `${fragment}\n${kind === "terrain" ? "varying vec2 photoCliffMask;" : ""}\n${kind === "terrain" && size !== 512 ? cliffWeathering : ""}\nvoid main() {`)
       .replace("#include <color_fragment>", `#include <color_fragment>
         // Ground variants select different silhouettes from padded attributes.
         // Their shared normal attribute can be zero on a valid log triangle.
@@ -150,9 +159,18 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
         float region = sin(photoWorld.x * 0.031 + sin(photoWorld.z * 0.023)) * 0.035;
         // Source images are normalized around sRGB .68 (linear .42).
         // The existing palette stays the broad tint; real photos add hue and relief.
-        diffuseColor.rgb *= clamp(photoAlbedo / 0.42, vec3(0.55), vec3(1.6)) * (1.0 + region);`)
+        diffuseColor.rgb *= clamp(photoAlbedo / 0.42, vec3(0.55), vec3(1.6)) * (1.0 + region);
+        ${kind === "terrain" && size !== 512 ? `
+        vec4 terrainWeather = vec4(0.0);
+        if (cliff > 0.001) {
+          terrainWeather = cliffWeather(photoWorld, photoN, photoCliffMask.x);
+          // Keep the photograph's mineral hue instead of multiplying it by beige grass pigment.
+          vec3 stone = cliffPigment(photoSample(photoColor, 4.0, photoN) * 0.8, terrainWeather);
+          diffuseColor.rgb = mix(diffuseColor.rgb, stone, cliff);
+        }` : ""}`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
-        roughnessFactor = clamp(photoRelief.b, 0.72, 1.0);`)
+        roughnessFactor = clamp(photoRelief.b, 0.72, 1.0);
+        ${kind === "terrain" && size !== 512 ? "roughnessFactor = max(0.6, roughnessFactor - terrainWeather.z * cliff * 0.12);" : ""}`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
         #ifndef PHOTO_LOW
         // Fetch each projection separately before combining world-space normals.
@@ -161,7 +179,7 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
         normal = normalize(normal + mat3(viewMatrix) * detailWorld * faceDirection);
         #endif`);
   };
-  material.customProgramCacheKey = () => `photo-pbr-v1:${kind}`;
+  material.customProgramCacheKey = () => `photo-pbr-v2:${kind}:${size}`;
   return material;
 }
 
@@ -195,6 +213,7 @@ function surfaceFor(mesh: Mesh): PhotoSurface | undefined {
 
 /** Owns photo resources after the dressing gate, or flat software shading during build. */
 export function createPhotoSurfaces(root: Object3D, renderer: WebGLRenderer) {
+  const cliffs = createTerrainCliffs(root, renderer);
   // Even toon mask blending and procedural detail are expensive on software
   // rasterizers, especially when the user pins overall quality to High.
   const gl = renderer.getContext?.();
@@ -214,6 +233,9 @@ export function createPhotoSurfaces(root: Object3D, renderer: WebGLRenderer) {
     const resident = new Set<Mesh>();
     root.traverse(object => {
       if (!(object instanceof Mesh) || Array.isArray(object.material)) return;
+      if (object.name.startsWith("first-light-sculpted-rock") && object.material instanceof MeshStandardMaterial) {
+        weatherSpringCliff(object.material, activeSize > 0 ? textures : undefined, Math.max(0, activeSize));
+      }
       const kind = surfaceFor(object);
       if (!kind) return;
       resident.add(object);
@@ -233,6 +255,7 @@ export function createPhotoSurfaces(root: Object3D, renderer: WebGLRenderer) {
       mesh.material = originals.get(mesh)!;
       originals.delete(mesh);
     }
+    cliffs.refresh(activeSize > 0, textures, Math.max(0, activeSize));
   };
   root.onBeforeRender = function (...args) {
     previous.apply(this, args);
@@ -299,6 +322,7 @@ export function createPhotoSurfaces(root: Object3D, renderer: WebGLRenderer) {
     dispose() {
       if (disposed) return;
       disposed = true; revision++;
+      cliffs.dispose();
       root.onBeforeRender = previous;
       clearMaterials();
       textures.forEach(texture => texture.dispose()); textures = [];

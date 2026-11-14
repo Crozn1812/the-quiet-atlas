@@ -1,4 +1,6 @@
-import { Box3, BufferGeometry, Mesh, Sphere, Vector3 } from "three";
+import { Box3, BufferGeometry, Mesh, MeshStandardMaterial, Sphere, Vector3 } from "three";
+import { erodeSpringCliffPlants, sculptSpringCliff } from "../terrain/cliff-relief";
+import { weatherSpringCliff } from "../materials/cliff";
 
 /** Partition triangle indices, sharing the original vertex data and normals.
  * Color and shadow cameras can reject individual cliff sections; no decimation,
@@ -32,6 +34,11 @@ export function partitionCliffGeometry(source: BufferGeometry, cellSize = 16): B
 
 export function partitionCliffMesh(mesh: Mesh) {
   if (Array.isArray(mesh.material) || !mesh.parent || mesh.geometry.groups.length > 1) return;
+  if (mesh.name === "first-light-sculpted-rock" && mesh.material instanceof MeshStandardMaterial && mesh.material.map) {
+    sculptSpringCliff(mesh);
+    weatherSpringCliff(mesh.material);
+  }
+  if (mesh.name === "first-light-crevice-ferns") erodeSpringCliffPlants(mesh);
   // Meshopt GLBs keep normalized positions and their metre scale on the node.
   const scale = mesh.getWorldScale(new Vector3());
   const cellSize = 16 / Math.max(scale.x, scale.y, scale.z, 0.00001);
