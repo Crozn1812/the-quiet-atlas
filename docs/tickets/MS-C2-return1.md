@@ -8,3 +8,5 @@ Lead đã xem `test-results/ms-c2/world/high-front.png`. Tiến bộ: mạng n�
 4. **Chữ khó đọc:** khắc chìm nhưng phải đọc được ở 6–8 m: tăng tương phản (lòng chữ vàng nhạt phát sáng nhẹ trên kính, hoặc viền tối mảnh), cỡ chữ lớn hơn, mặt mảnh quay về phía người xem nhiều hơn.
 
 Được **một lần build**. Phạm vi và ngân sách như `MS-C2.md`. Xong: gate PASS; e2e world 43/43; CPU ABBA ≤ +10 ms/s (dán bảng); ảnh High front/back/sockets + Low + clip 10 s. Không commit.
+
+> **Lead (10:30):** Codex C hết lượt; chuyển sang Codex B ở `D:/tqa-worktrees/W-B`, nhánh `lane/MS-C2` dựng lại từ main mới nhất, mọi thay đổi chưa commit đã áp. Làm 4 việc ở trên từ trạng thái hiện tại.
