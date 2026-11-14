@@ -37,9 +37,9 @@ export async function checkBudgets(directory = 'public/world') {
         catch (error) { report.errors.push(`${relative}: cannot read KTX2: ${error.message}`); }
       }
       if (path.extname(entry.name).toLowerCase() !== '.glb') continue;
-      const match = /^(?:hr-)?(tree|palm|rock|cliff|prop|character|vehicle)-([a-z0-9]+(?:-[a-z0-9]+)*)\.glb$/i.exec(entry.name);
+      const match = /^(?:hr-|roots-)?(tree|palm|rock|cliff|prop|character|vehicle)-([a-z0-9]+(?:-[a-z0-9]+)*)\.glb$/i.exec(entry.name);
       if (!match) {
-        report.errors.push(`${relative}: expected <type>-<name>.glb; type must be tree, palm, rock, cliff, prop, character, or vehicle (optional hr- prefix).`);
+        report.errors.push(`${relative}: expected <type>-<name>.glb; type must be tree, palm, rock, cliff, prop, character, or vehicle (optional hr- or roots- prefix).`);
         continue;
       }
       try {
