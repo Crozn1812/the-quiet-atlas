@@ -6,6 +6,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Việc | Lane chờ | Chặn milestone? | Hạn đề xuất | Hướng dẫn |
 |---|---|---|---|---|---|
+| Q-47 | **Checklist trước lần deploy đầu** (17 bước: Budgets, Paid plan, tên miền, ACM, OIDC role…) — chỉ làm khi bạn quyết định phát hành; Lead không chạm cloud | L5 | Chặn deploy (không chặn đồ họa) | Khi quyết định phát hành | `docs/runbook/release-checklist.md` |
 | Q-46 | ~~**Account Codex D (`.codex4`) hết credit**~~ **Đã có credit lại (kiểm 05:40 14/11), không cần làm gì.** ("workspace out of credits", 01:00 14/11). Nạp thêm credit hoặc báo bỏ account này | Đội Codex | Không (A/B/C vẫn chạy, chỉ chậm hơn) | Khi quay lại | Trang usage của workspace Codex; Lead tự chạy lại khi có credit |
 | Q-31 | **Chấm showcase đợt 17** (world hướng C, cinematic, Sổ Atlas): giữ/sửa/bỏ 6 dòng | L3 | Không | Khi rảnh | `docs/showcase/17-world-c/checklist.md` |
 | Q-33 | **Chấm showcase đợt 18–20** (giữ/sửa/bỏ 9 dòng) | L3 | Không | Khi rảnh | `docs/showcase/20-world-life/checklist.md` |
