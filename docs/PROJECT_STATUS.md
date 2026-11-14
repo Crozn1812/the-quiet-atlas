@@ -1,5 +1,37 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## Đợt siêu thực (HR) — trạng thái 14/11 19:20 (Claude-Lead)
+
+Duy chấm world `c8531eb` **4/10** và yêu cầu siêu thực; Duy bỏ mọi **trần** ngân sách (ADR 0019: số đo chỉ báo cáo; license, leak, không chunk 3D trước Enter World, lỗi console, e2e chức năng vẫn chặn). Main hiện `7026dac`, **chưa push** (push chỉ khi Duy duyệt).
+
+**Đã merge hôm nay (mỗi ticket: gate PASS, e2e world 43/43 trên SwiftShader, Lead xem ảnh trước/sau):**
+
+| Ticket | Commit | Trải nghiệm |
+|---|---|---|
+| BUDGET-OFF | b47ce2d | Trần → báo cáo; gate tính đúng giữ nguyên |
+| FIX-PATCH | b90313c | Nền xa không còn đâm xuyên đường mòn |
+| HR-TREE1 / HR-TREE2 | af5795c / 2fce72d | 12 cây khác nhau, bạnh rễ, dây leo, tầng dưới tán; không hai cây giống nhau đứng gần. Renderer phần mềm (SwiftShader/llvmpipe) giữ rừng dự phòng tĩnh |
+| STREAM-C | c81f68f | Mép suối mềm theo độ sâu thật, đất ướt, phản chiếu trời |
+| HR-STREAMBED | 64da0b5 | Sỏi nhiều màu, đá có rêu, rong lay, bọt kéo hạ lưu |
+| MS-C2 | 10f2909 | Hình nộm Milestones gần thực, đang bước; mảnh chứng chỉ chỉ từ `certificates.json` (đã có: CCNA, VTI DevOps hàn vào ngực; dự định: AWS SAA, Linux/CEH lơ lửng) |
+| HR-BIRDS / AUDIO-BIRDS | f56f214 / 7026dac | Chim bay, đậu, bay đi; hải âu; tiếng chim **thu âm thật CC0** (Wikimedia Commons, 5 loài, nguồn ở `assets/audio-src/birds/SOURCES.md`) |
+| HR-CLIFF | c7a6d3f | Vách First Light thành đá phân tầng thật (+13,2 MB, nạp deferred) |
+| HR-SEA | bf701ab | Biển hoàng hôn: vệt nắng, màu theo độ sâu, sương chân trời; giữ sóng SURF-01 |
+
+**Đang làm:** HR-ROOTS-SIGN vòng 2 (B, hết lượt tới 20:58, tự chạy lại 21:00), PERF-HR (C, hết lượt tới 21:02, tự chạy lại 21:03), SEA-TESTS (A). Chờ: HR-LIGHT, rồi gate cuối + showcase 39-final.
+
+**Số đo đáng chú ý (báo cáo, không chặn):**
+- High toàn cảnh trên RTX 3060 sau HR-TREE2/STREAMBED/CLIFF/BIRDS: **19,4 FPS**, ~380 draw, ~5,96 triệu tam giác/frame (bàn giao HR-BIRDS). Low 99,9 FPS. → PERF-HR mục tiêu ≥ 60 FPS High mà không giảm chất lượng nhìn thấy.
+- Low tới lúc chơi được (đo riêng, HR-CLIFF): trung vị 14,0 s.
+- Unit trên main: 1898 passed / 1 skipped. HR-SEA viết lại test biển (1911 → 1882), SEA-TESTS đang rà khôi phục bất biến còn đúng.
+
+**Chưa chạy:** full e2e (mọi suite), load/Lighthouse/CPU ABBA cuối, showcase 39-final — **NOT RUN** cho tới khi HR xong. T08/T09 Iris Xe **NOT RUN** (Duy). Duy chưa chấm lại đồ họa sau đợt HR.
+
+**Sự cố:** mất điện ~13:00–15:58 (4 worker chạy lại từ worktree, không mất code). Codex D hết credit lần 2 (Q-49).
+
+---
+
+
 **Điều phối mới nhất (10/11):** Codex làm Lead + thi công RC-01 để Duy test toàn bộ. [Showcase 35 và audit](showcase/35-rc/README.md) · [Hướng dẫn test 20–30 phút](playtest/rc-guide.md). Clone `D:/tqa-worktrees/RC-01`, nhánh `lane/RC-01`; main hiện `d00bf20` (thêm tài liệu từ `3bb0752`, runtime chưa chứa RC), chưa push. `.git` main chỉ đọc: Claude-Lead sẽ fetch/duyệt/merge clone khi đủ gate theo [handoff](runbook/lead-handoff.md).
 
 ## RC-01 — đủ gate để Duy test local (2026-11-10)
