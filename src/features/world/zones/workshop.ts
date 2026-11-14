@@ -1,7 +1,6 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute, Group,
   IcosahedronGeometry, Mesh, OctahedronGeometry, PointLight, Shape, TorusGeometry, Vector3, type MeshToonMaterial,
-  type WebGLRenderer,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
@@ -9,8 +8,8 @@ import { createFern } from "../foliage/ground";
 import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
-import { deferCustomBakedBatch, type BakedBatchPart } from "../props/batched";
-import { bindWorkshopBatch, createWorkshopLibrary, type WorkshopAsset } from "../props/workshop-library";
+import { bindWorkshopBatch } from "../props/workshop-library";
+import { bindHrProps, selectHrProp, type HrPropSite } from "../props/hr-props";
 import { createWorkshopDressing } from "./workshop-dressing";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
@@ -689,8 +688,7 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     collider([0.62, height, 1.6], [x, y + height / 2, z]);
   }
 
-  const dressingEntries = new Map<Surface, BakedBatchPart<WorkshopAsset>[]>();
-  const library = createWorkshopLibrary();
+  const dressingEntries = new Map<Surface, HrPropSite[]>();
   const releases: (() => void)[] = [];
   const baseVertices = new Map<Surface, number>();
   for (const [surface, parts] of batches.get(group)!) {
@@ -700,7 +698,10 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     const parts = batches.get(group)!.get(part.surface) ?? [];
     batches.get(group)!.set(part.surface, parts);
     const entries = dressingEntries.get(part.surface) ?? [];
-    entries.push({ index: parts.length, asset: part.asset, bounds: part.bounds, yaw: part.yaw, colorScale: part.colorScale });
+    const center = part.bounds.getCenter(new Vector3()), size = part.bounds.getSize(new Vector3());
+    // Bounds already contain the authored rotation. Keep the exact approved footprint.
+    entries.push({ asset: selectHrProp(part.asset, center.x, center.z), x: center.x, z: center.z,
+      size: [size.x, size.y, size.z], yaw: 0, tint: 1 });
     dressingEntries.set(part.surface, entries);
     parts.push(part.geometry);
     const key = `dressing-${part.surface}`;
@@ -724,9 +725,15 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
       const entries = dressingEntries.get(surface);
       if (parent === group) {
         if (entries) {
-          let renderer: WebGLRenderer;
-          releases.push(deferCustomBakedBatch(mesh, parts, entries, context.heightAt, asset => library.load(asset, renderer)));
-          releases.push(bindWorkshopBatch(mesh, active => { renderer = active; }));
+          const retained = geometry.clone();
+          const count = baseVertices.get(surface) ?? 0;
+          // Workshop batches are non-indexed; retain every structural vertex.
+          for (const name of Object.keys(retained.attributes)) {
+            const attribute = retained.getAttribute(name);
+            retained.setAttribute(name, new Float32BufferAttribute(Array.from(attribute.array).slice(0, count * attribute.itemSize), attribute.itemSize));
+          }
+          retained.computeBoundingBox(); retained.computeBoundingSphere();
+          releases.push(bindHrProps(mesh, entries, context.heightAt, retained).dispose);
         } else {
           releases.push(bindWorkshopBatch(mesh, () => {}));
         }
@@ -771,7 +778,6 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
       disposed = true;
       // Restore render hooks before the deferred batch restores its fallback.
       releases.reverse().forEach(release => release());
-      library.dispose();
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
       group.removeFromParent();

@@ -2481,6 +2481,1849 @@
         ],
         "usage": "Choose nearest azimuth; update UV rectangle; yaw billboard around recorded center. Baked light; no shadow casting."
       }
+    },
+    {
+      "id": "hr-prop-bush-broadleaf",
+      "category": "prop",
+      "seed": 18401,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-bush-broadleaf-lod0.glb",
+          "triangles": 6480,
+          "authoringBoundsZup": {
+            "min": [
+              -0.718928873538971,
+              -0.7709895968437195,
+              -0.0021993995178490877
+            ],
+            "max": [
+              0.7584031224250793,
+              0.642479658126831,
+              1.082329273223877
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-broadleaf-lod0.glb",
+          "bytes": 67900,
+          "sha256": "86ed38158faeaf2e8c48ba0589d17e15c9fd9c41de8f994547c7da42c079f132",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-bush-broadleaf-lod1.glb",
+          "triangles": 2000,
+          "authoringBoundsZup": {
+            "min": [
+              -0.718928873538971,
+              -0.7670374512672424,
+              -0.0016338785644620657
+            ],
+            "max": [
+              0.7584031224250793,
+              0.6410096883773804,
+              1.0820058584213257
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-broadleaf-lod1.glb",
+          "bytes": 24708,
+          "sha256": "d1d10a8e3508c619abfe292c0165f7bf0d16987c5ab6c591f68f315f874a074b",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-bush-needle",
+      "category": "prop",
+      "seed": 19398,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-bush-needle-lod0.glb",
+          "triangles": 12600,
+          "authoringBoundsZup": {
+            "min": [
+              -0.6999825239181519,
+              -0.7047601938247681,
+              -0.002309906529262662
+            ],
+            "max": [
+              0.7053647041320801,
+              0.6748003959655762,
+              1.0883458852767944
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-needle-lod0.glb",
+          "bytes": 123860,
+          "sha256": "7dddf9c1568be25223e13afbcee731ee10ca4334f671217dbfc7506211400af0",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-bush-needle-lod1.glb",
+          "triangles": 3600,
+          "authoringBoundsZup": {
+            "min": [
+              -0.6390645503997803,
+              -0.703515350818634,
+              -0.002309906529262662
+            ],
+            "max": [
+              0.7026562690734863,
+              0.6748003959655762,
+              1.088118076324463
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-needle-lod1.glb",
+          "bytes": 41504,
+          "sha256": "0a87578f0924390dc8626f7961f7aba6e479508e505a9d5e0e170db989ffe3ad",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-bush-wildflower",
+      "category": "prop",
+      "seed": 20395,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-bush-wildflower-lod0.glb",
+          "triangles": 10260,
+          "authoringBoundsZup": {
+            "min": [
+              -0.6497541666030884,
+              -0.6566639542579651,
+              -0.0023141438141465187
+            ],
+            "max": [
+              0.6413777470588684,
+              0.6313014626502991,
+              1.0678260326385498
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-wildflower-lod0.glb",
+          "bytes": 102172,
+          "sha256": "494c89d3b89c57885a26dfbc45341d9f9c41f82d3b6e35cea0b7dd347aa1ad10",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-bush-wildflower-lod1.glb",
+          "triangles": 2900,
+          "authoringBoundsZup": {
+            "min": [
+              -0.5996631383895874,
+              -0.5784926414489746,
+              -0.0023141438141465187
+            ],
+            "max": [
+              0.6212574243545532,
+              0.6313014626502991,
+              1.0536304712295532
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-wildflower-lod1.glb",
+          "bytes": 34252,
+          "sha256": "d6b1cc3322b0c6dfb784d9630f53c57873b45cc717c5203f237bb74b5b12ea79",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-bush-bamboo",
+      "category": "prop",
+      "seed": 21392,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-bush-bamboo-lod0.glb",
+          "triangles": 4680,
+          "authoringBoundsZup": {
+            "min": [
+              -0.7110931873321533,
+              -0.7943369746208191,
+              -0.002071451162919402
+            ],
+            "max": [
+              0.8083183765411377,
+              0.763512134552002,
+              1.1011477708816528
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-bamboo-lod0.glb",
+          "bytes": 48616,
+          "sha256": "a4c71ac42e93215903c983b7a6e56b657c7ad68fbcc11d824a60887a3d02fb2d",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-bush-bamboo-lod1.glb",
+          "triangles": 1400,
+          "authoringBoundsZup": {
+            "min": [
+              -0.6247076392173767,
+              -0.7834046483039856,
+              -0.002071451162919402
+            ],
+            "max": [
+              0.8083183765411377,
+              0.763512134552002,
+              1.100812315940857
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-bush-bamboo-lod1.glb",
+          "bytes": 18184,
+          "sha256": "79ea254f878600b67b10c6a4c28c92d2e027160442239578a82d4b253e8845d9",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-fern-arching",
+      "category": "prop",
+      "seed": 22389,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-fern-arching-lod0.glb",
+          "triangles": 11160,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0412144660949707,
+              -1.0280529260635376,
+              0.07473544776439667
+            ],
+            "max": [
+              0.7913615703582764,
+              0.8304833173751831,
+              0.617841362953186
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-fern-arching-lod0.glb",
+          "bytes": 108124,
+          "sha256": "8ec74a4b74d005a8a00f2388a10f71257f3761560fe89efbfaf497bcc733271b",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-fern-arching-lod1.glb",
+          "triangles": 1708,
+          "authoringBoundsZup": {
+            "min": [
+              -0.8015791773796082,
+              -1.0493923425674438,
+              0.0751136764883995
+            ],
+            "max": [
+              0.8252764940261841,
+              0.7465338110923767,
+              0.6169494986534119
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-fern-arching-lod1.glb",
+          "bytes": 21256,
+          "sha256": "51f134e46395ad9eae2b9fef0573913c2e664130634e9afa081cc5227cff4d16",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-fern-sword",
+      "category": "prop",
+      "seed": 23386,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-fern-sword-lod0.glb",
+          "triangles": 14880,
+          "authoringBoundsZup": {
+            "min": [
+              -0.964259147644043,
+              -0.8487740755081177,
+              0.0744704157114029
+            ],
+            "max": [
+              1.1434898376464844,
+              1.1473084688186646,
+              0.6186987161636353
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-fern-sword-lod0.glb",
+          "bytes": 142696,
+          "sha256": "d1025146e80073cd4a7e70011801061b00508dc9023d8aa2403d82d3ede54e8c",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-fern-sword-lod1.glb",
+          "triangles": 2196,
+          "authoringBoundsZup": {
+            "min": [
+              -0.9977126717567444,
+              -0.8804914951324463,
+              0.07493558526039124
+            ],
+            "max": [
+              0.9334962368011475,
+              0.8953546285629272,
+              0.6166859865188599
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-fern-sword-lod1.glb",
+          "bytes": 26424,
+          "sha256": "a805915cf180df8a5e6f67428aeff3f4d28ba5d7829617d1decdbaa2a687341e",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-fern-round",
+      "category": "prop",
+      "seed": 24383,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-fern-round-lod0.glb",
+          "triangles": 8370,
+          "authoringBoundsZup": {
+            "min": [
+              -1.155993938446045,
+              -0.8783079981803894,
+              0.0743403285741806
+            ],
+            "max": [
+              1.1481562852859497,
+              0.972176194190979,
+              0.6186212301254272
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-fern-round-lod0.glb",
+          "bytes": 82260,
+          "sha256": "3a02b416afd11d5bbe1c93c50f98a6184586cda0b78924533862f0ecaaac2716",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-fern-round-lod1.glb",
+          "triangles": 1220,
+          "authoringBoundsZup": {
+            "min": [
+              -1.172999382019043,
+              -0.9197272658348083,
+              0.0742807388305664
+            ],
+            "max": [
+              0.6763696670532227,
+              0.6201952695846558,
+              0.6190117597579956
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-fern-round-lod1.glb",
+          "bytes": 16240,
+          "sha256": "17ee0568bc3c1b17627ecd9d28fb1e5edda33d1f4805a3a18185921a3657b532",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-rock-boulder",
+      "category": "rock",
+      "seed": 25380,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-rock-boulder-lod0.glb",
+          "triangles": 2400,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0257346630096436,
+              -0.8646580576896667,
+              0.02500000037252903
+            ],
+            "max": [
+              1.0947810411453247,
+              0.8298009037971497,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-boulder-lod0.glb",
+          "bytes": 16256,
+          "sha256": "a8c9f82587d6a6f0fa8edb1afb5a3658bec1df119b8e50ef1113f54cc71c25b4",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-rock-boulder-lod1.glb",
+          "triangles": 480,
+          "authoringBoundsZup": {
+            "min": [
+              -1.020984172821045,
+              -0.8448371291160583,
+              0.02500000037252903
+            ],
+            "max": [
+              1.0825425386428833,
+              0.834436297416687,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-boulder-lod1.glb",
+          "bytes": 6516,
+          "sha256": "843b8b5b38fc9830072a114ea3f3d60973258e42ca8b4eef58b15f3b7725a6fb",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-rock-river",
+      "category": "rock",
+      "seed": 26377,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-rock-river-lod0.glb",
+          "triangles": 2400,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0066142082214355,
+              -0.785798192024231,
+              0.02500000037252903
+            ],
+            "max": [
+              0.994134247303009,
+              0.8124515414237976,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-river-lod0.glb",
+          "bytes": 16012,
+          "sha256": "76e48b81f38ade3bbc019f56fb046461fd7f9e18ee845d38442aae164c82a03d",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-rock-river-lod1.glb",
+          "triangles": 480,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0063140392303467,
+              -0.7865149974822998,
+              0.02500000037252903
+            ],
+            "max": [
+              0.9936859011650085,
+              0.8134849667549133,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-river-lod1.glb",
+          "bytes": 6452,
+          "sha256": "3cb5ff51cee56c50ff15666a39486ee782dcbfd82cad34ca57fb5666f02aa63d",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-rock-slate",
+      "category": "rock",
+      "seed": 27374,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-rock-slate-lod0.glb",
+          "triangles": 2400,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0701698064804077,
+              -0.8704788088798523,
+              0.010001833550632
+            ],
+            "max": [
+              1.038390040397644,
+              0.8424475789070129,
+              0.27355772256851196
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-slate-lod0.glb",
+          "bytes": 16596,
+          "sha256": "149c1049b14e41a13c3b8a04920f301767e9d45243efc431f991dc1839ff088a",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-rock-slate-lod1.glb",
+          "triangles": 480,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0293132066726685,
+              -0.8382604718208313,
+              0.010142412036657333
+            ],
+            "max": [
+              0.992287278175354,
+              0.8093867301940918,
+              0.274265855550766
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-slate-lod1.glb",
+          "bytes": 6564,
+          "sha256": "a414d389f32ae4f3e3767873f2b85a65619e86e9e2fadc14e9090cb73e1b7979",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-rock-moss-boulder",
+      "category": "rock",
+      "seed": 28371,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-rock-moss-boulder-lod0.glb",
+          "triangles": 2400,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0782870054244995,
+              -0.8434115648269653,
+              0.02500000037252903
+            ],
+            "max": [
+              1.0408235788345337,
+              0.8564538955688477,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-moss-boulder-lod0.glb",
+          "bytes": 16272,
+          "sha256": "218af896d0395c4d8de1a85b7f8e86d435ba3cb6eab13d31e8b6e3ca9eed02a2",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-rock-moss-boulder-lod1.glb",
+          "triangles": 480,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0262635946273804,
+              -0.7884007096290588,
+              0.02500000037252903
+            ],
+            "max": [
+              0.9911602735519409,
+              0.8115993142127991,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-moss-boulder-lod1.glb",
+          "bytes": 6532,
+          "sha256": "bd1b44499e6f6ca59a40e5e14567ade78da72c88376b6aa35dcab6307125eef1",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-rock-moss-river",
+      "category": "rock",
+      "seed": 29368,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-rock-moss-river-lod0.glb",
+          "triangles": 2400,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0066142082214355,
+              -0.785798192024231,
+              0.02500000037252903
+            ],
+            "max": [
+              0.994134247303009,
+              0.8124515414237976,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-moss-river-lod0.glb",
+          "bytes": 16020,
+          "sha256": "dfab1d3f812888407e690e6774268a7e4179ac2ecacb081c485e46ba4a99e048",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-rock-moss-river-lod1.glb",
+          "triangles": 480,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0063140392303467,
+              -0.7865149974822998,
+              0.02500000037252903
+            ],
+            "max": [
+              0.9936859011650085,
+              0.8134849667549133,
+              0.7799999713897705
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-moss-river-lod1.glb",
+          "bytes": 6464,
+          "sha256": "95fb4d0d1a35b8ec7c45b161a573a9d37edd83389a08a4002101d7ddd3b1faad",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-rock-moss-slate",
+      "category": "rock",
+      "seed": 30365,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-rock-moss-slate-lod0.glb",
+          "triangles": 2400,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0380656719207764,
+              -0.8344386219978333,
+              0.010001833550632
+            ],
+            "max": [
+              1.0805331468582153,
+              0.8578389883041382,
+              0.27355772256851196
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-moss-slate-lod0.glb",
+          "bytes": 16536,
+          "sha256": "d4e56c2485af5705301d8795df8d53321aa80ff594768e4076043ee8fb69ff7f",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-rock-moss-slate-lod1.glb",
+          "triangles": 480,
+          "authoringBoundsZup": {
+            "min": [
+              -1.0105772018432617,
+              -0.8258910775184631,
+              0.010142412036657333
+            ],
+            "max": [
+              1.082886815071106,
+              0.8439288139343262,
+              0.274265855550766
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-rock-moss-slate-lod1.glb",
+          "bytes": 6560,
+          "sha256": "1a0dfdb70edd93a5b7ced1039dae81ed79916155a134a5ebb41b3e64e45133b1",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-log-fungi",
+      "category": "prop",
+      "seed": 31362,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-log-fungi-lod0.glb",
+          "triangles": 2972,
+          "authoringBoundsZup": {
+            "min": [
+              -1.4452941417694092,
+              -0.2946002185344696,
+              -0.054444849491119385
+            ],
+            "max": [
+              1.4060617685317993,
+              0.34043920040130615,
+              0.5583642721176147
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-log-fungi-lod0.glb",
+          "bytes": 22996,
+          "sha256": "71e479d43e3f9afc43908f99b451e88422fc5c340ae508bd4206d1e9d2d15e6f",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-log-fungi-lod1.glb",
+          "triangles": 636,
+          "authoringBoundsZup": {
+            "min": [
+              -1.4440388679504395,
+              -0.29503291845321655,
+              -0.054781168699264526
+            ],
+            "max": [
+              1.4060114622116089,
+              0.34043920040130615,
+              0.5378029346466064
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-log-fungi-lod1.glb",
+          "bytes": 8452,
+          "sha256": "b5730cc1710b9d5ec5ec831a2d6945dc0e6bf177f11b45c96a35ef29cf4e06b8",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-log-moss",
+      "category": "prop",
+      "seed": 32359,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-log-moss-lod0.glb",
+          "triangles": 3052,
+          "authoringBoundsZup": {
+            "min": [
+              -1.4452941417694092,
+              -0.2946002185344696,
+              -0.054444849491119385
+            ],
+            "max": [
+              1.4060617685317993,
+              0.6085115075111389,
+              0.5746918320655823
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-log-moss-lod0.glb",
+          "bytes": 23608,
+          "sha256": "839c45d6f2de73c1005311023edf99263c3ce4db882717ec474eff11d1e48543",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-log-moss-lod1.glb",
+          "triangles": 674,
+          "authoringBoundsZup": {
+            "min": [
+              -1.4440388679504395,
+              -0.29503291845321655,
+              -0.054781168699264526
+            ],
+            "max": [
+              1.4060114622116089,
+              0.6085115075111389,
+              0.5723606944084167
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-log-moss-lod1.glb",
+          "bytes": 8808,
+          "sha256": "6e64b5fcbd67ad18eaa55821f8b805b6869abb98a6e84940f9952b070a9e89ce",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-palm-coconut",
+      "category": "tree",
+      "seed": 33356,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-palm-coconut-lod0.glb",
+          "triangles": 24260,
+          "authoringBoundsZup": {
+            "min": [
+              -1.7810145616531372,
+              -2.6276497840881348,
+              -0.007704912219196558
+            ],
+            "max": [
+              3.060654878616333,
+              2.642798662185669,
+              6.807866096496582
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-palm-coconut-lod0.glb",
+          "bytes": 218928,
+          "sha256": "02bc1f2f4ffff6368183715928db8e330ea34b2124c73730bc47751a97297acf",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-palm-coconut-lod1.glb",
+          "triangles": 3996,
+          "authoringBoundsZup": {
+            "min": [
+              -1.7780669927597046,
+              -2.444150447845459,
+              -0.0077405222691595554
+            ],
+            "max": [
+              3.100555896759033,
+              2.7106564044952393,
+              6.805648326873779
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-palm-coconut-lod1.glb",
+          "bytes": 42628,
+          "sha256": "f681394ea080838778f7104cc18a4681387ed1fd5a72cef30365475666b4b091",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-palm-leaning",
+      "category": "tree",
+      "seed": 34353,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-palm-leaning-lod0.glb",
+          "triangles": 24260,
+          "authoringBoundsZup": {
+            "min": [
+              -0.8984625935554504,
+              -2.744115114212036,
+              -0.006158331409096718
+            ],
+            "max": [
+              3.820281744003296,
+              2.5714194774627686,
+              8.515752792358398
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-palm-leaning-lod0.glb",
+          "bytes": 217512,
+          "sha256": "6987d48fc2695c41c26d5b1895a97e6370c650bc6830babb350715ce644dadeb",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-palm-leaning-lod1.glb",
+          "triangles": 3996,
+          "authoringBoundsZup": {
+            "min": [
+              -0.9628252983093262,
+              -2.3514244556427,
+              -0.006253069266676903
+            ],
+            "max": [
+              3.8660995960235596,
+              2.633819341659546,
+              8.506690979003906
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-palm-leaning-lod1.glb",
+          "bytes": 42372,
+          "sha256": "18f3cb007ade0c5faea9e363249e24baa4af76c83c5930802a504e58776f7f44",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-palm-shore",
+      "category": "tree",
+      "seed": 35350,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-palm-shore-lod0.glb",
+          "triangles": 24260,
+          "authoringBoundsZup": {
+            "min": [
+              -3.2717831134796143,
+              -2.3812947273254395,
+              -0.00979641079902649
+            ],
+            "max": [
+              1.8502479791641235,
+              2.5929770469665527,
+              5.415502071380615
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-palm-shore-lod0.glb",
+          "bytes": 221444,
+          "sha256": "7e9289f4f176d13360bc2762633aba0742452c3471a1d577069740a852c3671e",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-palm-shore-lod1.glb",
+          "triangles": 3996,
+          "authoringBoundsZup": {
+            "min": [
+              -2.8548102378845215,
+              -2.424947738647461,
+              -0.009591946378350258
+            ],
+            "max": [
+              1.8940644264221191,
+              2.618089437484741,
+              5.416228294372559
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-palm-shore-lod1.glb",
+          "bytes": 43304,
+          "sha256": "a05a451c9cd602310b203760ad1fcf127d6317c312b7ff861666703a52a413a7",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
+    },
+    {
+      "id": "hr-prop-grass-meadow",
+      "category": "prop",
+      "seed": 36347,
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/forest_floor",
+        "https://polyhaven.com/a/pine_bark",
+        "https://polyhaven.com/a/river_small_rocks"
+      ],
+      "derivation": "Original Blender curved meshes; verified cached CC0 photographs; no downloaded assets",
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-grass-meadow-lod0.glb",
+          "triangles": 4480,
+          "authoringBoundsZup": {
+            "min": [
+              -0.5763536095619202,
+              -0.5434067249298096,
+              -0.000713556946720928
+            ],
+            "max": [
+              0.5417943000793457,
+              0.5768514275550842,
+              0.8876094818115234
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-grass-meadow-lod0.glb",
+          "bytes": 49928,
+          "sha256": "d7697ebb789d0212c0767f459636be8f82250fc6a762cfde3310490d76d2af59",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-grass-meadow-lod1.glb",
+          "triangles": 780,
+          "authoringBoundsZup": {
+            "min": [
+              -0.5305997729301453,
+              -0.5434067249298096,
+              -0.000713556946720928
+            ],
+            "max": [
+              0.4907791018486023,
+              0.5768514275550842,
+              0.8803389072418213
+            ]
+          },
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "path": "/world/lib/hr-prop-grass-meadow-lod1.glb",
+          "bytes": 12956,
+          "sha256": "ef1d3546bde6cfab540a82494c5f5aaa40dc18d61e0332cdeac8d14cf56c27ae",
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+              "bytes": 3978654,
+              "sha256": "7d422c6751a2d56631f8a8db3202e5e3b35072bfd7821e8dbed4e10a7c35d577"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+              "bytes": 4769288,
+              "sha256": "74c578aa78f0609e3e879b1ae9ea1ebdfd6bc9083fe27786434b9d868cd589e8"
+            },
+            {
+              "path": "/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+              "bytes": 2820970,
+              "sha256": "48e024b701b0a0e8ad7eb2716e62f80a34ac98377616903fc4bcfbaa230a292a"
+            }
+          ]
+        }
+      ],
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "integration": "props/hr-props.ts; PBR instancing; High LOD0/LOD1 26m/21m hysteresis; Low procedural; no distant shadows"
     }
   ]
 }

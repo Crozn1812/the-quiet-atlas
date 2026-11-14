@@ -1,8 +1,10 @@
+import { createHrPropsBatch as createLibraryBatch } from "../props/hr-props";
+import { hrLandscapeSites } from "./hr-props-dressing";
 import { BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createBroadleafBush, createFern, createGrassTuft } from "../foliage/ground";
-import { createLibraryBatch, fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
+import { fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext } from "./types";
 
 interface OverlookLayout {
@@ -93,7 +95,7 @@ export function createHorizonDressing(context: ZoneSceneContext, layout: Overloo
   const fallback = mergeGeometries(parts)!;
   parts.forEach(part => part.dispose());
   fallback.computeBoundingBox(); fallback.computeBoundingSphere();
-  const batch = createLibraryBatch(fallback, sites, context.heightAt, load);
+  const batch = createLibraryBatch(fallback, sites, context.heightAt, load, undefined, hrLandscapeSites(context, "hill", colliders));
   batch.mesh.name = "horizon-dressing";
   const after = batch.mesh.onAfterRender;
   batch.mesh.onAfterRender = function (...args) {

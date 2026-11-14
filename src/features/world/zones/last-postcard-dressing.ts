@@ -1,8 +1,10 @@
-﻿import { BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
+import { createHrPropsBatch as createLibraryBatch } from "../props/hr-props";
+import { hrLandscapeSites } from "./hr-props-dressing";
+import { BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern, createGrassTuft } from "../foliage/ground";
-import { createLibraryBatch, fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
+import { fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext } from "./types";
 
 // Windward grass in the open light, sheltered ferns below the fence, and a
@@ -74,7 +76,7 @@ export function createLastPostcardDressing(context: ZoneSceneContext, anchor: { 
   if (!parts.length) for (const [key, size] of [["position", 3], ["normal", 3], ["color", 3], ["uv", 2], ["dressingSurface", 1]] as const)
     fallback.setAttribute(key, new Float32BufferAttribute([], size));
   fallback.computeBoundingBox(); fallback.computeBoundingSphere();
-  const batch = createLibraryBatch(fallback, sites, context.heightAt, load);
+  const batch = createLibraryBatch(fallback, sites, context.heightAt, load, undefined, hrLandscapeSites(context, "palm", colliders));
   batch.mesh.name = "last-postcard-dressing";
   batch.mesh.userData.sites = sites;
   return batch;

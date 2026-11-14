@@ -1,7 +1,8 @@
+import { createHrPropsBatch as createLibraryBatch } from "../props/hr-props";
 import { BufferGeometry, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createBroadleafBush, createFern, createGrassTuft } from "../foliage/ground";
-import { createLibraryBatch, fitDressing, type DressingSite } from "../props/library-batch";
+import { fitDressing, type DressingSite } from "../props/library-batch";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneSceneContext } from "./types";
 
 // A broken fence settling into its verge, a damp tree foot, and a lighter grass

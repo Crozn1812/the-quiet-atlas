@@ -1,8 +1,10 @@
+import { createHrPropsBatch as createLibraryBatch } from "../props/hr-props";
+import { hrLandscapeSites } from "./hr-props-dressing";
 import { BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
 import { createFern, createGrassTuft } from "../foliage/ground";
-import { createLibraryBatch, fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
+import { fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext } from "./types";
 
 // Porch-relative: a split stone pair and driftwood frame the seaward side;
@@ -75,7 +77,7 @@ export function createQuietShoreDressing(context: ZoneSceneContext, moss: Buffer
   fallback.userData.retainedVertices = moss.getAttribute("position").count;
   parts.forEach(part => part.dispose());
   fallback.computeBoundingBox(); fallback.computeBoundingSphere();
-  const batch = createLibraryBatch(fallback, sites, context.heightAt, load, moss);
+  const batch = createLibraryBatch(fallback, sites, context.heightAt, load, moss, hrLandscapeSites(context, "palm", colliders));
   batch.mesh.name = "quiet-shore-leaf";
   batch.mesh.castShadow = true;
   batch.mesh.userData.dressingSites = sites;

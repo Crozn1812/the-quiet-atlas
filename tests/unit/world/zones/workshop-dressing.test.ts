@@ -129,7 +129,10 @@ it("swaps whole batches after deferred loads and restores the exact fallback syn
   try {
     setBakedPropQuality(scene,"Low"); render(); await Promise.resolve(); expect(load).not.toHaveBeenCalled();
     setBakedPropQuality(scene,"High"); render();
-    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(7));
+    // Ten selected HR architectures, both LODs; PBR primitives remain instanced.
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(20));
+    expect(new Set(load.mock.calls.map(([url]) => url)).size).toBe(20);
+    expect(load.mock.calls.every(([url]) => /\/world\/lib\/hr-(prop|rock)-.+-lod[01]\.glb$/.test(url))).toBe(true);
     await vi.waitFor(() => expect(meshes.filter((mesh,i) => mesh.geometry !== fallback[i])).toHaveLength(3));
     setBakedPropQuality(scene,"Low");
     meshes.forEach((mesh,i) => expect(mesh.geometry).toBe(fallback[i]));
@@ -137,7 +140,7 @@ it("swaps whole batches after deferred loads and restores the exact fallback syn
     expect(meshes.filter((mesh,i) => mesh.geometry !== fallback[i])).toHaveLength(3);
     expect(meshes.every(mesh => mesh.geometry.getAttribute("position").array.every(Number.isFinite))).toBe(true);
   } finally { workshop.dispose(); workshop.dispose(); }
-  await vi.waitFor(() => expect(decoderDisposed).toHaveBeenCalledOnce());
+  await vi.waitFor(() => expect(decoderDisposed).toHaveBeenCalledTimes(10));
 });
 
 it("culls distant submissions, waits for play, and never requests detail on Low", () => {

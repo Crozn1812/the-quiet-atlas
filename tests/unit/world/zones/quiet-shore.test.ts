@@ -482,7 +482,8 @@ describe("quiet-shore procedural place", () => {
       expect(mesh.material.map).toBeNull();
       expect(mesh.material.transparent).toBe(false);
       if (key === "leaf") {
-        expect(mesh.material.customProgramCacheKey()).toBe("gfx-z-library-batch-v1");
+        // HR dressing uses native PBR primitives; its cheap fallback needs no texture-routing shader.
+        expect(mesh.material.type).toBe("MeshStandardMaterial");
         expect(mesh.material).toMatchObject({ roughness: 0.96, metalness: 0 });
       } else expect(mesh.material.customProgramCacheKey()).toMatch(/\|painted-prop-readable-v2$/);
       if (["wood", "piano", "guitar"].includes(key)) expect(mesh.userData.photoSurface).toBe("bark");
