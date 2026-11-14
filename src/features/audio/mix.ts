@@ -1,6 +1,6 @@
 import type { Biome } from "../world/layout/zones";
 import type { SurfListener } from "./waves";
-import { birdLevel, type BirdListener } from "./birds";
+import { birdLevel, type BirdHabitat, type BirdListener } from "./birds";
 
 export interface AmbienceMix {
   readonly stream: number;
@@ -10,6 +10,7 @@ export interface AmbienceMix {
   readonly chime?: number;
   readonly surf?: SurfListener;
   readonly bird?: BirdListener;
+  readonly birdHabitat?: BirdHabitat;
 }
 
 export interface AmbienceInputs {
@@ -58,6 +59,6 @@ export function ambienceMixAt(inputs: AmbienceInputs): AmbienceMix {
     sea: proximity(inputs.surf?.distance ?? inputs.distanceToSea, 70) * (coast ? 0.95 : 0.3),
     chime: chimeProximity(inputs.distanceToChime),
     ...(inputs.surf ? { surf: inputs.surf } : {}),
-    ...(inputs.bird ? { bird: inputs.bird } : {}),
+    ...(inputs.bird ? { bird: inputs.bird, birdHabitat: forest ? "forest" as const : coast ? "coast" as const : "other" as const } : {}),
   };
 }

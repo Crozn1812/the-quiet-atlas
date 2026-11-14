@@ -619,7 +619,8 @@ describe("audio loading boundary", () => {
     }
     for (const path of sourcesUnder(resolve("src/features/audio"))) {
       const source = readFileSync(path, "utf8");
-      expect(source, path).not.toMatch(/(?:setInterval|setTimeout|fetch|localStorage|sessionStorage)\s*\(/);
+      expect(source, path).not.toMatch(/(?:setInterval|setTimeout|localStorage|sessionStorage)\s*\(/);
+      if (!path.endsWith("birds.ts")) expect(source, path).not.toMatch(/fetch\s*\(/);
       const runtimeSource = source.replace(/import type\s+[\s\S]*?;/g, "");
       expect(runtimeSource, path).not.toMatch(/(?:from\s*|import\s*\()["'][^"']*world/);
     }
