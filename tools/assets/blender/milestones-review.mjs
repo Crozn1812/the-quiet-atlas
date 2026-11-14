@@ -2,7 +2,10 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
-const output = 'test-results/ms-c/isolated';
+import { execFileSync } from 'node:child_process';
+const before = process.argv.includes('--baseline');
+const uncut = process.argv.includes('--uncut');
+const output = before ? 'test-results/ms-c2/ms-c-before' : uncut ? 'test-results/ms-c2/uncut' : 'test-results/ms-c2/isolated';
 await mkdir(output, { recursive: true });
 await mkdir('tmp/ms-c', { recursive: true });
 await writeFile('tmp/ms-c/viewer.html', '<html><head><link rel="icon" href="data:,"></head><body data-world-quality="high" style="margin:0"><script type="module" src="/tmp/ms-c/viewer.js"></script></body></html>');
@@ -23,14 +26,30 @@ const statue=createMilestonesStatue(milestoneCertificates()); scene.add(statue.g
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:'#657762',roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
 const environment=createEnvironment(renderer,scene); environment.setQuality('High');
 await statue.loadDetail();
+${process.argv.includes('--no-normal') ? `const skin=statue.group.getObjectByName('milestones-static-walk-white');skin.material.normalMap=null;skin.material.needsUpdate=true;` : ''}
+${uncut ? `const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+const original = await new GLTFLoader().loadAsync('/world/milestones/character-milestones-walk.glb');
+original.scene.traverse(node=>{if(node.isMesh){const body=statue.group.getObjectByName('milestones-static-walk-white');body.geometry.dispose();body.geometry=node.geometry;}});` : ''}
 const clock=new THREE.Clock();
 window.review={
  set(angle,quality){document.body.dataset.worldQuality=quality;camera.position.set(Math.sin(angle)*11,4.5,Math.cos(angle)*11);camera.lookAt(0,3,0);},
- status(){return {ready:statue.group.userData.ready,triangles:statue.group.userData.triangles,draws:renderer.info.render.calls,env:!!scene.environment};},
+ status(){return {ready:statue.group.userData.ready,triangles:statue.group.userData.triangles,draws:renderer.info.render.calls,env:!!scene.environment,programs:renderer.info.programs.map(p=>p.name)};},
 };window.review.set(.18,'high');
 renderer.setAnimationLoop(()=>{environment.update();statue.update(clock.getDelta(),false);renderer.render(scene,camera);});
 `);
-const server = await createServer({ configFile: false, root: process.cwd(), cacheDir: 'node_modules/.cache/ms-c-vite', server: { host: '127.0.0.1', port: 4527, strictPort: true } });
+const baselineFiles = ['milestones-statue.ts', 'milestones-statue-geometry.ts'];
+const server = await createServer({ configFile: false, root: process.cwd(), cacheDir: 'node_modules/.cache/ms-c-vite',
+  plugins: before ? [{ name: 'read-only-ms-c-statue', enforce: 'pre', load(id) {
+    const file = baselineFiles.find(file => id.replaceAll('\\', '/').endsWith(`/zones/${file}`));
+    if (file) return execFileSync('git', ['show', `00e1850:src/features/world/zones/${file}`], { encoding: 'utf8', windowsHide: true });
+  }, configureServer(server) {
+    const bytes = execFileSync('git', ['show', '00e1850:public/world/milestones/character-milestones-walk.glb'], { windowsHide: true });
+    server.middlewares.use((req, res, next) => {
+      if (req.url !== '/world/milestones/character-milestones-walk.glb') return next();
+      res.setHeader('Content-Type', 'model/gltf-binary'); res.end(bytes);
+    });
+  } }] : [],
+  server: { host: '127.0.0.1', port: 4527, strictPort: true } });
 await server.listen();
 const browser = await chromium.launch({ channel: 'msedge', headless: false });
 const page = await browser.newPage({ viewport: { width: 1280, height: 960 } });
@@ -46,6 +65,8 @@ try {
     await page.waitForTimeout(500);
     await page.screenshot({ path: `${output}/${name}.png` });
   }
+  await page.evaluate(() => window.review.set(.18, 'high'));
+  await page.waitForTimeout(500);
   const status = await page.evaluate(() => window.review.status());
   await writeFile(`${output}/runtime.json`, JSON.stringify({ status, errors }, null, 2));
   console.log(JSON.stringify({ status, errors }));

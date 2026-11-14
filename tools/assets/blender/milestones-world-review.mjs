@@ -1,14 +1,14 @@
 // Evidence against the production export. Uses the existing opt-in postcard/QA hooks.
 // node tools/assets/blender/milestones-world-review.mjs [before|shots|cpu]
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
 import { Vector3, Mesh } from 'three';
 
 const mode = process.argv[2] ?? 'shots';
-const output = `test-results/ms-c/world${mode === 'before' ? '/before' : ''}`; await mkdir(output, { recursive: true });
+const output = `test-results/ms-c2/world${mode === 'before' ? '/before' : ''}`; await mkdir(output, { recursive: true });
 const vite = await createServer({ configFile: false, root: process.cwd(), cacheDir: 'node_modules/.cache/ms-c-vite' });
 const { placeZoneScenes } = await vite.ssrLoadModule('/src/features/world/zones/index.ts');
 const { surfaceHeight } = await vite.ssrLoadModule('/src/features/world/scene/compose.ts');
@@ -70,20 +70,26 @@ try {
       await page.screenshot({ path: `${output}/high-${name}.png` }); frames.push({ name, quality: 'high', pose });
     }
     await world.evaluate((el, detail) => el.dispatchEvent(new CustomEvent('tqa:postcard', { detail })), poses.front);
-    if (mode === 'shots') await page.waitForTimeout(10000); // Continuous High shader-motion segment in the saved recording.
+    if (mode === 'shots') await page.waitForTimeout(12000); // Leave trim margins around ten seconds of fixed-camera High motion.
     await world.evaluate(el => el.dispatchEvent(new CustomEvent('tqa:set-quality', { detail: { quality: 'low' } })));
     await page.waitForTimeout(2000); await page.screenshot({ path: `${output}/low-front.png` });
     frames.push({ name: 'front', quality: 'low', pose: poses.front });
     const player = await world.evaluate(el => el.__tqaJourney.position());
     const playerDistance = Math.hypot(player.x - poses.front.target[0], player.z - poses.front.target[2]);
     const video = page.video(); await context.close();
-    if (video) await video.saveAs(`${output}/milestones-animation.webm`);
+    if (video) {
+      await video.saveAs(`${output}/milestones-animation.webm`);
+      const clip = spawnSync('ffmpeg', ['-y', '-sseof', '-13.5', '-i', `${output}/milestones-animation.webm`,
+        '-t', '10', '-an', '-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '2M',
+        `${output}/milestones-animation-10s.webm`], { windowsHide: true, encoding: 'utf8' });
+      assert.equal(clip.status, 0, clip.stderr);
+    }
     await writeFile(`${output}/review.json`, JSON.stringify({ frames, staticBudget, requests, errors, playerDistance }, null, 2));
     assert.equal(errors.length, 0, errors.join('\n'));
     if (mode === 'shots') assert(requests.length > 0, 'The deferred statue asset must be requested');
     console.log(JSON.stringify({ output, staticBudget, requests, errors }));
   } else if (mode === 'cpu') {
-    const baseline = await serve('node_modules/.cache/ms-c-baseline-out', 4532), samples = [];
+    const baseline = await serve('node_modules/.cache/ms-c2-before-out', 4532), samples = [];
     for (const [label, base] of [['A1', baseline], ['B1', current], ['B2', current], ['A2', baseline]]) {
       const { context, page, world } = await enter(base);
       const cdp = await context.newCDPSession(page); await cdp.send('Performance.enable');
@@ -98,8 +104,7 @@ try {
     const mean = prefix => samples.filter(s => s.label.startsWith(prefix)).reduce((sum, s) => sum + s.scriptMsPerSecond, 0) / 2;
     const delta = mean('B') - mean('A');
     await writeFile(`${output}/cpu-abba.json`, JSON.stringify({ samples, delta, pass: delta <= 10,
-      baseline: 'Existing 07:01 workspace export, before FISH-01; copied without rebuilding. Comparison includes FISH-01 and MS-C, not an isolated MS-C delta against HEAD.' }, null, 2));
+      baseline: 'Existing 08:19 workspace export, contains FISH-01 and pre-MS-C bust; copied before this ticket build. Not independently rebuilt from a verified commit. See milestones-cpu-review.mjs for exact pre-MS-C source comparison.' }, null, 2));
     console.log(`REPORT ADR0019 ABBA script CPU delta: ${delta.toFixed(2)} ms/s; legacy reference +10 ms/s`);
-    console.log(`ABBA delta: ${delta.toFixed(2)} ms/s (budget +10 ms/s)`);
   } else throw new Error('Expected before, shots or cpu');
 } finally { await browser.close(); for (const server of servers) server.kill(); }

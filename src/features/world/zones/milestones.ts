@@ -236,7 +236,9 @@ function fits(parts: readonly Part[], context: ZoneSceneContext, side: number, o
   footprints.push({ bounds: new Box3(new Vector3(3.6, 0, -1.2), new Vector3(5.3, 0, 1.2)), x: 0, z: 0 });
   return footprints.every(({ bounds, x: originX, z: originZ }) => {
     const size = bounds.getSize(new Vector3());
-    const stepsX = Math.ceil(size.x / 0.2), stepsZ = Math.ceil(size.z / 0.2);
+    // The deferred figure no longer contributes its old intermediate X rings.
+    // Retain narrow-water rejection inside the plinth footprint explicitly.
+    const stepsX = Math.ceil(size.x / 0.05), stepsZ = Math.ceil(size.z / 0.2);
     for (let ix = 0; ix <= stepsX; ix++) {
       for (let iz = 0; iz <= stepsZ; iz++) {
         const x = side * (originX + bounds.min.x + size.x * ix / Math.max(1, stepsX));
@@ -429,6 +431,18 @@ export const createMilestonesScene: ZoneSceneFactory = context => {
   statue.group.position.set(side * STATUE_X, groundAt(side * STATUE_X, offsetZ) + 1, offsetZ);
   statue.group.rotation.y = -side * (Math.PI / 2 + STATUE_YAW);
   group.add(statue.group);
+  // The wider baked shoes must keep the existing plinth click reservation.
+  // Finite camera/visibility rays still hit the exact statue geometry.
+  for (const node of statue.group.children) if (node instanceof Mesh) {
+    const statueRaycast = node.raycast.bind(node);
+    node.raycast = (raycaster, hits) => {
+      if (raycaster.far === Infinity) {
+        clickSphere.center.copy(interactPosition).applyMatrix4(plinth.matrixWorld); clickSphere.radius = .55;
+        if (raycaster.ray.intersectSphere(clickSphere, clickPoint)) return;
+      }
+      statueRaycast(raycaster, hits);
+    };
+  }
   group.userData.statue = statue.group.userData;
   let disposed = false;
   return {
