@@ -20,6 +20,7 @@ import { HEIGHT } from "../../../src/features/world/scene";
 import { FIXED_DT } from "../../../src/features/world/timestep";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { createWaterMaterial, WaterMaterial } from "../../../src/features/world/water/material";
+import { RIBBON_CROSS_SEGMENTS, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
 
 afterEach(() => { disposeRampGradients(); vi.restoreAllMocks(); });
 
@@ -62,7 +63,7 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
         const water = scene.children.filter((child): child is Mesh<BufferGeometry, WaterMaterial> =>
           child instanceof Mesh && child.material instanceof WaterMaterial);
         expect(water).toHaveLength(4);
-        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([2048, 2, 12, 24]);
+        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([RIBBON_SEGMENTS * RIBBON_CROSS_SEGMENTS * 2, 2, 12, 24]);
         if (quality === "High" && id === "quiet-shore") {
           let triangles = 0, draws = 0;
           scene.traverseVisible(object => {
@@ -73,7 +74,7 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
               object.geometry.index?.count ?? object.geometry.getAttribute("position").count) / 3 * instances;
             draws += Array.isArray(object.material) ? object.material.length : 1;
           });
-          process.stdout.write(`B2-181 High quiet-shore composer: ${triangles} triangles, ${draws} mesh draws; water=2050 triangles, 2 draws (unchanged)\n`);
+          process.stdout.write(`B2-181 High quiet-shore composer: ${triangles} triangles, ${draws} mesh draws; stream=${water[0]!.geometry.index!.count / 3} surface triangles plus one wet-bank draw\n`);
         }
         // Both surfaces receive exactly the same followed/directed grade as the scene lights,
         // including the first frame after quality reallocation and the return from coast to forest.

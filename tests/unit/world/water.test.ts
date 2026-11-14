@@ -186,9 +186,9 @@ describe("painted water material", () => {
   });
 
   it.each([
-    ["Low", { SKY_REFLECTION: 0.22, WATER_REFLECTION: 1 }],
-    ["Balanced", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1, C_WATER: 1 }],
-    ["High", { SKY_REFLECTION: 0.22, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1, C_WATER: 1 }],
+    ["Low", { SKY_REFLECTION: 0.72, RIVER_DEPTH: 1 }],
+    ["Balanced", { SKY_REFLECTION: 0.72, RIVER_DEPTH: 1, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1, C_WATER: 1 }],
+    ["High", { SKY_REFLECTION: 0.72, RIVER_DEPTH: 1, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1, C_WATER: 1 }],
   ] as const)("uses the %s shader features and Three fog/colour pipeline", (quality, defines) => {
     const material = createWaterMaterial(quality);
     expect(material).toBeInstanceOf(ShaderMaterial);

@@ -1,15 +1,40 @@
-import { BufferGeometry, Float32BufferAttribute } from "three";
+import { BufferGeometry, Float32BufferAttribute, Mesh } from "three";
 import { createSurfaceSampler, surfaceHeight, riverWidthAt, waterLevelAt, worldHeight } from "../terrain/height";
 import { riverLength, riverPointAt, riverTangentAt } from "../layout/river";
 import type { Quality } from "../terrain";
 import { createWaterMaterial } from "./material";
 import { createWaterSurface, type WaterSurface } from "./surface";
 import { SEA_INLAND_OVERLAP } from "./bounds";
-import { bakeWaterDepth } from "./depth";
+import { bakeStreamOptics, bakeWaterDepth } from "./depth";
 
 /** Sea datum shared with terrain/height.ts. */
 export const WATER_LEVEL = 0;
 export const RIBBON_SEGMENTS = 1024;
+export const RIBBON_CROSS_SEGMENTS = 32;
+
+/** Refine the rendered surface without changing the authored two-edge profile. */
+function subdivideAcross(geometry: BufferGeometry): void {
+  const rows = geometry.getAttribute("position").count / 2;
+  const columns = RIBBON_CROSS_SEGMENTS + 1;
+  for (const [name, attribute] of Object.entries(geometry.attributes)) {
+    const data = new Float32Array(rows * columns * attribute.itemSize);
+    for (let row = 0; row < rows; row++) for (let column = 0; column < columns; column++) {
+      const u = column / RIBBON_CROSS_SEGMENTS;
+      for (let component = 0; component < attribute.itemSize; component++) {
+        const a = attribute.getComponent(row * 2, component);
+        const b = attribute.getComponent(row * 2 + 1, component);
+        data[(row * columns + column) * attribute.itemSize + component] = a + (b - a) * u;
+      }
+    }
+    geometry.setAttribute(name, new Float32BufferAttribute(data, attribute.itemSize));
+  }
+  const indices: number[] = [];
+  for (let row = 0; row < rows - 1; row++) for (let column = 0; column < columns - 1; column++) {
+    const a = row * columns + column, b = a + columns;
+    indices.push(a, a + 1, b, a + 1, b + 1, b);
+  }
+  geometry.setIndex(indices);
+}
 
 function mouthBlend(t: number): number {
   const progress = Math.max(0, (t - 0.96) / 0.04);
@@ -51,6 +76,7 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
   const positions: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
+  const tangents: number[] = [];
   const indices: number[] = [];
   const length = riverLength();
   const join = estuaryJoinT();
@@ -86,6 +112,7 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
     for (const side of [-1, 1]) {
       positions.push(centre.x + nx * edge * side, level, centre.z + nz * edge * side);
       normals.push(0, 1, 0);
+      tangents.push(tangent.x, 0, tangent.z);
       uvs.push((side + 1) / 2, t * length);
     }
     if (i < rows.length - 1) {
@@ -97,6 +124,7 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   geometry.setAttribute("normal", new Float32BufferAttribute(normals, 3));
   geometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute("waterTangent", new Float32BufferAttribute(tangents, 3));
   geometry.setIndex(indices);
   bakeWaterDepth(geometry, true, surfaceHeight);
   geometry.computeBoundingBox();
@@ -105,5 +133,31 @@ export function createRibbonGeometry(segments = RIBBON_SEGMENTS): BufferGeometry
 }
 
 export function createRiverRibbon(quality: Quality): WaterSurface {
-  return createWaterSurface(createRibbonGeometry(), createWaterMaterial(quality));
+  const geometry = createRibbonGeometry();
+  const optics = bakeStreamOptics(geometry);
+  subdivideAcross(geometry);
+  const surface = createWaterSurface(geometry, createWaterMaterial(quality));
+  const bankMaterial = createWaterMaterial("Low", { wetBank: true });
+  const banks = new Mesh(optics.banks, bankMaterial);
+  banks.name = "stream-wet-banks";
+  banks.raycast = () => {}; // Visual wet soil never blocks walking or the camera.
+  surface.mesh.add(banks);
+  // Composition replaces the water material on live quality changes. Bind the
+  // immutable map to each replacement once; no terrain queries or allocations.
+  surface.mesh.onBeforeRender = () => {
+    const material = surface.mesh.material;
+    if (material.uniforms.uStreamDepth!.value !== optics.texture) {
+      material.uniforms.uStreamDepth!.value = optics.texture;
+      material.uniforms.uStreamSize!.value.set(optics.texture.image.width, optics.texture.image.height);
+      material.uniforms.uHasStreamDepth!.value = 1;
+    }
+    bankMaterial.uniforms.uDeepColor!.value = material.uniforms.uDeepColor!.value;
+  };
+  let disposed = false;
+  return { ...surface, dispose() {
+    if (disposed) return;
+    disposed = true;
+    banks.removeFromParent(); optics.banks.dispose(); bankMaterial.dispose(); optics.texture.dispose();
+    surface.dispose();
+  } };
 }

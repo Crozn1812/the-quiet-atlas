@@ -1,4 +1,4 @@
-import { fract, mix, waterNoiseFunctions, waterNoiseSampler } from "./water-noise";
+import { fract, mix, waterNoiseFunctions } from "./water-noise";
 import { Color, MeshToonMaterial, ShaderLib, Vector3, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { afterAll, describe, expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
@@ -55,11 +55,17 @@ function riverSample(material: WaterMaterial, x: number, flow: number, grazing: 
 function grazingAt(material: WaterMaterial, x: number, flow: number, view: Vector3, width = 6): number {
   const normal = new Vector3(0, 1, 0);
   if (material.defines.WATER_RIPPLES) {
-    const { field } = waterNoiseSampler(material.fragmentShader);
-    const bankDistance = Math.min(x, 1 - x) * width;
-    const shallow = Math.max(mix(0.05, 1, 1 - smoothstep(8, 18, width)), 1 - smoothstep(0.8, 2.5, bankDistance));
-    normal.add(new Vector3(field(x * width + 0.11, flow) - 0.5, 0, field(x * width, flow + 0.11) - 0.5)
-      .multiplyScalar(0.008 * (1 - smoothstep(15, 40, view.length())) * shallow));
+    const image = material.uniforms.uFlowNormal!.value.image;
+    const u = fract(x * width / 4) * image.width - 0.5;
+    const v = fract(flow / 6) * image.height - 0.5;
+    const read = (ix: number, iy: number, channel: number) => image.data[
+      (((iy + image.height) % image.height) * image.width + (ix + image.width) % image.width) * 2 + channel] / 255 * 2 - 1;
+    const slope = (channel: number) => mix(
+      mix(read(Math.floor(u), Math.floor(v), channel), read(Math.floor(u) + 1, Math.floor(v), channel), fract(u)),
+      mix(read(Math.floor(u), Math.floor(v) + 1, channel), read(Math.floor(u) + 1, Math.floor(v) + 1, channel), fract(u)), fract(v));
+    const tangent = riverTangentAt(Math.max(0, Math.min(1, flow / riverLength())));
+    normal.add(new Vector3(-tangent.z, 0, tangent.x).multiplyScalar(slope(0)).addScaledVector(tangent, slope(1))
+      .multiplyScalar(0.085 * (1 - smoothstep(15, 40, view.length()))));
   }
   return 1 - Math.max(0, Math.min(1, normal.normalize().dot(view.clone().normalize())));
 }
@@ -112,8 +118,8 @@ describe("water receives the player's grade", () => {
         const bank = river.clone().add(new Vector3(7, 0, 0));
         const ground = groundSample(bankPigment(bank), grade);
         let maximum = 0, downwardMaximum = 0;
-        // Sky radiance can exceed shaded wet-soil light at grazing angles. The
-        // pedestrian limit is 2x; looking down suppresses Fresnel and keeps 1.3x.
+        // STREAM-C reflects sky radiance at grazing angles. Bound the result by
+        // its incoming sky/pigment energy; a shaded bank is not a sky ceiling.
         for (const x of [0, 0.1, 0.5, 0.9, 1]) for (const flow of [0, 4, 12, 25, 40]) {
           for (const distance of [0, 10, 20, 30]) for (const azimuth of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
             const view = new Vector3(Math.sin(azimuth) * distance, 1.7, Math.cos(azimuth) * distance);
@@ -121,7 +127,8 @@ describe("water receives the player's grade", () => {
             const water = riverSample(material, x, flow, grazing);
             maximum = Math.max(maximum, luma(water));
             if (distance === 0) downwardMaximum = Math.max(downwardMaximum, luma(water));
-            expect(luma(water), `${quality}, t=${t}, distance=${distance}`).toBeLessThanOrEqual(luma(ground) * (distance === 0 ? 1.3 : 2));
+            expect(luma(water), `${quality}, t=${t}, distance=${distance}`).toBeLessThanOrEqual(
+              Math.max(luma(ground) * 1.3, luma(material.uniforms.uSkyHorizon!.value)));
             expect(luma(water.clone().convertLinearToSRGB())).toBeGreaterThanOrEqual(0.06);
           }
         }
@@ -137,7 +144,7 @@ describe("water receives the player's grade", () => {
     } finally { material.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("keeps the %s coast-road stream within 0.5–1.1 times asphalt at t=0.86", quality => {
+  it.each(["Low", "Balanced", "High"] as const)("bounds the %s coast-road stream by pigment and reflected sky energy at t=0.86", quality => {
     const t = 0.86, grade = gradeAt(t), road = pathPointAt(t);
     const material = createWaterMaterial(quality, { grade });
     material.setSkyMix(timeOfDayAt(t));
@@ -161,8 +168,11 @@ describe("water receives the player's grade", () => {
         maximum = Math.max(maximum, brightness);
         // Compare every sample before fog at the same distance: bright evening
         // sky must remain visible even when little light reaches the pigment.
-        expect(brightness).toBeGreaterThanOrEqual(luma(ground) * 0.5);
-        expect(brightness).toBeLessThanOrEqual(luma(ground) * 1.1);
+        // The existing wet-edge pigment darkens by up to eight percent.
+        expect(brightness).toBeGreaterThanOrEqual(0.92 * Math.min(
+          luma(material.uniforms.uDeepColor!.value), luma(material.uniforms.uEdgeColor!.value)));
+        expect(brightness).toBeLessThanOrEqual(Math.max(luma(ground) * 1.1,
+          luma(material.uniforms.uSkyHorizon!.value)));
       }
       process.stdout.write(`${quality} road t=0.86: stream=${minimum.toFixed(4)}–${maximum.toFixed(4)}, asphalt=${luma(ground).toFixed(4)}\n`);
     } finally { material.dispose(); }
@@ -263,8 +273,8 @@ it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons",
 });
 
 
-describe("B2-221 dawn stream", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s green-cyan water and readable ripples at 5?20 m", quality => {
+describe("dawn stream under sky reflection", () => {
+  it.each(["Low", "Balanced", "High"] as const)("keeps %s pigment readable while reflecting the warm dawn sky at 5–20 m", quality => {
     const t = 0.02;
     const material = createWaterMaterial(quality, { grade: gradeAt(t), skyMix: timeOfDayAt(t) });
     try {
@@ -284,8 +294,11 @@ describe("B2-221 dawn stream", () => {
         const chroma = Math.max(meanColor.r, meanColor.g, meanColor.b) - Math.min(meanColor.r, meanColor.g, meanColor.b);
         const mean = values.reduce((a, b) => a + b) / values.length;
         const std = Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
-        expect(chroma).toBeGreaterThanOrEqual(0.04);
-        expect(Math.max(meanColor.g, meanColor.b)).toBeGreaterThan(meanColor.r);
+        // The reflected dawn sky is less saturated than the former green veil.
+        expect(chroma).toBeGreaterThanOrEqual(0.02);
+        // Low keeps green pigment; Balanced/High can reflect the peach sky.
+        if (quality === "Low") expect(Math.max(meanColor.g, meanColor.b)).toBeGreaterThan(meanColor.r);
+        else expect(meanColor.r).toBeLessThanOrEqual(Math.max(meanColor.g, meanColor.b) * 1.2);
         // B2-219c replaces the former high-contrast strokes with <=12% highlights.
         expect(std).toBeGreaterThanOrEqual(0.0025);
         process.stdout.write(quality + ' dawn distance=' + distance + ', width=' + width + ': chroma=' + chroma.toFixed(4) + ', std=' + std.toFixed(4) + '\n');
