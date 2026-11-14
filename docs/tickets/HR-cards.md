@@ -13,7 +13,7 @@ Lòng suối và mép suối: **sỏi** nhiều cỡ (instanced, texture CC0) d�
 Được sửa: file mới `src/features/world/water/streambed*.ts`, `public/world/streambed/`, LICENSES, test; nối `index.ts` ≤ 5 dòng. Không sửa `water/ribbon.ts`, `water/material.ts` (STREAM-C).
 
 ## HR-BIRDS — Chim bay và hót
-Đàn chim nhỏ bay lượn trên tán (đập cánh, lượn, đổi hướng), vài con **đậu trên cành rồi bay đi** khi người chơi lại gần; chim biển (hải âu) ở bờ biển. Âm: **tiếng chim hót** theo không gian (gắn vị trí, to dần khi lại gần cây có chim), nhiều loài, ngẫu nhiên; buổi chiều thưa hơn. Âm CC0 (Freesound CC0, ghi URL) hoặc tổng hợp; ≤ 600 KB; tôn trọng tắt tiếng; không phát trước tương tác.
+Đàn chim nhỏ bay lượn trên tán (đập cánh, lượn, đổi hướng), vài con **đậu trên cành rồi bay đi** khi người chơi lại gần; chim biển (hải âu) ở bờ biển. Âm: **tiếng chim hót** theo không gian (gắn vị trí, to dần khi lại gần cây có chim), nhiều loài, ngẫu nhiên; buổi chiều thưa hơn. Âm CC0 (Freesound CC0, ghi URL) hoặc tổng hợp; tôn trọng tắt tiếng; không phát trước tương tác.
 Được sửa: file mới `src/features/world/fauna/**`, `src/features/audio/**` (kênh `birds`), `public/audio/birds/`, LICENSES, test; nối `index.ts` ≤ 5 dòng.
 
 ## HR-CLIFF — Vách đá First Light thật (lỗi 3)

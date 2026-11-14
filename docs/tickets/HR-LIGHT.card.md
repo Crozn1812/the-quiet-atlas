@@ -6,9 +6,9 @@ Thước đo "đạt": đặt ảnh High cạnh một ảnh chụp thật cùng 
 
 Luật bắt buộc (CLAUDE.md §6, ADR 0018):
 - Asset **CC0** thật (Poly Haven, ambientCG, Quaternius CC0, Freesound CC0) hoặc tự tạo trong Blender (MCP của bạn: Sapling Tree Gen, Ivy Gen, geometry nodes, bake normal/AO). Mỗi file public một dòng `assets/LICENSES.csv` kèm URL nguồn. Không asset giấy phép không rõ, không AI-gen không rõ điều khoản.
-- KTX2 (High 2K / Balanced 1K / Low 512), GLB meshopt; **nạp deferred** sau khi chơi được; thời gian tới lúc chơi được ≤ 10 s.
-- **Tổng world hiện vẫn ≤ 30 MB** (ADR 0015) cho tới khi Duy duyệt trần mới (Q-48). Ghi byte thêm của ticket.
-- Low giữ T08 Iris Xe: Low là đường rẻ (ít instance, không hiệu ứng đắt). Mọi chuyển động trong shader, cull theo khoảng cách, instancing. CPU ABBA ≤ +10 ms/s mỗi ticket.
+- **Không còn trần** (Duy 14/11, ADR 0019): dùng texture 4K/2K, mô hình chi tiết, mật độ cao tùy chất lượng cần. Vẫn nạp **deferred/streaming** sau khi chơi được để trang mở nhanh; GLB meshopt + KTX2.
+- **Ghi lại** (không chặn): byte thêm, thời gian tới lúc chơi được, tam giác, draw call, CPU ABBA, FPS.
+- Vẫn có đường Low rẻ cho máy yếu. Thực hành tốt: chuyển động trong shader, instancing, LOD, cull theo khoảng cách (để đẹp mà vẫn mượt, không phải vì trần).
 - Không sửa `src/content/**`; không bịa nội dung; không logo/thương hiệu.
 - Sandbox không ghi được `.git` của repo chính: không rebase/commit.
 - Xong: gate PASS; build một lần; e2e world `--workers=2` config mặc định 43/43; ảnh **trước/sau** High cùng góc (dùng `tools/review/final-showcase.mjs` hoặc `ingame-shots.mjs`) + Low 1; bảng tam giác/draw/byte/CPU. Không commit.
