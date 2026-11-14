@@ -1,5 +1,5 @@
 ﻿import { fract, waterNoiseFunctions } from "./water-noise";
-import { Color, DataTexture, Vector3 } from "three";
+import { Color, DataTexture, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { applyCoastAtmosphere, lightingAt } from "../../../src/features/world/sky/grade";
@@ -78,6 +78,10 @@ describe("HR-SEA lit ocean optics", () => {
       expect(texture.image.width).toBe(quality === "High" ? 512 : 256);
       expect(texture.image.data).toEqual(again.image.data);
       expect(texture.generateMipmaps).toBe(true);
+      expect(texture.minFilter).toBe(LinearMipmapLinearFilter);
+      expect(texture.magFilter).toBe(LinearFilter);
+      expect(texture.wrapS).toBe(RepeatWrapping);
+      expect(texture.wrapT).toBe(RepeatWrapping);
       const data = texture.image.data as Uint8Array;
       expect(new Set(data).size).toBeGreaterThan(150);
       // Periodic edge neighbours must have comparable slope increments to
@@ -362,5 +366,32 @@ describe("RC-14 finite shore influence", () => {
         }, ["foam"]).foam;
       expect(foam).toBe(0);
     } finally { material.dispose(); }
+  });
+});
+
+describe("SEA-TESTS coastal river regression retained by HR-SEA", () => {
+  it.each(["Low", "Balanced", "High"] as const)("opens only the coastal %s river into indigo and directional sunset", quality => {
+    const river = createWaterMaterial(quality);
+    const reference = createWaterMaterial(quality);
+    try {
+      const grade = directGrade(lightingAt(1), 1);
+      reference.setGrade(grade);
+      river.setGrade(applyCoastAtmosphere(directGrade(lightingAt(1), 1), 0.93));
+      const deep = (river.uniforms.uDeepColor!.value as Color).clone();
+      expect(deep.b).toBeGreaterThan(deep.r);
+      expect(luma(deep)).toBeGreaterThan(luma(reference.uniforms.uDeepColor!.value));
+      const sample = (riverAlignment: number, grazing: number) =>
+        scalars(river, "// Begin river sunset scalars.", "// End river sunset scalars.", {
+          uCoastWeight: river.uniforms.uCoastWeight!.value, riverAlignment, grazing,
+        }, ["riverSunset"]).riverSunset!;
+      expect(sample(1, 0.4)).toBeCloseTo(0.08);
+      expect(sample(-1, 0.4)).toBe(0);
+      expect(sample(1, 1)).toBe(0);
+      river.setGrade(grade);
+      expect(sample(1, 0.4)).toBe(0);
+      expect(river.uniforms.uDeepColor!.value).toEqual(reference.uniforms.uDeepColor!.value);
+      river.setGrade(applyCoastAtmosphere(directGrade(lightingAt(1), 1), 0.93));
+      expect(river.uniforms.uDeepColor!.value).toEqual(deep);
+    } finally { river.dispose(); reference.dispose(); }
   });
 });
