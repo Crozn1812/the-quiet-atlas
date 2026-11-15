@@ -8,6 +8,10 @@
 | 156d63c | HR-TREE1b: tre thật (3 kiểu bụi) | gate PASS (unit 1973/1 skip); e2e world lượt đầu **42/43**: `World /en/` timeout 20 s khi máy tải nặng; chạy lại `world.spec.ts` trên cùng build **2/2 PASS** |
 | 8651de8 | HR-GD110: xe GD110 siêu thực từ Blender, 3,43 MB | gate PASS (unit 1988/1 skip); e2e world **43/43 PASS**; worker đo High khi lái 88–92 FPS (RTX 3060) |
 | f3a8ca2 | HR-TERRAIN-CLIFF: vách dốc thành vách đá có gờ, relief, mép gồ ghề | gate PASS (unit 1998/1 skip); e2e world **43/43 PASS**; ABBA góc tán 70,5 → 67,6 FPS (−4,1%) |
+| 5c3147d | HR-FAR: dãy núi xa thật, sương thung lũng | gate PASS (unit 2011/1 skip); e2e world 43/43 (cổng 4173, xem lưu ý) |
+| 0cdcb06 | HR-PROPS2: hết cây/cỏ low-poly ở High; lá khô 5–15 cm | gate PASS (unit 2028/1 skip); e2e world lượt đầu 29 fail ERR_CONNECTION_REFUSED (server 4173 bị tắt khi worker khởi động); **chạy lại trên cổng riêng 4191: 43/43 PASS**. FPS First Light 38 ở một lượt đo có tải nền — đo lại ở gate cuối |
+
+**Lưu ý e2e:** Playwright local tái dùng server đang chạy trên 4173. Các lượt e2e Lead của HR-TREE1b, HR-GD110, HR-TERRAIN-CLIFF, HR-FAR chạy trên 4173 khi worker cũng chạy, nên có thể đã chạy nhầm build của worker. Từ 15/11 07:30 Lead dùng cổng riêng và worker dùng 4201–4204. Full e2e gate cuối sẽ chạy trên cổng riêng để xác nhận lại.
 
 **Đang dở:**
 - **HR-PROPS2** (cây đồi/biển, cỏ, lá khô): vòng đầu đạt phần lớn. Trả vòng 1: phi lao ven biển trơ cành, lá lơ lửng, FPS 51–57 ở vài lượt. Đã chuyển từ C sang B; chạy lại lúc 07:02.
