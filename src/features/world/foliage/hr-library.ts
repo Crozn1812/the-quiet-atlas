@@ -90,7 +90,7 @@ async function createDecoder(renderer: WebGLRenderer) {
   const textures = new Map<string, Promise<Texture>>();
   const loadTexture = ktx.load.bind(ktx);
   ktx.load = (url, onLoad, onProgress, onError) => {
-    if (!url.includes("/hr-shared-")) return loadTexture(url, onLoad, onProgress, onError);
+    if (!url.includes("/hr-shared-") && !url.includes("/hr-tree-casuarina-shared-")) return loadTexture(url, onLoad, onProgress, onError);
     let pending = textures.get(url);
     if (!pending) {
       pending = new Promise((resolve, reject) => { loadTexture(url, resolve, onProgress, reject); });
@@ -130,7 +130,7 @@ export function acquireHrTree(renderer: WebGLRenderer, id: HrTreeId, level: numb
       const coastAsset = coastal ? createCoastalTree(id as CoastalTreeId, parts.find(p => !p.leaf)!.material as MeshStandardMaterial, level) : undefined;
       const bounds = meta.bounds ? new Box3(new Vector3().fromArray(meta.bounds.min), new Vector3().fromArray(meta.bounds.max))
         : parts.reduce((box, part) => box.union(part.geometry.boundingBox!), new Box3());
-      if (!coastal && level < 2 && !id.includes("bamboo") && !id.includes("dead") && !id.includes("palm")) {
+      if (!coastal && level < 2 && !id.includes("bamboo") && !id.includes("dead") && !id.includes("palm") && !id.includes("casuarina")) {
         const vines = createHrVines(parts, bounds); if (vines) parts.push(vines);
       }
       gltf.scene.traverse(o => { if (o instanceof Mesh) {

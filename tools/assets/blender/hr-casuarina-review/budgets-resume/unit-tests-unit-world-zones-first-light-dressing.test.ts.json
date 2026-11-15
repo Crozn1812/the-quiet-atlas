@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:54.305Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/first-light-dressing.test.ts:80 triangles(batch.mesh)": 258
+  },
+  "delta": {
+    "tests/unit/world/zones/first-light-dressing.test.ts:80 triangles(batch.mesh)": null
+  }
+}

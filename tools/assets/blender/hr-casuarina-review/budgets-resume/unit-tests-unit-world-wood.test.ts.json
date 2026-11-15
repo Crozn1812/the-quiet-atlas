@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:25:59.241Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/wood.test.ts:60 triangles(geometry)": 404
+  },
+  "delta": {
+    "tests/unit/world/wood.test.ts:60 triangles(geometry)": null
+  }
+}

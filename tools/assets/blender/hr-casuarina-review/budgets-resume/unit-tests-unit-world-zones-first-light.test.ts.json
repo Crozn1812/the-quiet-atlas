@@ -1,0 +1,29 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:05.095Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/first-light.test.ts:90 count": 13322,
+    "tests/unit/world/zones/first-light.test.ts:92 count": 13322,
+    "tests/unit/world/zones/first-light.test.ts:93 count": 13322,
+    "tests/unit/world/zones/first-light.test.ts:95 count": 13322,
+    "tests/unit/world/zones/first-light.test.ts:96 objects.length": 8,
+    "tests/unit/world/zones/first-light.test.ts:204 meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0)": 10096,
+    "tests/unit/world/zones/first-light.test.ts:206 meshes(scene).length": 8,
+    "tests/unit/world/zones/first-light.test.ts:307 triangles(mesh.geometry)": 192,
+    "tests/unit/world/zones/first-light.test.ts:399 count": 666,
+    "tests/unit/world/zones/first-light.test.ts:584 times[2]": 18.097499999999854
+  },
+  "delta": {
+    "tests/unit/world/zones/first-light.test.ts:90 count": null,
+    "tests/unit/world/zones/first-light.test.ts:92 count": null,
+    "tests/unit/world/zones/first-light.test.ts:93 count": null,
+    "tests/unit/world/zones/first-light.test.ts:95 count": null,
+    "tests/unit/world/zones/first-light.test.ts:96 objects.length": null,
+    "tests/unit/world/zones/first-light.test.ts:204 meshes(scene).reduce((sum, mesh) => sum + triangles(mesh.geometry), 0)": null,
+    "tests/unit/world/zones/first-light.test.ts:206 meshes(scene).length": null,
+    "tests/unit/world/zones/first-light.test.ts:307 triangles(mesh.geometry)": null,
+    "tests/unit/world/zones/first-light.test.ts:399 count": null,
+    "tests/unit/world/zones/first-light.test.ts:584 times[2]": null
+  }
+}

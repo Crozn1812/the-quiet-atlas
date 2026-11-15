@@ -1,0 +1,15 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:15.672Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/rocks.test.ts:47 triangles(geometry)": 80,
+    "tests/unit/world/rocks.test.ts:165 average": 0.03687500000000021,
+    "tests/unit/world/rocks.test.ts:182 triangles(mesh.geometry)": 340
+  },
+  "delta": {
+    "tests/unit/world/rocks.test.ts:47 triangles(geometry)": null,
+    "tests/unit/world/rocks.test.ts:165 average": null,
+    "tests/unit/world/rocks.test.ts:182 triangles(mesh.geometry)": null
+  }
+}

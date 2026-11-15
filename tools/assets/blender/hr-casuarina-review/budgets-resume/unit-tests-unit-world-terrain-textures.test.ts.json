@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:27:00.669Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/terrain-textures.test.ts:30 bytes": 9332568
+  },
+  "delta": {
+    "tests/unit/world/terrain-textures.test.ts:30 bytes": null
+  }
+}

@@ -1,7 +1,7 @@
 import { reportBudget } from "./report-budget";
 import { expect, it } from "vitest";
 import { createFoliage, foliageVariantAt } from "../../../src/features/world/foliage/instances";
-import { MIN_TREE_DISTANCE, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
+import { coastalWindbreakSites, MIN_TREE_DISTANCE, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { TILE_SIZE, tilesAlongPath } from "../../../src/features/world/terrain/tiles";
@@ -105,9 +105,14 @@ it("keeps mixed tree sizes up to and beyond the crest, clears walking-right, and
   process.stdout.write(`B2-159 far shoulder (200-260 m): ${canopy.filter(tree => position(tree).distance >= 200).length} trees\n`);
 });
 
-it("has no four equally spaced coastal trees aligned within three degrees", () => {
+it("keeps spontaneous hillside trees free of four-tree rows outside the authored HR shelter belts", () => {
+  // HR-SHORE-TREES explicitly plants shelter belts. Their clearance and varied
+  // spacing have a separate contract in hr-casuarina.test.ts; this regression
+  // still prevents accidental rows throughout the spontaneous hillside field.
+  const belt = new Set(coastalWindbreakSites().map(tree => `${tree.x}:${tree.z}`));
+  const spontaneous = canopy.filter(tree => !belt.has(`${tree.x}:${tree.z}`));
   const buckets = new Map<string, FoliageTree[]>();
-  for (const tree of canopy) {
+  for (const tree of spontaneous) {
     const key = `${Math.floor(tree.x / 16)},${Math.floor(tree.z / 16)}`;
     buckets.set(key, [...(buckets.get(key) ?? []), tree]);
   }
@@ -126,7 +131,7 @@ it("has no four equally spaced coastal trees aligned within three degrees", () =
     return result;
   };
   let rows = 0;
-  for (const a of canopy) for (const b of canopy) {
+  for (const a of spontaneous) for (const b of spontaneous) {
     if (a === b) continue;
     for (const c of following(a, b)) rows += following(b, c).length;
   }

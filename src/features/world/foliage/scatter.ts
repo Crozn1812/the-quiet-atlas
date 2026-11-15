@@ -262,6 +262,31 @@ function poissonCandidates(ix: number, iz: number, getCandidates = candidates): 
 
 const candidateKey = (tree: Candidate) => `${tree.x}:${tree.z}`;
 let coastalSelection: ReadonlySet<string> | undefined;
+let windbreak: readonly FoliageTree[] | undefined;
+
+/** Two staggered, irregular shelter belts follow the dry inland bank. World
+ * coordinates and clearance tests are shared by every tile and quality level. */
+export function coastalWindbreakSites(): readonly FoliageTree[] {
+  if (windbreak) return windbreak;
+  const random = randomFor("hr-casuarina-windbreak"), sites: FoliageTree[] = [];
+  for (let row = 0; row < 2; row++) {
+    let distance = routeLength * 0.835 + row * 4;
+    while (distance < routeLength - 3) {
+      const t = distance / routeLength, p = pathPointAt(t), next = pathPointAt(Math.min(1, t + 0.002));
+      const dx = next.x - p.x, dz = next.z - p.z, length = Math.hypot(dx, dz);
+      const inland = 28 + row * 16 + (random() - 0.5) * 7;
+      const x = p.x + dz / length * inland, z = p.z - dx / length * inland;
+      const y = worldHeight(x, z), scale = 0.91 + random() * 0.12;
+      if (!isFoliageExcluded(x, z) && y >= SHORE_MIN_HEIGHT
+        && sites.every(other => Math.hypot(other.x - x, other.z - z) >= MIN_TREE_DISTANCE)) {
+        sites.push({ x, y, z, scale, kind: "broadleaf", lean: (random() - 0.5) * 0.025 });
+      }
+      distance += 8 + random() * 6;
+    }
+  }
+  windbreak = sites;
+  return windbreak;
+}
 
 /** A fixed, finite coastal field keeps the row veto independent of tile order.
  * Only selected position keys survive initialization; candidate/coverage working
@@ -349,10 +374,13 @@ export function scatterTile(tile: TileAddress | TerrainTile): FoliageTree[] {
   const iz = "iz" in tile ? tile.iz : tile.origin.z / TILE_SIZE;
   tileKey(ix, iz);
   if ("size" in tile && tile.size !== TILE_SIZE) throw new RangeError("Foliage requires standard terrain tiles");
-  return poissonCandidates(ix, iz)
+  const belt = coastalWindbreakSites();
+  const trees: FoliageTree[] = poissonCandidates(ix, iz)
     .filter(tree => !tree.canopy || selectedCoastalCanopy().has(candidateKey(tree)))
+    .filter(tree => belt.every(other => Math.hypot(tree.x - other.x, tree.z - other.z) >= MIN_TREE_DISTANCE))
     .map(({ x, z, scale, kind, lean, growth, trailCanopy }) => ({ x, z, y: worldHeight(x, z), scale, kind, lean,
       ...(growth ? { growth } : {}),
       ...(trailCanopy ? { trailCanopy } : {}),
     }));
+  return [...trees, ...belt.filter(tree => Math.floor(tree.x / TILE_SIZE) === ix && Math.floor(tree.z / TILE_SIZE) === iz)];
 }

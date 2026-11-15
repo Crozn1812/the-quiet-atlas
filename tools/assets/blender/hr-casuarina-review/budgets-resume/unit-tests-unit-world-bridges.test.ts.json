@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:25:39.952Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/bridges.test.ts:207 draws": 3,
+    "tests/unit/world/bridges.test.ts:208 triangles": 5840
+  },
+  "delta": {
+    "tests/unit/world/bridges.test.ts:207 draws": null,
+    "tests/unit/world/bridges.test.ts:208 triangles": null
+  }
+}

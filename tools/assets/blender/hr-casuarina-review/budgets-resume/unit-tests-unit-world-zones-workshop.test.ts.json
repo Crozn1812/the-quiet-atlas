@@ -1,0 +1,25 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:15.559Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/workshop.test.ts:63 parts.length": 8,
+    "tests/unit/world/zones/workshop.test.ts:80 triangles": 4890,
+    "tests/unit/world/zones/workshop.test.ts:81 triangles": 4890,
+    "tests/unit/world/zones/workshop.test.ts:235 meshes(workshop).length": 8,
+    "tests/unit/world/zones/workshop.test.ts:430 total": 4890,
+    "tests/unit/world/zones/workshop.test.ts:521 count": 328,
+    "tests/unit/world/zones/workshop.test.ts:524 total": 4836,
+    "tests/unit/world/zones/workshop.test.ts:586 triangles": 315650
+  },
+  "delta": {
+    "tests/unit/world/zones/workshop.test.ts:63 parts.length": null,
+    "tests/unit/world/zones/workshop.test.ts:80 triangles": null,
+    "tests/unit/world/zones/workshop.test.ts:81 triangles": null,
+    "tests/unit/world/zones/workshop.test.ts:235 meshes(workshop).length": null,
+    "tests/unit/world/zones/workshop.test.ts:430 total": null,
+    "tests/unit/world/zones/workshop.test.ts:521 count": null,
+    "tests/unit/world/zones/workshop.test.ts:524 total": null,
+    "tests/unit/world/zones/workshop.test.ts:586 triangles": null
+  }
+}

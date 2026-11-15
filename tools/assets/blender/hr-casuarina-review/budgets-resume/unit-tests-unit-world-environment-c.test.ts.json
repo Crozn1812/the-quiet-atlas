@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:45.962Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/environment-c.test.ts:43 bytes": 3983457
+  },
+  "delta": {
+    "tests/unit/world/environment-c.test.ts:43 bytes": null
+  }
+}

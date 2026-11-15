@@ -3,6 +3,57 @@ import type { HrAsset, HrPart } from "./hr-library";
 import { treeRandom } from "./hr-variation";
 
 export type CoastalTreeId = "hr-coast-casuarina" | "hr-coast-casuarina-wind" | "hr-coast-acacia";
+export const CASUARINA_IDS = ["hr-tree-casuarina-young", "hr-tree-casuarina-mature", "hr-tree-casuarina-wind"] as const;
+export type CasuarinaId = typeof CASUARINA_IDS[number];
+
+/** Windbreak mix is rooted in world coordinates and survives tile revisits.
+ * Occasional acacia interrupts the narrow grey-green Casuarina silhouettes. */
+export function coastalTreeAt(x: number, z: number): CasuarinaId | "hr-coast-acacia" {
+  const choice = treeRandom(x, z, 83);
+  return choice < 0.12 ? "hr-coast-acacia" : CASUARINA_IDS[choice < 0.34 ? 0 : choice < 0.76 ? 1 : 2];
+}
+
+/** Texture-free Low/network fallback: sparse ascending limbs and narrow,
+ * curved hanging branchlets. Three static meshes share the existing lifecycle. */
+export function createCasuarinaFallback(variant: number) {
+  const positions: number[] = [], colors: number[] = [];
+  const height = 9 + variant * 1.5, lean = variant === 2 ? 1.3 : 0.15;
+  const root = (t: number) => new Vector3(lean * t * t, height * t, Math.sin(t * 5) * 0.06);
+  const triangle = (a: Vector3, b: Vector3, c: Vector3, color: Color) => {
+    positions.push(...a.toArray(), ...b.toArray(), ...c.toArray());
+    colors.push(...color.toArray(), ...color.toArray(), ...color.toArray());
+  };
+  function tube(a: Vector3, b: Vector3, width: number, endWidth: number, sides: number) {
+    const axis = b.clone().sub(a).normalize(), side = axis.clone().cross(new Vector3(0, 0, 1)).normalize();
+    const cross = axis.clone().cross(side), color = new Color("#83776b");
+    const ring = (point: Vector3, radius: number, n: number) => point.clone().addScaledVector(side, Math.cos(n / sides * Math.PI * 2) * radius).addScaledVector(cross, Math.sin(n / sides * Math.PI * 2) * radius);
+    for (let n = 0; n < sides; n++) {
+      const p = ring(a, width, n), q = ring(a, width, n + 1), r = ring(b, endWidth, n), s = ring(b, endWidth, n + 1);
+      triangle(p, q, r, color); triangle(q, s, r, color);
+    }
+  }
+  for (let i = 0; i < 12; i++) tube(root(i / 12), root((i + 1) / 12), 0.16 * (1 - i / 12) + 0.008, 0.16 * (1 - (i + 1) / 12) + 0.008, 7);
+  for (let branch = 0; branch < 18; branch++) {
+    const t = 0.33 + branch / 18 * 0.63, yaw = branch * 2.39996 + variant;
+    const reach = (1 - t) * 3.8, base = root(t), tip = base.clone().add(new Vector3(Math.cos(yaw) * reach, reach * 0.46, Math.sin(yaw) * reach));
+    tube(base, tip, (1 - t) * 0.04, 0.002, 5);
+    for (let strand = 0; strand < 14; strand++) {
+      const f = 0.24 + strand / 14 * 0.76, r = treeRandom(branch, variant, strand);
+      const a = base.clone().lerp(tip, f), length = 0.45 + r * 1.1;
+      const direction = new Vector3(Math.cos(yaw + strand) * 0.24, -1, Math.sin(yaw + strand) * 0.24);
+      const middle = a.clone().addScaledVector(direction, length * 0.5), end = a.clone().addScaledVector(direction, length);
+      const side = new Vector3(Math.cos(yaw + strand), 0, Math.sin(yaw + strand)).multiplyScalar(0.014 + r * 0.009);
+      const color = new Color("#859b8d").multiplyScalar(0.7 + r * 0.45);
+      triangle(a, middle.clone().sub(side), middle.clone().add(side), color);
+      triangle(middle.clone().sub(side), end, middle.clone().add(side), color);
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals(); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  return geometry;
+}
 
 /** Original needle/phyllode atlas, generated in memory. Dense overlapping sprays
  * cover the centre while individual hanging tips break up the silhouette. */

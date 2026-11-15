@@ -1,0 +1,15 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:18.852Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-trail-canopy.test.ts:119 shape.index!.count / 3": 425,
+    "tests/unit/world/foliage-trail-canopy.test.ts:180 trees.length": 1345,
+    "tests/unit/world/foliage-trail-canopy.test.ts:185 total": 665961
+  },
+  "delta": {
+    "tests/unit/world/foliage-trail-canopy.test.ts:119 shape.index!.count / 3": null,
+    "tests/unit/world/foliage-trail-canopy.test.ts:180 trees.length": null,
+    "tests/unit/world/foliage-trail-canopy.test.ts:185 total": null
+  }
+}

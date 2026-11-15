@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:39.807Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/water.test.ts:354 sea.mesh.geometry.index!.count / 3": 2
+  },
+  "delta": {
+    "tests/unit/world/water.test.ts:354 sea.mesh.geometry.index!.count / 3": null
+  }
+}

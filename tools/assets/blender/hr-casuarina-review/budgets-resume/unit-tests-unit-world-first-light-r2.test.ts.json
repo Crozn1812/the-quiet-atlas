@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:44.634Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/first-light-r2.test.ts:79 dense.getAttribute(\"position\").count / 3": 288,
+    "tests/unit/world/first-light-r2.test.ts:95 ceiling.mesh.count * bounds.getAttribute(\"position\").count / 3": 12300
+  },
+  "delta": {
+    "tests/unit/world/first-light-r2.test.ts:79 dense.getAttribute(\"position\").count / 3": null,
+    "tests/unit/world/first-light-r2.test.ts:95 ceiling.mesh.count * bounds.getAttribute(\"position\").count / 3": null
+  }
+}

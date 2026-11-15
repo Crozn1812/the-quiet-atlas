@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:24.748Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-library.test.ts:28 data.byteLength": 23144,
+    "tests/unit/world/foliage-library.test.ts:33 lod.triangles": 506
+  },
+  "delta": {
+    "tests/unit/world/foliage-library.test.ts:28 data.byteLength": null,
+    "tests/unit/world/foliage-library.test.ts:33 lod.triangles": null
+  }
+}

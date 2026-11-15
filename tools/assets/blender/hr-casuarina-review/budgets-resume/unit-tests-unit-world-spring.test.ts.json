@@ -1,0 +1,15 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:58.221Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/spring.test.ts:82 spring.cliff.geometry.getAttribute(\"position\").count / 3": 25804,
+    "tests/unit/world/spring.test.ts:86 meshes.length": 4,
+    "tests/unit/world/spring.test.ts:87 triangles": 25980
+  },
+  "delta": {
+    "tests/unit/world/spring.test.ts:82 spring.cliff.geometry.getAttribute(\"position\").count / 3": null,
+    "tests/unit/world/spring.test.ts:86 meshes.length": null,
+    "tests/unit/world/spring.test.ts:87 triangles": null
+  }
+}

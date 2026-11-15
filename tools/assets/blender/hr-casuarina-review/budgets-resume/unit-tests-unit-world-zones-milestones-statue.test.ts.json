@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:30.830Z",
+  "previousAt": null,
+  "metrics": {
+    "milestones-statue triangles (legacy 12000)": 6798,
+    "milestones assets bytes (legacy 1500000)": 650631,
+    "tests/unit/world/zones/milestones-statue.test.ts:37 geometry.getAttribute(\"position\").count / 3": 8316,
+    "tests/unit/world/zones/milestones-statue.test.ts:65 statue.group.userData.triangles": 9464
+  },
+  "delta": {
+    "milestones-statue triangles (legacy 12000)": null,
+    "milestones assets bytes (legacy 1500000)": null,
+    "tests/unit/world/zones/milestones-statue.test.ts:37 geometry.getAttribute(\"position\").count / 3": null,
+    "tests/unit/world/zones/milestones-statue.test.ts:65 statue.group.userData.triangles": null
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:25:34.843Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/pine.test.ts:96 triangles(geometry) + triangles(trunk)": 594,
+    "tests/unit/world/pine.test.ts:264 triangles(first) + 42": 594,
+    "tests/unit/world/pine.test.ts:286 after - before": 0.27240000000000464,
+    "tests/unit/world/pine.test.ts:321 after": 224296
+  },
+  "delta": {
+    "tests/unit/world/pine.test.ts:96 triangles(geometry) + triangles(trunk)": null,
+    "tests/unit/world/pine.test.ts:264 triangles(first) + 42": null,
+    "tests/unit/world/pine.test.ts:286 after - before": null,
+    "tests/unit/world/pine.test.ts:321 after": null
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:16.016Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/river-terrain.test.ts:191 tiles.length": 28,
+    "tests/unit/world/river-terrain.test.ts:193 tiles.length * TILE_HEIGHT_BYTES": 121968
+  },
+  "delta": {
+    "tests/unit/world/river-terrain.test.ts:191 tiles.length": null,
+    "tests/unit/world/river-terrain.test.ts:193 tiles.length * TILE_HEIGHT_BYTES": null
+  }
+}

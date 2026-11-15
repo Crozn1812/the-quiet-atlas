@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:42.435Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/fish.test.ts:22 triangles": 93,
+    "tests/unit/world/fish.test.ts:23 triangles * fish.mesh.count": 3348
+  },
+  "delta": {
+    "tests/unit/world/fish.test.ts:22 triangles": null,
+    "tests/unit/world/fish.test.ts:23 triangles * fish.mesh.count": null
+  }
+}

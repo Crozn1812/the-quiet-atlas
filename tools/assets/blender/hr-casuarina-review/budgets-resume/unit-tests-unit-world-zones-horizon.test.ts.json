@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:49.832Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/horizon.test.ts:100 triangles": 1842,
+    "tests/unit/world/zones/horizon.test.ts:104 drawCalls": 8,
+    "tests/unit/world/zones/horizon.test.ts:134 triangles": 1250,
+    "tests/unit/world/zones/horizon.test.ts:264 after": 459091
+  },
+  "delta": {
+    "tests/unit/world/zones/horizon.test.ts:100 triangles": null,
+    "tests/unit/world/zones/horizon.test.ts:104 drawCalls": null,
+    "tests/unit/world/zones/horizon.test.ts:134 triangles": null,
+    "tests/unit/world/zones/horizon.test.ts:264 after": null
+  }
+}

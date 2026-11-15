@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:20.193Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/vehicle-detail.test.ts:58 cursor / 3": 7452
+  },
+  "delta": {
+    "tests/unit/world/vehicle-detail.test.ts:58 cursor / 3": null
+  }
+}

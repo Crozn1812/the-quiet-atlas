@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:27:06.323Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-assets.test.ts:47 triangles": 380
+  },
+  "delta": {
+    "tests/unit/world/foliage-assets.test.ts:47 triangles": null
+  }
+}

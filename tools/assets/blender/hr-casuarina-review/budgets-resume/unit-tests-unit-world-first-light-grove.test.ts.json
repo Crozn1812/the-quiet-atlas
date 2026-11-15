@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:56.616Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/first-light-grove.test.ts:15 g.getAttribute('position').count/3": 280
+  },
+  "delta": {
+    "tests/unit/world/first-light-grove.test.ts:15 g.getAttribute('position').count/3": null
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:23:49.597Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/roots.test.ts:251 triangles": 22121,
+    "tests/unit/world/zones/roots.test.ts:252 drawCalls": 7,
+    "tests/unit/world/zones/roots.test.ts:256 rootTriangles": 1836,
+    "tests/unit/world/zones/roots.test.ts:257 woodTriangles - rootTriangles": 3744,
+    "tests/unit/world/zones/roots.test.ts:266 buildTimes[3]": 39.138600000000224
+  },
+  "delta": {
+    "tests/unit/world/zones/roots.test.ts:251 triangles": null,
+    "tests/unit/world/zones/roots.test.ts:252 drawCalls": null,
+    "tests/unit/world/zones/roots.test.ts:256 rootTriangles": null,
+    "tests/unit/world/zones/roots.test.ts:257 woodTriangles - rootTriangles": null,
+    "tests/unit/world/zones/roots.test.ts:266 buildTimes[3]": null
+  }
+}

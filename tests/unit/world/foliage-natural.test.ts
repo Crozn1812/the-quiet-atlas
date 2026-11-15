@@ -3,7 +3,7 @@ import { Color, Matrix4, Vector3 } from "three";
 import { expect, it } from "vitest";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { createFoliage, foliageVariantAt, isDeepCrown } from "../../../src/features/world/foliage/instances";
-import { foliageBiomeAt, foliageClumpAt, isFoliageExcluded, isZoneApproach, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
+import { coastalWindbreakSites, foliageBiomeAt, foliageClumpAt, isFoliageExcluded, isZoneApproach, scatterTile, type FoliageTree } from "../../../src/features/world/foliage/scatter";
 import { ZONES } from "../../../src/features/world/layout/zones";
 import { pathPointAt } from "../../../src/features/world/layout/path";
 import { WORLD_SCALE } from "../../../src/features/world/layout/scale";
@@ -165,7 +165,11 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
   // ADR 0017 leaves fewer coastal trees: Low's small stratified subset can
   // differ from the full population. Keep the majority gate on the population
   // and independently verify the exact rendered subset at every quality.
-  expect(inland.filter(tree => isDeepCrown(tree.x, tree.z)).length / inland.length).toBeGreaterThanOrEqual(0.6);
+  // Authored grey-green Casuarina shelter belts have their own pigment contract.
+  // Keep the legacy dark-palette majority for the spontaneous hillside only.
+  const belt = new Set(coastalWindbreakSites().map(tree => `${tree.x}:${tree.z}`));
+  const spontaneous = inland.filter(tree => !belt.has(`${tree.x}:${tree.z}`));
+  expect(spontaneous.filter(tree => isDeepCrown(tree.x, tree.z)).length / spontaneous.length).toBeGreaterThanOrEqual(0.6);
   try {
     foliage.setTiles(inland);
     for (const quality of ["Low", "Balanced", "High"] as const) {

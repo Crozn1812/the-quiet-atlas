@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:42.888Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-canopy.test.ts:61 forest.length": 1345,
+    "tests/unit/world/foliage-canopy.test.ts:72 draws": 782
+  },
+  "delta": {
+    "tests/unit/world/foliage-canopy.test.ts:61 forest.length": null,
+    "tests/unit/world/foliage-canopy.test.ts:72 draws": null
+  }
+}

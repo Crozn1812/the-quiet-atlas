@@ -1,0 +1,19 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:53.733Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/old-trail.test.ts:85 triangles": 3075,
+    "tests/unit/world/zones/old-trail.test.ts:87 triangles": 3075,
+    "tests/unit/world/zones/old-trail.test.ts:88 triangles": 3075,
+    "tests/unit/world/zones/old-trail.test.ts:90 drawCalls": 8,
+    "tests/unit/world/zones/old-trail.test.ts:98 mesh.geometry.getAttribute(\"position\").count / 3": 317
+  },
+  "delta": {
+    "tests/unit/world/zones/old-trail.test.ts:85 triangles": null,
+    "tests/unit/world/zones/old-trail.test.ts:87 triangles": null,
+    "tests/unit/world/zones/old-trail.test.ts:88 triangles": null,
+    "tests/unit/world/zones/old-trail.test.ts:90 drawCalls": null,
+    "tests/unit/world/zones/old-trail.test.ts:98 mesh.geometry.getAttribute(\"position\").count / 3": null
+  }
+}

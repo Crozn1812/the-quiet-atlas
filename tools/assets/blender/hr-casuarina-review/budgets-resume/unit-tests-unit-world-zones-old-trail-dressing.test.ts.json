@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:55.248Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/old-trail-dressing.test.ts:25 2758 + triangles": 3809
+  },
+  "delta": {
+    "tests/unit/world/zones/old-trail-dressing.test.ts:25 2758 + triangles": null
+  }
+}

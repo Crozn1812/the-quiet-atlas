@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:25:31.430Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-forest.test.ts:176 trees.length": 1345,
+    "tests/unit/world/foliage-forest.test.ts:177 trees.length": 1345,
+    "tests/unit/world/foliage-forest.test.ts:184 (variant.trunks.geometry.index!.count + variant.crowns.geometry.index!.count) / 3": 467,
+    "tests/unit/world/foliage-forest.test.ts:187 draws": 782
+  },
+  "delta": {
+    "tests/unit/world/foliage-forest.test.ts:176 trees.length": null,
+    "tests/unit/world/foliage-forest.test.ts:177 trees.length": null,
+    "tests/unit/world/foliage-forest.test.ts:184 (variant.trunks.geometry.index!.count + variant.crowns.geometry.index!.count) / 3": null,
+    "tests/unit/world/foliage-forest.test.ts:187 draws": null
+  }
+}

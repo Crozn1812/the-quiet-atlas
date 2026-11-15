@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:14.832Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/vehicle-view.test.ts:48 triangles": 7452
+  },
+  "delta": {
+    "tests/unit/world/vehicle-view.test.ts:48 triangles": null
+  }
+}

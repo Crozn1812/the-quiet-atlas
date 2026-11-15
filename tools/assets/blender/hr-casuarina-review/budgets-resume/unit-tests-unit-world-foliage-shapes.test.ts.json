@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:18.515Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-shapes.test.ts:93 triangles(crown) + triangles(trunk)": 467
+  },
+  "delta": {
+    "tests/unit/world/foliage-shapes.test.ts:93 triangles(crown) + triangles(trunk)": null
+  }
+}

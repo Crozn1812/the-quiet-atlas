@@ -1,0 +1,15 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:23:50.151Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage.test.ts:111 total": 343,
+    "tests/unit/world/foliage.test.ts:301 after": 665961,
+    "tests/unit/world/foliage.test.ts:337 after": 236811
+  },
+  "delta": {
+    "tests/unit/world/foliage.test.ts:111 total": null,
+    "tests/unit/world/foliage.test.ts:301 after": null,
+    "tests/unit/world/foliage.test.ts:337 after": null
+  }
+}

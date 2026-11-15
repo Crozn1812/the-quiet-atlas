@@ -333,8 +333,10 @@ describe("procedural foliage variants", () => {
           extra += mesh.count * (mesh.geometry.index!.count / 3 - 349);
         }
         const before = after - extra;
-        // R1 forest, hill and coast batches all replace the larger historic crowns.
-        expect(extra).toBeLessThan(0);
+        // Forest/hill retain the historic saving. HR Casuarina Low now carries
+        // individual branchlets; ADR 0019 records this cost without a cap.
+        if (t < 0.82) expect(extra).toBeLessThan(0);
+        expect(Number.isFinite(after)).toBe(true); expect(after).toBeGreaterThan(0);
         reportBudget("tests/unit/world/foliage.test.ts:337 after", after, before * 1.25);
         // Eager props/character/post are unchanged; adding them only reduces this ratio.
         process.stdout.write(`B2-182b resident world / High / t=${t}: triangles=${before} -> ${after}; increase=${((after / before - 1) * 100).toFixed(3)}%\n`);

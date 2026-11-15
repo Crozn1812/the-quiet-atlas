@@ -1,0 +1,25 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:10.246Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/quiet-shore.test.ts:91 triangles": 5570,
+    "tests/unit/world/zones/quiet-shore.test.ts:92 meshes(scene).length": 7,
+    "tests/unit/world/zones/quiet-shore.test.ts:94 propVertices(scene, node.name).length / 3": 420,
+    "tests/unit/world/zones/quiet-shore.test.ts:155 triangles": 5555,
+    "tests/unit/world/zones/quiet-shore.test.ts:156 triangles": 5555,
+    "tests/unit/world/zones/quiet-shore.test.ts:158 drawCalls": 7,
+    "tests/unit/world/zones/quiet-shore.test.ts:192 triangles": 508,
+    "tests/unit/world/zones/quiet-shore.test.ts:364 triangles": 304
+  },
+  "delta": {
+    "tests/unit/world/zones/quiet-shore.test.ts:91 triangles": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:92 meshes(scene).length": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:94 propVertices(scene, node.name).length / 3": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:155 triangles": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:156 triangles": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:158 drawCalls": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:192 triangles": null,
+    "tests/unit/world/zones/quiet-shore.test.ts:364 triangles": null
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:08.021Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/shore.test.ts:158 after": 491859,
+    "tests/unit/world/shore.test.ts:182 meshes": 2,
+    "tests/unit/world/shore.test.ts:183 triangles": 21004
+  },
+  "delta": {
+    "tests/unit/world/shore.test.ts:158 after": null,
+    "tests/unit/world/shore.test.ts:182 meshes": null,
+    "tests/unit/world/shore.test.ts:183 triangles": null
+  }
+}

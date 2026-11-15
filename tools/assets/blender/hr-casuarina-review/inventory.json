@@ -1,0 +1,422 @@
+[
+  {
+    "id": "hr-tree-casuarina-young",
+    "category": "tree",
+    "architecture": "casuarina",
+    "species": "Casuarina equisetifolia",
+    "seed": 73103,
+    "heightMeters": 8.5,
+    "license": "CC0-1.0",
+    "source": [
+      "https://polyhaven.com/a/pine_bark",
+      "https://polyhaven.com/license"
+    ],
+    "derivation": "Original Blender geometry-node swept trunk and ascending branches; authored 2K pendulous segmented needle atlas; repigmented cached CC0 bark photograph. Not a scan.",
+    "delivery": "deferred-after-play",
+    "textureMaxDimension": 2048,
+    "branchLevels": 3,
+    "ivy": false,
+    "lods": [
+      {
+        "level": 0,
+        "file": "hr-tree-casuarina-young-lod0.glb",
+        "triangles": 10040,
+        "materials": 2,
+        "textures": 3,
+        "path": "/world/lib/hr-tree-casuarina-young-lod0.glb",
+        "bytes": 124196,
+        "sha256": "4735c45235a1848807622ab21ac2ffd5cfafab2347eeff8cf280aa1adb4710dd",
+        "drawCalls": 2,
+        "sharedTextures": [
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+            "bytes": 5162281,
+            "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+            "bytes": 3324759,
+            "sha256": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+            "bytes": 714799,
+            "sha256": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be"
+          }
+        ]
+      },
+      {
+        "level": 1,
+        "file": "hr-tree-casuarina-young-lod1.glb",
+        "triangles": 4700,
+        "materials": 2,
+        "textures": 3,
+        "path": "/world/lib/hr-tree-casuarina-young-lod1.glb",
+        "bytes": 64848,
+        "sha256": "e5cf432013a4f36e273d9b036901ea8535ba308effc603416eaf15a55a95b4f3",
+        "drawCalls": 2,
+        "sharedTextures": [
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+            "bytes": 5162281,
+            "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+            "bytes": 3324759,
+            "sha256": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+            "bytes": 714799,
+            "sha256": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be"
+          }
+        ]
+      }
+    ],
+    "bounds": {
+      "min": [
+        -2.366319856899665,
+        -0.00023202720331028104,
+        -2.643130340835958
+      ],
+      "max": [
+        2.7593545534786443,
+        8.500272750854492,
+        2.858188190719991
+      ]
+    },
+    "impostor": {
+      "file": "hr-tree-casuarina-young-impostor.glb",
+      "path": "/world/lib/hr-tree-casuarina-young-impostor.glb",
+      "bytes": 807944,
+      "sha256": "ef67b4e93a734aa6b37562919030a7ab39c8133ea2a5e1d8d076482d85604ef6",
+      "triangles": 2,
+      "drawCalls": 1,
+      "center": [
+        0.19651734828948975,
+        4.250020361825591,
+        0.1075289249420166
+      ],
+      "frame": 9.52056535142474,
+      "views": 4,
+      "textureDimensions": [
+        2048,
+        2048
+      ],
+      "tileOpaquePixels": [
+        138115,
+        138085,
+        138118,
+        138086
+      ],
+      "tileBorderOpaquePixels": 0,
+      "uvRects": [
+        [
+          0,
+          0.5,
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0.5,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0,
+          1,
+          0.5
+        ]
+      ]
+    }
+  },
+  {
+    "id": "hr-tree-casuarina-mature",
+    "category": "tree",
+    "architecture": "casuarina",
+    "species": "Casuarina equisetifolia",
+    "seed": 73247,
+    "heightMeters": 14.2,
+    "license": "CC0-1.0",
+    "source": [
+      "https://polyhaven.com/a/pine_bark",
+      "https://polyhaven.com/license"
+    ],
+    "derivation": "Original Blender geometry-node swept trunk and ascending branches; authored 2K pendulous segmented needle atlas; repigmented cached CC0 bark photograph. Not a scan.",
+    "delivery": "deferred-after-play",
+    "textureMaxDimension": 2048,
+    "branchLevels": 3,
+    "ivy": false,
+    "lods": [
+      {
+        "level": 0,
+        "file": "hr-tree-casuarina-mature-lod0.glb",
+        "triangles": 12904,
+        "materials": 2,
+        "textures": 3,
+        "path": "/world/lib/hr-tree-casuarina-mature-lod0.glb",
+        "bytes": 159636,
+        "sha256": "7d0597e2b3f0385fb82841d10f5d767bc32cf9d258634a8dec516379842d6c2a",
+        "drawCalls": 2,
+        "sharedTextures": [
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+            "bytes": 5162281,
+            "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+            "bytes": 3324759,
+            "sha256": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+            "bytes": 714799,
+            "sha256": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be"
+          }
+        ]
+      },
+      {
+        "level": 1,
+        "file": "hr-tree-casuarina-mature-lod1.glb",
+        "triangles": 6004,
+        "materials": 2,
+        "textures": 3,
+        "path": "/world/lib/hr-tree-casuarina-mature-lod1.glb",
+        "bytes": 81820,
+        "sha256": "27233ec29d3f4be1ea9dd9b33f54efbf14c5f6e6df08cfa19230f7f140025afe",
+        "drawCalls": 2,
+        "sharedTextures": [
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+            "bytes": 5162281,
+            "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+            "bytes": 3324759,
+            "sha256": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+            "bytes": 714799,
+            "sha256": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be"
+          }
+        ]
+      }
+    ],
+    "bounds": {
+      "min": [
+        -3.9407304788601207,
+        -0.00027134298579767346,
+        -3.604059160609217
+      ],
+      "max": [
+        4.2562345529568,
+        14.200318336486816,
+        4.176860273737879
+      ]
+    },
+    "impostor": {
+      "file": "hr-tree-casuarina-mature-impostor.glb",
+      "path": "/world/lib/hr-tree-casuarina-mature-impostor.glb",
+      "bytes": 610072,
+      "sha256": "11cb568ebd13b80abe86738cbca3cd00eb8572ab0cc63a0704c14e0bdb6711ef",
+      "triangles": 2,
+      "drawCalls": 1,
+      "center": [
+        0.15775203704833984,
+        7.100023496750509,
+        0.28640055656433105
+      ],
+      "frame": 15.904660441009328,
+      "views": 4,
+      "textureDimensions": [
+        2048,
+        2048
+      ],
+      "tileOpaquePixels": [
+        93526,
+        88915,
+        93526,
+        88915
+      ],
+      "tileBorderOpaquePixels": 0,
+      "uvRects": [
+        [
+          0,
+          0.5,
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0.5,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0,
+          1,
+          0.5
+        ]
+      ]
+    }
+  },
+  {
+    "id": "hr-tree-casuarina-wind",
+    "category": "tree",
+    "architecture": "casuarina",
+    "species": "Casuarina equisetifolia",
+    "seed": 73411,
+    "heightMeters": 12.7,
+    "license": "CC0-1.0",
+    "source": [
+      "https://polyhaven.com/a/pine_bark",
+      "https://polyhaven.com/license"
+    ],
+    "derivation": "Original Blender geometry-node swept trunk and ascending branches; authored 2K pendulous segmented needle atlas; repigmented cached CC0 bark photograph. Not a scan.",
+    "delivery": "deferred-after-play",
+    "textureMaxDimension": 2048,
+    "branchLevels": 3,
+    "ivy": false,
+    "lods": [
+      {
+        "level": 0,
+        "file": "hr-tree-casuarina-wind-lod0.glb",
+        "triangles": 12904,
+        "materials": 2,
+        "textures": 3,
+        "path": "/world/lib/hr-tree-casuarina-wind-lod0.glb",
+        "bytes": 160936,
+        "sha256": "f6773425294e5a295d2a56b6a28d272b548b704cf78f4516e7540135945c5763",
+        "drawCalls": 2,
+        "sharedTextures": [
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+            "bytes": 5162281,
+            "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+            "bytes": 3324759,
+            "sha256": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+            "bytes": 714799,
+            "sha256": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be"
+          }
+        ]
+      },
+      {
+        "level": 1,
+        "file": "hr-tree-casuarina-wind-lod1.glb",
+        "triangles": 6004,
+        "materials": 2,
+        "textures": 3,
+        "path": "/world/lib/hr-tree-casuarina-wind-lod1.glb",
+        "bytes": 82440,
+        "sha256": "0a08ab6b4a39590c8ee61229fe4e4c07507f0cb1fb362244ae3c3fd970a14d78",
+        "drawCalls": 2,
+        "sharedTextures": [
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+            "bytes": 5162281,
+            "sha256": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+            "bytes": 3324759,
+            "sha256": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555"
+          },
+          {
+            "path": "/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+            "bytes": 714799,
+            "sha256": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be"
+          }
+        ]
+      }
+    ],
+    "bounds": {
+      "min": [
+        -3.6002734390339715,
+        -0.0006421196740120649,
+        -3.889710114877526
+      ],
+      "max": [
+        4.8422637668690545,
+        12.701930046081543,
+        3.529395268838708
+      ]
+    },
+    "impostor": {
+      "file": "hr-tree-casuarina-wind-impostor.glb",
+      "path": "/world/lib/hr-tree-casuarina-wind-impostor.glb",
+      "bytes": 710896,
+      "sha256": "5121a6c8add4de2ed5e261da13dfc82570e1abf2b8f7b5b386736200c019d249",
+      "triangles": 2,
+      "drawCalls": 1,
+      "center": [
+        0.6209951639175415,
+        6.3506439632037655,
+        -0.18015742301940918
+      ],
+      "frame": 14.226880825646223,
+      "views": 4,
+      "textureDimensions": [
+        2048,
+        2048
+      ],
+      "tileOpaquePixels": [
+        109246,
+        107844,
+        109247,
+        107844
+      ],
+      "tileBorderOpaquePixels": 0,
+      "uvRects": [
+        [
+          0,
+          0.5,
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0.5,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0,
+          1,
+          0.5
+        ]
+      ]
+    }
+  }
+]

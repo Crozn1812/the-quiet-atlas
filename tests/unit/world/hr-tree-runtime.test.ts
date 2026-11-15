@@ -6,10 +6,46 @@ import { chooseHrTrees, hrLeafTint, hrTreeLod, HR_TREE_IDS, treeRandom } from ".
 import { createHrVines, readHrParts, type HrAsset } from "../../../src/features/world/foliage/hr-library";
 import * as variation from "../../../src/features/world/foliage/hr-variation";
 import { createFoliage } from "../../../src/features/world/foliage/instances";
+import { coastalWindbreakSites } from "../../../src/features/world/foliage/scatter";
+import { coastalTreeAt } from "../../../src/features/world/foliage/hr-coastal";
 
 const { acquire, release, assetDispose } = vi.hoisted(() => ({ acquire: vi.fn(), release: vi.fn(), assetDispose: vi.fn() }));
 vi.mock("../../../src/features/world/foliage/hr-library", async importOriginal => ({ ...await importOriginal<object>(), acquireHrTree: acquire }));
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); acquire.mockReset(); release.mockReset(); });
+
+it("streams Casuarina metre-scale meshes and its own far impostor while preserving the root", async () => {
+  vi.useFakeTimers();
+  const site = coastalWindbreakSites().find(s => coastalTreeAt(Math.fround(s.x), Math.fround(s.z)).includes("casuarina"))!;
+  const id = coastalTreeAt(Math.fround(site.x), Math.fround(site.z));
+  const loaded = asset(); acquire.mockReturnValue({ ready: Promise.resolve(loaded), release });
+  const scene = new Scene(), geometry = new BoxGeometry(6, 12, 6).translate(0, 6, 0);
+  const source = new InstancedMesh(geometry, new MeshStandardMaterial(), 1);
+  source.setMatrixAt(0, new Matrix4().makeScale(1.5, 1.5, 1.5).setPosition(site.x, site.y, site.z));
+  scene.add(source); scene.updateMatrixWorld();
+  const camera = new PerspectiveCamera(70, 1, .1, 300), binding = bindHrForest([source]);
+  const renderer = { info: { render: { frame: 0 } } } as WebGLRenderer;
+  const frame = () => {
+    camera.lookAt(site.x, site.y + 6, site.z); camera.updateMatrixWorld();
+    renderer.info.render.frame++; source.onAfterRender(renderer, scene, camera, source.geometry, source.material, null!);
+  };
+  try {
+    camera.position.set(site.x + 8, site.y + 5, site.z + 10);
+    advanceHrTrees([source], .016, false); frame(); await vi.runAllTimersAsync(); frame();
+    expect(acquire.mock.calls.some(c => c[1] === id && c[2] === 0)).toBe(true);
+    const mesh = scene.getObjectByName(`${id}-lod0`)!.children[0] as InstancedMesh;
+    const matrix = new Matrix4(); mesh.getMatrixAt(0, matrix);
+    expect(new Vector3().setFromMatrixPosition(matrix).distanceTo(new Vector3(site.x, site.y, site.z))).toBeLessThan(.001);
+    const scale = new Vector3().setFromMatrixScale(matrix);
+    expect(scale.y).toBeGreaterThanOrEqual(.96); expect(scale.y).toBeLessThanOrEqual(1);
+    camera.position.set(site.x + 85, site.y + 5, site.z);
+    frame(); await vi.runAllTimersAsync();
+    expect(acquire.mock.calls.some(c => c[1] === id && c[2] === 2)).toBe(true);
+    binding.setQuality("Low"); expect(source.geometry.getAttribute("hrReplaced").getX(0)).toBe(0);
+  } finally {
+    binding.dispose(); geometry.dispose(); source.material.dispose(); source.dispose();
+    loaded.parts.forEach(p => { p.geometry.dispose(); p.material.dispose(); });
+  }
+});
 
 it("resolves nearby architectures without repeats, independent of site input order and quality", () => {
   const sites = Array.from({ length: 36 }, (_, i) => ({ x: i % 6 * 6, z: Math.floor(i / 6) * 6, canopy: true }));

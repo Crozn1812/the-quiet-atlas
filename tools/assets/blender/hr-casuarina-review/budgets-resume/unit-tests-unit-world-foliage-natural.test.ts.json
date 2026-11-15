@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:14.691Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/foliage-natural.test.ts:33 scatterTile(tile).length": 17,
+    "tests/unit/world/foliage-natural.test.ts:112 wideForest.length": 1345,
+    "tests/unit/world/foliage-natural.test.ts:113 scatterTile(tile).length": 12,
+    "coastal foliage draws": 4
+  },
+  "delta": {
+    "tests/unit/world/foliage-natural.test.ts:33 scatterTile(tile).length": null,
+    "tests/unit/world/foliage-natural.test.ts:112 wideForest.length": null,
+    "tests/unit/world/foliage-natural.test.ts:113 scatterTile(tile).length": null,
+    "coastal foliage draws": null
+  }
+}

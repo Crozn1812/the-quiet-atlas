@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:27:14.328Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/forest-r1.test.ts:36 mesh.geometry.getAttribute(\"position\").count / 3": 288
+  },
+  "delta": {
+    "tests/unit/world/forest-r1.test.ts:36 mesh.geometry.getAttribute(\"position\").count / 3": null
+  }
+}

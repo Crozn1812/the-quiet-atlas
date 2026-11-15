@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:47.899Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/milestones-dressing.test.ts:52 triangles": 2233,
+    "tests/unit/world/zones/milestones-dressing.test.ts:57 fallbackTriangles": 419,
+    "tests/unit/world/zones/milestones-dressing.test.ts:58 detailTriangles": 1492,
+    "tests/unit/world/zones/milestones-dressing.test.ts:59 2639 + detailTriangles": 4131
+  },
+  "delta": {
+    "tests/unit/world/zones/milestones-dressing.test.ts:52 triangles": null,
+    "tests/unit/world/zones/milestones-dressing.test.ts:57 fallbackTriangles": null,
+    "tests/unit/world/zones/milestones-dressing.test.ts:58 detailTriangles": null,
+    "tests/unit/world/zones/milestones-dressing.test.ts:59 2639 + detailTriangles": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:33.555Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/grass-field.test.ts:69 field.mesh.count * 12": 0
+  },
+  "delta": {
+    "tests/unit/world/grass-field.test.ts:69 field.mesh.count * 12": null
+  }
+}

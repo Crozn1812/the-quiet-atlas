@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:23:42.802Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/sky.test.ts:912 mesh.geometry.getAttribute(\"position\").count": 325
+  },
+  "delta": {
+    "tests/unit/world/sky.test.ts:912 mesh.geometry.getAttribute(\"position\").count": null
+  }
+}

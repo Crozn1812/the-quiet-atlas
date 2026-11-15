@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:27:13.186Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/coast-r1-budget.test.ts:53 result.triangles": 224296,
+    "tests/unit/world/coast-r1-budget.test.ts:54 result.draws": 36
+  },
+  "delta": {
+    "tests/unit/world/coast-r1-budget.test.ts:53 result.triangles": null,
+    "tests/unit/world/coast-r1-budget.test.ts:54 result.draws": null
+  }
+}

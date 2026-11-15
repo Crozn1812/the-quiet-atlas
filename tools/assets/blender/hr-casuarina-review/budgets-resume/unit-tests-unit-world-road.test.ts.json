@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:17.928Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/road.test.ts:456 drawCalls": 4,
+    "tests/unit/world/road.test.ts:457 triangles": 10359
+  },
+  "delta": {
+    "tests/unit/world/road.test.ts:456 drawCalls": null,
+    "tests/unit/world/road.test.ts:457 triangles": null
+  }
+}

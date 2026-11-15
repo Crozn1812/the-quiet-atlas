@@ -1,0 +1,19 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:34.905Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/ground.test.ts:69 triangleCount(low)": 40,
+    "tests/unit/world/ground.test.ts:92 triangleCount(geometry)": 180,
+    "tests/unit/world/ground.test.ts:112 triangleCount(geometry)": 20,
+    "tests/unit/world/ground.test.ts:224 renderedTriangles(meshesOf(ground))": 39992,
+    "tests/unit/world/ground.test.ts:479 triangles": 301458
+  },
+  "delta": {
+    "tests/unit/world/ground.test.ts:69 triangleCount(low)": null,
+    "tests/unit/world/ground.test.ts:92 triangleCount(geometry)": null,
+    "tests/unit/world/ground.test.ts:112 triangleCount(geometry)": null,
+    "tests/unit/world/ground.test.ts:224 renderedTriangles(meshesOf(ground))": null,
+    "tests/unit/world/ground.test.ts:479 triangles": null
+  }
+}

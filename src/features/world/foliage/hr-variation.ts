@@ -9,7 +9,7 @@ export const HR_TREE_IDS = [
   "hr-tree-fallen-living", "hr-tree-dead-snag", "hr-tree-dead-forked",
 ] as const;
 export type HrTreeId = typeof HR_TREE_IDS[number];
-export type HrLandscapeTreeId = HrTreeId | "hr-palm-coconut" | "hr-palm-leaning" | "hr-palm-shore" | import("./hr-coastal").CoastalTreeId;
+export type HrLandscapeTreeId = HrTreeId | "hr-palm-coconut" | "hr-palm-leaning" | "hr-palm-shore" | import("./hr-coastal").CoastalTreeId | import("./hr-coastal").CasuarinaId;
 export type Habitat = "river" | "slope" | "interior" | "edge";
 export function treeRandom(x: number, z: number, salt = 0) {
   let h = 2166136261 ^ salt;

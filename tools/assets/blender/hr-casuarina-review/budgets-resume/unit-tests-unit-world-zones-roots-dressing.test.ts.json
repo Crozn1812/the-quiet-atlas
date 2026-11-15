@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:36.777Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/roots-dressing.test.ts:124 all.length": 7,
+    "tests/unit/world/zones/roots-dressing.test.ts:125 upperDetail": 23062
+  },
+  "delta": {
+    "tests/unit/world/zones/roots-dressing.test.ts:124 all.length": null,
+    "tests/unit/world/zones/roots-dressing.test.ts:125 upperDetail": null
+  }
+}

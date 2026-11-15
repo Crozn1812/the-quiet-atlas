@@ -1,0 +1,23 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:24:02.220Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/last-postcard.test.ts:212 triangles": 2394,
+    "tests/unit/world/zones/last-postcard.test.ts:213 triangles": 2394,
+    "tests/unit/world/zones/last-postcard.test.ts:214 drawCalls": 7,
+    "tests/unit/world/zones/last-postcard.test.ts:332 result.value.getAttribute(\"position\").count / 3": 60,
+    "tests/unit/world/zones/last-postcard.test.ts:348 Math.max(...counts)": 1027,
+    "tests/unit/world/zones/last-postcard.test.ts:405 count": 2388,
+    "tests/unit/world/zones/last-postcard.test.ts:524 after": 491859
+  },
+  "delta": {
+    "tests/unit/world/zones/last-postcard.test.ts:212 triangles": null,
+    "tests/unit/world/zones/last-postcard.test.ts:213 triangles": null,
+    "tests/unit/world/zones/last-postcard.test.ts:214 drawCalls": null,
+    "tests/unit/world/zones/last-postcard.test.ts:332 result.value.getAttribute(\"position\").count / 3": null,
+    "tests/unit/world/zones/last-postcard.test.ts:348 Math.max(...counts)": null,
+    "tests/unit/world/zones/last-postcard.test.ts:405 count": null,
+    "tests/unit/world/zones/last-postcard.test.ts:524 after": null
+  }
+}

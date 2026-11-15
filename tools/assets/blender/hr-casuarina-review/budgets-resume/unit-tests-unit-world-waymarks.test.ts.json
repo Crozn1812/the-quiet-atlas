@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:52.362Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/waymarks.test.ts:71 triangles": 900
+  },
+  "delta": {
+    "tests/unit/world/waymarks.test.ts:71 triangles": null
+  }
+}

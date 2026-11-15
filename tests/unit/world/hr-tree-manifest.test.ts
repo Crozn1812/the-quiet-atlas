@@ -10,7 +10,7 @@ it('ships thirteen distinct licensed HR trees with decodable LODs and baked four
   await MeshoptDecoder.ready;
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
   const manifest = JSON.parse(await readFile('public/world/lib/manifest.json', 'utf8'));
-  const entries = manifest.assets.filter((e: { id: string }) => e.id.startsWith('hr-tree-'));
+  const entries = manifest.assets.filter((e: { id: string }) => e.id.startsWith('hr-tree-') && !e.id.startsWith('hr-tree-casuarina-'));
   const licenses = await readFile('assets/LICENSES.csv', 'utf8');
   expect(entries).toHaveLength(13);
   expect(new Set(entries.map((e: { seed: number }) => e.seed)).size).toBe(13);

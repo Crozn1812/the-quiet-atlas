@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:43.911Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/horizon-dressing.test.ts:39 detail": 1855
+  },
+  "delta": {
+    "tests/unit/world/zones/horizon-dressing.test.ts:39 detail": null
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "buildId": "VbZqRdT_p_sOX4wJkYz5C",
+  "buildCount": 1,
+  "reusedVerifiedBuild": true,
+  "e2ePort": 4202,
+  "checks": {
+    "lint": {
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "warnings": 0,
+      "log": "lint-resume.log"
+    },
+    "typecheck": {
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "log": "typecheck-resume.log"
+    },
+    "assets": {
+      "command": "pnpm check:assets",
+      "exitCode": 0,
+      "status": "PASS",
+      "errors": [],
+      "log": "assets-resume.log"
+    },
+    "licenses": {
+      "command": "pnpm check:licenses",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": "licenses-resume.log"
+    },
+    "unit": {
+      "command": "pnpm test --configLoader runner --no-cache --maxWorkers=2 --testTimeout=60000",
+      "exitCode": 0,
+      "passedFiles": 199,
+      "passedTests": 2031,
+      "skippedTests": 1,
+      "log": "test-resume.log"
+    },
+    "e2e": {
+      "command": "E2E_PORT=4202 pnpm --config.verifyDepsBeforeRun=false exec playwright test world --workers=2",
+      "exitCode": 0,
+      "passed": 43,
+      "failed": 0,
+      "workers": 2,
+      "log": "e2e-resume.log"
+    }
+  },
+  "e2eAttempts": [
+    {
+      "exitCode": 1,
+      "passed": 42,
+      "failed": 1,
+      "log": "e2e-resume-first.log",
+      "failure": "Journal test timed out waiting for disabled Enter World at Welcome before loading the world."
+    },
+    {
+      "exitCode": 0,
+      "passed": 43,
+      "failed": 0,
+      "log": "e2e-resume.log"
+    }
+  ],
+  "result": "PASS"
+}

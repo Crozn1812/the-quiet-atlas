@@ -1,0 +1,174 @@
+{
+  "label": "low",
+  "production": true,
+  "samples": [
+    {
+      "zone": "quiet-shore",
+      "pose": {
+        "position": [
+          33.33794021606445,
+          7.467573761940002,
+          -483.5545654296875
+        ],
+        "target": [
+          21.337940216064453,
+          2.9675737619400024,
+          -496.5545654296875
+        ]
+      },
+      "quality": "low",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 94.01632794724229,
+      "calls": 89,
+      "triangles": 291977,
+      "cpuMsPerSecond": 400.66097483291855
+    },
+    {
+      "zone": "last-postcard",
+      "pose": {
+        "position": [
+          19.94136953353882,
+          7.187365174293518,
+          -558.9993896484375
+        ],
+        "target": [
+          7.941369533538818,
+          2.687365174293518,
+          -571.9993896484375
+        ]
+      },
+      "quality": "low",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 94.66549925857973,
+      "calls": 45,
+      "triangles": 208111,
+      "cpuMsPerSecond": 344.4296343752117
+    }
+  ],
+  "errors": [],
+  "buildId": "VbZqRdT_p_sOX4wJkYz5C",
+  "timing": {
+    "clicked": 204.40000000596046,
+    "playable": 11982.79999999702
+  },
+  "resources": [
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-1-lod0.glb",
+      "start": 6655,
+      "bytes": 18452
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-1-lod1.glb",
+      "start": 6655.20000000298,
+      "bytes": 9904
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-2-lod0.glb",
+      "start": 6655.4000000059605,
+      "bytes": 18432
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-2-lod1.glb",
+      "start": 6655.70000000298,
+      "bytes": 9908
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-3-lod0.glb",
+      "start": 6655.79999999702,
+      "bytes": 18324
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-3-lod1.glb",
+      "start": 6656,
+      "bytes": 9892
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-4-lod0.glb",
+      "start": 6656.0999999940395,
+      "bytes": 18412
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-4-lod1.glb",
+      "start": 6656.29999999702,
+      "bytes": 9912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/manifest.json",
+      "start": 15812.09999999404,
+      "bytes": 151306
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-1-lod1.glb",
+      "start": 15812.40000000596,
+      "bytes": 9904
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-spreading-crown-lod1.glb",
+      "start": 17828.5,
+      "bytes": 644972
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+      "start": 17949.29999999702,
+      "bytes": 4894632
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+      "start": 17949.5,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+      "start": 17949.70000000298,
+      "bytes": 851984
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-3-lod1.glb",
+      "start": 18082.5,
+      "bytes": 9892
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-fern-lod1.glb",
+      "start": 18162.90000000596,
+      "bytes": 10536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-bush-lod1.glb",
+      "start": 18217.5,
+      "bytes": 10136
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-grass-lod1.glb",
+      "start": 18275.70000000298,
+      "bytes": 3180
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-fallen-log-lod1.glb",
+      "start": 18286.40000000596,
+      "bytes": 8876
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-grass-lod1.glb",
+      "start": 18322.5,
+      "bytes": 3180
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-umbrella-crown-lod1.glb",
+      "start": 18825.40000000596,
+      "bytes": 655980
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-clump-lod1.glb",
+      "start": 18847.59999999404,
+      "bytes": 6560768
+    }
+  ]
+}

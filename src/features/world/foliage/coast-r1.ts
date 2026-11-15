@@ -1,8 +1,7 @@
-import { Color, type MeshToonMaterial } from "three";
-import { PALETTE } from "../art/palette";
+import type { MeshToonMaterial } from "three";
 import { nearestPath } from "../terrain/samples";
 import { foliageVariantAt } from "./instances";
-import { createFirstLightTree } from "./first-light-grove";
+import { createCasuarinaFallback } from "./hr-coastal";
 import { createForestR1Trees } from "./forest-r1";
 import type { FoliageTree } from "./scatter";
 
@@ -17,27 +16,9 @@ export function isCoastR1Tree(tree: Pick<FoliageTree, "x" | "z">) {
     < coastR1Weight(nearestPath(tree.x, tree.z).t);
 }
 
-/** R1 branches and planar lobes, flattened into a wind-pruned coastal crown. */
+/** Low keeps the same narrow, airy species silhouette without texture uploads. */
 export function createCoastR1Tree(variant: number) {
-  const geometry = createFirstLightTree(variant);
-  const positions = geometry.getAttribute("position"), colors = geometry.getAttribute("color");
-  const green = new Color(PALETTE.forestLight).lerp(new Color(PALETTE.grass), 0.42);
-  const dry = new Color(PALETTE.grassDry);
-  const pigment = new Color();
-  for (let i = 0; i < positions.count; i++) {
-    const y = positions.getY(i);
-    // Continuous shear keeps every branch connected; the root remains at the same point.
-    positions.setXYZ(i, positions.getX(i) * 1.12 + y * y * 0.018,
-      y < 4.5 ? y * 0.85 : 3.825 + (y - 4.5) * 0.5, positions.getZ(i));
-    pigment.fromBufferAttribute(colors, i);
-    if (pigment.g > pigment.r * 1.1) {
-      const wash = 0.92 + 0.12 * Math.sin(Math.floor(i / 3) * 1.73);
-      pigment.copy(green).lerp(dry, 0.12 + variant * 0.035).multiplyScalar(wash);
-      colors.setXYZ(i, pigment.r, pigment.g, pigment.b);
-    }
-  }
-  geometry.computeVertexNormals(); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
-  return geometry;
+  return createCasuarinaFallback(variant);
 }
 
 /** Reuse the streamed R1 lifecycle/fade and three draws; no new animation or scatter field. */

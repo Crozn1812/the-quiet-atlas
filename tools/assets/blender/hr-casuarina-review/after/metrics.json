@@ -1,0 +1,874 @@
+{
+  "label": "after",
+  "production": true,
+  "samples": [
+    {
+      "zone": "quiet-shore",
+      "pose": {
+        "position": [
+          33.33794021606445,
+          7.467573761940002,
+          -483.5545654296875
+        ],
+        "target": [
+          21.337940216064453,
+          2.9675737619400024,
+          -496.5545654296875
+        ]
+      },
+      "quality": "high",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 100.27081092761416,
+      "calls": 212,
+      "triangles": 4946626,
+      "cpuMsPerSecond": 495.96076082167815
+    },
+    {
+      "zone": "last-postcard",
+      "pose": {
+        "position": [
+          19.94136953353882,
+          7.187365174293518,
+          -558.9993896484375
+        ],
+        "target": [
+          7.941369533538818,
+          2.687365174293518,
+          -571.9993896484375
+        ]
+      },
+      "quality": "high",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 100.00127746138476,
+      "calls": 115,
+      "triangles": 3573652,
+      "cpuMsPerSecond": 468.88463245817206
+    }
+  ],
+  "errors": [],
+  "buildId": "VbZqRdT_p_sOX4wJkYz5C",
+  "timing": {
+    "clicked": 213.70000000298023,
+    "playable": 13389.5
+  },
+  "resources": [
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-1-lod0.glb",
+      "start": 6851.30000000447,
+      "bytes": 18452
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-1-lod1.glb",
+      "start": 6851.5,
+      "bytes": 9904
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-2-lod0.glb",
+      "start": 6851.60000000149,
+      "bytes": 18432
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-2-lod1.glb",
+      "start": 6851.70000000298,
+      "bytes": 9908
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-3-lod0.glb",
+      "start": 6851.70000000298,
+      "bytes": 18324
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-3-lod1.glb",
+      "start": 6851.80000000447,
+      "bytes": 9892
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-4-lod0.glb",
+      "start": 6851.89999999851,
+      "bytes": 18412
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-4-lod1.glb",
+      "start": 6852,
+      "bytes": 9912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/manifest.json",
+      "start": 17714.60000000149,
+      "bytes": 151306
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-1-lod1.glb",
+      "start": 17715.10000000149,
+      "bytes": 9904
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-arching-lod0.glb",
+      "start": 17842.89999999851,
+      "bytes": 108124
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-spreading-crown-lod1.glb",
+      "start": 17973.60000000149,
+      "bytes": 644972
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+      "start": 18009.89999999851,
+      "bytes": 4769288
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+      "start": 18010.10000000149,
+      "bytes": 2820970
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+      "start": 18010.20000000298,
+      "bytes": 3978654
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+      "start": 18085.30000000447,
+      "bytes": 4894632
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+      "start": 18085.5,
+      "bytes": 851984
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+      "start": 18085.5,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/rock-boulder-3-lod1.glb",
+      "start": 18233.5,
+      "bytes": 9892
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-fern-lod1.glb",
+      "start": 18263.60000000149,
+      "bytes": 10536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-bush-lod1.glb",
+      "start": 19903.39999999851,
+      "bytes": 10136
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-log-moss-lod0.glb",
+      "start": 19973.80000000447,
+      "bytes": 23608
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-arching-lod1.glb",
+      "start": 20608.30000000447,
+      "bytes": 21256
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-umbrella-crown-lod1.glb",
+      "start": 20638,
+      "bytes": 655980
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-fallen-log-lod1.glb",
+      "start": 21424.60000000149,
+      "bytes": 8876
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-grass-lod1.glb",
+      "start": 21429.70000000298,
+      "bytes": 3180
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+      "start": 21430.5,
+      "bytes": 2820970
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-atlas-74c578aa78f0609e.ktx2",
+      "start": 21430.5,
+      "bytes": 4769288
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-atlas-7d422c6751a2d566.ktx2",
+      "start": 21430.60000000149,
+      "bytes": 3978654
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-broadleaf-lod0.glb",
+      "start": 21518,
+      "bytes": 67900
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-clump-lod1.glb",
+      "start": 21535.60000000149,
+      "bytes": 6560768
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-fallen-log-lod1.glb",
+      "start": 21571,
+      "bytes": 8876
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/prop-grass-lod1.glb",
+      "start": 21608.10000000149,
+      "bytes": 3180
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-broadleaf-lod1.glb",
+      "start": 21630.70000000298,
+      "bytes": 24708
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod0.glb",
+      "start": 21712.5,
+      "bytes": 1880848
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+      "start": 21775.39999999851,
+      "bytes": 4894632
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+      "start": 21775.60000000149,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+      "start": 21775.80000000447,
+      "bytes": 851984
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-umbrella-crown-lod0.glb",
+      "start": 33993,
+      "bytes": 2587884
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-log-moss-lod1.glb",
+      "start": 34145,
+      "bytes": 8808
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-arching-lod0.glb",
+      "start": 34228.10000000149,
+      "bytes": 7451736
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-river-lod0.glb",
+      "start": 34229.30000000447,
+      "bytes": 16012
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod1.glb",
+      "start": 35201.89999999851,
+      "bytes": 520912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-river-lod1.glb",
+      "start": 35218.60000000149,
+      "bytes": 6452
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-sword-lod0.glb",
+      "start": 35286,
+      "bytes": 142696
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-sword-lod1.glb",
+      "start": 35329.10000000149,
+      "bytes": 26424
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod0.glb",
+      "start": 35364.60000000149,
+      "bytes": 102172
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod1.glb",
+      "start": 35402.5,
+      "bytes": 34252
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-boulder-lod0.glb",
+      "start": 35442.20000000298,
+      "bytes": 16256
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-boulder-lod1.glb",
+      "start": 35483.20000000298,
+      "bytes": 6516
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-arching-lod0.glb",
+      "start": 35517.60000000149,
+      "bytes": 108124
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-arching-lod1.glb",
+      "start": 35554.30000000447,
+      "bytes": 21256
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-buttress-fluted-lod0.glb",
+      "start": 35598.20000000298,
+      "bytes": 2097312
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-broadleaf-lod0.glb",
+      "start": 35902.5,
+      "bytes": 67900
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-buttress-fluted-lod1.glb",
+      "start": 36051.89999999851,
+      "bytes": 580900
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-broadleaf-lod1.glb",
+      "start": 36099.30000000447,
+      "bytes": 24708
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-forked-lod1.glb",
+      "start": 36128.39999999851,
+      "bytes": 547708
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod0.glb",
+      "start": 36157.89999999851,
+      "bytes": 1880848
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-leaning-riverside-lod1.glb",
+      "start": 36183,
+      "bytes": 575964
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+      "start": 36211.39999999851,
+      "bytes": 4894632
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+      "start": 36211.60000000149,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+      "start": 36211.70000000298,
+      "bytes": 851984
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-arching-lod1.glb",
+      "start": 36249,
+      "bytes": 6464680
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod1.glb",
+      "start": 36662,
+      "bytes": 520912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-slate-lod0.glb",
+      "start": 36710.89999999851,
+      "bytes": 16596
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod1.glb",
+      "start": 37089.80000000447,
+      "bytes": 520912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-slate-lod1.glb",
+      "start": 37118.10000000149,
+      "bytes": 6564
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-buttress-emergent-lod1.glb",
+      "start": 37138.60000000149,
+      "bytes": 624764
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-boulder-lod0.glb",
+      "start": 37200.70000000298,
+      "bytes": 16272
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-buttress-emergent-lod0.glb",
+      "start": 37227.30000000447,
+      "bytes": 2269448
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-boulder-lod1.glb",
+      "start": 37253.10000000149,
+      "bytes": 6532
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-leaning-riverside-lod0.glb",
+      "start": 37310.5,
+      "bytes": 2103580
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-round-lod0.glb",
+      "start": 37375.20000000298,
+      "bytes": 82260
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-forked-lod0.glb",
+      "start": 37450.39999999851,
+      "bytes": 1996156
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-round-lod1.glb",
+      "start": 37451.5,
+      "bytes": 16240
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod0.glb",
+      "start": 37518.80000000447,
+      "bytes": 1880848
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-bamboo-lod0.glb",
+      "start": 37519.89999999851,
+      "bytes": 48616
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-buttress-fluted-impostor.glb",
+      "start": 37588.30000000447,
+      "bytes": 1084256
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-bamboo-lod1.glb",
+      "start": 37589.20000000298,
+      "bytes": 18184
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod0.glb",
+      "start": 37625.30000000447,
+      "bytes": 16536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod1.glb",
+      "start": 37652.60000000149,
+      "bytes": 6560
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-needle-lod0.glb",
+      "start": 37683.20000000298,
+      "bytes": 123860
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-impostor.glb",
+      "start": 37698.20000000298,
+      "bytes": 833912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-needle-lod1.glb",
+      "start": 37789.30000000447,
+      "bytes": 41504
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-forked-impostor.glb",
+      "start": 38803,
+      "bytes": 1086064
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-bamboo-lod0.glb",
+      "start": 38825.30000000447,
+      "bytes": 48616
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+      "start": 38882.10000000149,
+      "bytes": 4894632
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+      "start": 38882.20000000298,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+      "start": 38882.30000000447,
+      "bytes": 851984
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-bamboo-lod1.glb",
+      "start": 39015.80000000447,
+      "bytes": 18184
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-log-fungi-lod0.glb",
+      "start": 39068.39999999851,
+      "bytes": 22996
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-buttress-emergent-impostor.glb",
+      "start": 39079.70000000298,
+      "bytes": 891760
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-log-fungi-lod1.glb",
+      "start": 39115.89999999851,
+      "bytes": 8452
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-boulder-lod0.glb",
+      "start": 39138.80000000447,
+      "bytes": 16256
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-boulder-lod1.glb",
+      "start": 39186.30000000447,
+      "bytes": 6516
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-spreading-crown-impostor.glb",
+      "start": 39194.30000000447,
+      "bytes": 560728
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod0.glb",
+      "start": 39211.80000000447,
+      "bytes": 102172
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod1.glb",
+      "start": 39240.5,
+      "bytes": 34252
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-round-lod0.glb",
+      "start": 39268.10000000149,
+      "bytes": 82260
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-leaning-riverside-impostor.glb",
+      "start": 39288.89999999851,
+      "bytes": 959720
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-round-lod1.glb",
+      "start": 39298.60000000149,
+      "bytes": 16240
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod0.glb",
+      "start": 39340.5,
+      "bytes": 16536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod1.glb",
+      "start": 39376.89999999851,
+      "bytes": 6560
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-umbrella-crown-impostor.glb",
+      "start": 39400.60000000149,
+      "bytes": 721216
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod0.glb",
+      "start": 39409.5,
+      "bytes": 102172
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod1.glb",
+      "start": 39443.70000000298,
+      "bytes": 34252
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-round-lod0.glb",
+      "start": 39476.5,
+      "bytes": 82260
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-round-lod1.glb",
+      "start": 39509.80000000447,
+      "bytes": 16240
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-arching-impostor.glb",
+      "start": 39511,
+      "bytes": 431720
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod0.glb",
+      "start": 40669,
+      "bytes": 16536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod1.glb",
+      "start": 40696.60000000149,
+      "bytes": 6560
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-needle-lod0.glb",
+      "start": 40718.80000000447,
+      "bytes": 123860
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-needle-lod1.glb",
+      "start": 40736.60000000149,
+      "bytes": 41504
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-clump-impostor.glb",
+      "start": 40737.30000000447,
+      "bytes": 733836
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-sword-lod0.glb",
+      "start": 40748.70000000298,
+      "bytes": 142696
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-fern-sword-lod1.glb",
+      "start": 40784.70000000298,
+      "bytes": 26424
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-river-lod0.glb",
+      "start": 40810.5,
+      "bytes": 16020
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-spreading-crown-lod0.glb",
+      "start": 40828,
+      "bytes": 2452112
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-river-lod1.glb",
+      "start": 40829,
+      "bytes": 6464
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-grass-meadow-lod0.glb",
+      "start": 40866.10000000149,
+      "bytes": 49928
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-grass-meadow-lod1.glb",
+      "start": 40946.5,
+      "bytes": 12956
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod0.glb",
+      "start": 43044.30000000447,
+      "bytes": 102172
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod1.glb",
+      "start": 43091.20000000298,
+      "bytes": 34252
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-d89702ff8fbce3c8.ktx2",
+      "start": 43105.20000000298,
+      "bytes": 4894632
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-a4bf881f3ca6989c.ktx2",
+      "start": 43105.30000000447,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-shared-4647bcc174d32efd.ktx2",
+      "start": 43105.39999999851,
+      "bytes": 851984
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-river-lod0.glb",
+      "start": 43128.89999999851,
+      "bytes": 16020
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-river-lod1.glb",
+      "start": 43189.10000000149,
+      "bytes": 6464
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod0.glb",
+      "start": 49391,
+      "bytes": 16536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-bamboo-clump-lod0.glb",
+      "start": 49392.89999999851,
+      "bytes": 7639444
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod1.glb",
+      "start": 49441.30000000447,
+      "bytes": 6560
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod0.glb",
+      "start": 49485.30000000447,
+      "bytes": 102172
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod1.glb",
+      "start": 49505.30000000447,
+      "bytes": 34252
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-spreading-crown-lod0.glb",
+      "start": 54273.39999999851,
+      "bytes": 2452112
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-spreading-crown-lod1.glb",
+      "start": 54327.30000000447,
+      "bytes": 644972
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod0.glb",
+      "start": 54349.69999999553,
+      "bytes": 16536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod1.glb",
+      "start": 54962.50000000745,
+      "bytes": 6560
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod0.glb",
+      "start": 54966.00000000745,
+      "bytes": 102172
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-prop-bush-wildflower-lod1.glb",
+      "start": 54975.69999999553,
+      "bytes": 34252
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-river-lod0.glb",
+      "start": 54983.19999999553,
+      "bytes": 16020
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-river-lod1.glb",
+      "start": 54986.50000000745,
+      "bytes": 6464
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod0.glb",
+      "start": 59504.60000000149,
+      "bytes": 16536
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-slender-upright-lod1.glb",
+      "start": 59507.10000000149,
+      "bytes": 520912
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-rock-moss-slate-lod1.glb",
+      "start": 59725.60000000149,
+      "bytes": 6560
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-umbrella-crown-lod0.glb",
+      "start": 59896.80000000447,
+      "bytes": 2587884
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-umbrella-crown-lod1.glb",
+      "start": 59935.39999999851,
+      "bytes": 655980
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-leaning-riverside-lod0.glb",
+      "start": 59959.39999999851,
+      "bytes": 2103580
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-leaning-riverside-lod1.glb",
+      "start": 59991.69999999553,
+      "bytes": 575964
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-palm-coconut-lod0.glb",
+      "start": 64833.00000000745,
+      "bytes": 218928
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-mature-lod1.glb",
+      "start": 64834.50000000745,
+      "bytes": 81820
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-palm-coconut-lod1.glb",
+      "start": 64866.00000000745,
+      "bytes": 42628
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2",
+      "start": 64867.10000000149,
+      "bytes": 3324759
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2",
+      "start": 64867.30000000447,
+      "bytes": 5162281
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2",
+      "start": 64867.50000000745,
+      "bytes": 714799
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-palm-leaning-lod0.glb",
+      "start": 64911.50000000745,
+      "bytes": 217512
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-palm-leaning-lod1.glb",
+      "start": 64951.39999999851,
+      "bytes": 42372
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-palm-shore-lod0.glb",
+      "start": 64958.10000000149,
+      "bytes": 221444
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-palm-shore-lod1.glb",
+      "start": 64968.30000000447,
+      "bytes": 43304
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-young-impostor.glb",
+      "start": 65456.80000000447,
+      "bytes": 807944
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-mature-impostor.glb",
+      "start": 65602.50000000745,
+      "bytes": 610072
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-wind-impostor.glb",
+      "start": 65684.89999999851,
+      "bytes": 710896
+    },
+    {
+      "url": "http://127.0.0.1:4215/world/lib/hr-tree-casuarina-wind-lod1.glb",
+      "start": 65754.69999999553,
+      "bytes": 82440
+    }
+  ]
+}

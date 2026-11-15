@@ -1,0 +1,13 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:27:12.647Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/vehicle-budget.test.ts:36 count": 7452,
+    "tests/unit/world/vehicle-budget.test.ts:74 after": 478373
+  },
+  "delta": {
+    "tests/unit/world/vehicle-budget.test.ts:36 count": null,
+    "tests/unit/world/vehicle-budget.test.ts:74 after": null
+  }
+}

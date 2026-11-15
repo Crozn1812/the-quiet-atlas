@@ -1,0 +1,17 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:25:40.515Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/detailed-props.test.ts:109 triangles": 192,
+    "tests/unit/world/detailed-props.test.ts:111 buffer.byteLength": 5864,
+    "tests/unit/world/detailed-props.test.ts:149 triangles": 1908,
+    "tests/unit/world/detailed-props.test.ts:268 triangles": 12848
+  },
+  "delta": {
+    "tests/unit/world/detailed-props.test.ts:109 triangles": null,
+    "tests/unit/world/detailed-props.test.ts:111 buffer.byteLength": null,
+    "tests/unit/world/detailed-props.test.ts:149 triangles": null,
+    "tests/unit/world/detailed-props.test.ts:268 triangles": null
+  }
+}

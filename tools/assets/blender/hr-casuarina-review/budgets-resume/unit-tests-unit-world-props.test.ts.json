@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:35.535Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/props.test.ts:26 triangles(geometry)": 352
+  },
+  "delta": {
+    "tests/unit/world/props.test.ts:26 triangles(geometry)": null
+  }
+}

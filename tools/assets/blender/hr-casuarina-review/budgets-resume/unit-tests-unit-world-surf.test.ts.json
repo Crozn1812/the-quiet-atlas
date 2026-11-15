@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:52.672Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/surf.test.ts:72 strip.geometry.index!.count / 3": 5740
+  },
+  "delta": {
+    "tests/unit/world/surf.test.ts:72 strip.geometry.index!.count / 3": null
+  }
+}

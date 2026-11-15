@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:28.880Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/workshop-dressing.test.ts:40 detail": 5686
+  },
+  "delta": {
+    "tests/unit/world/zones/workshop-dressing.test.ts:40 detail": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:27:03.104Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/milestones.test.ts:39 meshes.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute(\"position\").count) / 3, 0)": 2233
+  },
+  "delta": {
+    "tests/unit/world/zones/milestones.test.ts:39 meshes.reduce((sum, mesh) => sum + (mesh.geometry.index?.count ?? mesh.geometry.getAttribute(\"position\").count) / 3, 0)": null
+  }
+}

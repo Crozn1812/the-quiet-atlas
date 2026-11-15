@@ -6,6 +6,7 @@ import { chooseHrTrees, hrLeafTint, hrTreeLod, treeRandom, type HrLandscapeTreeI
 import { createHrUnderstorey } from "./hr-understorey";
 import { usesSoftwareRasterizer } from "./hr-capabilities";
 import { foliageBiomeAt } from "./scatter";
+import { coastalTreeAt } from "./hr-coastal";
 
 const clocks = new WeakMap<Scene, Vector2>();
 const cadence = new WeakMap<Scene, { last: number; slowFrames: number; constrained: boolean }>();
@@ -136,7 +137,22 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       const biome = foliageBiomeAt(s.x, s.z), choice = treeRandom(s.x, s.z, 83);
       s.id = options.canopyOnly || biome === "forest-dawn" ? ids[i]!
         : biome === "hill" ? (["hr-tree-spreading-crown", "hr-tree-umbrella-crown", "hr-tree-slender-forked"] as const)[Math.floor(choice * 3)]!
-        : (["hr-coast-casuarina", "hr-coast-casuarina-wind", "hr-coast-acacia"] as const)[Math.floor(choice * 3)]!;
+        : coastalTreeAt(s.x, s.z);
+      if (biome === "coast-dusk" && !options.canopyOnly) {
+        s.source.geometry.computeBoundingBox();
+        const axes = new Vector3().setFromMatrixScale(s.matrix);
+        const height = s.source.geometry.boundingBox!.getSize(new Vector3()).y * axes.y;
+        if (height < 4) s.id = "hr-coast-acacia";
+        else if (s.id.includes("casuarina")) {
+          // Models are authored at 8.5 / 14.2 / 12.7 m. Do not stretch the
+          // metre-scale tree to a legacy spherical crown's instance envelope.
+          const scale = 0.96 + treeRandom(s.x, s.z, 89) * 0.04;
+          s.matrix.scale(new Vector3(scale / axes.x, scale / axes.y, scale / axes.z));
+          s.bounds.center.set(0, 7, 0).applyMatrix4(s.matrix).applyMatrix4(s.source.matrixWorld);
+          s.bounds.radius = 9;
+          s.tint.setRGB(1.08, 1.08, 1.08);
+        }
+      }
       registry.set(`${namespace}:${s.x}:${s.z}`, { x: s.x, z: s.z, id: s.id });
     });
   }
@@ -158,6 +174,12 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       if (id.startsWith("hr-coast-")) {
         const scale = size.y / old.y, spread = id.endsWith("acacia") ? 1.15 : 1;
         fit.makeScale(Math.min(size.x / old.x, scale * spread), scale, Math.min(size.z / old.z, scale * spread));
+      }
+      if (id.startsWith("hr-tree-casuarina-")) {
+        // Keep the authored narrow conical proportions. Normal-size stands
+        // retain metre-scale trees; tiny legacy shrubs remain low companions.
+        const scale = size.y < 3 ? size.y / old.y : 1;
+        fit.makeScale(scale, scale, scale);
       }
       if (!options.canopyOnly && (id.includes("dead") || id.includes("bamboo"))) {
         const scale = size.y / old.y;

@@ -1,0 +1,302 @@
+{
+  "buildId": "VbZqRdT_p_sOX4wJkYz5C",
+  "sourceHashParity": true,
+  "addedAssetBytes": 12004627,
+  "manifestByteDelta": 12863,
+  "addedPublicBytes": 12017490,
+  "deferred": true,
+  "firstPlayableMs": 13175.79999999702,
+  "casuarinaBytesBeforePlay": 0,
+  "firstCasuarinaStartMs": 64834.50000000745,
+  "firstPlayableTimestamp": 13389.5,
+  "assets": [
+    {
+      "id": "hr-tree-casuarina-young",
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 10040,
+          "draws": 2,
+          "bytes": 124196
+        },
+        {
+          "level": 1,
+          "triangles": 4700,
+          "draws": 2,
+          "bytes": 64848
+        },
+        {
+          "level": "impostor",
+          "triangles": 2,
+          "draws": 1,
+          "bytes": 807944
+        }
+      ]
+    },
+    {
+      "id": "hr-tree-casuarina-mature",
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 12904,
+          "draws": 2,
+          "bytes": 159636
+        },
+        {
+          "level": 1,
+          "triangles": 6004,
+          "draws": 2,
+          "bytes": 81820
+        },
+        {
+          "level": "impostor",
+          "triangles": 2,
+          "draws": 1,
+          "bytes": 610072
+        }
+      ]
+    },
+    {
+      "id": "hr-tree-casuarina-wind",
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 12904,
+          "draws": 2,
+          "bytes": 160936
+        },
+        {
+          "level": 1,
+          "triangles": 6004,
+          "draws": 2,
+          "bytes": 82440
+        },
+        {
+          "level": "impostor",
+          "triangles": 2,
+          "draws": 1,
+          "bytes": 710896
+        }
+      ]
+    }
+  ],
+  "high": [
+    {
+      "zone": "quiet-shore",
+      "pose": {
+        "position": [
+          33.33794021606445,
+          7.467573761940002,
+          -483.5545654296875
+        ],
+        "target": [
+          21.337940216064453,
+          2.9675737619400024,
+          -496.5545654296875
+        ]
+      },
+      "quality": "high",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 100.27081092761416,
+      "calls": 212,
+      "triangles": 4946626,
+      "cpuMsPerSecond": 495.96076082167815
+    },
+    {
+      "zone": "last-postcard",
+      "pose": {
+        "position": [
+          19.94136953353882,
+          7.187365174293518,
+          -558.9993896484375
+        ],
+        "target": [
+          7.941369533538818,
+          2.687365174293518,
+          -571.9993896484375
+        ]
+      },
+      "quality": "high",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 100.00127746138476,
+      "calls": 115,
+      "triangles": 3573652,
+      "cpuMsPerSecond": 468.88463245817206
+    }
+  ],
+  "low": [
+    {
+      "zone": "quiet-shore",
+      "pose": {
+        "position": [
+          33.33794021606445,
+          7.467573761940002,
+          -483.5545654296875
+        ],
+        "target": [
+          21.337940216064453,
+          2.9675737619400024,
+          -496.5545654296875
+        ]
+      },
+      "quality": "low",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 94.01632794724229,
+      "calls": 89,
+      "triangles": 291977,
+      "cpuMsPerSecond": 400.66097483291855
+    },
+    {
+      "zone": "last-postcard",
+      "pose": {
+        "position": [
+          19.94136953353882,
+          7.187365174293518,
+          -558.9993896484375
+        ],
+        "target": [
+          7.941369533538818,
+          2.687365174293518,
+          -571.9993896484375
+        ]
+      },
+      "quality": "low",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "width": 1600,
+      "height": 900,
+      "focused": true,
+      "visible": "visible",
+      "fps": 94.66549925857973,
+      "calls": 45,
+      "triangles": 208111,
+      "cpuMsPerSecond": 344.4296343752117
+    }
+  ],
+  "visual": [
+    {
+      "zone": "quiet-shore",
+      "sameCamera": true,
+      "luma": 0.5048401222307105,
+      "nonBlack": true
+    },
+    {
+      "zone": "last-postcard",
+      "sameCamera": true,
+      "luma": 0.4471917086834734,
+      "nonBlack": true
+    }
+  ],
+  "abba": [
+    {
+      "label": "before-abba1",
+      "samples": [
+        {
+          "zone": "quiet-shore",
+          "fps": 100.11058122887637,
+          "cpuMsPerSecond": 317.1553168710657,
+          "calls": 209,
+          "triangles": 4935196
+        },
+        {
+          "zone": "last-postcard",
+          "fps": 100.06587170559048,
+          "cpuMsPerSecond": 303.5830772433381,
+          "calls": 120,
+          "triangles": 3578208
+        }
+      ]
+    },
+    {
+      "label": "after-abba1",
+      "samples": [
+        {
+          "zone": "quiet-shore",
+          "fps": 100.11668979103634,
+          "cpuMsPerSecond": 310.96203961968484,
+          "calls": 211,
+          "triangles": 4931258
+        },
+        {
+          "zone": "last-postcard",
+          "fps": 100.07477698958873,
+          "cpuMsPerSecond": 291.454431388435,
+          "calls": 115,
+          "triangles": 3573652
+        }
+      ]
+    },
+    {
+      "label": "after-abba2",
+      "samples": [
+        {
+          "zone": "quiet-shore",
+          "fps": 100.01798726671989,
+          "cpuMsPerSecond": 320.5738197626278,
+          "calls": 213,
+          "triangles": 4955266
+        },
+        {
+          "zone": "last-postcard",
+          "fps": 100.1276527843129,
+          "cpuMsPerSecond": 291.53322961511645,
+          "calls": 115,
+          "triangles": 3573652
+        }
+      ]
+    },
+    {
+      "label": "before-abba2",
+      "samples": [
+        {
+          "zone": "quiet-shore",
+          "fps": 100.11417403325348,
+          "cpuMsPerSecond": 316.76284208621956,
+          "calls": 209,
+          "triangles": 4935196
+        },
+        {
+          "zone": "last-postcard",
+          "fps": 100.13112789556645,
+          "cpuMsPerSecond": 295.8366195098576,
+          "calls": 120,
+          "triangles": 3578208
+        }
+      ]
+    }
+  ],
+  "abbaSummary": [
+    {
+      "zone": "quiet-shore",
+      "beforeCpuMsPerSecond": 316.9590794786426,
+      "afterCpuMsPerSecond": 315.7679296911563,
+      "deltaPercent": -0.3758055422944717
+    },
+    {
+      "zone": "last-postcard",
+      "beforeCpuMsPerSecond": 299.70984837659785,
+      "afterCpuMsPerSecond": 291.49383050177573,
+      "deltaPercent": -2.7413239569286207
+    }
+  ],
+  "gates": {
+    "world43": true,
+    "unit": true,
+    "assets": true,
+    "licenses": true,
+    "high60": true,
+    "deferredAfterPlay": true,
+    "cameraAndNonBlack": true
+  }
+}

@@ -21,17 +21,19 @@ it("leaves all forest/hill landmarks alone and feathers into both coastal landma
   });
 });
 
-it("keeps three distinct faceted wind-pruned silhouettes under budget with finite bounds", () => {
+it("keeps three distinct narrow Casuarina Low silhouettes with finite rooted bounds", () => {
   const geometries = [0, 1, 2].map(createCoastR1Tree);
   try {
     expect(new Set(geometries.map(g => Array.from(g.getAttribute("position").array).join(","))).size).toBe(3);
     for (const g of geometries) {
       expect(g.index).toBeNull();
-      expect(g.getAttribute("position").count / 3).toBe(280);
+      expect(g.getAttribute("position").count / 3).toBeLessThan(1200);
       // Slanted cylinder end caps sink a few centimetres into the ground, as in First Light.
       expect(g.boundingBox!.min.y).toBeGreaterThan(-0.1);
       expect(g.boundingBox!.min.y).toBeLessThanOrEqual(0);
-      expect(g.boundingBox!.max.y).toBeLessThan(8);
+      expect(g.boundingBox!.max.y).toBeGreaterThanOrEqual(8);
+      expect(g.boundingBox!.max.y).toBeLessThanOrEqual(15);
+      expect(g.boundingBox!.getSize(new Vector3()).x).toBeLessThan(g.boundingBox!.max.y * 0.6);
       expect(Array.from(g.getAttribute("normal").array).every(Number.isFinite)).toBe(true);
     }
   } finally { geometries.forEach(g => g.dispose()); }

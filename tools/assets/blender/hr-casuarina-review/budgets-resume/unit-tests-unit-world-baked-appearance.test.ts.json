@@ -1,0 +1,11 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:17.100Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/baked-appearance.test.ts:210 buffer.byteLength": 147492
+  },
+  "delta": {
+    "tests/unit/world/baked-appearance.test.ts:210 buffer.byteLength": null
+  }
+}

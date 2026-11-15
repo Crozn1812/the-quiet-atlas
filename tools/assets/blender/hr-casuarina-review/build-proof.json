@@ -1,0 +1,24 @@
+{
+  "buildId": "VbZqRdT_p_sOX4wJkYz5C",
+  "sourceHashParity": true,
+  "mismatches": [],
+  "hashedFiles": 278,
+  "buildCount": 1,
+  "export": "D:\\tqa-worktrees\\W-B\\tools\\styleframes\\.vite\\test-results\\hr-casuarina\\build-workspace/out",
+  "exportAssetHashParity": true,
+  "exportAssetHashes": {
+    "public/world/lib/manifest.json": "4ed1e248d7a45866066eef9b7b703c2a8d627a5a4d753d0453d2cdde2fc7d3f0",
+    "public/world/lib/hr-tree-casuarina-young-lod0.glb": "4735c45235a1848807622ab21ac2ffd5cfafab2347eeff8cf280aa1adb4710dd",
+    "public/world/lib/hr-tree-casuarina-shared-a4bf881f3ca6989c.ktx2": "a4bf881f3ca6989cdc29fe4b50cb776ebf54e9f9786c64057d5dad298f3de371",
+    "public/world/lib/hr-tree-casuarina-shared-22a535ffe5b0576a.ktx2": "22a535ffe5b0576a7938e15a3c5942b49244b51b59086f0afd0cf53792b53555",
+    "public/world/lib/hr-tree-casuarina-shared-0e4d39fcc5f4b75e.ktx2": "0e4d39fcc5f4b75e339ea260f66e36435b790de34b4ed9bef13e061f4b4644be",
+    "public/world/lib/hr-tree-casuarina-young-lod1.glb": "e5cf432013a4f36e273d9b036901ea8535ba308effc603416eaf15a55a95b4f3",
+    "public/world/lib/hr-tree-casuarina-young-impostor.glb": "ef67b4e93a734aa6b37562919030a7ab39c8133ea2a5e1d8d076482d85604ef6",
+    "public/world/lib/hr-tree-casuarina-mature-lod0.glb": "7d0597e2b3f0385fb82841d10f5d767bc32cf9d258634a8dec516379842d6c2a",
+    "public/world/lib/hr-tree-casuarina-mature-lod1.glb": "27233ec29d3f4be1ea9dd9b33f54efbf14c5f6e6df08cfa19230f7f140025afe",
+    "public/world/lib/hr-tree-casuarina-mature-impostor.glb": "11cb568ebd13b80abe86738cbca3cd00eb8572ab0cc63a0704c14e0bdb6711ef",
+    "public/world/lib/hr-tree-casuarina-wind-lod0.glb": "f6773425294e5a295d2a56b6a28d272b548b704cf78f4516e7540135945c5763",
+    "public/world/lib/hr-tree-casuarina-wind-lod1.glb": "0a08ab6b4a39590c8ee61229fe4e4c07507f0cb1fb362244ae3c3fd970a14d78",
+    "public/world/lib/hr-tree-casuarina-wind-impostor.glb": "5121a6c8add4de2ed5e261da13dfc82570e1abf2b8f7b5b386736200c019d249"
+  }
+}

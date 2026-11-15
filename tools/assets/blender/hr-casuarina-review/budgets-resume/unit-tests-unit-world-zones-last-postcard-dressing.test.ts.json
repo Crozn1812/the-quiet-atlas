@@ -1,0 +1,15 @@
+{
+  "mode": "report-only",
+  "measuredAt": "2026-11-15T03:26:37.468Z",
+  "previousAt": null,
+  "metrics": {
+    "tests/unit/world/zones/last-postcard-dressing.test.ts:37 calls": 8,
+    "tests/unit/world/zones/last-postcard-dressing.test.ts:38 triangles": 2663,
+    "tests/unit/world/zones/last-postcard-dressing.test.ts:47 base + detailed": 3427
+  },
+  "delta": {
+    "tests/unit/world/zones/last-postcard-dressing.test.ts:37 calls": null,
+    "tests/unit/world/zones/last-postcard-dressing.test.ts:38 triangles": null,
+    "tests/unit/world/zones/last-postcard-dressing.test.ts:47 base + detailed": null
+  }
+}
