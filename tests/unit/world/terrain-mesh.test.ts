@@ -175,7 +175,7 @@ describe("terrain tile mesh", () => {
       const position = mesh.geometry.getAttribute("position");
       const normal = mesh.geometry.getAttribute("normal");
       const indices = mesh.geometry.getIndex()!;
-      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["cc0Surface", "cliffSurface", "coastSurface", "color", "forestSurface", "hillSurface", "normal", "position"]);
+      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["cc0Surface", "cliffSurface", "coastSurface", "color", "forestSurface", "groundSurface", "hillSurface", "normal", "position"]);
       const forestSurface = mesh.geometry.getAttribute("forestSurface");
       const photoSurface = mesh.geometry.getAttribute("cc0Surface");
       const cliffSurface = mesh.geometry.getAttribute("cliffSurface");
@@ -229,9 +229,9 @@ describe("terrain tile mesh", () => {
                 const m = new Vector3().fromBufferAttribute(neighbor.geometry.getAttribute(attribute), b);
                 expect(n.distanceTo(m)).toBeLessThan(1e-3);
               }
-              for (let channel = 0; channel < 4; channel++) {
-                expect(mesh.geometry.getAttribute("cc0Surface").array[a * 4 + channel])
-                  .toBeCloseTo(neighbor.geometry.getAttribute("cc0Surface").array[b * 4 + channel]!, 4);
+              for (const mask of ["cc0Surface", "groundSurface"]) for (let channel = 0; channel < 4; channel++) {
+                expect(mesh.geometry.getAttribute(mask).array[a * 4 + channel])
+                  .toBeCloseTo(neighbor.geometry.getAttribute(mask).array[b * 4 + channel]!, 4);
               }
             }
           }

@@ -62,6 +62,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   const coastSurface = new Float32Array(stride ** 2);
   const hillSurface = new Float32Array(stride ** 2);
   const cc0Surface = new Float32Array(stride ** 2 * 4);
+  const groundSurface = new Float32Array(stride ** 2 * 4);
   const cliffSurface = new Float32Array(stride ** 2 * 2);
   const indices = new Uint16Array(cells ** 2 * 6);
   const tint = new Color();
@@ -104,6 +105,8 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const forest = forestAtmosphereWeight(path.t);
     const hill = hillR1Weight(path.t);
     const bankDistance = river.distance - riverWidthAt(river.t) / 2;
+    groundSurface.set([hill, (1 - smoothstep(1, 22, bankDistance)) * (1 - smoothstep(1, 9, aboveWater)),
+      aboveWater, groundDetail], vertex * 4);
     cliffSurface.set([Math.max(forest * 0.7, 1 - smoothstep(3, 20, bankDistance)),
       smoothstep(3.5, 5, path.distance) * smoothstep(0.1, 0.7, aboveWater)], vertex * 2);
     if (forest > 0) {
@@ -203,6 +206,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   geometry.setAttribute("coastSurface", new BufferAttribute(coastSurface, 1));
   geometry.setAttribute("hillSurface", new BufferAttribute(hillSurface, 1));
   geometry.setAttribute("cc0Surface", new BufferAttribute(cc0Surface, 4));
+  geometry.setAttribute("groundSurface", new BufferAttribute(groundSurface, 4));
   geometry.setAttribute("cliffSurface", new BufferAttribute(cliffSurface, 2));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingBox();

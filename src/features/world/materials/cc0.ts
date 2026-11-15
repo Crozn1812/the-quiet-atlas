@@ -4,6 +4,7 @@ import type { Quality } from "../terrain";
 import { COAST_SAND_Z } from "../layout/scale";
 import { cliffWeathering, weatherSpringCliff } from "./cliff";
 import { createTerrainCliffs } from "../terrain/cliffs";
+import { groundSurfaceShader } from "./ground";
 
 export type PhotoSurface = "terrain" | "rock" | "road" | "bark" | "ground";
 export const PHOTO_TILE_SIZE = { Low: 512, Balanced: 1024, High: 2048 } as const;
@@ -87,6 +88,7 @@ vec3 photoBump(float tile, vec3 n) {
 
 /** Two shared atlas samplers, real photo albedo/normal/roughness, no extra draw. */
 export function createPhotoMaterial(kind: PhotoSurface, original: Material, textures: readonly Texture[], size: number) {
+  const ground = kind === "terrain" && size !== 512;
   const source = original as Material & { color?: Color };
   const base = { color: source.color?.clone() ?? new Color(0xffffff), vertexColors: original.vertexColors, side: original.side };
   const material = size === 512
@@ -107,7 +109,8 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
     shader.uniforms.photoTileSize = { value: size };
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
       varying vec3 photoWorld; varying vec3 photoWorldNormal; varying vec4 photoMask;
-      ${kind === "terrain" ? "attribute vec4 cc0Surface; attribute vec2 cliffSurface; varying vec2 photoCliffMask;" : ""}`)
+      ${kind === "terrain" ? "attribute vec4 cc0Surface; attribute vec2 cliffSurface; varying vec2 photoCliffMask;" : ""}
+      ${ground ? "attribute vec4 groundSurface; varying vec4 photoGround;" : ""}`)
       .replace("#include <project_vertex>", `#include <project_vertex>
         vec4 photoPosition = vec4(transformed, 1.0);
         vec3 photoN = objectNormal;
@@ -118,7 +121,8 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
         photoWorld = (modelMatrix * photoPosition).xyz;
         photoWorldNormal = ${kind === "ground" ? "vec3(0.0, 1.0, 0.0)" : "normalize(mat3(modelMatrix) * photoN)"};
         photoMask = ${kind === "terrain" ? "cc0Surface" : kind === "ground" ? "vec4(groundVariant, 0.0, 0.0, 0.0)" : "vec4(0.0)"};
-        ${kind === "terrain" ? "photoCliffMask = cliffSurface;" : ""}`);
+        ${kind === "terrain" ? "photoCliffMask = cliffSurface;" : ""}
+        ${ground ? "photoGround = groundSurface;" : ""}`);
     const selection = kind === "terrain" ? `
       float baseTile = photoMask.x > 0.5 ? 0.0 : 1.0;
       float overlayTile = 5.0;
@@ -137,7 +141,7 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
       if (cliff > overlay) { overlay = cliff; overlayTile = 4.0; }
     ` : `float baseTile = ${kind === "road" ? "6.0" : kind === "bark" ? "7.0" : kind === "ground" ? "(photoMask.x > 1.5 ? 7.0 : 4.0)" : "4.0"};
       float overlayTile = baseTile; float overlay = 0.0;`;
-    shader.fragmentShader = shader.fragmentShader.replace("void main() {", `${fragment}\n${kind === "terrain" ? "varying vec2 photoCliffMask;" : ""}\n${kind === "terrain" && size !== 512 ? cliffWeathering : ""}\nvoid main() {`)
+    shader.fragmentShader = shader.fragmentShader.replace("void main() {", `${fragment}\n${kind === "terrain" ? "varying vec2 photoCliffMask;" : ""}\n${ground ? cliffWeathering + groundSurfaceShader : ""}\nvoid main() {`)
       .replace("#include <color_fragment>", `#include <color_fragment>
         // Ground variants select different silhouettes from padded attributes.
         // Their shared normal attribute can be zero on a valid log triangle.
@@ -146,7 +150,12 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
           ? "normalize(cross(dFdx(photoWorld), dFdy(photoWorld))) * (gl_FrontFacing ? 1.0 : -1.0)"
           : "normalize(photoWorldNormal)"};
         ${selection}
-        vec3 photoAlbedo = photoSample(photoColor, baseTile, photoN);
+        ${ground ? `
+        GroundPhoto gentleGround = GroundPhoto(vec3(0.0), vec3(0.5, 0.5, 1.0));
+        if (cliff < 0.999) gentleGround = groundSurface(photoN, sandWeight);
+        vec3 photoRelief = gentleGround.surface;
+        diffuseColor.rgb = gentleGround.color;
+        ` : `vec3 photoAlbedo = photoSample(photoColor, baseTile, photoN);
         vec3 photoRelief = photoSample(photoSurface, baseTile, photoN);
         ${kind === "terrain" ? `if (photoMask.x > 0.001 && photoMask.x < 0.999) {
           photoAlbedo = mix(photoSample(photoColor, 1.0, photoN), photoSample(photoColor, 0.0, photoN), photoMask.x);
@@ -159,27 +168,33 @@ export function createPhotoMaterial(kind: PhotoSurface, original: Material, text
         float region = sin(photoWorld.x * 0.031 + sin(photoWorld.z * 0.023)) * 0.035;
         // Source images are normalized around sRGB .68 (linear .42).
         // The existing palette stays the broad tint; real photos add hue and relief.
-        diffuseColor.rgb *= clamp(photoAlbedo / 0.42, vec3(0.55), vec3(1.6)) * (1.0 + region);
+        diffuseColor.rgb *= clamp(photoAlbedo / 0.42, vec3(0.55), vec3(1.6)) * (1.0 + region);`}
         ${kind === "terrain" && size !== 512 ? `
         vec4 terrainWeather = vec4(0.0);
         if (cliff > 0.001) {
           terrainWeather = cliffWeather(photoWorld, photoN, photoCliffMask.x);
+          photoRelief = mix(photoRelief, photoSample(photoSurface, 4.0, photoN), cliff);
           // Keep the photograph's mineral hue instead of multiplying it by beige grass pigment.
           vec3 stone = cliffPigment(photoSample(photoColor, 4.0, photoN) * 0.8, terrainWeather);
           diffuseColor.rgb = mix(diffuseColor.rgb, stone, cliff);
         }` : ""}`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
-        roughnessFactor = clamp(photoRelief.b, 0.72, 1.0);
-        ${kind === "terrain" && size !== 512 ? "roughnessFactor = max(0.6, roughnessFactor - terrainWeather.z * cliff * 0.12);" : ""}`)
+        roughnessFactor = clamp(photoRelief.b, ${ground ? "0.32" : "0.72"}, 1.0);
+        ${ground ? "roughnessFactor = mix(roughnessFactor, max(0.6, clamp(photoRelief.b, 0.72, 1.0) - terrainWeather.z * 0.12), cliff);" : ""}`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
         #ifndef PHOTO_LOW
         // Fetch each projection separately before combining world-space normals.
-        vec3 detailWorld = photoBump(baseTile, photoN);
-        if (overlay > 0.001) detailWorld = mix(detailWorld, photoBump(overlayTile, photoN), overlay);
+        ${ground ? `
+        vec2 groundNormal = gentleGround.surface.rg * 2.0 - 1.0;
+        vec3 detailWorld = vec3(groundNormal.x, 0.0, groundNormal.y) * 0.55;
+        detailWorld -= photoN * dot(detailWorld, photoN);
+        if (cliff > 0.001) detailWorld = mix(detailWorld, photoBump(4.0, photoN), cliff);
+        ` : `vec3 detailWorld = photoBump(baseTile, photoN);
+        if (overlay > 0.001) detailWorld = mix(detailWorld, photoBump(overlayTile, photoN), overlay);`}
         normal = normalize(normal + mat3(viewMatrix) * detailWorld * faceDirection);
         #endif`);
   };
-  material.customProgramCacheKey = () => `photo-pbr-v2:${kind}:${size}`;
+  material.customProgramCacheKey = () => `photo-pbr-v3:${kind}:${size}`;
   return material;
 }
 
