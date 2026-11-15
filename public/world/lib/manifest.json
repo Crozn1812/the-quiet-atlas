@@ -5016,6 +5016,701 @@
           "sharedTextures": []
         }
       ]
+    },
+    {
+      "id": "hr-setpiece-horizon",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/fine_grained_wood",
+        "https://polyhaven.com/a/ash_veneer",
+        "https://polyhaven.com/a/sapele_veneer",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/a/rust_coarse_01",
+        "https://polyhaven.com/a/dark_rock",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-fix-setpiece.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; postcard prints are crops of the project's own world captures; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts; hardware Balanced/High only; Low keeps the procedural solids",
+      "textureMaxDimension": 1024,
+      "pieces": [
+        {
+          "name": "viewer",
+          "triangles": 8136,
+          "draws": 2
+        },
+        {
+          "name": "turbine",
+          "triangles": 3856,
+          "draws": 2
+        },
+        {
+          "name": "rotor",
+          "triangles": 4524,
+          "draws": 1
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-horizon.glb",
+          "path": "/world/lib/hr-prop-setpiece-horizon.glb",
+          "bytes": 121608,
+          "sha256": "d3b925fd88985ea3639b679eebe44f5a69e7fe82dc64f4e574126d646425a8c6",
+          "triangles": 16516,
+          "materials": 3,
+          "textures": 4,
+          "drawCalls": 5,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-a3c54a80652090c2.ktx2",
+              "bytes": 674579,
+              "sha256": "a3c54a80652090c2ed508273f4fc3ae7881f49390be9fcd6a91c717a1e6d13b7"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-9d7ba419bb204a73.ktx2",
+              "bytes": 895431,
+              "sha256": "9d7ba419bb204a73d425ca83a9c6d7c19632d0036a1f06909bb90470954b6f97"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-62f3f6239075b3ea.ktx2",
+              "bytes": 468087,
+              "sha256": "62f3f6239075b3ea7db21e1427dd045aad2a6ca6996432d50fb1ce31c62e1fb9"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-horizon.glb",
+          "path": "/world/lib/hr-prop-setpiece-horizon.glb",
+          "bytes": 121608,
+          "sha256": "d3b925fd88985ea3639b679eebe44f5a69e7fe82dc64f4e574126d646425a8c6",
+          "triangles": 16516,
+          "materials": 3,
+          "textures": 4,
+          "drawCalls": 5,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-a3c54a80652090c2.ktx2",
+              "bytes": 674579,
+              "sha256": "a3c54a80652090c2ed508273f4fc3ae7881f49390be9fcd6a91c717a1e6d13b7"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-9d7ba419bb204a73.ktx2",
+              "bytes": 895431,
+              "sha256": "9d7ba419bb204a73d425ca83a9c6d7c19632d0036a1f06909bb90470954b6f97"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-62f3f6239075b3ea.ktx2",
+              "bytes": 468087,
+              "sha256": "62f3f6239075b3ea7db21e1427dd045aad2a6ca6996432d50fb1ce31c62e1fb9"
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
+    },
+    {
+      "id": "hr-setpiece-last-postcard",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/fine_grained_wood",
+        "https://polyhaven.com/a/ash_veneer",
+        "https://polyhaven.com/a/sapele_veneer",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/a/rust_coarse_01",
+        "https://polyhaven.com/a/dark_rock",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-fix-setpiece.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; postcard prints are crops of the project's own world captures; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts; hardware Balanced/High only; Low keeps the procedural solids",
+      "textureMaxDimension": 1024,
+      "pieces": [
+        {
+          "name": "mailbox",
+          "triangles": 5976,
+          "draws": 3
+        },
+        {
+          "name": "rack",
+          "triangles": 7168,
+          "draws": 3
+        },
+        {
+          "name": "lamp",
+          "triangles": 748,
+          "draws": 3
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-last-postcard.glb",
+          "path": "/world/lib/hr-prop-setpiece-last-postcard.glb",
+          "bytes": 146584,
+          "sha256": "e7c8970a990db20ab2f15bf75ae54461300b4128f3dcbfa975ca392fc8f8794b",
+          "triangles": 13892,
+          "materials": 5,
+          "textures": 11,
+          "drawCalls": 9,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-553162123ae447ba.ktx2",
+              "bytes": 146845,
+              "sha256": "553162123ae447ba01042e3e31af5790aeaca4806eb337a6bb96a9c65e15e3d3"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbedcb203cb4dfd1.ktx2",
+              "bytes": 150313,
+              "sha256": "bbedcb203cb4dfd1d3e5fb9e6fe425d43c460054330d9083492833cf47b6e961"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-564ddea7d3f48282.ktx2",
+              "bytes": 95817,
+              "sha256": "564ddea7d3f482825e9788bb75ca8133d77ce4453960192e4ae5274eb664d3f9"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-a3c54a80652090c2.ktx2",
+              "bytes": 674579,
+              "sha256": "a3c54a80652090c2ed508273f4fc3ae7881f49390be9fcd6a91c717a1e6d13b7"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-9d7ba419bb204a73.ktx2",
+              "bytes": 895431,
+              "sha256": "9d7ba419bb204a73d425ca83a9c6d7c19632d0036a1f06909bb90470954b6f97"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-62f3f6239075b3ea.ktx2",
+              "bytes": 468087,
+              "sha256": "62f3f6239075b3ea7db21e1427dd045aad2a6ca6996432d50fb1ce31c62e1fb9"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-76341a6550e76fb2.ktx2",
+              "bytes": 973122,
+              "sha256": "76341a6550e76fb2f2208f80a1a8699036266542236568f098a97299f77c2598"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-last-postcard.glb",
+          "path": "/world/lib/hr-prop-setpiece-last-postcard.glb",
+          "bytes": 146584,
+          "sha256": "e7c8970a990db20ab2f15bf75ae54461300b4128f3dcbfa975ca392fc8f8794b",
+          "triangles": 13892,
+          "materials": 5,
+          "textures": 11,
+          "drawCalls": 9,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-553162123ae447ba.ktx2",
+              "bytes": 146845,
+              "sha256": "553162123ae447ba01042e3e31af5790aeaca4806eb337a6bb96a9c65e15e3d3"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbedcb203cb4dfd1.ktx2",
+              "bytes": 150313,
+              "sha256": "bbedcb203cb4dfd1d3e5fb9e6fe425d43c460054330d9083492833cf47b6e961"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-564ddea7d3f48282.ktx2",
+              "bytes": 95817,
+              "sha256": "564ddea7d3f482825e9788bb75ca8133d77ce4453960192e4ae5274eb664d3f9"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-a3c54a80652090c2.ktx2",
+              "bytes": 674579,
+              "sha256": "a3c54a80652090c2ed508273f4fc3ae7881f49390be9fcd6a91c717a1e6d13b7"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-9d7ba419bb204a73.ktx2",
+              "bytes": 895431,
+              "sha256": "9d7ba419bb204a73d425ca83a9c6d7c19632d0036a1f06909bb90470954b6f97"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-62f3f6239075b3ea.ktx2",
+              "bytes": 468087,
+              "sha256": "62f3f6239075b3ea7db21e1427dd045aad2a6ca6996432d50fb1ce31c62e1fb9"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-76341a6550e76fb2.ktx2",
+              "bytes": 973122,
+              "sha256": "76341a6550e76fb2f2208f80a1a8699036266542236568f098a97299f77c2598"
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
+    },
+    {
+      "id": "hr-setpiece-quiet-shore",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/fine_grained_wood",
+        "https://polyhaven.com/a/ash_veneer",
+        "https://polyhaven.com/a/sapele_veneer",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/a/rust_coarse_01",
+        "https://polyhaven.com/a/dark_rock",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-fix-setpiece.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; postcard prints are crops of the project's own world captures; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts; hardware Balanced/High only; Low keeps the procedural solids",
+      "textureMaxDimension": 1024,
+      "pieces": [
+        {
+          "name": "piano",
+          "triangles": 11040,
+          "draws": 2
+        },
+        {
+          "name": "stool",
+          "triangles": 2064,
+          "draws": 2
+        },
+        {
+          "name": "guitar",
+          "triangles": 7536,
+          "draws": 3
+        },
+        {
+          "name": "bench",
+          "triangles": 2752,
+          "draws": 2
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-quiet-shore.glb",
+          "path": "/world/lib/hr-prop-setpiece-quiet-shore.glb",
+          "bytes": 250924,
+          "sha256": "0e2c9f4df0cb57c64c23208b30c90375ea80fa1a29c8b0f8511f2cc09ae807d8",
+          "triangles": 23392,
+          "materials": 5,
+          "textures": 8,
+          "drawCalls": 9,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-f5502542ab3de5b0.ktx2",
+              "bytes": 112070,
+              "sha256": "f5502542ab3de5b0fc7264c2633ee10274b0626128d728a0644e2b4b94ad7e04"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-8ea672b90d850e32.ktx2",
+              "bytes": 124732,
+              "sha256": "8ea672b90d850e32336bc53dd1cf08a5d1d0be30a56956d8174346285f299b76"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-8379d7a741a843c3.ktx2",
+              "bytes": 80793,
+              "sha256": "8379d7a741a843c31401d396b07356498b6d308ee1b80ff325b93c956256220f"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-b45abbbe76bff809.ktx2",
+              "bytes": 481536,
+              "sha256": "b45abbbe76bff809e27fe18ef3cf01b3aaae620184af76c5f1df34a8fccd3e9f"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-quiet-shore.glb",
+          "path": "/world/lib/hr-prop-setpiece-quiet-shore.glb",
+          "bytes": 250924,
+          "sha256": "0e2c9f4df0cb57c64c23208b30c90375ea80fa1a29c8b0f8511f2cc09ae807d8",
+          "triangles": 23392,
+          "materials": 5,
+          "textures": 8,
+          "drawCalls": 9,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-f5502542ab3de5b0.ktx2",
+              "bytes": 112070,
+              "sha256": "f5502542ab3de5b0fc7264c2633ee10274b0626128d728a0644e2b4b94ad7e04"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-8ea672b90d850e32.ktx2",
+              "bytes": 124732,
+              "sha256": "8ea672b90d850e32336bc53dd1cf08a5d1d0be30a56956d8174346285f299b76"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-8379d7a741a843c3.ktx2",
+              "bytes": 80793,
+              "sha256": "8379d7a741a843c31401d396b07356498b6d308ee1b80ff325b93c956256220f"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-b45abbbe76bff809.ktx2",
+              "bytes": 481536,
+              "sha256": "b45abbbe76bff809e27fe18ef3cf01b3aaae620184af76c5f1df34a8fccd3e9f"
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
+    },
+    {
+      "id": "hr-setpiece-signpost",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/fine_grained_wood",
+        "https://polyhaven.com/a/ash_veneer",
+        "https://polyhaven.com/a/sapele_veneer",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/a/rust_coarse_01",
+        "https://polyhaven.com/a/dark_rock",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-fix-setpiece.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; postcard prints are crops of the project's own world captures; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts; hardware Balanced/High only; Low keeps the procedural solids",
+      "textureMaxDimension": 1024,
+      "pieces": [
+        {
+          "name": "signpost",
+          "triangles": 1352,
+          "draws": 2
+        },
+        {
+          "name": "waymark",
+          "triangles": 496,
+          "draws": 2
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-signpost.glb",
+          "path": "/world/lib/hr-prop-setpiece-signpost.glb",
+          "bytes": 27116,
+          "sha256": "f33f6ad1f71171dd0bb7d8a4149f7778e0b776c91ed5b935a0fd9e3c3298bba3",
+          "triangles": 1848,
+          "materials": 2,
+          "textures": 4,
+          "drawCalls": 4,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-signpost.glb",
+          "path": "/world/lib/hr-prop-setpiece-signpost.glb",
+          "bytes": 27116,
+          "sha256": "f33f6ad1f71171dd0bb7d8a4149f7778e0b776c91ed5b935a0fd9e3c3298bba3",
+          "triangles": 1848,
+          "materials": 2,
+          "textures": 4,
+          "drawCalls": 4,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
+    },
+    {
+      "id": "hr-setpiece-workshop",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/fine_grained_wood",
+        "https://polyhaven.com/a/ash_veneer",
+        "https://polyhaven.com/a/sapele_veneer",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/a/rust_coarse_01",
+        "https://polyhaven.com/a/dark_rock",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-fix-setpiece.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; postcard prints are crops of the project's own world captures; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts; hardware Balanced/High only; Low keeps the procedural solids",
+      "textureMaxDimension": 1024,
+      "pieces": [
+        {
+          "name": "brazier",
+          "triangles": 11268,
+          "draws": 3
+        },
+        {
+          "name": "torch",
+          "triangles": 1048,
+          "draws": 3
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-workshop.glb",
+          "path": "/world/lib/hr-prop-setpiece-workshop.glb",
+          "bytes": 160228,
+          "sha256": "1d359ea24826291a272d37f77beb891955062198845272c3db6b36adf88d2c4e",
+          "triangles": 12316,
+          "materials": 4,
+          "textures": 10,
+          "drawCalls": 6,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-abfc760da926f7c4.ktx2",
+              "bytes": 136013,
+              "sha256": "abfc760da926f7c4b73a6d699890d63cf99c8a3d0246e24841e262a6fccc1e5b"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-82f30fd6b72e7ae0.ktx2",
+              "bytes": 262146,
+              "sha256": "82f30fd6b72e7ae024530e14313b54852548fb761c9195bea33b2f3b5094f7c5"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-553162123ae447ba.ktx2",
+              "bytes": 146845,
+              "sha256": "553162123ae447ba01042e3e31af5790aeaca4806eb337a6bb96a9c65e15e3d3"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbedcb203cb4dfd1.ktx2",
+              "bytes": 150313,
+              "sha256": "bbedcb203cb4dfd1d3e5fb9e6fe425d43c460054330d9083492833cf47b6e961"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-564ddea7d3f48282.ktx2",
+              "bytes": 95817,
+              "sha256": "564ddea7d3f482825e9788bb75ca8133d77ce4453960192e4ae5274eb664d3f9"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-336ab547a94d31b7.ktx2",
+              "bytes": 1174769,
+              "sha256": "336ab547a94d31b7a430ad49d0efba19796e6845624edc3acd6147cb9807e73d"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-955cbbe842cdccc4.ktx2",
+              "bytes": 858418,
+              "sha256": "955cbbe842cdccc443474cbabec125d10c66964cbbc1d79a9920bb7efff36c09"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-workshop.glb",
+          "path": "/world/lib/hr-prop-setpiece-workshop.glb",
+          "bytes": 160228,
+          "sha256": "1d359ea24826291a272d37f77beb891955062198845272c3db6b36adf88d2c4e",
+          "triangles": 12316,
+          "materials": 4,
+          "textures": 10,
+          "drawCalls": 6,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-abfc760da926f7c4.ktx2",
+              "bytes": 136013,
+              "sha256": "abfc760da926f7c4b73a6d699890d63cf99c8a3d0246e24841e262a6fccc1e5b"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-82f30fd6b72e7ae0.ktx2",
+              "bytes": 262146,
+              "sha256": "82f30fd6b72e7ae024530e14313b54852548fb761c9195bea33b2f3b5094f7c5"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-553162123ae447ba.ktx2",
+              "bytes": 146845,
+              "sha256": "553162123ae447ba01042e3e31af5790aeaca4806eb337a6bb96a9c65e15e3d3"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbedcb203cb4dfd1.ktx2",
+              "bytes": 150313,
+              "sha256": "bbedcb203cb4dfd1d3e5fb9e6fe425d43c460054330d9083492833cf47b6e961"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-564ddea7d3f48282.ktx2",
+              "bytes": 95817,
+              "sha256": "564ddea7d3f482825e9788bb75ca8133d77ce4453960192e4ae5274eb664d3f9"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-336ab547a94d31b7.ktx2",
+              "bytes": 1174769,
+              "sha256": "336ab547a94d31b7a430ad49d0efba19796e6845624edc3acd6147cb9807e73d"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-955cbbe842cdccc4.ktx2",
+              "bytes": 858418,
+              "sha256": "955cbbe842cdccc443474cbabec125d10c66964cbbc1d79a9920bb7efff36c09"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a"
+            },
+            {
+              "path": "/world/lib/hr-setpiece-bbff14c72e83e0f1.ktx2",
+              "bytes": 81012,
+              "sha256": "bbff14c72e83e0f1be8d0285d68226fb142d37931bf73f260c702cb87da4fe6b"
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
     }
   ]
 }

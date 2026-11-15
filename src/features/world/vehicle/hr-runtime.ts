@@ -1,4 +1,4 @@
-import { Group, Mesh, SkinnedMesh, Vector3, type Object3D, type BufferGeometry, type Camera, type Material, type Texture, type WebGLRenderer } from "three";
+import { Group, Mesh, SkinnedMesh, Vector3, type Object3D, type BufferGeometry, type Camera, type Material, type MeshPhysicalMaterial, type Texture, type WebGLRenderer } from "three";
 import { disposeBakedAppearance } from "../character/baked-appearance";
 
 type Target = "chassis" | "steering" | "front_wheel" | "rear_wheel";
@@ -32,6 +32,7 @@ export async function loadHrVehicle(renderer: WebGLRenderer): Promise<HrVehicleA
         }
       }
     });
+    materials.forEach(material => weatherVehicleMaterial(material));
     let disposed = false;
     release = () => {
       if (disposed) return;
@@ -55,6 +56,49 @@ export async function loadHrVehicle(renderer: WebGLRenderer): Promise<HrVehicleA
     return { lods, dispose: release };
   } catch (error) { release?.(); throw error; }
   finally { ktx.dispose(); }
+}
+
+/** HR-FIX-SETPIECE A24. The world's image-based light is deliberately dim (0.3), which left the
+ * mirror glass and chrome as black discs: metals now receive the full reflection, so the glass
+ * mirrors sky and trees. Enamel keeps its clearcoat under a thin film of road dust that settles
+ * on upward faces and low on the machine. Shader-only: no extra draw, texture or uniform.
+ */
+export function weatherVehicleMaterial(material: Material) {
+  const paint = material as MeshPhysicalMaterial;
+  if (!paint.isMeshStandardMaterial || paint.userData.hrWeathered) return;
+  paint.userData.hrWeathered = true;
+  const enamel = paint.isMeshPhysicalMaterial === true && paint.clearcoat > 0;
+  if (enamel) { paint.clearcoat = 1; paint.clearcoatRoughness = 0.07; }
+  const compile = paint.onBeforeCompile, key = paint.customProgramCacheKey.bind(paint);
+  paint.onBeforeCompile = (shader, renderer) => {
+    compile.call(paint, shader, renderer);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec4 vHrDust;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvHrDust = vec4(position, normal.y);");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>
+varying vec4 vHrDust;
+float hrDustHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float hrDustNoise(vec3 p) {
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hrDustHash(i), hrDustHash(i + vec3(1, 0, 0)), f.x), mix(hrDustHash(i + vec3(0, 1, 0)), hrDustHash(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(hrDustHash(i + vec3(0, 0, 1)), hrDustHash(i + vec3(1, 0, 1)), f.x), mix(hrDustHash(i + vec3(0, 1, 1)), hrDustHash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+float hrDust = 0.0;`)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+hrDust = hrDustNoise(vHrDust.xyz * 23.0) * 0.6 + hrDustNoise(vHrDust.xyz * 71.0) * 0.4;
+hrDust = smoothstep(0.34, 0.86, hrDust) * (0.16 + 0.34 * max(vHrDust.w, 0.0) + 0.3 * (1.0 - smoothstep(0.2, 0.7, vHrDust.y)));
+diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.36, 0.31, 0.24), hrDust * 0.5);`)
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.9, hrDust * 0.75);")
+      .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
+#ifdef USE_CLEARCOAT
+  material.clearcoat *= 1.0 - hrDust * 0.85;
+  material.clearcoatRoughness = mix(material.clearcoatRoughness, 0.6, hrDust);
+#endif`)
+      .replace("#include <aomap_fragment>", "reflectedLight.indirectSpecular *= 1.0 + 3.2 * metalnessFactor * (1.0 - hrDust);\n#include <aomap_fragment>");
+  };
+  paint.customProgramCacheKey = () => key() + "|hr-vehicle-weathered-v1";
+  paint.needsUpdate = true;
 }
 
 /** Installs on the view, never on the Low factory. Existing bones, rider frame,

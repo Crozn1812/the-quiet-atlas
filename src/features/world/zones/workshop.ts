@@ -1,6 +1,6 @@
 import {
   BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute, Group,
-  IcosahedronGeometry, Mesh, OctahedronGeometry, PointLight, Shape, TorusGeometry, Vector3, type MeshToonMaterial,
+  IcosahedronGeometry, Mesh, OctahedronGeometry, PointLight, Shape, TorusGeometry, Vector3, type MeshStandardMaterial, type MeshToonMaterial,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
@@ -12,6 +12,8 @@ import { bindWorkshopBatch } from "../props/workshop-library";
 import { bindHrProps, selectHrProp, type HrPropSite } from "../props/hr-props";
 import { bindHrStructure } from "../props/hr-structures";
 import { createWorkshopDressing } from "./workshop-dressing";
+import { bindSetpieces } from "./setpiece-hr";
+import { createHrFire, type FireSource } from "./workshop-fire";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
 type Point = readonly [number, number, number];
@@ -560,6 +562,8 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
   const fireGroup = new Group();
   fireGroup.name = "workshop-fire";
   fireGroup.position.copy(point(...firePivot));
+  // HR-FIX-SETPIECE A06: authored braziers/cressets and shader flames stand exactly on these solids.
+  const hrBraziers: Vector3[] = [], hrTorches: Vector3[] = [], hrFires: FireSource[] = [];
 
   for (const signU of [-1, 1]) {
     const brazierPos = gatePoint(signU * 1.35, 0, 0.95);
@@ -575,6 +579,8 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
         .translate(bx, pedTop + 0.32, bz), "wood");
     }
     collider([0.56, pedTop + 1.15 - foot, 0.56], [bx, (pedTop + 1.15 + foot) / 2, bz]);
+    hrBraziers.push(point(bx, pedTop, bz));
+    hrFires.push({ position: point(bx, pedTop + 0.4, bz), width: 0.56, height: 1.25 });
 
     // Animated blazing brazier flames & rising spark particles inside fireGroup.
     const flameY = pedTop + 0.3;
@@ -591,6 +597,8 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     // Column-mounted torch (đuốc gắn cột cái) on the front central pillars.
     const torchPos = gatePoint(signU * centralU, base + 3.32, colV + 0.08);
     const [tx, ty, tz] = torchPos;
+    hrTorches.push(point(tx, ty, tz));
+    hrFires.push({ position: point(tx, ty + 0.12, tz), width: 0.27, height: 0.62 });
     add(prism([0.38, 0.075, 0.075], [0, 0, 0]).rotateZ(-0.55).rotateY(-yaw)
       .translate(tx - dirV.x * 0.12, ty - 0.2, tz - dirV.z * 0.12), "wood");
     add(new CylinderGeometry(0.1, 0.06, 0.22, 5).translate(tx, ty, tz), "ink");
@@ -747,6 +755,35 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
     }
   }
 
+  let hrFire: ReturnType<typeof createHrFire> | undefined;
+  const embers = new Set<MeshStandardMaterial>();
+  const structure = group.children.find((child): child is Mesh => child instanceof Mesh && child.name === "workshop-wood");
+  if (structure) {
+    const release = bindSetpieces(structure, {
+      file: "workshop",
+      place(asset, add) {
+        const turn = side === 1 ? 0 : Math.PI;
+        for (const [name, sites, yawOffset] of [["brazier", hrBraziers, 0], ["torch", hrTorches, -yaw]] as const) {
+          for (const at of sites) {
+            const model = asset.piece(name);
+            model.position.copy(at); model.rotation.y = yawOffset + turn;
+            model.traverse(child => {
+              if (child instanceof Mesh && (child.material as MeshStandardMaterial).name === "setpiece-embers") {
+                embers.add(child.material as MeshStandardMaterial); child.castShadow = false;
+              }
+            });
+            add(model);
+          }
+        }
+        hrFire = createHrFire(hrFires, seedPhase);
+        add(hrFire.group);
+      },
+      // The faceted tongues and octahedron sparks remain the Low / software fire.
+      onToggle(active) { fireGroup.visible = !active; },
+    });
+    releases.push(() => { release(); hrFire?.dispose(); hrFire = undefined; embers.clear(); fireGroup.visible = true; });
+  }
+
   let elapsed = 0, disposed = false;
   const baseFirePos = fireGroup.position.clone();
   return {
@@ -770,6 +807,8 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
         baseFirePos.z + Math.cos(elapsed * 5.9) * 0.018,
       );
       fireGroup.rotation.z = Math.sin(elapsed * 5.4) * 0.025;
+      hrFire?.setTime(elapsed);
+      embers.forEach(material => { material.emissiveIntensity = 2.4 + pulse * 6 + Math.sin(elapsed * 3.1) * 0.5; });
       lights.forEach((light, index) => {
         const phase = elapsed * 10.2 + index * 1.9;
         light.intensity = 2.35 + Math.sin(phase) * 0.32 + Math.cos(phase * 1.6) * 0.16;

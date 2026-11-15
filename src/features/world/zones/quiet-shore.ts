@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry,
+  Box3, BoxGeometry, BufferGeometry, Color, CylinderGeometry, DoubleSide, ExtrudeGeometry,
   Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Quaternion, Shape, TorusGeometry, Vector3,
   type MeshToonMaterial,
 } from "three";
@@ -8,6 +8,7 @@ import { PALETTE } from "../art/palette";
 import { createPropMaterial } from "../props/materials";
 import { createBenchGeometry, createFenceSpanGeometry, createPlankGeometry, createPostGeometry } from "../props/wood";
 import { createQuietShoreDressing } from "./quiet-shore-dressing";
+import { bindSetpieces } from "./setpiece-hr";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
   type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory,
@@ -490,6 +491,33 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     mesh.receiveShadow = true;
     group.add(mesh);
   }
+  // HR-FIX-SETPIECE A15: authored piano, stool, guitar and bench replace the render of their solids.
+  const named = (surface: Surface) => group.getObjectByName(`quiet-shore-${surface}`) as Mesh | undefined;
+  const region = (center: Point, size: Point) => new Box3().setFromCenterAndSize(
+    new Vector3(...localPoint(...center)), new Vector3(...size));
+  const pianoBox = region([-0.85, floor + 0.745, 0.35], [0.78, 1.48, 1.36]);
+  const stoolBox = region([-0.35, floor + 0.245, 0.35], [0.4, 0.48, 0.56]);
+  const guitarBox = region([-1.16, floor + 1.07, -0.98], [0.3, 0.93, 0.5]);
+  const benchBox = region([0.7, floor + 0.524, 0], [0.8, 1.04, 1.9]);
+  const turn = site.side < 0 ? Math.PI : 0;
+  const hidden: { mesh: Mesh; boxes: Box3[] }[] = [];
+  for (const [surface, boxes] of [["piano", [pianoBox, stoolBox]], ["guitar", [guitarBox]], ["ink", [pianoBox, guitarBox]],
+    ["cream", [pianoBox]], ["wood", [guitarBox, benchBox]]] as const) {
+    const mesh = named(surface);
+    if (mesh) hidden.push({ mesh, boxes: [...boxes] });
+  }
+  const anchorMesh = named("wood");
+  const releaseSetpieces = anchorMesh ? bindSetpieces(anchorMesh, {
+    file: "quiet-shore", hide: hidden,
+    place(asset, add) {
+      for (const [name, at, yaw] of [["piano", [-0.85, floor, 0.35], -Math.PI / 2], ["stool", [-0.35, floor, 0.35], 0],
+        ["guitar", [-1.16, floor + 0.85, -0.98], -Math.PI / 2], ["bench", [0.7, floor - 0.02, 0], -Math.PI / 2]] as const) {
+        const model = asset.piece(name);
+        model.position.set(...localPoint(at[0], at[1], at[2])); model.rotation.y = yaw + turn;
+        add(model);
+      }
+    },
+  }) : () => {};
   let disposed = false;
   return {
     zoneId: "quiet-shore", group, colliders,
@@ -501,6 +529,7 @@ export const createQuietShoreScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      releaseSetpieces();
       dressing?.dispose();
       for (const { geometry, material } of owned) {
         geometry.dispose();

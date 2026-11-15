@@ -18,6 +18,7 @@ import { PATH_WIDTH, TERRAIN_SEED, waterLevelAt } from "../terrain/height";
 import { nearestPath } from "../terrain/samples";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 import { createHorizonDressing } from "./horizon-dressing";
+import { bindSetpieces } from "./setpiece-hr";
 
 type Surface = "natural" | "paint" | "white" | "iron" | "lens";
 type Point = readonly [number, number, number];
@@ -365,6 +366,30 @@ export const createHorizonScene: ZoneSceneFactory = context => {
       intersections.push({ distance, point: point.clone(), object: viewerBody });
     }
   };
+  // HR-FIX-SETPIECE A14: authored tower viewer and turbines replace only the render of these solids.
+  const direct = (name: string) => group.children.filter((child): child is Mesh => child instanceof Mesh && child.name === name);
+  const turbineBoxes = turbines.map(([x, z]) => new Box3().setFromCenterAndSize(
+    new Vector3(x, context.heightAt(x, z) + 4, z), new Vector3(1.6, 14, 1.6)));
+  const releaseSetpieces = bindSetpieces(group.getObjectByName("horizon-natural") as Mesh, {
+    file: "horizon",
+    hide: [
+      ...["horizon-iron", "horizon-paint", "horizon-lens"].flatMap(name => direct(name).map(mesh => ({ mesh }))),
+      ...direct("horizon-white").map(mesh => ({ mesh, boxes: turbineBoxes })),
+      ...rotors.flatMap(rotor => rotor.children.filter((child): child is Mesh => child instanceof Mesh).map(mesh => ({ mesh }))),
+    ],
+    place(asset, add) {
+      const model = asset.piece("viewer");
+      model.position.set(vx, context.heightAt(vx, vz), vz);
+      add(model);
+      turbines.forEach(([x, z], index) => {
+        const tower = asset.piece("turbine");
+        tower.position.set(x, context.heightAt(x, z), z);
+        tower.scale.y = (7.2 - index * 0.6) / 7.2;
+        add(tower);
+        add(asset.piece("rotor"), rotors[index]);
+      });
+    },
+  });
   let disposed = false;
   return {
     zoneId: "horizon", group, colliders,
@@ -376,6 +401,6 @@ export const createHorizonScene: ZoneSceneFactory = context => {
       if (reducedMotion || disposed || !Number.isFinite(dt) || dt <= 0) return;
       rotors.forEach((rotor, index) => { rotor.rotation.x = (rotor.rotation.x + dt * (0.085 + index * 0.008)) % (Math.PI * 2); });
     },
-    dispose() { if (!disposed) { disposed = true; dressing?.dispose(); dispose(); } },
+    dispose() { if (!disposed) { disposed = true; releaseSetpieces(); dressing?.dispose(); dispose(); } },
   };
 };

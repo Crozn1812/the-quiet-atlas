@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry,
+  Box3, BoxGeometry, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry,
   Float32BufferAttribute, Group, Mesh, Shape, Vector3, MeshStandardMaterial, type Material,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
@@ -9,6 +9,8 @@ import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneSceneFactory, type ZoneSceneContext } from "./types";
+import { bindHrProps } from "../props/hr-props";
+import { bindSetpieces } from "./setpiece-hr";
 
 type Point = readonly [number, number, number];
 type Surface = "wood" | "paper" | "ink" | "forestDeep" | "forestLight" | "water" | "flower" | "dusk";
@@ -379,6 +381,27 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
   }));
   const dressing = createLastPostcardDressing(context, platform, colliders);
   group.add(dressing.mesh);
+  // HR-FIX-SETPIECE A16: authored mailbox, card rack and lamp post; the lantern reuses the lathed storm lantern.
+  const turn = platform.sign < 0 ? Math.PI : 0;
+  const regions = [mailbox, rack, lamp].map(site => new Box3(
+    new Vector3(site.x - site.halfX - 0.03, site.base + 0.004, site.z - site.halfZ - 0.03),
+    new Vector3(site.x + site.halfX + 0.03, site.base + site.height + 0.3, site.z + site.halfZ + 0.03)));
+  const solids = group.children.filter((child): child is Mesh => child instanceof Mesh && child !== dressing.mesh);
+  const releases: (() => void)[] = [];
+  const anchorMesh = solids.find(mesh => mesh.name === "last-postcard-wood");
+  if (anchorMesh) releases.push(bindSetpieces(anchorMesh, {
+    file: "last-postcard", hide: solids.map(mesh => ({ mesh, boxes: regions })),
+    place(asset, add) {
+      for (const [name, site, yaw, scale] of [["mailbox", mailbox, -Math.PI / 2, 1.3], ["rack", rack, 0, 1], ["lamp", lamp, 0, 1]] as const) {
+        const model = asset.piece(name);
+        model.position.set(site.x, site.base, site.z); model.rotation.y = yaw + turn; model.scale.setScalar(scale);
+        add(model);
+      }
+    },
+  }));
+  const lanternBody = lantern.children.find((child): child is Mesh => child instanceof Mesh);
+  if (lanternBody) releases.push(bindHrProps(lanternBody, [{ asset: "hr-prop-storm-lantern", x: 0, z: 0, baseY: -0.43,
+    size: [0.25, 0.45, 0.25], yaw: 0, tint: 1 }], () => 0).dispose);
   let elapsed = 0, disposed = false;
   return {
     zoneId: "last-postcard",
@@ -397,6 +420,7 @@ export const createLastPostcardScene: ZoneSceneFactory = context => {
     dispose() {
       if (disposed) return;
       disposed = true;
+      releases.reverse().forEach(release => release());
       dressing.dispose();
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());

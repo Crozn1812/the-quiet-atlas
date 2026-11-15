@@ -9,6 +9,7 @@ import { createPostGeometry } from "./props/wood";
 import { createRockStack } from "./props/rocks";
 import { waterLevelAt, worldHeight } from "./terrain/height";
 import { nearestPath } from "./terrain/samples";
+import { bindSetpieces } from "./zones/setpiece-hr";
 
 /** Fixed route-distance anchors; the small shoulder search is deterministic. */
 export function createWaymarkLayout() {
@@ -64,10 +65,24 @@ export function createWaymarks() {
     mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingBox(); mesh.computeBoundingSphere();
     group.add(mesh); meshes.push(mesh);
   }
+  // HR-FIX-SETPIECE A17: authored hewn posts with a cloth blaze; the cairn stones are unchanged.
+  const [posts, cairns] = meshes as [InstancedMesh, InstancedMesh];
+  const releaseSetpieces = bindSetpieces(cairns, {
+    file: "signpost", hide: [{ mesh: posts }],
+    place(asset, add) {
+      layout.filter(mark => mark.kind === "post").forEach((mark, i) => {
+        const model = asset.piece("waymark");
+        model.position.set(mark.x, mark.y, mark.z); model.rotation.y = mark.yaw;
+        model.scale.set(1 - i * 0.06, mark.height, 1 - i * 0.04);
+        add(model, group);
+      });
+    },
+  });
   const colliders = layout.map(mark => ({ center: new Vector3(mark.x, mark.y + mark.height / 2, mark.z), size: new Vector3(mark.width, mark.height, mark.width) }));
   let disposed = false;
   return { group, layout, colliders, dispose() {
     if (disposed) return; disposed = true;
+    releaseSetpieces();
     meshes.forEach(mesh => mesh.dispose()); post.dispose(); stone.dispose(); material.dispose();
     group.removeFromParent(); group.clear();
   } };

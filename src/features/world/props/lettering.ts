@@ -17,14 +17,28 @@ export function createLettering(width: number, height: number, paint: (ctx: Canv
   return { mesh, dispose() { mesh.geometry.dispose(); mesh.material.dispose(); map.dispose(); } };
 }
 
+/** Hand-painted trail lettering: the same words, with paint worn away along the grain. */
 export function createSignLabel(label: string) {
-  return createLettering(0.72, 0.25, ctx => {
-    ctx.fillStyle = "#fff2d3";
+  const lettering = createLettering(0.72, 0.25, ctx => {
+    ctx.fillStyle = "#f3e7c6";
     ctx.font = "bold 98px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, 256, 128, 492);
+    let seed = 2166136261;
+    for (const character of label) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619) >>> 0;
+    const random = () => ((seed = Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x9e3779b9 >>> 0) >>> 0) / 4294967296;
+    ctx.globalCompositeOperation = "destination-out";
+    // Flakes, then long scratches following the board's horizontal grain. Strokes stay legible.
+    for (let i = 0; i < 420; i++) {
+      const size = 1.5 + random() * random() * 7;
+      ctx.fillRect(random() * 512, 60 + random() * 136, size * (1 + random() * 2), size * 0.6);
+    }
+    for (let i = 0; i < 26; i++) ctx.fillRect(random() * 470, 66 + random() * 124, 24 + random() * 110, 0.8 + random() * 1.6);
+    ctx.globalCompositeOperation = "source-over";
   });
+  if (lettering) lettering.mesh.userData.signLabel = true;
+  return lettering;
 }
 
 export function createSkillsBoard() {
