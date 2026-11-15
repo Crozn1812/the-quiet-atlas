@@ -13,3 +13,10 @@
 - Duy: "Mình đã bỏ vấn đề giới hạn mức trần rồi, không có giới hạn gì cả." Thay ADR 0015/0018 về ngân sách: **không còn trần** tổng world MB, byte asset, tam giác, draw call, thời gian tới lúc chơi được, CPU so main.
 - Vẫn giữ như **thực hành kỹ thuật** (không phải gate): asset nặng nạp deferred/streaming để trang vẫn mở được; có đường Low cho máy yếu; không tạo việc JS mỗi frame vô ích. Các số đo (byte, thời gian tải, CPU, FPS) vẫn được **ghi lại** trong mỗi bàn giao và PROJECT_STATUS để Duy thấy, nhưng không chặn merge.
 - Script gate (`check:assets`, load-budget, ngưỡng CPU) đổi sang **chế độ báo cáo**: in số, không fail vì vượt trần (ticket BUDGET-OFF). Các kiểm tra không phải trần vẫn chặn: license, leaks, 0 chunk 3D trước Enter World, lỗi console, e2e chức năng.
+
+## Cập nhật 15/11: siêu thực cho mọi thứ, kể cả nhân vật (Duy)
+
+- Duy (15/11): "nhân vật làm siêu thực. siêu thực áp dụng cho mọi cái trong dự án." Đây là câu trả lời cho Q-50.
+- Áp dụng cho mọi nội dung 3D: nhân vật, xe, sinh vật, đạo cụ, công trình, địa hình, nước, bầu trời. Không còn ngoại lệ "giữ cách điệu". Riêng tượng ở Milestones vốn là tượng sứ, nên "thật" nghĩa là sứ, đá và vết nứt thật.
+- Vẫn giữ: không logo, không thương hiệu; tham chiếu chỉ lấy cảm hứng. Khuôn mặt nhân vật là người thật về da, tóc, tỉ lệ, nhưng **không dựng theo ảnh của Duy đến mức nhận diện** (taste.md §5.6). Muốn đổi điểm này phải có quyết định riêng của Duy.
+- Giao diện portfolio 2D (Welcome, Quick, case study) không thuộc phạm vi này.
