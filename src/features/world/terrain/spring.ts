@@ -1,6 +1,6 @@
 import { Box3, BufferGeometry, CircleGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, Vector3, type Intersection, type Raycaster } from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { PALETTE } from "../art/palette";
+import { cascadeProfile, createSpringCascade } from "../water/cascade";
+import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { riverPointAt, riverTangentAt } from "../layout/river";
 import { createRampMaterial } from "../materials/ramp";
 import { createCliffRockGeometry, createCliffRibbon } from "../zones/first-light-cliff";
@@ -123,6 +123,18 @@ export function createSpring() {
   }
   const foot = createCliffRibbon(front);
   geometries.push(foot);
+  // Spray-soaked stone: darker, within reach of the fall and the plunge pool.
+  const fallCentre = origin.clone().addScaledVector(forward, -1.4);
+  for (const geometry of geometries) {
+    const p = geometry.getAttribute("position"), c = geometry.getAttribute("color");
+    if (!c) continue;
+    for (let v = 0; v < p.count; v++) {
+      const reach = Math.hypot(p.getX(v) - fallCentre.x, p.getZ(v) - fallCentre.z);
+      const wet = (1 - Math.min(1, Math.max(0, (reach - 1.4) / 1.6))) * (1 - Math.min(1, Math.max(0, (p.getY(v) - level - 1.9) / 0.8)));
+      const k = 1 - 0.42 * wet;
+      c.setXYZ(v, c.getX(v) * k, c.getY(v) * k * 1.02, c.getZ(v) * k * 1.04);
+    }
+  }
   const rockGeometry = mergeGeometries(geometries)!;
   const rockMaterial = createRampMaterial(0xffffff);
   rockMaterial.vertexColors = true;
@@ -146,16 +158,17 @@ export function createSpring() {
   // A short falling sheet emerges from beneath the cap, meeting the pool
   // before the animated ribbon takes over. Its lower end is submerged.
   const vertices: number[] = [];
-  const rows = [[-2.6, 1.65], [-2.15, 1.5], [-1.7, 0.8], [-1.2, 0.15], [-0.4, -0.04]];
+  // Smoothly arched sheet (glassy over the lip, steep fall, run-out into the pool).
+  const rows = cascadeProfile();
   const indices: number[] = [], uvs: number[] = [];
   for (const [row, [along, rise]] of rows.entries()) {
     for (const side of [-1, 1]) {
-      const width = 0.38 + row * 0.09;
+      const width = 0.38 + row / (rows.length - 1) * 0.36;
       const p = origin.clone().addScaledVector(forward, along!).addScaledVector(right, side * width);
       vertices.push(p.x, level + rise!, p.z);
-      uvs.push((side + 1) / 2, row * 0.6);
+      uvs.push((side + 1) / 2, row * 2.4 / (rows.length - 1));
       vertices.push(p.x, level + rise! - 0.18, p.z);
-      uvs.push((side + 1) / 2, row * 0.6);
+      uvs.push((side + 1) / 2, row * 2.4 / (rows.length - 1));
     }
     if (row) {
       const a = (row - 1) * 4, b = row * 4;
@@ -173,27 +186,44 @@ export function createSpring() {
   const fall = fallSurface.mesh;
   fall.name = "spring-cleft-flow";
   group.add(fall);
-  const foamGeometry = new IcosahedronGeometry(1, 0);
-  const foamMaterial = createRampMaterial(new Color(PALETTE.mist).getHex());
-  const foamParts: BufferGeometry[] = [], pebbleParts: BufferGeometry[] = [];
-  for (let i = 0; i < 18; i++) {
-    const foam = i < 7;
-    const mesh = new Mesh(foamGeometry, foam ? foamMaterial : rockMaterial);
+  // Whitewater, plunge foam and spray share the fall's clock (pause/reduced motion/quality).
+  const cascade = createSpringCascade(origin, forward, level, () => fall.material);
+  // Rounded, water-worn rim stones (the old flat foam blobs are replaced by the cascade).
+  const foamGeometry = new IcosahedronGeometry(1, 2);
+  const pebbleParts: BufferGeometry[] = [];
+  for (let i = 7; i < 18; i++) {
+    const mesh = new Mesh(foamGeometry, rockMaterial);
     const angle = i * 2.4, radius = 2.2 + 0.15 * Math.sin(i);
-    mesh.position.copy(origin).addScaledVector(right, foam ? (i - 3) * 0.21 : Math.cos(angle) * radius)
-      .addScaledVector(forward, foam ? -1 + 0.2 * Math.sin(i) : Math.sin(angle) * radius * 0.86);
-    mesh.position.y = level + (foam ? 0.045 : -0.06);
-    mesh.scale.set(foam ? 0.24 : 0.4, foam ? 0.07 : 0.24, foam ? 0.3 : 0.38);
+    mesh.position.copy(origin).addScaledVector(right, Math.cos(angle) * radius)
+      .addScaledVector(forward, Math.sin(angle) * radius * 0.86);
+    mesh.position.y = level - 0.06;
+    mesh.scale.set(0.4, 0.24, 0.38);
+    mesh.rotation.set(0, angle, 0);
     mesh.updateMatrix();
-    (foam ? foamParts : pebbleParts).push(foamGeometry.clone().applyMatrix4(mesh.matrix));
+    // Weld the icosphere first: smooth normals, no flat facets.
+    const raw = foamGeometry.clone(); raw.deleteAttribute("normal"); raw.deleteAttribute("uv");
+    const stone = mergeVertices(raw), sp = stone.getAttribute("position"); raw.dispose();
+    for (let v = 0; v < sp.count; v++) {
+      const x = sp.getX(v), y = sp.getY(v), z = sp.getZ(v);
+      const lump = 1 + 0.08 * Math.sin(x * 3.1 + i) * Math.cos(z * 2.7 - i) + 0.05 * Math.sin(y * 5 + i * 2);
+      sp.setXYZ(v, x * lump, y * lump * (y < 0 ? 0.7 : 1), z * lump);
+    }
+    stone.computeVertexNormals();
+    pebbleParts.push(stone.toNonIndexed().applyMatrix4(mesh.matrix)); stone.dispose();
   }
-  const foamMerged = mergeGeometries(foamParts)!, pebbleMerged = mergeGeometries(pebbleParts)!;
-  [...foamParts, ...pebbleParts].forEach(part => part.dispose());
+  const pebbleMerged = mergeGeometries(pebbleParts)!;
+  pebbleParts.forEach(part => part.dispose());
   // Pebbles share the cliff's vertex-colour draw: the complete source stays
   // within four draws, including both water surfaces and the pale foam.
   pebbleMerged.deleteAttribute("uv");
-  const pebbleColor = new Color(PALETTE.rock), pigments: number[] = [];
-  for (let i = 0; i < pebbleMerged.getAttribute("position").count; i++) pigments.push(pebbleColor.r, pebbleColor.g, pebbleColor.b);
+  // Wet stone: dark grey-brown, a little lighter where the rounded crown dries.
+  const pebbleColor = new Color(0x4a463c), dryCrown = new Color(0x777160), pigments: number[] = [];
+  const stonePositions = pebbleMerged.getAttribute("position");
+  for (let i = 0; i < stonePositions.count; i++) {
+    const crown = Math.min(1, Math.max(0, (stonePositions.getY(i) - level - 0.08) / 0.12));
+    const tint = pebbleColor.clone().lerp(dryCrown, crown * 0.6).multiplyScalar(0.9 + 0.2 * Math.abs(Math.sin(i * 12.9898) % 1));
+    pigments.push(tint.r, tint.g, tint.b);
+  }
   pebbleMerged.setAttribute("color", new Float32BufferAttribute(pigments, 3));
   const solidGeometry = mergeGeometries([rockGeometry, pebbleMerged])!;
   cliff.geometry = solidGeometry;
@@ -227,7 +257,7 @@ export function createSpring() {
       }
     }
   };
-  group.add(new Mesh(foamMerged, foamMaterial));
+  group.add(...cascade.objects);
   const surfaces = [poolSurface, fallSurface];
   let disposed = false;
   return { group, cliff, colliders, origin, surfaces,
@@ -236,7 +266,7 @@ export function createSpring() {
       disposed = true;
       rockGeometry.dispose(); rockMaterial.dispose(); surfaces.forEach(surface => surface.dispose());
       geometries.forEach(geometry => geometry.dispose());
-      foamGeometry.dispose(); foamMerged.dispose(); pebbleMerged.dispose(); solidGeometry.dispose(); foamMaterial.dispose();
+      foamGeometry.dispose(); pebbleMerged.dispose(); solidGeometry.dispose(); cascade.dispose();
       group.removeFromParent(); group.clear();
     },
   };

@@ -112,40 +112,83 @@ export function createSurf(material: () => WaterMaterial) {
     current.polygonOffsetUnits = -2;
     const compile = current.onBeforeCompile.bind(current);
     const cacheKey = current.customProgramCacheKey();
-    current.customProgramCacheKey = () => `${cacheKey}:surf-v1`;
+    current.customProgramCacheKey = () => `${cacheKey}:surf-v3`;
     current.onBeforeCompile = (shader, renderer) => {
       compile(shader, renderer);
       Object.assign(shader.uniforms, { uSurfTime: time, uSurfDetail: detail, uSurfWetness: wetness, uSurfWater: water, uSurfFoam: foam });
       if (!shader.vertexShader.includes("attribute float surfDistance")) shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
         attribute float surfDistance; attribute float surfAlong;
-        varying float vSurfDistance; varying float vSurfAlong; varying float vSurfHeight;`)
+        varying float vSurfDistance; varying float vSurfAlong; varying float vSurfHeight; varying vec2 vSurfWorld;`)
         .replace("#include <begin_vertex>", `#include <begin_vertex>
-          vSurfDistance = surfDistance; vSurfAlong = surfAlong; vSurfHeight = position.y;`);
+          vSurfDistance = surfDistance; vSurfAlong = surfAlong; vSurfHeight = position.y;
+          vSurfWorld = (modelMatrix * vec4(position, 1.0)).xz;`);
       if (!shader.fragmentShader.includes("uniform float uSurfTime")) shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>
         uniform float uSurfTime; uniform float uSurfDetail; uniform float uSurfWetness;
         uniform vec3 uSurfWater; uniform vec3 uSurfFoam;
-        varying float vSurfDistance; varying float vSurfAlong; varying float vSurfHeight;
-        ${SURF_GLSL}`)
+        varying float vSurfDistance; varying float vSurfAlong; varying float vSurfHeight; varying vec2 vSurfWorld;
+        ${SURF_GLSL}
+        float surfHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float surfNoise(vec2 p) {
+          vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(surfHash(i), surfHash(i + vec2(1.0, 0.0)), f.x),
+            mix(surfHash(i + vec2(0.0, 1.0)), surfHash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+        // Distance to the nearest bubble wall: the open network of real sea foam.
+        float surfFoamCells(vec2 p) {
+          vec2 i = floor(p), f = fract(p);
+          float first = 8.0, second = 8.0;
+          for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+            vec2 o = vec2(float(x), float(y));
+            vec2 r = o + vec2(surfHash(i + o), surfHash(i + o + 17.0)) - f;
+            float dd = dot(r, r);
+            if (dd < first) { second = first; first = dd; } else if (dd < second) second = dd;
+          }
+          return sqrt(second) - sqrt(first);
+        }`)
         .replace("#include <opaque_fragment>", `
           float p = surfCycle(uSurfTime, vSurfAlong);
-          float runup = surfRunup(p);
           float d = vSurfDistance;
+          // Each set reaches a different height along the beach; timing stays on the audio clock.
+          float reach = 0.62 + 0.55 * surfNoise(vec2(vSurfAlong * 0.11, floor(uSurfTime / 8.0 - vSurfAlong * 0.017) * 3.7));
+          float runup = surfRunup(p) * mix(1.0, reach, uSurfDetail);
+          // Ragged leading edge: lobes and cusps instead of a ruled line.
+          float lobes = (surfNoise(vec2(vSurfAlong * 0.9, uSurfTime * 0.05)) - 0.5) * 0.7
+            + (surfNoise(vec2(vSurfAlong * 3.1, d * 0.6)) - 0.5) * 0.25;
+          float front = runup + lobes * uSurfDetail * smoothstep(0.05, 0.6, runup);
           // Reject cliffs and dry terraces: swash climbs low sand, never a headland.
           float beach = 1.0 - smoothstep(0.28, 0.65, vSurfHeight);
           float border = smoothstep(-1.2, -0.35, d) * (1.0 - smoothstep(2.6, 3.25, d));
-          float flooded = (1.0 - smoothstep(runup - 0.18, runup + 0.06, d));
-          float edge = 1.0 - smoothstep(0.06, 0.35, abs(d - runup));
-          float froth = 0.75 + 0.25 * sin(vSurfAlong * 2.3 + d * 8.0 + uSurfTime * 1.5);
-          float draining = smoothstep(0.44, 0.55, p) * (1.0 - smoothstep(0.78, 0.98, p));
-          float lace = pow(0.5 + 0.5 * sin(d * 13.0 + vSurfAlong * 1.7), 6.0)
-            * draining * flooded * uSurfDetail;
+          float flooded = (1.0 - smoothstep(front - 0.12, front + 0.04, d));
+          // The bore is white only while it advances; the backwash thins into lace.
+          float advancing = smoothstep(0.16, 0.24, p) * (1.0 - smoothstep(0.42, 0.6, p));
+          float edge = (1.0 - smoothstep(0.03, 0.22 + 0.25 * advancing, abs(d - front))) * mix(0.25, 1.0, advancing);
+          // World-space foam (isotropic), pushed up the beach and drawn back with the swash.
+          vec2 foamUv = vSurfWorld * 1.3 + vec2(d - p * 2.5) * 0.9;
+          // Domain-warped, multi-scale foam: blobs and torn sheets, then a fine
+          // irregular bubble lace in patches. Never one cell size or a regular net.
+          vec2 warp = vec2(surfNoise(foamUv * 1.7 + uSurfTime * 0.05), surfNoise(foamUv * 1.7 + 5.2)) - 0.5;
+          vec2 fp = foamUv + warp * 1.2;
+          float blobs = surfNoise(fp * 1.1) * 0.5 + surfNoise(mat2(0.8, 0.6, -0.6, 0.8) * fp * 2.6 + 3.0) * 0.3
+            + surfNoise(mat2(0.28, -0.96, 0.96, 0.28) * fp * 6.1 - 7.0) * 0.2;
+          float holes = 1.0 - smoothstep(0.0, 0.1, surfFoamCells(fp * 7.5 + warp * 2.0));
+          float froth = mix(1.0, (0.25 + 0.75 * smoothstep(0.3, 0.62, blobs)) * (1.0 - (1.0 - holes) * 0.25), uSurfDetail);
+          float draining = smoothstep(0.44, 0.55, p) * (1.0 - smoothstep(0.82, 0.98, p));
+          float lacePatch = smoothstep(0.5, 0.72, surfNoise(fp * 0.8 + 21.0) * 0.6 + blobs * 0.4);
+          float lace = (1.0 - smoothstep(0.0, 0.06, surfFoamCells(fp * 11.0 - warp * 3.0))) * 0.7
+            * lacePatch * draining * flooded * uSurfDetail;
           // A lagged envelope leaves a dark wet band after water recedes, drying before the next wave.
-          float wetReach = max(runup, surfRunup(max(0.0, p - 0.15)));
-          float wet = (1.0 - smoothstep(wetReach, wetReach + 0.65, d)) * step(0.0, d);
-          outgoingLight *= 1.0 - uSurfWetness * wet * uSurfDetail;
-          outgoingLight = mix(outgoingLight, uSurfWater, flooded * 0.6 * uSurfDetail);
-          outgoingLight = mix(outgoingLight, uSurfFoam, clamp(edge * froth * 0.85 + lace * 0.24, 0.0, 0.95));
-          diffuseColor.a = border * beach * max(max(flooded * 0.65 * uSurfDetail, edge), wet * 0.75 * uSurfDetail);
+          float wetReach = max(runup, surfRunup(max(0.0, p - 0.15)) * mix(1.0, reach, uSurfDetail)) + lobes * 0.3;
+          float wet = (1.0 - smoothstep(wetReach, wetReach + 0.8, d)) * step(0.0, d);
+          // Sheen on the freshly drained sand mirrors the sky; it fades as water soaks in.
+          float sheen = wet * (1.0 - flooded) * (1.0 - smoothstep(0.55, 0.95, p)) * uSurfDetail;
+          outgoingLight *= 1.0 - (uSurfWetness + 0.14) * wet * uSurfDetail;
+          outgoingLight += uSurfFoam * sheen * 0.05;
+          float sheet = flooded * (0.35 + 0.35 * smoothstep(0.0, 0.8, front - d));
+          // The swash is a thin clear film: tint the wet sand, never paint it over.
+          outgoingLight = mix(outgoingLight, uSurfWater * 0.8, sheet * 0.4 * uSurfDetail);
+          float whitewater = clamp(edge * froth * 0.9 + lace * 0.45, 0.0, 0.92);
+          outgoingLight = mix(outgoingLight, uSurfFoam, whitewater);
+          diffuseColor.a = border * beach * max(max(sheet * 0.7 * uSurfDetail, whitewater), wet * 0.8 * uSurfDetail);
           if (diffuseColor.a < 0.005) discard;
           #include <opaque_fragment>`);
     };

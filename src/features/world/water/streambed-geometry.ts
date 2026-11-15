@@ -53,3 +53,42 @@ export function roundBedStone(source: BufferGeometry, pebble: boolean, variant =
   geometry.computeVertexNormals(); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   return geometry;
 }
+
+/** Ribbon-leaf eelgrass/Vallisneria clump: unit footprint, height 1 (instance Y = rise).
+ * uv.x runs across each blade, uv.y from root (0) to tip (1); "bladeSeed" lets the
+ * shader give every blade its own sway phase and length. All tips lean downstream (+X). */
+export function createWeedClump(blades = 9, rows = 10): BufferGeometry {
+  const positions: number[] = [], uvs: number[] = [], seeds: number[] = [], indices: number[] = [];
+  let state = 0x2545f491;
+  const random = () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 4294967296; };
+  for (let blade = 0; blade < blades; blade++) {
+    const angle = blade / blades * Math.PI * 2 + random() * 0.6, radius = 0.12 + random() * 0.32;
+    const rootX = Math.cos(angle) * radius, rootZ = Math.sin(angle) * radius;
+    const length = 0.55 + random() * 0.5, width = 0.05 + random() * 0.035, twist = (random() - 0.5) * 2.4;
+    const facing = random() * Math.PI, seed = random(), lean = 0.15 + random() * 0.25;
+    const start = positions.length / 3;
+    for (let row = 0; row <= rows; row++) {
+      const t = row / rows;
+      // Strap leaf: parallel sides, blunt rounded tip, slight twist along the length.
+      const half = width * 0.5 * (t < 0.88 ? 1 : Math.sqrt(Math.max(0, 1 - ((t - 0.88) / 0.12) ** 2)));
+      const turn = facing + twist * t;
+      const cx = rootX + lean * t * t, cz = rootZ + Math.sin(angle) * 0.08 * t;
+      for (const side of [-1, 1]) {
+        positions.push(cx + Math.cos(turn) * half * side, t * length, cz + Math.sin(turn) * half * side);
+        uvs.push((side + 1) / 2, t);
+        seeds.push(seed);
+      }
+      if (row) {
+        const a = start + (row - 1) * 2, b = start + row * 2;
+        indices.push(a, a + 1, b, a + 1, b + 1, b);
+      }
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute("bladeSeed", new Float32BufferAttribute(seeds, 1));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals(); geometry.computeBoundingSphere();
+  return geometry;
+}

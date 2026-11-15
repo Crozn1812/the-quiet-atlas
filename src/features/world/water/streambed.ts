@@ -4,7 +4,7 @@ import type { Quality } from "../terrain";
 import { PHOTO_TILE_SIZE, photoTextureUrls } from "../materials/cc0";
 import { createStreambedLayout, type BedItem, type BedReach } from "./streambed-layout";
 import { bedStoneColor, createBedFoamMaterial, createBedPlantMaterial, createBedStoneFallback, createBedStoneMaterial } from "./streambed-shader";
-import { roundBedStone } from "./streambed-geometry";
+import { createWeedClump, roundBedStone } from "./streambed-geometry";
 import { createStreambedCuller, type StreambedCuller } from "./streambed-cull";
 
 interface Resident { group: Group; meshes: InstancedMesh[]; layout: BedReach; cullers: Map<InstancedMesh, StreambedCuller>; }
@@ -22,8 +22,9 @@ export function createStreambed(renderer: WebGLRenderer) {
   const group = new Group(); group.name = "streambed";
   const residents = new Map<number, Resident>();
   const plant = createBedPlantMaterial(false), leaf = createBedPlantMaterial(true), foam = createBedFoamMaterial();
+  const stoneTime = { value: 0 };
   const fallback = createBedStoneFallback();
-  const planes = [new PlaneGeometry(1, 1, 2, 8), new PlaneGeometry(1, 1, 2, 6), new PlaneGeometry(2, 2).rotateX(-Math.PI / 2)];
+  const planes = [createWeedClump(), new PlaneGeometry(1, 1, 2, 6), new PlaneGeometry(2, 2).rotateX(-Math.PI / 2)];
   let layout: ReturnType<typeof createStreambedLayout> | undefined;
   let rocks: BufferGeometry[] = [], textures: Texture[] = [], photoMaterials: Material[] = [];
   let disposed = false, enabled = false, ready = false, elapsed = 0, frames = 0, reviewEnabled = true;
@@ -67,7 +68,7 @@ export function createStreambed(renderer: WebGLRenderer) {
       loaded.forEach((t, i) => { t.colorSpace = i === 0 ? SRGBColorSpace : NoColorSpace; t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); t.needsUpdate = true; });
       photoMaterials.forEach(m => m.dispose()); textures.forEach(t => t.dispose());
       textures = loaded;
-      photoMaterials = [false, true].map(boulder => createBedStoneMaterial(loaded, PHOTO_TILE_SIZE[selected], boulder));
+      photoMaterials = [false, true].map(boulder => createBedStoneMaterial(loaded, PHOTO_TILE_SIZE[selected], boulder, stoneTime));
       updateMaterials();
     };
     // Existing CC0, meshopt + KTX2 library. No new asset bytes in public/.
@@ -115,6 +116,8 @@ export function createStreambed(renderer: WebGLRenderer) {
       transform.position.copy(item.position).sub(resident.layout.center);
       transform.rotation.set(mode === 3 ? -Math.PI / 2 : 0, mode === 4 ? item.flow : item.yaw, 0, "YXZ");
       transform.scale.copy(item.scale);
+      // Clumps spread over a footprint proportional to the authored blade width.
+      if (mode === 2) transform.scale.set(item.scale.x * 2.3, item.scale.y, item.scale.x * 2.3);
       if (mode === 4) {
         transform.position.y = item.water + 0.022 - resident.layout.center.y;
         transform.position.x -= Math.sin(item.flow) * item.scale.z * 1.45;
@@ -178,7 +181,7 @@ export function createStreambed(renderer: WebGLRenderer) {
       if (!enabled || !ready) return;
       if (loadTextures && requested !== next) void loadTextures(next).catch(() => {});
       if (Number.isFinite(dt) && dt > 0 && !reducedMotion) elapsed += Math.min(dt, 0.1);
-      plant.time.value = leaf.time.value = foam.uniforms.bedTime!.value = elapsed;
+      plant.time.value = leaf.time.value = stoneTime.value = foam.uniforms.bedTime!.value = elapsed;
       const range = next === "Low" ? 38 : next === "Balanced" ? 65 : 88;
       let candidate = -1, nearest = Infinity;
       for (let id = 0; id < layout!.centers.length; id++) {

@@ -23,16 +23,23 @@ export function createBedStoneFallback() {
   return material;
 }
 
-export function createBedStoneMaterial(textures: readonly Texture[], size: number, boulder: boolean) {
+export function createBedStoneMaterial(textures: readonly Texture[], size: number, boulder: boolean, time: { value: number } = { value: 0 }) {
   const original = new MeshStandardMaterial({ color: 0xffffff });
   const material = createPhotoMaterial("rock", original, textures, size);
   original.dispose();
   const compile = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     compile.call(material, shader, renderer);
+    shader.uniforms.bedTime = time;
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
-      attribute vec2 bedWet; varying vec2 vBedWet;`).replace("#include <begin_vertex>", `#include <begin_vertex>
-      vBedWet = bedWet;`);
+      attribute vec2 bedWet; varying vec2 vBedWet; uniform float bedTime;`).replace("#include <begin_vertex>", `#include <begin_vertex>
+      vBedWet = bedWet;`).replace("photoWorld = (modelMatrix * photoPosition).xyz;", `photoWorld = (modelMatrix * photoPosition).xyz;
+        // Refraction shimmer: submerged stones sway with the passing ripples;
+        // texturing keeps the undisplaced position, so the stone itself moves.
+        float bedUnder = smoothstep(0.03, 0.15, bedWet.x - photoWorld.y);
+        vec2 bedShimmer = bedUnder * 0.011 * vec2(sin(bedTime * 1.7 + photoWorld.z * 7.0 + photoWorld.x * 2.3),
+          cos(bedTime * 1.3 + photoWorld.x * 6.1 - photoWorld.z * 1.9));
+        gl_Position = projectionMatrix * viewMatrix * vec4(photoWorld + vec3(bedShimmer.x, 0.0, bedShimmer.y), 1.0);`);
     shader.fragmentShader = shader.fragmentShader.replace("void main() {", `varying vec2 vBedWet;
       void main() {`).replace("float baseTile = 4.0;", `float baseTile = ${boulder ? "4.0" : "2.0"};`)
       .replace("float overlayTile = baseTile; float overlay = 0.0;", `
@@ -49,36 +56,54 @@ export function createBedStoneMaterial(textures: readonly Texture[], size: numbe
         float region =`)
       .replace("roughnessFactor = clamp(photoRelief.b, 0.72, 1.0);", `roughnessFactor = mix(clamp(photoRelief.b, 0.72, 1.0), 0.38, bedWetness * (1.0 - overlay));`);
   };
-  material.customProgramCacheKey = () => `streambed-photo-v2:${boulder}:${size}`;
+  material.customProgramCacheKey = () => `streambed-photo-v3:${boulder}:${size}`;
   return material;
 }
 
-/** Rooted tapered blades. Only the free tip moves; no per-frame instance uploads. */
+/** Leaf litter (leaf = true) or rooted ribbon-weed clumps. Only shader motion; no per-frame uploads. */
 export function createBedPlantMaterial(leaf: boolean) {
-  const material = new MeshStandardMaterial({ color: leaf ? 0x67553a : 0x568634,
-    emissive: leaf ? 0 : 0x182d08, emissiveIntensity: 0.22, roughness: 0.82, metalness: 0, side: DoubleSide });
+  const material = new MeshStandardMaterial({ color: leaf ? 0x67553a : 0xffffff,
+    emissive: leaf ? 0 : 0x0f2205, emissiveIntensity: leaf ? 0.22 : 0.35, roughness: leaf ? 0.82 : 0.55, metalness: 0, side: DoubleSide });
   const time = { value: 0 };
   material.onBeforeCompile = shader => {
     shader.uniforms.bedTime = time;
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
-      attribute vec2 bedWet; uniform float bedTime; varying vec2 vBedUv; varying float vBedSeed;`)
+      attribute vec2 bedWet; ${leaf ? "" : "attribute float bladeSeed;"} uniform float bedTime;
+      varying vec2 vBedUv; varying float vBedSeed; varying float vBladeSeed;`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
         vBedUv = uv; vBedSeed = bedWet.y;
         float tip = uv.y;
-        transformed.x *= pow(max(0.0, sin(tip * 3.14159265)), 0.65);
-        ${leaf ? `transformed.z += sin(tip * 3.14159265) * 0.012;
+        ${leaf ? `vBladeSeed = 0.0;
+          transformed.x *= pow(max(0.0, sin(tip * 3.14159265)), 0.65);
+          transformed.z += sin(tip * 3.14159265) * 0.012;
           transformed.x += sin(bedTime * 0.25 + bedWet.y * 6.28) * 0.7;
           transformed.y += mod(bedTime * 0.08 + bedWet.y, 1.0) * 1.4 - 0.7;` : `
-          transformed.y += 0.5;
-          transformed.x += tip * tip * (0.9 + sin(bedTime * 1.6 + bedWet.y * 6.28 + tip * 2.0) * 0.55);
-          transformed.z += tip * tip * sin(bedTime * 1.1 + bedWet.y * 9.0) * 0.08;`}`);
-    shader.fragmentShader = shader.fragmentShader.replace("void main() {", `varying vec2 vBedUv; varying float vBedSeed;
+          vBladeSeed = bladeSeed;
+          // Ribbon leaves stream with the current: a travelling flutter, tips lag the base.
+          float rate = 1.2 + bladeSeed * 0.9;
+          float wave = sin(bedTime * rate + bedWet.y * 6.28 + bladeSeed * 9.0 - tip * 3.2);
+          float bend = tip * tip;
+          transformed.x += bend * (0.62 + 0.22 * wave);
+          transformed.z += bend * sin(bedTime * 0.8 * rate + bladeSeed * 13.0 + bedWet.y * 9.0 - tip * 2.4) * 0.16;
+          transformed.y -= bend * (0.16 + 0.05 * wave);`}`);
+    shader.fragmentShader = shader.fragmentShader.replace("void main() {", `varying vec2 vBedUv; varying float vBedSeed; varying float vBladeSeed;
+      float bedPlantHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       void main() {`).replace("#include <color_fragment>", `#include <color_fragment>
-        float vein = 1.0 - smoothstep(0.01, 0.045, abs(vBedUv.x - 0.5));
+        ${leaf ? `float vein = 1.0 - smoothstep(0.01, 0.045, abs(vBedUv.x - 0.5));
         float ribs = pow(0.5 + 0.5 * sin(vBedUv.y * 95.0 + abs(vBedUv.x - 0.5) * 23.0), 6.0);
-        diffuseColor.rgb *= 0.68 + vBedUv.y * 0.28 + vBedSeed * 0.25 + vein * 0.18 - ribs * 0.13;`);
+        diffuseColor.rgb *= 0.68 + vBedUv.y * 0.28 + vBedSeed * 0.25 + vein * 0.18 - ribs * 0.13;` : `
+        // Pale base in the gravel, clear green blade, older tips olive-brown with epiphyte film.
+        float age = smoothstep(0.45, 1.0, vBedUv.y) * (0.45 + 0.55 * vBladeSeed);
+        vec3 blade = mix(vec3(0.20, 0.36, 0.08), vec3(0.26, 0.42, 0.12), vBedSeed);
+        blade = mix(vec3(0.34, 0.37, 0.16), blade, smoothstep(0.0, 0.18, vBedUv.y));
+        blade = mix(blade, vec3(0.30, 0.27, 0.12), age * 0.7);
+        // Fine parallel veins and lacunae run the length of the strap.
+        float veins = 0.5 + 0.5 * cos(vBedUv.x * 6.2831 * 4.0);
+        float speck = step(0.86, bedPlantHash(floor(vec2(vBedUv.x * 6.0, vBedUv.y * 140.0)) + vBladeSeed * 31.0));
+        blade *= 0.86 + veins * 0.14 - speck * age * 0.35;
+        diffuseColor.rgb = blade;`}`);
   };
-  material.customProgramCacheKey = () => `streambed-plant-v1:${leaf}`;
+  material.customProgramCacheKey = () => `streambed-plant-v2:${leaf}`;
   return { material, time };
 }
 
@@ -109,11 +134,12 @@ export function createBedFoamMaterial() {
         for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) {
           vec2 neighbour = vec2(float(x), float(y));
           vec2 jitter = foamHash(cell + neighbour);
-          float radius = 0.10 + jitter.x * 0.20;
-          bubble = min(bubble, abs(length(neighbour + jitter - within) - radius));
+          // Filled micro-bubbles of mixed size, clustered; no hollow rings.
+          float radius = 0.04 + jitter.x * jitter.x * 0.16;
+          bubble = min(bubble, length(neighbour + jitter - within) - radius);
         }
         float aa = max(fwidth(bubble), 0.025);
-        float bubbles = 1.0 - smoothstep(0.035, 0.035 + aa, bubble);
+        float bubbles = (1.0 - smoothstep(0.0, aa, bubble)) * 0.8 + 0.2 * (1.0 - smoothstep(0.0, 0.35, bubble));
         float alpha = min(1.0, side + trail * 0.6) * fade * breakup * bubbles * 0.53;
         if (alpha < 0.025) discard;
         gl_FragColor = vec4(foamColor, alpha);

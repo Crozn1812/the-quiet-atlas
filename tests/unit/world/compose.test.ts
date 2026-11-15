@@ -21,6 +21,7 @@ import { FIXED_DT } from "../../../src/features/world/timestep";
 import { PALETTE } from "../../../src/features/world/art/palette";
 import { createWaterMaterial, WaterMaterial } from "../../../src/features/world/water/material";
 import { RIBBON_CROSS_SEGMENTS, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
+import { CASCADE_ROWS } from "../../../src/features/world/water/cascade";
 
 afterEach(() => { disposeRampGradients(); vi.restoreAllMocks(); });
 
@@ -63,7 +64,7 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
         const water = scene.children.filter((child): child is Mesh<BufferGeometry, WaterMaterial> =>
           child instanceof Mesh && child.material instanceof WaterMaterial);
         expect(water).toHaveLength(4);
-        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([RIBBON_SEGMENTS * RIBBON_CROSS_SEGMENTS * 2, 2, 12, 24]);
+        expect(water.map(mesh => mesh.geometry.index!.count / 3)).toEqual([RIBBON_SEGMENTS * RIBBON_CROSS_SEGMENTS * 2, 2, 12, CASCADE_ROWS * 6]);
         if (quality === "High" && id === "quiet-shore") {
           let triangles = 0, draws = 0;
           scene.traverseVisible(object => {

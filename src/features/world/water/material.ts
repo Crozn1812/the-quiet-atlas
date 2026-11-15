@@ -15,17 +15,40 @@ export const SEA_SHORE_SAMPLES = 109;
 /** Shoreline slope |dz/dx| above which the foam line fades out (bay corners after B2-152b). */
 export const SEA_FOAM_MAX_SLOPE = 3;
 
-/** Small tileable normal map, made once, with no network asset or frame work. */
+/** Tileable ripple slopes, made once on the CPU (32 KB, no network asset).
+ * Periodic gradient-noise octaves at unrelated orientations: no dominant wave
+ * vector, so the surface never reads as parallel ruled bands. */
+export const FLOW_NORMAL_SIZE = 128;
 function createFlowNormal(): DataTexture {
-  const size = 64, data = new Uint8Array(size * size * 2);
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-    const u = x / size * Math.PI * 2, v = y / size * Math.PI * 2;
-    const a = Math.cos(3 * u + 2 * v), b = Math.cos(7 * u - 3 * v + 1.7);
-    const c = Math.cos(2 * u - 5 * v + 0.8);
-    const i = (y * size + x) * 2;
-    data[i] = Math.round(127.5 + 127.5 * (0.5 * a + 0.28 * b + 0.16 * c));
-    data[i + 1] = Math.round(127.5 + 127.5 * (0.34 * a - 0.12 * b - 0.4 * c));
+  const size = FLOW_NORMAL_SIZE, height = new Float32Array(size * size);
+  let state = 0x9e3779b9;
+  const random = () => { state = (Math.imul(state ^ (state >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0; return state / 4294967296; };
+  // Periodic value-gradient noise on an integer lattice that wraps at "period".
+  function octave(period: number, amplitude: number) {
+    const gradients = Array.from({ length: period * period }, () => { const a = random() * Math.PI * 2; return [Math.cos(a), Math.sin(a)] as const; });
+    const g = (x: number, y: number) => gradients[((y % period + period) % period) * period + (x % period + period) % period]!;
+    const fade = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const u = x / size * period, v = y / size * period, ix = Math.floor(u), iy = Math.floor(v), fx = u - ix, fy = v - iy;
+      const dot = (cx: number, cy: number) => { const [gx, gy] = g(ix + cx, iy + cy); return gx * (fx - cx) + gy * (fy - cy); };
+      const sx = fade(fx), sy = fade(fy);
+      const top = dot(0, 0) + (dot(1, 0) - dot(0, 0)) * sx, bottom = dot(0, 1) + (dot(1, 1) - dot(0, 1)) * sx;
+      const k = y * size + x; height[k] = height[k]! + (top + (bottom - top) * sy) * amplitude;
+    }
   }
+  for (const [period, amplitude] of [[4, 1], [7, 0.62], [12, 0.4], [21, 0.24], [32, 0.13]] as const) octave(period, amplitude);
+  // Sharpen crests slightly (trochoidal water) before differentiating.
+  for (let i = 0; i < height.length; i++) height[i] = Math.sign(height[i]!) * Math.pow(Math.abs(height[i]!), 0.85);
+  const slopes = new Float32Array(size * size * 2);
+  let peak = 0;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const h = (ix: number, iy: number) => height[((iy + size) % size) * size + (ix + size) % size]!;
+    const dx = (h(x + 1, y) - h(x - 1, y)) / 2, dy = (h(x, y + 1) - h(x, y - 1)) / 2;
+    slopes[(y * size + x) * 2] = dx; slopes[(y * size + x) * 2 + 1] = dy;
+    peak = Math.max(peak, Math.abs(dx), Math.abs(dy));
+  }
+  const data = new Uint8Array(size * size * 2);
+  for (let i = 0; i < data.length; i++) data[i] = Math.round(127.5 + 127.5 * Math.max(-1, Math.min(1, slopes[i]! / peak * 1.25)));
   const texture = new DataTexture(data, size, size, RGFormat);
   texture.name = "stream-flow-normal";
   texture.wrapS = texture.wrapT = RepeatWrapping;
@@ -164,6 +187,27 @@ const fragmentShader = /* glsl */ `
     return smoothstep(0.68, 0.94, waterField(across, along));
   }
   // End water noise functions.
+  #if defined(WATER_RIPPLES) && !defined(SEA_WATER)
+  // Animated cellular network: the bright focusing lines of sunlight through ripples.
+  float waterCausticCells(vec2 p, float t) {
+    vec2 i = floor(p), f = fract(p);
+    float first = 8.0, second = 8.0;
+    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+      vec2 o = vec2(float(x), float(y));
+      vec2 h = vec2(waterHash(i.x + o.x, i.y + o.y), waterHash(i.x + o.x + 41.0, i.y + o.y - 23.0));
+      vec2 r = o + 0.5 + 0.42 * sin(t + 6.2831 * h) - f;
+      float d = dot(r, r);
+      if (d < first) { second = first; first = d; } else if (d < second) second = d;
+    }
+    return sqrt(second) - sqrt(first);
+  }
+  float waterCaustic(vec2 p, float t) {
+    float a = waterCausticCells(p, t);
+    float b = waterCausticCells(mat2(0.8, -0.6, 0.6, 0.8) * p * 1.37 + 5.3, t * 1.21 + 2.0);
+    float lines = (1.0 - smoothstep(0.0, 0.32, a)) * 0.6 + (1.0 - smoothstep(0.0, 0.36, b)) * 0.4;
+    return lines * lines * lines;
+  }
+  #endif
   #ifdef SEA_WATER
     ${SURF_GLSL}
     ${SEA_OPTICS_GLSL}
@@ -296,6 +340,7 @@ const fragmentShader = /* glsl */ `
         color *= 1.0 + breaker * 0.12;
       #endif
     #endif
+    vec2 rippleSlopes = vec2(0.0);
     #ifdef WATER_REFLECTION
       vec3 surfaceNormal = normalize(vSurfaceNormal);
       #ifdef WATER_RIPPLES
@@ -304,10 +349,26 @@ const fragmentShader = /* glsl */ `
         // then rotate it by the local spline tangent, including every bend.
         vec3 downstream = normalize(vWaterTangent);
         vec3 crossStream = vec3(-downstream.z, 0.0, downstream.x);
-        vec2 slopes = texture2D(uFlowNormal, vec2(across / 4.0, flow / 6.0)).rg * 2.0 - 1.0;
-        vec3 ripple = (crossStream * slopes.x + downstream * slopes.y)
-          * 0.085 * rippleDistanceFade;
+        // Flow-map advection: the surface travels downstream at a varying
+        // speed with slow eddies, two staggered phases hide each restart.
+        vec2 metres = vec2(across, vWaterUv.y);
+        float eddyX = waterNoise(across * 0.7 + 7.0, vWaterUv.y * 0.32 - uTime * 0.04) - 0.5;
+        float eddyY = waterNoise(across * 0.7 - 3.0, vWaterUv.y * 0.32 + 11.0 - uTime * 0.04) - 0.5;
+        float current = 0.25 + 0.75 * smoothstep(0.0, 1.6, bankDistance);
+        vec2 drift = vec2(eddyX * 1.3, 1.0 + eddyY * 0.7) * 0.42 * current;
+        float cycle = uTime * 0.4;
+        float phaseA = fract(cycle), phaseB = fract(cycle + 0.5);
+        float weightA = 1.0 - abs(1.0 - 2.0 * phaseA);
+        vec2 uvA = metres - drift * phaseA * 2.5, uvB = metres - drift * phaseB * 2.5 + vec2(0.37, 0.61);
+        mat2 turn = mat2(0.6, 0.8, -0.8, 0.6);
+        vec2 slopes = mix(
+          texture2D(uFlowNormal, uvB / 2.6).rg + texture2D(uFlowNormal, turn * uvB / 0.9).rg * 0.75,
+          texture2D(uFlowNormal, uvA / 2.6).rg + texture2D(uFlowNormal, turn * uvA / 0.9).rg * 0.75,
+          weightA) / 1.75 * 2.0 - 1.0;
+        float nearRipple = 1.0 - smoothstep(18.0, 75.0, length(vWaterWorld - cameraPosition));
+        vec3 ripple = (crossStream * slopes.x + downstream * slopes.y) * (0.05 + 0.17 * nearRipple);
         surfaceNormal = normalize(surfaceNormal + mat3(viewMatrix) * ripple);
+        rippleSlopes = slopes * nearRipple;
         #endif
       #endif
       #ifdef SEA_WATER
@@ -384,7 +445,9 @@ const fragmentShader = /* glsl */ `
       // Sea aerosol merges the water into the sky without an exposed quad edge.
       float mist = seaMist(length(cameraPosition - vWaterWorld), abs(worldView.y));
       color = mix(color, uSkyHorizon, mist);
-      float brush = 0.7 + 0.3 * sin(vWaterWorld.x * 1.7 + vWaterWorld.z * 2.7);
+      // Breaking crests tear into clumps and gaps; never one continuous white rule.
+      float brush = smoothstep(0.32, 0.72, 0.62 * waterNoise(vWaterWorld.x * 0.55 + 3.1, vWaterWorld.z * 1.4 - uTime * 0.25)
+        + 0.38 * waterNoise(vWaterWorld.x * 2.9 - uTime * 0.1, vWaterWorld.z * 4.3));
       float foam = 0.0;
       #ifdef C_WATER
         // Crest whitens in the last metres, then joins the terrain-conforming uprush.
@@ -429,6 +492,25 @@ const fragmentShader = /* glsl */ `
         float rapid = (1.0 - smoothstep(0.25, 0.65, bedDepth))
           * smoothstep(0.06, 0.18, bedDepth) * (1.0 - smoothstep(3.0, 7.0, riverWidth));
         color = mix(color, uPaperColor, rapid * stroke * 0.09 * rippleDistanceFade);
+        #ifdef WATER_RIPPLES
+        // Caustics are drawn where the refracted view ray meets the bed, so
+        // they keep correct parallax over stones and gravel.
+        vec3 toEye = normalize(cameraPosition - vWaterWorld);
+        vec2 bedPoint = vWaterWorld.xz - toEye.xz / max(toEye.y, 0.25) * max(bedDepth, 0.0) * 0.75;
+        bedPoint += rippleSlopes * 0.12;
+        vec2 causticUv = bedPoint * 3.4;
+        float causticFilter = 1.0 - smoothstep(0.12, 0.45, length(fwidth(causticUv)));
+        float caustic = waterCaustic(causticUv, uTime * 0.9) * causticFilter
+          * (1.0 - opticalDepth * 0.7) * waterCoverage * (1.0 - smoothstep(0.0, 0.25, max(sourceFoam, vCascade)));
+        float sunThrough = smoothstep(0.0, 0.2, uSunDirection.y);
+        vec3 causticLight = uSunWashColor * 1.6 + uEdgeColor * 0.6;
+        float causticAlpha = caustic * 0.16 * sunThrough;
+        // Light focused on the bed: added beneath the surface tint.
+        color = (color * opacity + causticLight * causticAlpha) / max(opacity + causticAlpha, 0.0001);
+        opacity = min(1.0, opacity + causticAlpha * (1.0 - opacity));
+        // Ripple lensing slightly darkens/brightens the see-through layer.
+        color *= 1.0 + dot(rippleSlopes, vec2(0.45, 0.7)) * 0.25;
+        #endif
         #endif
       #endif
     #endif

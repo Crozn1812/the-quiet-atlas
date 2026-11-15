@@ -2,7 +2,7 @@ import { BufferGeometry, Float32BufferAttribute, RGFormat, Vector3 } from "three
 import { describe, expect, it, vi } from "vitest";
 import { riverLength, riverTangentAt } from "../../../src/features/world/layout/river";
 import { bakeStreamOptics, STREAM_DEPTH_COLUMNS } from "../../../src/features/world/water/depth";
-import { createWaterMaterial } from "../../../src/features/world/water/material";
+import { createWaterMaterial, FLOW_NORMAL_SIZE } from "../../../src/features/world/water/material";
 import { createRiverRibbon, RIBBON_CROSS_SEGMENTS, RIBBON_SEGMENTS } from "../../../src/features/world/water/ribbon";
 
 const smoothstep = (a: number, b: number, x: number) => {
@@ -61,7 +61,7 @@ describe("STREAM-C", () => {
       expect(reflection(0.95)).toBeGreaterThan(reflection(0.3) * 20);
       expect(reflection(1)).toBeLessThanOrEqual(0.72);
       expect(texture.format).toBe(RGFormat);
-      expect(texture.image.data.byteLength).toBe(8192);
+      expect(texture.image.data.byteLength).toBe(FLOW_NORMAL_SIZE * FLOW_NORMAL_SIZE * 2);
       expect(new Set(texture.image.data).size).toBeGreaterThan(100);
       const disposed = vi.fn();
       texture.addEventListener("dispose", disposed);

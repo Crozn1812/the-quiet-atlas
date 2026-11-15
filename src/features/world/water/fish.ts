@@ -3,6 +3,12 @@ import type { Quality } from "../terrain";
 import { createFishGeometry, createFishMaterial } from "./fish-shader";
 import { createFishSchools } from "./fish-schools";
 
+/** Mixed year classes: 0.5-1.0 x the 0.56 m template (about 28-56 cm), never two equal neighbours. */
+export function fishSize(school: number, fish: number) {
+  const h = Math.abs(Math.sin((school + 1) * 12.9898 + fish * 78.233) * 43758.5453) % 1;
+  return 0.5 + h * h * 0.5;
+}
+
 /** Retains the existing entry point and lifecycle, including the First Light school. */
 export function createFirstLightFish() {
   const schools = createFishSchools();
@@ -21,7 +27,7 @@ export function createFirstLightFish() {
     for (let fish = 0; fish < school.count; fish++) {
       centers.push(school.center.x, school.center.y, school.center.z, id);
       motions.push(fish * 2.39996, (fish / (school.count - 1) - 0.5) * 1.5,
-        Math.sin(fish * 2.39996) * 0.3, 0.84 + (fish % 4) * 0.08);
+        Math.sin(fish * 2.39996) * 0.3, fishSize(id, fish));
       reaches.push(school.span, school.width, school.phase, school.length);
       // Uploaded once; the shader owns all subsequent displacement.
       matrix.makeTranslation(school.center.x, school.center.y - school.submergence, school.center.z);

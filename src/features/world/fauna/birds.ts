@@ -1,4 +1,4 @@
-import { DynamicDrawUsage, Group, InstancedBufferAttribute, InstancedMesh, Mesh, MeshStandardMaterial, Object3D, Vector3, type Scene, type Camera } from "three";
+import { DynamicDrawUsage, Group, InstancedBufferAttribute, InstancedMesh, Mesh, Object3D, Vector3, type Material, type Scene, type Camera } from "three";
 import { ZONES } from "../layout/zones";
 import { surfaceHeight } from "../scene/compose";
 import { nearestPath } from "../terrain/samples";
@@ -108,8 +108,8 @@ export function createBirds(scene: Scene) {
   return { group, batches, build, update, listener, dispose() {
     if (disposed) return;
     disposed = true; build.return();
-    for (const { mesh, high, low } of batches) { mesh.dispose(); high.dispose(); low.dispose(); (mesh.material as MeshStandardMaterial).dispose(); }
-    for (const limb of branches) { limb.geometry.dispose(); (limb.material as MeshStandardMaterial).dispose(); }
+    for (const { mesh, high, low } of batches) { mesh.dispose(); high.dispose(); low.dispose(); (mesh.material as Material).dispose(); }
+    for (const limb of branches) { limb.geometry.dispose(); (limb.material as Material).dispose(); }
     group.removeFromParent(); group.clear(); batches.length = 0;
   } };
 }
