@@ -11,7 +11,7 @@ it("ships all nineteen CC0 prop architectures with decodable distinct LODs and s
   await MeshoptDecoder.ready;
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ "meshopt.decoder": MeshoptDecoder });
   const manifest = JSON.parse(await readFile("public/world/lib/manifest.json", "utf8"));
-  const entries = manifest.assets.filter((a: { id: string }) => /^hr-(prop|rock|palm)-/.test(a.id));
+  const entries = manifest.assets.filter((a: { id: string }) => /^hr-(prop|rock|palm)-/.test(a.id) && !HR_PROP_FAMILIES.structure.includes(a.id as typeof HR_PROP_FAMILIES.structure[number]));
   const licenses = (await readFile("assets/LICENSES.csv", "utf8")).split("\n");
   expect(entries).toHaveLength(19);
   for (const family of Object.values(HR_PROP_FAMILIES)) for (const id of family) expect(manifest.assets.some((a: { id: string }) => a.id === id)).toBe(true);

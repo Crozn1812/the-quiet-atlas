@@ -9,6 +9,7 @@ import {
   createRoadLayout, ROAD_END, ROAD_LIFT, ROAD_START, roadFrameAt,
 } from "./layout";
 import { createRoadInstances, createRoadWires } from "./posts";
+import { bindHrStructure } from "../props/hr-structures";
 import { roadBandOffsetAt, roadSurfaceColorAt } from "./surface";
 
 // Duplicate band boundaries to keep crisp paint in the same draw call as asphalt.
@@ -105,6 +106,7 @@ export function createCoastRoad() {
   surface.receiveShadow = true;
   const layout = createRoadLayout();
   const posts = createRoadInstances(layout.posts, false, material);
+  const releasePosts = bindHrStructure(posts,false,true);
   const poles = createRoadInstances(layout.poles, true, material);
   const wires = createRoadWires(layout.poles);
   // Keep the module at four draws, including when the scene enables shadow maps.
@@ -121,6 +123,7 @@ export function createCoastRoad() {
     dispose() {
       if (disposed) return;
       disposed = true;
+      releasePosts();
       group.removeFromParent();
       for (const mesh of [surface, posts, poles, wires]) mesh.geometry.dispose();
       posts.dispose();

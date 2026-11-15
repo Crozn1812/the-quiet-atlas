@@ -27,15 +27,17 @@ export function createPlankGeometry(): BufferGeometry {
   return geometry(positions, indices);
 }
 
-/** A bowed square bamboo/wood beam, shared by posts and handrails: twenty triangles. */
+/** Bowed timber with eight chamfered arrises; same contact envelope and origin. */
 export function createRailGeometry(): BufferGeometry {
+  const section=[[-.38,-.5],[-.5,-.38],[-.5,.38],[-.38,.5],[.38,.5],[.5,.38],[.5,-.38],[.38,-.5]];
   const positions = [-0.5, 0, 0.5].flatMap(y => [
-    [-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [0.5, -0.5],
+    ...section,
   ].flatMap(([x, z]) => [x! + (y === 0 ? 0.08 : 0), y, z! + (y === 0 ? 0.05 : 0)]));
-  const indices = [0, 2, 1, 0, 3, 2, 8, 9, 10, 8, 10, 11];
-  for (let row = 0; row < 2; row++) for (let i = 0; i < 4; i++) {
-    const a = row * 4 + i, b = row * 4 + (i + 1) % 4;
-    indices.push(a, b, a + 4, b, b + 4, a + 4);
+  const indices:number[]=[];
+  for(let i=1;i<7;i++)indices.push(0,i+1,i,16,16+i,17+i);
+  for (let row = 0; row < 2; row++) for (let i = 0; i < 8; i++) {
+    const a = row * 8 + i, b = row * 8 + (i + 1) % 8;
+    indices.push(a, b, a + 8, b, b + 8, a + 8);
   }
   return geometry(positions, indices);
 }

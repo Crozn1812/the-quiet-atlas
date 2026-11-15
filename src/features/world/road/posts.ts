@@ -15,11 +15,12 @@ function bollardGeometry() {
   const builder = roadGeometryBuilder();
   // Octagonal body with a bevelled red cap; dimensions measured along the tilted shaft.
   const rings = [[0, 0.1], [0.68, 0.1], [0.87, 0.1], [0.9, 0.075]] as const;
+  const sides=24;
   const point = (ring: number, side: number) => {
     const [y, radius] = rings[ring]!;
-    return new Vector3(Math.cos(side * Math.PI / 4) * radius, y, Math.sin(side * Math.PI / 4) * radius);
+    return new Vector3(Math.cos(side * Math.PI*2 / sides) * radius, y, Math.sin(side * Math.PI*2 / sides) * radius);
   };
-  for (let side = 0; side < 8; side++) {
+  for (let side = 0; side < sides; side++) {
     for (let ring = 0; ring < rings.length - 1; ring++) {
       const color = ring === 0 ? "laneWhite" : "vermilion";
       builder.triangle(point(ring, side), point(ring + 1, side), point(ring, side + 1), color);

@@ -1,7 +1,8 @@
 import { BufferGeometry, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createFern, createGrassTuft } from "../foliage/ground";
-import { createLibraryBatch, fitDressing, type DressingSite } from "../props/library-batch";
+import { fitDressing, type DressingSite } from "../props/library-batch";
+import { createHrPropsBatch as createLibraryBatch } from "../props/hr-props";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneSceneContext } from "./types";
 
 // Two uneven stones seat the welcome log; damp fern pockets stop at the path
@@ -65,5 +66,7 @@ export function createFirstLightDressing(context: ZoneSceneContext) {
   }
   fallback.computeBoundingBox(); fallback.computeBoundingSphere();
   fallback.userData.parts = [];
-  return createLibraryBatch(fallback, sites, context.heightAt);
+  const batch=createLibraryBatch(fallback, sites, context.heightAt);
+  batch.mesh.name="first-light-dressing";
+  return batch;
 }

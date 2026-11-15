@@ -1,7 +1,7 @@
 import { reportBudget } from "../report-budget";
 import { describe, expect, it, vi } from "vitest";
-import { BoxGeometry, Color, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, ShaderLib, Texture,
-  type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
+import { BoxGeometry, Color, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Texture,
+  type WebGLRenderer } from "three";
 import { createFirstLightDressing, firstLightDressingSites } from "../../../../src/features/world/zones/first-light-dressing";
 import { createLibraryBatch, flattenDressing, type DressingAsset, type LibrarySource } from "../../../../src/features/world/props/library-batch";
 import { setBakedPropQuality } from "../../../../src/features/world/props/batched";
@@ -79,10 +79,10 @@ describe("First Light library dressing", () => {
     camera.position.set(0, 2, 0); camera.updateMatrixWorld(); render();
     expect(batch.mesh.geometry.drawRange.count).toBe(Infinity);
     reportBudget("tests/unit/world/zones/first-light-dressing.test.ts:80 triangles(batch.mesh)", triangles(batch.mesh), 300);
-    const shader = { ...ShaderLib.standard, uniforms: {} } as WebGLProgramParametersWithUniforms;
-    batch.mesh.material.onBeforeCompile(shader, renderer);
-    expect(shader.vertexShader).toContain("vDressingUv = uv");
-    expect(shader.fragmentShader).toContain("sampleColor.a < 0.5");
+    expect(batch.mesh.material).toBeInstanceOf(MeshStandardMaterial);
+    expect(batch.mesh.material.vertexColors).toBe(true);
+    // Streamed HR primitives own their PBR materials; the cheap fallback has no atlas shader.
+    expect(batch.mesh.material.map).toBeNull();
     batch.dispose();
   });
 

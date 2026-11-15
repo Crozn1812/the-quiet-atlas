@@ -1,6 +1,9 @@
 import {
-  BufferAttribute, BufferGeometry, Color, Group, InstancedMesh, Matrix4, Mesh, Quaternion, Vector3,
+  BufferAttribute, BufferGeometry, Color, CylinderGeometry, Group, InstancedMesh, Matrix4, Mesh, Quaternion, Vector3,
 } from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { bindHrStructure } from "../props/hr-structures";
+import { bindFasteners } from "../props/fasteners";
 import { PALETTE } from "../art/palette";
 import { createRampMaterial } from "../materials/ramp";
 import { createBridgeColliders } from "./colliders";
@@ -39,7 +42,8 @@ export function createBridges() {
   material.vertexColors = true;
   const planks = new InstancedMesh(createPlankGeometry(), material, plankCount);
   const rails = new InstancedMesh(createRailGeometry(), material, railCount);
-  const moss = new InstancedMesh(createMossGeometry(), material, mossCount);
+  const mossMaterial=material.clone();
+  const moss = new InstancedMesh(createMossGeometry(), mossMaterial, mossCount);
   const group = new Group();
   group.name = "path-bridges";
   planks.name = "bridge-transverse-timbers";
@@ -112,6 +116,10 @@ export function createBridges() {
     mesh.computeBoundingSphere();
   }
   const triangles = meshes.reduce((n, mesh) => n + mesh.geometry.getAttribute("position").count / 3 * mesh.count, 0);
+  const releases = [bindHrStructure(planks,true,false,"x"),bindHrStructure(rails,true,false,"y"),bindHrStructure(moss,false)];
+  const bolts = [-.42,.42].flatMap(x=>[-.24,.24].map(z=>new CylinderGeometry(.014,.015,.04,8).translate(x,.015,z)));
+  const boltGeometry=mergeGeometries(bolts)!;bolts.forEach(g=>g.dispose());
+  releases.push(bindFasteners(planks,boltGeometry));
   let disposed = false;
   return {
     group, bridges, meshes, colliders: bridges.flatMap(b => b.colliders),
@@ -119,11 +127,13 @@ export function createBridges() {
     dispose() {
       if (disposed) return;
       disposed = true;
+      releases.reverse().forEach(release=>release());
       group.removeFromParent();
       group.clear();
       for (const mesh of meshes) { mesh.dispose(); mesh.geometry.dispose(); }
       bridges.forEach(b => b.surface.geometry.dispose());
       material.dispose();
+      mossMaterial.dispose();
       // The shared ramp texture belongs to the world.
     },
   };

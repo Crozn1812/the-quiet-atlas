@@ -16,6 +16,7 @@ export const HR_PROP_FAMILIES = {
   palm: ["hr-palm-coconut", "hr-palm-leaning", "hr-palm-shore"],
   hill: ["hr-tree-spreading-crown", "hr-tree-umbrella-crown", "hr-tree-slender-upright", "hr-tree-leaning-riverside"],
   grass: ["hr-prop-grass-meadow"],
+  structure: ["hr-prop-sawn-timber", "hr-prop-coastal-coating", "hr-prop-storm-lantern"],
 } as const;
 export type HrPropId = typeof HR_PROP_FAMILIES[keyof typeof HR_PROP_FAMILIES][number];
 export interface HrPropSite extends Omit<DressingSite, "asset"> { asset: HrPropId; baseY?: number }
@@ -233,7 +234,7 @@ export function bindHrProps(mesh: Mesh, sites: readonly HrPropSite[], heightAt: 
   mesh.onAfterRender = function (renderer, ...args) {
     after.call(this, renderer, ...args);
     if (pending || quality === "Low" || disposed || !nearby) return;
-    const viewport = renderer.domElement.closest("[data-world-build]");
+    const viewport = renderer?.domElement?.closest("[data-world-build]");
     if (viewport?.getAttribute("data-world-build") === "done" && viewport.getAttribute("data-world-intro") === "done"
       && viewport.getAttribute("data-world-paused") === "false") void loadDetail(renderer);
   };

@@ -1,4 +1,8 @@
-import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
+import { BoxGeometry, CylinderGeometry, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { bindHrStructure } from "../props/hr-structures";
+import { bindFasteners } from "../props/fasteners";
 import type { InteractionTarget } from "../../interaction/targets";
 import { RAILING_COPY } from "../../../i18n/railing";
 import { hex } from "../art/palette";
@@ -54,9 +58,9 @@ function bayGeometry() {
   const builder = roadGeometryBuilder();
   // A timber/steel coastal fence: matte grey double beams, white posts, tiny faded red bands.
   for (const y of [.65, RAIL_HEIGHT]) {
-    builder.add(new BoxGeometry(1.015, .12, .12).translate(0, y - .06, 0), "rock");
+    builder.add(new RoundedBoxGeometry(1.015, .12, .12, 2, .018).translate(0, y - .06, 0), "rock");
   }
-  builder.add(new BoxGeometry(.055, 1.18, RAIL_DEPTH).translate(-.5, .59, 0), "laneWhite");
+  builder.add(new RoundedBoxGeometry(.055, 1.18, RAIL_DEPTH, 2, .014).translate(-.5, .59, 0), "laneWhite");
   builder.add(new BoxGeometry(.057, .09, RAIL_DEPTH + .002).translate(-.49, .94, 0), "vermilion");
   // Pale wash, using only locked palette pigments.
   const geometry = builder.finish();
@@ -93,6 +97,11 @@ export function createCoastRailing(protectedTargets: readonly InteractionTarget[
     mesh.computeBoundingBox(); mesh.computeBoundingSphere();
     group.add(mesh);
     return mesh;
+  });
+  const releases=meshes.flatMap(mesh=>{
+    const bolts=[.59,1.09].flatMap(y=>[-1,1].map(side=>new CylinderGeometry(.009,.01,.012,12).rotateX(Math.PI/2).translate(-.495,y,side*.069)));
+    const geometry=mergeGeometries(bolts)!;bolts.forEach(g=>g.dispose());
+    return [bindHrStructure(mesh,false,true),bindFasteners(mesh,geometry)];
   });
   // A shallow gravel/earth bank meets the terminal deck and descends to the beach.
   // Stay above the existing terrain; no global height or zone foundation changes.
@@ -141,10 +150,12 @@ export function createCoastRailing(protectedTargets: readonly InteractionTarget[
   }
   let disposed = false;
   return { group, layout, colliders, boxes, placeLookout, cameraObstacles: meshes, target, forward,
-    budget: { drawCalls: 4, trianglesPerBay: 48, triangles: layout.length * 48 + 120, assetBytes: 0 },
+    budget: { drawCalls: 4, trianglesPerBay: meshes[0]!.geometry.getAttribute("position").count/3,
+      triangles: meshes.reduce((n,m)=>n+m.geometry.getAttribute("position").count/3*m.count,0)+120, assetBytes: 0 },
     dispose() {
       if (disposed) return;
       disposed = true; group.removeFromParent();
+      releases.reverse().forEach(release=>release());
       for (const mesh of meshes) { mesh.geometry.dispose(); mesh.dispose(); }
       for (const mesh of boxes) mesh.geometry.dispose();
       bank.geometry.dispose();

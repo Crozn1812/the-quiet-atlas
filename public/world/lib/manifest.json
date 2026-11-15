@@ -4841,6 +4841,181 @@
           ]
         ]
       }
+    },
+    {
+      "id": "hr-prop-sawn-timber",
+      "category": "prop",
+      "license": "CC0-1.0",
+      "source": [
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry and authored 2K PBR surfaces; tools/assets/blender/hr-fix-wood.py; no third-party assets or AI pixels; CC0 dedication by project authors.",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-sawn-timber-lod0.glb",
+          "path": "/world/lib/hr-prop-sawn-timber-lod0.glb",
+          "bytes": 6924,
+          "sha256": "f36605edd46163741da7d209d2d5a7a0b019df69d8bc5f209a8385fd6958a322",
+          "triangles": 188,
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-wood-0aec884687416012.ktx2",
+              "bytes": 4051194,
+              "sha256": "0aec884687416012343d031f3ff4d6750c3e9662c704e8cb78fe429eebf69e4a"
+            },
+            {
+              "path": "/world/lib/hr-wood-10eb8b9409c460dd.ktx2",
+              "bytes": 3391313,
+              "sha256": "10eb8b9409c460dda61edffbba207161701bf47c24774c55dd2f4a4082194fea"
+            },
+            {
+              "path": "/world/lib/hr-wood-d590f78a9d0fa9a7.ktx2",
+              "bytes": 1126944,
+              "sha256": "d590f78a9d0fa9a7ba202cc167f55bde4099fc9a1137a33174ae8c1d0fdfcda0"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-sawn-timber-lod1.glb",
+          "path": "/world/lib/hr-prop-sawn-timber-lod1.glb",
+          "bytes": 4788,
+          "sha256": "1a99cf081f693e118389fb52db76705583b9f7574f2c2aa38452b0ce8f7c6fdf",
+          "triangles": 60,
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-wood-0aec884687416012.ktx2",
+              "bytes": 4051194,
+              "sha256": "0aec884687416012343d031f3ff4d6750c3e9662c704e8cb78fe429eebf69e4a"
+            },
+            {
+              "path": "/world/lib/hr-wood-10eb8b9409c460dd.ktx2",
+              "bytes": 3391313,
+              "sha256": "10eb8b9409c460dda61edffbba207161701bf47c24774c55dd2f4a4082194fea"
+            },
+            {
+              "path": "/world/lib/hr-wood-d590f78a9d0fa9a7.ktx2",
+              "bytes": 1126944,
+              "sha256": "d590f78a9d0fa9a7ba202cc167f55bde4099fc9a1137a33174ae8c1d0fdfcda0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hr-prop-coastal-coating",
+      "category": "prop",
+      "license": "CC0-1.0",
+      "source": [
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry and authored 2K PBR surfaces; tools/assets/blender/hr-fix-wood.py; no third-party assets or AI pixels; CC0 dedication by project authors.",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-coastal-coating-lod0.glb",
+          "path": "/world/lib/hr-prop-coastal-coating-lod0.glb",
+          "bytes": 6956,
+          "sha256": "5e1c4ac4a92e87a7397ed173b0d82e37033e75699f01c69b4b9bf2765edf9a0d",
+          "triangles": 188,
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-wood-2931902a1cd8e92f.ktx2",
+              "bytes": 4203415,
+              "sha256": "2931902a1cd8e92fe9ba1444d15f80fdc56dae57481c67e43e3a3d563a5c4c08"
+            },
+            {
+              "path": "/world/lib/hr-wood-ef91dab3c20954fb.ktx2",
+              "bytes": 3583520,
+              "sha256": "ef91dab3c20954fb0505c07ae4aa8ad9719cb16754265591cfdd52f7f7b3a181"
+            },
+            {
+              "path": "/world/lib/hr-wood-c6ed62e2267eebbe.ktx2",
+              "bytes": 3690610,
+              "sha256": "c6ed62e2267eebbe5eb7dbfbcaea21c08c622a5aa2b15ceb50a01bbdc31746da"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-coastal-coating-lod1.glb",
+          "path": "/world/lib/hr-prop-coastal-coating-lod1.glb",
+          "bytes": 4820,
+          "sha256": "8549a9c802b296add8600a55d1b3505d1ccb7408e2d2973858c0c0c0babe9442",
+          "triangles": 60,
+          "materials": 1,
+          "textures": 3,
+          "drawCalls": 1,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-wood-2931902a1cd8e92f.ktx2",
+              "bytes": 4203415,
+              "sha256": "2931902a1cd8e92fe9ba1444d15f80fdc56dae57481c67e43e3a3d563a5c4c08"
+            },
+            {
+              "path": "/world/lib/hr-wood-ef91dab3c20954fb.ktx2",
+              "bytes": 3583520,
+              "sha256": "ef91dab3c20954fb0505c07ae4aa8ad9719cb16754265591cfdd52f7f7b3a181"
+            },
+            {
+              "path": "/world/lib/hr-wood-c6ed62e2267eebbe.ktx2",
+              "bytes": 3690610,
+              "sha256": "c6ed62e2267eebbe5eb7dbfbcaea21c08c622a5aa2b15ceb50a01bbdc31746da"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hr-prop-storm-lantern",
+      "category": "prop",
+      "license": "CC0-1.0",
+      "source": [
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry and authored 2K PBR surfaces; tools/assets/blender/hr-fix-wood.py; no third-party assets or AI pixels; CC0 dedication by project authors.",
+      "delivery": "deferred-after-play",
+      "textureMaxDimension": 2048,
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-storm-lantern-lod0.glb",
+          "path": "/world/lib/hr-prop-storm-lantern-lod0.glb",
+          "bytes": 29948,
+          "sha256": "e4881c1bbd105a0fc49b5a5645c4b2b580cffa51dae34a957fd38826029c437d",
+          "triangles": 5212,
+          "materials": 4,
+          "textures": 0,
+          "drawCalls": 4,
+          "sharedTextures": []
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-storm-lantern-lod1.glb",
+          "path": "/world/lib/hr-prop-storm-lantern-lod1.glb",
+          "bytes": 14880,
+          "sha256": "0ac7210c34322fe021b0e246bcf1f375addf1395dc669636f03e35a87b45d946",
+          "triangles": 1666,
+          "materials": 4,
+          "textures": 0,
+          "drawCalls": 4,
+          "sharedTextures": []
+        }
+      ]
     }
   ]
 }
