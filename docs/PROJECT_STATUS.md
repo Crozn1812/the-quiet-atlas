@@ -1,5 +1,35 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## Đợt siêu thực (HR) — cập nhật 16/11 05:00 (Claude-Lead)
+
+**Merge thêm từ 15/11 04:50.** Gate là lint, typecheck, unit, assets, licenses, chạy trên main khi merge. e2e world do Lead chạy trên cổng 4191 sau khi build lại.
+
+| Commit | Ticket | Kiểm tra |
+|---|---|---|
+| b904135 | HR-GROUND | gate PASS |
+| c536ec6 | HR-SKY: mây nhiều lớp, bầu trời vật lý | gate PASS (unit 2020/1 skip); e2e world 43/43 |
+| 735f764 | HR-SHORE-TREES | gate PASS |
+| 6e6d493 | HR-AUDIT: 25 lỗi A01–A26 (`tests/review/HR-AUDIT.md`) | gate PASS |
+| da65e86 | HR-FIX-WOOD | gate PASS; +20 MB |
+| 35873e9 | HR-FIX-FOLIAGE | gate PASS; e2e world 43/43 |
+| 08c5805 | HR-FIX-SETPIECE (subagent): lò lửa, piano, hộp thư, biển chỉ đường, gương xe | gate PASS (unit 2036/1 skip); e2e world 43/43; +9,75 MB CC0 |
+| e571bc1 | HR-FIX-WATER (subagent): suối, bọt sóng, thác, cá, chim | gate PASS; e2e worker 43/43 (cổng 4206) |
+| 4a3fa22 | HR-FIX-TERRAIN (Codex C): núi xa có gờ đá, vách đá có thớ đứng | gate PASS (unit 2039/1 skip); e2e worker 43/43 (cổng 4203); High thấp nhất 65,56 FPS |
+
+e2e world của Lead trên e571bc1 + 4a3fa22: đang chạy.
+
+**Đang làm:**
+
+| Ticket | Người làm | Slot | Nội dung |
+|---|---|---|---|
+| HR-CHAR | subagent 1 | W-E | nhân vật siêu thực |
+| HR-WATER-B | subagent 2 | W-F | bọt sóng còn thành vệt loang, thác còn phẳng, chim như thú bông, vây cá |
+| HR-SETPIECE-B | subagent 3 | W-G | lõi lửa còn trắng, khung chòi Quiet Shore, gương xe |
+| HR-HILL | Codex C | W-C | đồi gần Old Trail còn đá xếp thành hàng |
+
+**Codex:** A và B giới hạn tuần đến 20/11; D hết credit; C dùng được.
+**Chưa chạy:** gate cuối (full e2e, load/Lighthouse/ABBA, FPS High trên máy rảnh, final showcase) — NOT RUN. T08/T09 Iris Xe — NOT RUN (chỉ Duy).
+
 ## Đợt siêu thực (HR) — cập nhật 15/11 04:50 (Claude-Lead)
 
 **Merge thêm từ 14/11 19:20** (Lead tự build lại + e2e world sau mỗi merge):
