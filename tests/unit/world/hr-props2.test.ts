@@ -19,8 +19,8 @@ it("leaves High grass to HR-LIGHT without querying or drawing the retired torus"
     expect(field.mesh.count).toBe(0); expect(field.mesh.visible).toBe(false);
     expect(now).not.toHaveBeenCalled();
     const geometry = forestFloorGeometry("grass");
-    expect(geometry.getAttribute("position").count).toBe(7 * 6 * 2);
-    expect(geometry.index!.count / 3).toBe(7 * 5 * 2);
+    expect(geometry.getAttribute("position").count).toBe(7 * 6 * 3);
+    expect(geometry.index!.count / 3).toBe(7 * 5 * 4);
     geometry.dispose();
   } finally { now.mockRestore(); field.dispose(); }
 });

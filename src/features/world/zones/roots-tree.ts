@@ -1,9 +1,47 @@
-import { Float32BufferAttribute, Group, Mesh, Vector3, type Texture, type WebGLRenderer } from "three";
+import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, type Texture, type WebGLRenderer } from "three";
 import { bakedPropQuality, bindBakedPropQuality } from "../props/batched";
 import type { Quality } from "../terrain";
 
 export interface RootsTreeAsset { group: Group; dispose(): void }
 export type RootsTreeLoader = (renderer: WebGLRenderer, level: 0 | 1) => Promise<RootsTreeAsset>;
+
+/** A rounded soil collar covers the open ends of the generator's fused tubes.
+ * Its outer ring is buried in the same sampled soil as the original roots. */
+export function rootsSoilCollar(placement: { side: number; x: number; y: number; z: number; heightAt(x: number, z: number): number }) {
+  const position: number[] = [], normal: number[] = [], uv: number[] = [], color: number[] = [], index: number[] = [];
+  const sides = 96, rings = 8;
+  for (let ring = 0; ring <= rings; ring++) {
+    const t = ring / rings;
+    for (let side = 0; side <= sides; side++) {
+      const a = side / sides * Math.PI * 2;
+      // Smooth union of the fluted bole and its eight fused columns. A broad,
+      // irregular flare blends into soil instead of ending in straight teeth.
+      const lobes = Math.pow(0.5 + 0.5 * Math.cos((a - 0.25) * 8), 0.65);
+      const radius = 1.72 + lobes * 0.34 + t * (0.8 + Math.sin(a * 3 + 1.3) * 0.12);
+      const x = placement.x + placement.side * (0.8 + Math.cos(a) * radius);
+      const z = placement.z + placement.side * Math.sin(a) * radius;
+      const ground = placement.heightAt(x, z);
+      const rise = (1 - t) ** 2 * (0.95 + lobes * 0.22);
+      const y = ground + rise - 0.06;
+      position.push(x, y, z); normal.push(0, 1, 0);
+      // V follows the flare's surface length into the soil, rather than its
+      // shrinking vertical projection (which stretched bark at the outer lip).
+      uv.push(side / sides * 14, 1.05 - t * 1.6);
+      const ao = 0.63 + (1 - t) * 0.16;
+      color.push(ao * 0.94, ao * 0.89, ao * 0.79);
+      if (ring < rings && side < sides) {
+        const q = ring * (sides + 1) + side;
+        index.push(q, q + 1, q + sides + 1, q + 1, q + sides + 2, q + sides + 1);
+      }
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(position, 3));
+  geometry.setAttribute("normal", new Float32BufferAttribute(normal, 3));
+  geometry.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+  geometry.setAttribute("color", new Float32BufferAttribute(color, 3)); geometry.setIndex(index);
+  geometry.computeVertexNormals(); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return geometry;
+}
 
 /** Each tree owns its decoders and GPU resources, including late completions. */
 export async function loadRootsTree(renderer: WebGLRenderer, level: 0 | 1): Promise<RootsTreeAsset> {
@@ -76,19 +114,33 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
         object.geometry.applyMatrix4(object.matrixWorld);
         object.position.set(0, 0, 0); object.quaternion.identity(); object.scale.set(1, 1, 1); object.updateMatrix();
         const p = object.geometry.getAttribute("position");
+        // The generator's tube UV has its U axis around the branch. Pine bark
+        // grows along texture V; retain that orientation at metre-scale density.
+        if (!Array.isArray(object.material) && object.material.name === "roots-tree-bark") {
+          const source = object.geometry.getAttribute("uv"), uv = new Float32Array(source.count * 2);
+          for (let i = 0; i < source.count; i++) { uv[i * 2] = source.getX(i) * 2; uv[i * 2 + 1] = source.getY(i) * 2.2; }
+          object.geometry.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+        }
         for (let i = 0; i < p.count; i++) {
           const x = placement.x + placement.side * p.getX(i), z = placement.z + placement.side * p.getZ(i);
           const y = p.getY(i);
           const ground = placement.heightAt(x, z);
           const support = ground + (placement.y - ground) * Math.min(1, Math.max(0, y / 3));
           const scale = Math.min(1, 29.8 / Math.hypot(x, z));
-          p.setXYZ(i, x * scale, y + support, z * scale);
+          // Bury the open tube rim below the sampled soil. Smoothly release
+          // the sink above the collar so there is no exposed serrated cut.
+          const foot = Math.min(1, Math.max(0, y / 0.9));
+          const sink = 0.48 * (1 - foot * foot * (3 - 2 * foot));
+          p.setXYZ(i, x * scale, y + support - sink, z * scale);
         }
         // A half turn preserves triangle winding on the opposite verge.
         if (placement.side < 0) {
           const n = object.geometry.getAttribute("normal");
           for (let i = 0; i < n.count; i++) n.setXYZ(i, -n.getX(i), n.getY(i), -n.getZ(i));
         }
+        // Terrain following changes the root slopes; imported normals no longer
+        // describe those surfaces (or their normal-mapped bark).
+        object.geometry.computeVertexNormals();
         object.geometry.computeBoundingBox(); object.geometry.computeBoundingSphere();
         object.castShadow = level === 0; object.receiveShadow = true;
         // These meshes are decorative, and must not change interaction raycasts.
@@ -96,6 +148,12 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
       });
       // GLTFLoader groups primitives beneath the quantized node transform.
       // Their transforms have just been baked, so remove those wrapper nodes.
+      const bark = meshes.find(mesh => !Array.isArray(mesh.material) && mesh.material.name === "roots-tree-bark");
+      if (bark && !Array.isArray(bark.material)) {
+        const collar = new Mesh(rootsSoilCollar(placement), bark.material.clone());
+        collar.name = "roots-rounded-soil-collar"; collar.receiveShadow = true; collar.raycast = () => {};
+        meshes.push(collar);
+      }
       asset.group.clear(); assets.set(level, asset);
       meshes.forEach(mesh => asset.group.add(mesh));
       group.add(asset.group); refresh();

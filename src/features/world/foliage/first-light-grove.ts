@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector3, type MeshToonMaterial } from "three";
+import { Box3, BufferGeometry, CatmullRomCurve3, Color, CylinderGeometry, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion, TubeGeometry, Vector3, type MeshToonMaterial } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { bindDawnShafts } from "../post/dawn-shafts";
 import { PALETTE } from "../art/palette";
@@ -9,6 +9,7 @@ import { waterLevelAt } from "../terrain/height";
 import type { Quality } from "../terrain";
 import { bindHrForest } from "./hr-runtime";
 import { treeRandom } from "./hr-variation";
+import { bindFirstLightBark } from "./first-light-bark";
 
 const anchor = ZONES.find(zone => zone.id === "first-light")!;
 export const FIRST_LIGHT_SUN = new Vector3(-0.74, 0.57, 0.35).normalize();
@@ -98,9 +99,24 @@ export function createDetailedFirstLightTree(variant: number) { return buildFirs
 export function createDenseFirstLightTree(variant: number) { return buildFirstLightTree(variant, true); }
 function buildFirstLightTree(variant: number, dense: boolean, detailed = false) {
   const parts: BufferGeometry[] = [];
-  const bark = new Color(PALETTE.rockDark).lerp(new Color(PALETTE.dusk), 0.16);
+  const bark = detailed ? new Color("#887762") : new Color(PALETTE.rockDark).lerp(new Color(PALETTE.dusk), 0.16);
   const leaf = new Color(PALETTE.forestLight).lerp(new Color(PALETTE.grass), 0.22).lerp(new Color(PALETTE.mist), 0.12);
   const stem = (a: Vector3, b: Vector3, bottom: number, top: number) => {
+    if (detailed) {
+      const middle = a.clone().lerp(b, 0.48).add(new Vector3(bottom * 0.22, 0, -bottom * 0.16));
+      const curve = new CatmullRomCurve3([a, middle, b]);
+      const g = new TubeGeometry(curve, 12, bottom, 20, false), p = g.getAttribute("position");
+      for (let ring = 0; ring <= 12; ring++) {
+        const t = ring / 12, center = curve.getPoint(t);
+        for (let side = 0; side <= 20; side++) {
+          const i = ring * 21 + side, angle = side / 20 * Math.PI * 2;
+          const radius = (1 - t + t * top / bottom) * (1 + Math.sin(angle * 5 + t * 2) * 0.045);
+          const point = new Vector3().fromBufferAttribute(p, i).sub(center).multiplyScalar(radius).add(center);
+          p.setXYZ(i, point.x, point.y, point.z);
+        }
+      }
+      g.computeVertexNormals(); parts.push(colored(g, bark)); return;
+    }
     const g = new CylinderGeometry(top, bottom, a.distanceTo(b), dense ? 3 : detailed ? 10 : 5, 1);
     const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), b.clone().sub(a).normalize());
     g.applyQuaternion(q).translate(...a.clone().add(b).multiplyScalar(0.5).toArray());
@@ -320,6 +336,15 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   if (!deferredGround) while (!buildGround.next().done) { /* Standalone parity. */ }
   const maxCounts = meshes.map(m => m.count);
   const library = [bindHrForest(meshes)];
+  let releaseBark: (() => void) | undefined;
+  const barkTrigger = meshes[0]!, previousRender = barkTrigger.onAfterRender;
+  barkTrigger.onAfterRender = function (renderer, scene, ...args) {
+    previousRender.call(this, renderer, scene, ...args);
+    if (!releaseBark) {
+      const authored = scene.getObjectByName("first-light-green");
+      if (authored instanceof Mesh) releaseBark = bindFirstLightBark(authored);
+    }
+  };
   function setQuality(quality: Quality) {
     library.forEach(binding => binding.setQuality(quality));
     // Silhouette and collision remain stable; Low draws a spatially interleaved subset.
@@ -329,6 +354,7 @@ export function createFirstLightGrove(sampleHeight: (x: number, z: number) => nu
   return { group, sites, meshes, trunks, setQuality, buildGround,
     dispose() {
       if (disposed) return; disposed = true;
+      releaseBark?.(); barkTrigger.onAfterRender = previousRender;
       library.forEach(binding => binding.dispose());
       buildGround.return(undefined);
       meshes.forEach(m=>m.geometry.dispose()); material.dispose();

@@ -269,6 +269,10 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
         position.setFromMatrixPosition(site.matrix).applyMatrix4(site.source.matrixWorld);
         const distance = Math.hypot(position.x - eye.x, position.z - eye.z);
         site.level = hrTreeLod(distance, quality === "High", site.level);
+        // Keep lit bark and crown depth through the middle distance. Remote
+        // stands retain their baked cutout after the corrected air/coverage
+        // shading; they do not need full leaf overdraw at a few pixels tall.
+        if (quality === "High" && site.level === 2 && distance < 100 && !site.id.includes("casuarina")) site.level = 1;
         if (site.id.startsWith("hr-palm-") && site.level === 2) site.level = 1;
         if (constrained && site.level >= 0) site.level = distance < 28 ? 1 : 2;
         site.visible = frustum.intersectsSphere(site.bounds);

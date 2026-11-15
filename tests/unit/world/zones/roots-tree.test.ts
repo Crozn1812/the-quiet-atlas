@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "three";
+import { BoxGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { setBakedPropQuality } from "../../../../src/features/world/props/batched";
-import { createRootsTree, type RootsTreeAsset, type RootsTreeLoader } from "../../../../src/features/world/zones/roots-tree";
+import { createRootsTree, rootsSoilCollar, type RootsTreeAsset, type RootsTreeLoader } from "../../../../src/features/world/zones/roots-tree";
 
 function setup(load: RootsTreeLoader) {
   const scene = new Scene(), geometry = new BoxGeometry(), material = new MeshBasicMaterial();
@@ -30,6 +30,32 @@ function asset(): RootsTreeAsset {
 const settle = async () => { await Promise.resolve(); await Promise.resolve(); };
 
 describe("Roots banyan streaming lifecycle", () => {
+  it.each([1, -1])("seats the rounded collar in sloping soil with outward normals on side %s", side => {
+    const heightAt = (x: number, z: number) => x * 0.12 + z * 0.07;
+    const collar = rootsSoilCollar({ side, x: 6.4, y: 1, z: 2, heightAt });
+    const p = collar.getAttribute("position"), n = collar.getAttribute("normal");
+    expect(Array.from(n.array).every(Number.isFinite)).toBe(true);
+    for (let i = 0; i < p.count; i++) expect(n.getY(i)).toBeGreaterThan(0);
+    for (let i = p.count - 97; i < p.count; i++) expect(p.getY(i)).toBeCloseTo(heightAt(p.getX(i), p.getZ(i)) - 0.06);
+    collar.dispose();
+  });
+  it("buries open root rims below soil and preserves the upper trunk while retilling bark UVs", async () => {
+    const group = new Group(), geometry = new CylinderGeometry(0.6, 1, 2, 24, 8, true).translate(0, 1, 0);
+    const material = new MeshBasicMaterial(); material.name = "roots-tree-bark";
+    const mesh = new Mesh(geometry, material); group.add(mesh);
+    const uv = geometry.getAttribute("uv"), before = Array.from(uv.array);
+    const s = setup(async () => ({ group, dispose() { geometry.dispose(); material.dispose(); } }));
+    s.play(); s.frame(); await settle();
+    expect(geometry.boundingBox!.min.y).toBeCloseTo(-0.48);
+    expect(geometry.boundingBox!.max.y).toBeCloseTo(2);
+    const tiled = geometry.getAttribute("uv");
+    for (let i = 0; i < tiled.count; i++) {
+      expect(tiled.getX(i)).toBeCloseTo(before[i * 2]! * 2);
+      expect(tiled.getY(i)).toBeCloseTo(before[i * 2 + 1]! * 2.2);
+    }
+    expect(Array.from(geometry.getAttribute("normal").array).every(Number.isFinite)).toBe(true);
+    s.dispose();
+  });
   it("keeps Low and pre-play frames free of tree requests and preserves render hooks", async () => {
     const load = vi.fn<RootsTreeLoader>(async () => asset()), s = setup(load);
     s.frame(); expect(load).not.toHaveBeenCalled();

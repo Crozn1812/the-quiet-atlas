@@ -10,7 +10,7 @@ export function installHrMaterial(material: Material, clock: Vector2, leaf: bool
 uniform vec2 hrWind; varying vec3 vHrTint; varying vec3 vHrLocal; varying float vHrFade;
 ` + shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
-vHrTint = hrTint; vHrLocal = position; vHrFade = hrFade;
+vHrTint = hrTint; vHrLocal = position; vHrFade = ${leaf || impostor ? "hrFade" : "1.0"};
 float phase = hrSeed * 6.2831853;
 float heightWeight = max(position.y, 0.0);
 float trunk = sin(hrWind.x * 0.63 + phase) * min(heightWeight * heightWeight * 0.00012, 0.06);
@@ -26,8 +26,22 @@ transformed = hrCenter + vec3(cos(yaw) * offset.x, offset.y, -sin(yaw) * offset.
 ${vine ? "transformed.x += sin(hrWind.x * 0.88 + phase + position.y * 0.7) * 0.065 * hrWind.y;" : ""}`}`);
     shader.fragmentShader = `varying vec3 vHrTint; varying vec3 vHrLocal; varying float vHrFade;
 ` + shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader.replace("#include <alphahash_fragment>", `diffuseColor.a *= vHrFade;
+    // alphaTest already resolved the photographed cutout. Hash only camera
+    // occlusion, otherwise every partially covered texel becomes black noise.
+    shader.fragmentShader = shader.fragmentShader.replace("#include <alphahash_fragment>", `diffuseColor.a = vHrFade;
 #include <alphahash_fragment>`);
+    // Leaf cutouts already have coverage from alphaTest. Distance fog must not
+    // erase their shaded interiors into white paper silhouettes; the shared
+    // aerial pass still supplies the continuous valley haze afterwards.
+    shader.fragmentShader = shader.fragmentShader.replace("#include <fog_fragment>", `
+#ifdef USE_FOG
+  #ifdef FOG_EXP2
+    float hrFog = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+  #else
+    float hrFog = smoothstep(fogNear, fogFar, vFogDepth);
+  #endif
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, hrFog * 0.22);
+#endif`);
     if (impostor) {
       shader.vertexShader = "uniform vec3 hrCenter; varying float vHrView;\n" + shader.vertexShader;
       shader.fragmentShader = "varying float vHrView;\n" + shader.fragmentShader;
@@ -54,5 +68,5 @@ outgoingLight += diffuseColor.rgb * directionalLights[0].color * leafBacklight *
 #include <opaque_fragment>`);
     }
   };
-  material.customProgramCacheKey = () => `hr-tree2-v1:${leaf}:${vine}:${impostor}`;
+  material.customProgramCacheKey = () => `hr-tree2-v2:${leaf}:${vine}:${impostor}`;
 }

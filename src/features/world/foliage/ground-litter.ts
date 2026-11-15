@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Frustum, Group, InstancedBufferAttribute, InstancedMesh, MeshBasicMaterial, MeshLambertMaterial, Object3D, Matrix4, Sphere, Vector3, IcosahedronGeometry, type PerspectiveCamera, type Scene } from "three";
+import { Box3, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Frustum, Group, InstancedBufferAttribute, InstancedMesh, MeshBasicMaterial, MeshLambertMaterial, Object3D, Matrix4, Sphere, Vector3, IcosahedronGeometry, type PerspectiveCamera, type Scene } from "three";
 import { PALETTE } from "../art/palette";
 import { ZONES } from "../layout/zones";
 import type { Quality } from "../terrain";
@@ -20,7 +20,7 @@ export function forestFloorGeometry(kind: "leaf" | "grass" | "root" | "stone") {
     stone.setAttribute("color", new Float32BufferAttribute(new Float32Array(stone.getAttribute("position").count * 3).fill(1), 3));
     return stone;
   }
-  const p: number[] = [], indices: number[] = [], colors: number[] = [];
+  const p: number[] = [], indices: number[] = [], colors: number[] = [], uv: number[] = [];
   const push = (x: number, y: number, z: number, light: number) => {
     p.push(x, y, z); colors.push(light, light, light);
   };
@@ -53,17 +53,29 @@ export function forestFloorGeometry(kind: "leaf" | "grass" | "root" | "stone") {
     }
   } else {
     for (let blade = 0; blade < 7; blade++) {
-      const a = blade * 2.39996, c = Math.cos(a), s = Math.sin(a), start = p.length / 3;
+      const a = blade * 2.39996 + hash(blade, 5) * 1.8, c = Math.cos(a), s = Math.sin(a), start = p.length / 3;
+      const length = 0.22 + hash(blade, 19) * 0.34;
+      const lean = 0.08 + hash(blade, 27) * 0.26;
+      const rootX = (hash(blade, 31) - 0.5) * 0.16, rootZ = (hash(blade, 43) - 0.5) * 0.16;
       for (let i = 0; i <= 5; i++) {
-        const t = i / 5, bend = t * t * 0.22, width = Math.pow(1 - t, 0.7) * 0.024;
-        for (const side of [-1, 1]) push(c * bend - s * width * side, t * (0.35 + blade * 0.055), s * bend + c * width * side, 0.58 + t * 0.42);
-        if (i < 5) { const q = start + i * 2; indices.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+        const t = i / 5, bend = t * t * lean, width = Math.pow(1 - t, 0.8) * (0.006 + hash(blade, 59) * 0.006);
+        const twist = a + t * (hash(blade, 67) - 0.5) * 1.4;
+        for (const side of [-1, 0, 1]) {
+          push(rootX + c * bend - Math.sin(twist) * width * side,
+            length * (t - t * t * t * 0.16) + (side === 0 ? width * 0.32 : 0), rootZ + s * bend + Math.cos(twist) * width * side,
+            (0.48 + t * 0.46) * (0.84 + hash(blade, 73) * 0.24) + side * 0.045);
+          uv.push((side + 1) * 0.5, t);
+        }
+        if (i < 5) for (let rib = 0; rib < 2; rib++) {
+          const q = start + i * 3 + rib; indices.push(q, q + 1, q + 3, q + 1, q + 4, q + 3);
+        }
       }
     }
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(p, 3));
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  if (kind === "grass") geometry.setAttribute("uv", new Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices); geometry.computeVertexNormals();
   return geometry;
 }
@@ -88,6 +100,16 @@ float contactHeight=floorHeight(floorPoint.xz)+0.002+position.y*length(instanceM
 vec3 vertical=vec3(instanceMatrix[0].y/dot(instanceMatrix[0].xyz,instanceMatrix[0].xyz),instanceMatrix[1].y/dot(instanceMatrix[1].xyz,instanceMatrix[1].xyz),instanceMatrix[2].y/dot(instanceMatrix[2].xyz,instanceMatrix[2].xyz));
 transformed+=vertical*(contactHeight-floorPoint.y);`;
 
+/** Read the existing porch anchor; no copies of zone layout coordinates.
+ * A conservative world AABB includes the blade lean beyond the deck edge. */
+export function forestFloorPlantingBounds(scene?: Scene): Box3[] {
+  const zone = scene?.getObjectByName("quiet-shore"), porch = zone?.getObjectByName("porch");
+  if (!zone || !porch) return [];
+  zone.updateWorldMatrix(true, false);
+  return [new Box3(new Vector3(porch.position.x - 2.15, 0, porch.position.z - 2.15),
+    new Vector3(porch.position.x + 2.15, 0, porch.position.z + 2.15)).applyMatrix4(zone.matrixWorld)];
+}
+
 /** Deferred near field. Only changed ranges upload while a cell is being filled.
  * Once stationary, the CPU does no scatter queries and uploads no instance buffers. */
 export function createForestFloor(scene?: Scene) {
@@ -99,6 +121,11 @@ export function createForestFloor(scene?: Scene) {
     material.onBeforeCompile = shader => {
       shader.uniforms.floorTime = clock; shader.uniforms.floorRadius = fadeRadius;
       shader.vertexShader = "uniform float floorTime,floorRadius;\nvarying vec3 vFloorWorld;\n" + shader.vertexShader;
+      if (kind === "grass") {
+        shader.vertexShader = "varying vec2 vBlade;\n" + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\nvBlade = uv;");
+        shader.fragmentShader = "varying vec2 vBlade;\n" + shader.fragmentShader;
+      }
       if (kind === "leaf") shader.vertexShader = floorPatchShader + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
         ${kind === "grass" ? "transformed.xz+=vec2(sin(floorTime*1.2+instanceMatrix[3].x*0.6),cos(floorTime+instanceMatrix[3].z*0.4))*position.y*position.y*0.16;" : ""}
@@ -108,9 +135,14 @@ export function createForestFloor(scene?: Scene) {
       shader.fragmentShader = "varying vec3 vFloorWorld;\n" + shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
         float fiber=sin(vFloorWorld.x*180.0+sin(vFloorWorld.z*80.0))*0.035;
-        diffuseColor.rgb*=1.0+fiber;`);
+        diffuseColor.rgb*=1.0+fiber;
+        ${kind === "grass" ? `
+        float vein = exp(-abs(vBlade.x - 0.5) * 35.0);
+        float ribs = sin(vBlade.x * 45.0 + vBlade.y * 4.0) * 0.045;
+        diffuseColor.rgb *= 0.88 + vein * 0.16 + ribs;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.25, 0.22, 0.09), smoothstep(0.83, 1.0, vBlade.y) * 0.25);` : ""}`);
     };
-    material.customProgramCacheKey = () => `hr-floor-${kind}-v3`;
+    material.customProgramCacheKey = () => `hr-floor-${kind}-v4`;
     const mesh = new InstancedMesh(forestFloorGeometry(kind), material, kind === "leaf" ? 16000 : kind === "grass" ? 14000 : kind === "root" ? 384 : 1024);
     mesh.name = `hr-floor-${kind}`; mesh.count = 0; mesh.receiveShadow = true;
     if (kind === "leaf") for (let row = 0; row < 3; row++) mesh.geometry.setAttribute(`floorPatch${row}`, new InstancedBufferAttribute(new Float32Array(mesh.instanceMatrix.count * 3), 3));
@@ -165,6 +197,7 @@ export function createForestFloor(scene?: Scene) {
     }
   });
   let center = "", build: Generator<void> | undefined, disposed = false;
+  let plantingBounds: Box3[] = [], boundsFrames = 0;
   const add = (type: number, x: number, y: number, z: number, yaw: number, scale: number, color: Color, stretch = 1, curl = 1) => {
     const mesh = meshes[type]!; if (mesh.count >= mesh.instanceMatrix.count) return;
     transform.position.set(x, y, z); transform.quaternion.setFromUnitVectors(up, normal);
@@ -180,6 +213,7 @@ export function createForestFloor(scene?: Scene) {
   const direction = new Vector3(), lastDirection = new Vector3();
   function* populate(x: number, z: number, radius: number) {
     surface = createSurfaceSampler();
+    plantingBounds = forestFloorPlantingBounds(scene);
     // Roots are radial, anchored to real tree bases rather than random ground specks.
     normal.copy(up);
     for (const base of treeBases) {
@@ -215,14 +249,17 @@ export function createForestFloor(scene?: Scene) {
       const gap = Math.sin(px * 0.13 + Math.sin(pz * 0.09) * 2) * Math.cos(pz * 0.17);
       const type = biome === "hill" || biome === "coast-dusk" || gap > 0.12 ? 1 : 0;
       const distance = Math.hypot(px-x,pz-z), density = distance < 12 ? 1 : distance < 22 ? 0.65 : 0.35;
-      const count = Math.max(1, Math.round((type === 0 ? 16 : 2 + 7 * padEdge * padEdge * (3 - 2 * padEdge)) * density));
+      const patch = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(px * 0.47 + Math.sin(pz * 0.31) * 2.4));
+      const count = Math.max(1, Math.round((type === 0 ? 16 : (2 + 7 * padEdge * padEdge * (3 - 2 * padEdge)) * patch) * density));
       for (let n = 0; n < count; n++) {
         const ox = (hash(gx, gz, 30 + n) - 0.5) * 0.85, oz = (hash(gx, gz, 80 + n) - 0.5) * 0.85;
+        if (type === 1 && plantingBounds.some(box => px + ox >= box.min.x - 0.3 && px + ox <= box.max.x + 0.3
+          && pz + oz >= box.min.z - 0.3 && pz + oz <= box.max.z + 0.3)) continue;
         if (path.distance + ox * (px - path.x) / path.distance + oz * (pz - path.z) / path.distance < 1.6) continue;
-        const size = type === 0 ? (1 + hash(gx, gz, n + 9) * 2) / 3 : 0.6 + hash(gx, gz, n + 9) * 0.8;
+        const size = type === 0 ? (1 + hash(gx, gz, n + 9) * 2) / 3 : 0.45 + hash(gx, gz, n + 9) * 0.95;
         tint.copy(type === 0 ? leafColors[Math.floor(hash(gx, gz, n + 151) * leafColors.length)]! : green);
         if (type === 0) tint.lerp(leafColors[Math.floor(hash(gx, gz, n + 181) * leafColors.length)]!, hash(gx, gz, n + 191) * 0.5);
-        if (type === 1) tint.lerp(dry, hash(gx, gz, n + 11) * 0.48);
+        if (type === 1) tint.lerp(dry, hash(gx, gz, n + 11) ** 3 * 0.55);
         if (type === 0) {
           const lx = px + ox, lz = pz + oz, epsilon = 0.005;
           normal.set(-(surface(lx+epsilon,lz)-surface(lx-epsilon,lz))/(epsilon*2),1,-(surface(lx,lz+epsilon)-surface(lx,lz-epsilon))/(epsilon*2)).normalize();
@@ -241,6 +278,8 @@ export function createForestFloor(scene?: Scene) {
     update(camera: PerspectiveCamera, quality: Quality, dt: number, reducedMotion = false) {
       if (disposed) return;
       group.visible = quality !== "Low"; if (quality === "Low") return;
+      // A deferred zone may arrive after the grass cell has already settled.
+      if (++boundsFrames % 30 === 0 && plantingBounds.length !== forestFloorPlantingBounds(scene).length) center = "";
       fadeRadius.value = quality === "High" ? 32 : 22;
       if (!reducedMotion) clock.value += dt;
       const { x, z } = camera.position;

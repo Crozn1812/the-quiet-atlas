@@ -55,7 +55,7 @@ export function hrLeafTint(x: number, z: number) {
   color.lerp(new Color("#c5cf91"), patch * 0.35);
   // Texture already supplies the green pigment. Tint around unity rather than
   // multiplying it by another dark green (the original flat-dark review issue).
-  return color.lerp(new Color(1, 1, 1), 0.48).multiplyScalar(1.35 + treeRandom(x, z, 33) * 0.6);
+  return color.lerp(new Color(1, 1, 1), 0.78).multiplyScalar(0.94 + treeRandom(x, z, 33) * 0.12);
 }
 export function hrTreeLod(distance: number, high: boolean, previous = -1) {
   const near = high ? 22 : 12, far = high ? 66 : 42;

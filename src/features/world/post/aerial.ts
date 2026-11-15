@@ -27,9 +27,12 @@ export const AERIAL_FRAGMENT = /* glsl */ `
         float density=exp(clamp((5.0-eye.y)*0.12,-8.0,8.0));
         float optical=max(0.0,distanceToEye-16.0)*density*integral;
         // Native far fog remains the background; this adds low-lying, local humidity.
-        float valley=min(0.24,1.0-exp(-optical*0.005*humidity));
-        float farAir=1.0-exp(-max(0.0,distanceToEye-38.0)*0.006*humidity);
-        float fog=min(0.68,valley+farAir)*surface;
+        float valley=min(0.10,1.0-exp(-optical*0.0015*humidity));
+        float farAir=1.0-exp(-max(0.0,distanceToEye-38.0)*0.0018*humidity);
+        // Tree cutouts expose many adjacent depth layers. Dense, bright air
+        // washed every shaded layer into the same white silhouette, amplifying
+        // subpixel leaf holes. Keep a continuous, optically thinner valley veil.
+        float fog=min(0.32,valley+farAir)*surface;
         color=mix(color,airColor,fog);
         // Skip the texture gather entirely when the sun is off screen.
         if(sunVisibility>0.001){
@@ -75,7 +78,8 @@ export function createAerialPass(depth: DepthTexture, camera: PerspectiveCamera,
       pass.uniforms.cameraWorld!.value.copy(camera.matrixWorld);
       pass.uniforms.eye!.value.copy(camera.position);
       // Distant terrain loses warm ground pigment into blue-grey air.
-      pass.uniforms.airColor!.value.setRGB(0.43, 0.55, 0.61).lerp(grade.fogColor, 0.22);
+      // This pass runs in linear HDR, before exposure and the output transfer.
+      pass.uniforms.airColor!.value.setRGB(0.13, 0.19, 0.22).lerp(grade.fogColor, 0.08);
       pass.uniforms.sunColor!.value.copy(grade.sunColor);
       pass.uniforms.humidity!.value = 1 - (grade.coastWeight ?? 0) * 0.65;
       viewSun.copy(grade.sunDirection).transformDirection(camera.matrixWorldInverse);
