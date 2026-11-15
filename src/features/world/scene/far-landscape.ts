@@ -16,8 +16,8 @@ export const FAR_LANDSCAPE = Object.freeze({
   originX: -1024,
   originZ: -WORLD_LENGTH - 700,
   size: 2048,
-  /** 8 m remote grid: a quarter of round 2's triangles, still one connected draw. */
-  cells: 256,
+  /** 4 m sampling resolves eroded shoulders and the skyline in one draw. */
+  cells: 512,
   /** Sink ground below detail tiles; streamed HR crowns sit above it. */
   sink: 0.6,
 });
@@ -38,13 +38,16 @@ const FAR_CANOPY_MOSS = 0.38;
  * backdrop inside the streamed corridor. Keep remote scenery and crowns intact. */
 function* seatFarGround(geometry: BufferGeometry) {
   const { originX, originZ, size, cells } = FAR_LANDSCAPE;
-  const step = size / cells * 2, fineStep = TILE_SIZE / TILE_CELLS;
+  // Include the full 16 m Low face as well as the finer High neighbours.
+  const step = size / cells * 4, fineStep = TILE_SIZE / TILE_CELLS;
+  const inner = TERRAIN_RADIUS + step * Math.SQRT2, outer = inner + 48;
   const positions = geometry.getAttribute("position");
   const heights = new Map<string, number>();
   for (let i = 0; i < positions.count; i++) {
     if (i % (cells + 1) === 0) yield;
     const x = originX + positions.getX(i), z = originZ + positions.getZ(i);
-    if (nearestPath(x, z).distance > TERRAIN_RADIUS + step * Math.SQRT2) continue;
+    const distance = nearestPath(x, z).distance;
+    if (distance >= outer) continue;
     let floor = positions.getY(i);
     for (let gx = Math.floor((x - step) / fineStep); gx <= Math.ceil((x + step) / fineStep); gx++) {
       for (let gz = Math.floor((z - step) / fineStep); gz <= Math.ceil((z + step) / fineStep); gz++) {
@@ -57,7 +60,10 @@ function* seatFarGround(geometry: BufferGeometry) {
         floor = Math.min(floor, height);
       }
     }
-    positions.setY(i, floor);
+    // The guaranteed lower envelope ends outside every Low corridor face.
+    // Ease back to the remote field rather than cutting it off in one column:
+    // that cutoff made a 19 m diagonal wall in the Old Trail overview.
+    positions.setY(i, positions.getY(i) + (floor - positions.getY(i)) * (1 - farEase(inner, outer, distance)));
   }
 }
 
@@ -132,8 +138,13 @@ export function createFarLandscape({ deferred = false } = {}) {
   let forest: ReturnType<typeof createFarForest> | undefined;
   let forestRequested = false;
   const sites: FarForestSite[] = [];
+  let software: boolean | undefined;
   mesh.onBeforeRender = renderer => {
-    const low = renderer.domElement?.closest<HTMLElement>(".world-viewport")?.dataset.worldQuality === "low";
+    if (software === undefined && renderer.getContext) {
+      const gl = renderer.getContext(), debug = gl.getExtension("WEBGL_debug_renderer_info");
+      software = /swiftshader|llvmpipe|softpipe|software/i.test(String(gl.getParameter(debug?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER)));
+    }
+    const low = software || renderer.domElement?.closest<HTMLElement>(".world-viewport")?.dataset.worldQuality === "low";
     if (highCount) geometry.setDrawRange(low ? highCount : 0, low ? lowCount : highCount);
     mesh.material = low ? lowMaterial : material;
     material.prepareDepth(renderer, !low && firstLightView.value < 1);
@@ -146,6 +157,7 @@ export function createFarLandscape({ deferred = false } = {}) {
     forestRequested = true;
     const gl = renderer.getContext(), debug = gl.getExtension("WEBGL_debug_renderer_info");
     if (debug && /swiftshader|llvmpipe|software/i.test(String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)))) return;
+    void material.startDetail(renderer);
     forest?.start(renderer);
   };
   function* construct() {
@@ -195,9 +207,9 @@ export function createFarLandscape({ deferred = false } = {}) {
     geometry.computeVertexNormals();
     yield* bakeFarHorizons(geometry, cells, step);
     const cheap: number[] = [];
-    for (let x = 0; x < cells; x += 2) for (let z = 0; z < cells; z += 2) {
-      const a = x * stride + z, b = a + stride * 2;
-      cheap.push(a, a + 2, b, b, a + 2, b + 2);
+    for (let x = 0; x < cells; x += 4) for (let z = 0; z < cells; z += 4) {
+      const a = x * stride + z, b = a + stride * 4;
+      cheap.push(a, a + 4, b, b, a + 4, b + 4);
     }
     // Both tier indices live in one GPU buffer; switching quality only moves the
     // draw range, so repeated toggles cannot orphan an old element buffer.

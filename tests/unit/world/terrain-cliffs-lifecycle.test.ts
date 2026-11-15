@@ -1,6 +1,8 @@
-import { Group, Matrix4, Mesh, MeshStandardMaterial, PlaneGeometry, type WebGLRenderer } from "three";
+import { Group, Matrix4, Mesh, MeshStandardMaterial, MeshToonMaterial, PlaneGeometry, ShaderLib, Texture,
+  type WebGLProgramParametersWithUniforms, type WebGLRenderer } from "three";
 import { expect, it, vi } from "vitest";
 import { createTerrainCliffs } from "../../../src/features/world/terrain/cliffs";
+import { createPhotoMaterial } from "../../../src/features/world/materials/cc0";
 
 const state = vi.hoisted(() => ({ loads: 0, disposals: 0 }));
 vi.mock("../../../src/features/world/props/hr-props", async () => {
@@ -9,6 +11,30 @@ vi.mock("../../../src/features/world/props/hr-props", async () => {
     return { mesh: new Mesh(new BufferGeometry(), new MeshStandardMaterial()),
       loadDetail: async () => { state.loads++; }, dispose: () => { state.disposals++; } };
   } };
+});
+
+it("blends resident coastal tile pigment/air without changing geometry, masks or Low", () => {
+  const original = new MeshToonMaterial(), textures = [new Texture(), new Texture()];
+  for (const size of [512, 2048]) {
+    const root = new Group(), material = createPhotoMaterial("terrain", original, textures, size);
+    const source = new Mesh(new PlaneGeometry(4, 4), material); source.name = "terrain-tile"; root.add(source);
+    const positions = source.geometry.getAttribute("position").array.slice();
+    const detail = createTerrainCliffs(root, {} as WebGLRenderer);
+    detail.refresh(size === 2048, textures, size);
+    const key = material.customProgramCacheKey(); detail.refresh(size === 2048, textures, size);
+    expect(material.customProgramCacheKey()).toBe(key);
+    const shader = { ...ShaderLib[size === 512 ? "toon" : "standard"], uniforms: {} } as WebGLProgramParametersWithUniforms;
+    material.onBeforeCompile(shader, {} as WebGLRenderer);
+    expect(shader.fragmentShader.includes("float backdropBlend")).toBe(size === 2048);
+    if (size === 2048) {
+      expect(shader.fragmentShader).toContain("photoMask.z");
+      expect(shader.fragmentShader).toContain("terrainUnfogged");
+      expect(shader.uniforms.photoColor!.value).toBe(textures[0]);
+    }
+    expect(source.geometry.getAttribute("position").array).toEqual(positions);
+    detail.dispose(); source.geometry.dispose(); material.dispose();
+  }
+  textures.forEach(texture => texture.dispose()); original.dispose();
 });
 
 it("creates no detail on cold Low and releases visual owners after streaming/unmount", () => {

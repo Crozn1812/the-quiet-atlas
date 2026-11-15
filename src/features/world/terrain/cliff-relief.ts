@@ -31,19 +31,18 @@ export function cliffRelief(x: number, y: number, z: number) {
     + shelf * .08 + noise(x * 3.1, y * 2, z * 3.1) * .012;
 }
 
-/** Cut back the visual wall to reveal beds; the outermost ledge is only 45 cm.
- * Asymmetric beds give a short underside and a long eroded face, not round bumps.
- * The material uses the same bed scale for its sediment pigment. */
+/** Short, interrupted mineral shelves. Broad periodic recesses used to turn
+ * the wall into metre-wide rounded waves under its interpolated normals. */
 export function springCliffRelief(x: number, y: number, z: number) {
   const broad = noise(x * .12, y * .09, z * .12);
-  const bed = y / 2.7 + noise(x * .16, y * .12, z * .16) * .9 + x * .012 + z * .008;
+  const bed = y / .72 + noise(x * .6, y * .3, z * .6) * 1.4 + x * .06 + z * .04;
   const phase = bed - Math.floor(bed);
   const ramp = (a: number, b: number) => Math.max(0, Math.min(1, (phase - a) / (b - a)));
   const recess = ramp(.04, .14) * (1 - ramp(.32, .99));
   const exposure = smooth(.24, .68, noise(x * .28, y * .21, z * .28));
   const joint = 1 - smooth(.025, .105, Math.abs(noise(x * .46, y * .035, z * .46) - .49));
-  return .44 - recess * (.3 + exposure * 1.2) - broad * .55 - joint * .3
-    - noise(x * 1.3, y * .8, z * 1.3) * .1;
+  return .12 - recess * (.06 + exposure * .16) - broad * .18 - joint * .16
+    - noise(x * 1.3, y * .8, z * 1.3) * .07;
 }
 
 /** Only the decorative GLB moves vertically. The terrain and all solids retain Y. */

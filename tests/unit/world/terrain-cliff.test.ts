@@ -112,19 +112,20 @@ it("adds weathering only to physical terrain and retains the spring CC0 maps", (
   material.dispose(); original.dispose(); textures.forEach(texture => texture.dispose());
 });
 
-it("cuts deep asymmetric beds while keeping the visual envelope within 0.5 m of the original face", () => {
+it("breaks up shelves within a half-metre envelope without metre-wide corrugation", () => {
   const offsets: number[] = [];
   for (let x = -60; x <= 30; x += 3) for (let y = 10; y <= 45; y += .1) {
     offsets.push(springCliffRelief(x, y, -30));
     expect(cliffRelief(x, y, -30)).toBeLessThanOrEqual(.5);
   }
   expect(Math.max(...offsets)).toBeLessThanOrEqual(.5);
-  expect(Math.min(...offsets)).toBeGreaterThanOrEqual(-2);
-  expect(Math.max(...offsets) - Math.min(...offsets)).toBeGreaterThan(1.5);
+  expect(Math.min(...offsets)).toBeGreaterThanOrEqual(-.5);
+  expect(Math.max(...offsets) - Math.min(...offsets)).toBeGreaterThan(.15);
+  expect(Math.max(...offsets) - Math.min(...offsets)).toBeLessThan(.6);
   // There are both ledges and recesses throughout a vertical section, not a translated slab.
   const section = Array.from({ length: 100 }, (_, i) => springCliffRelief(-15, 15 + i * .1, -30));
-  expect(Math.max(...section) - Math.min(...section)).toBeGreaterThan(.7);
-  expect(section.filter(value => value < -.6).length).toBeGreaterThan(5);
+  expect(Math.max(...section) - Math.min(...section)).toBeGreaterThan(.1);
+  expect(section.filter(value => value < -.1).length).toBeGreaterThan(5);
 });
 
 it("keeps duplicated cap/face vertices closed across hard normals and UV seams", () => {

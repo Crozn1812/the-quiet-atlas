@@ -152,6 +152,62 @@ export function createTerrainCliffs(root: Object3D, renderer: WebGLRenderer) {
       const resident = new Set(sources);
       for (const mesh of residents.keys()) if (!resident.has(mesh)) release(mesh);
       for (const mesh of sources) {
+        if (mesh.name === "terrain-tile" && mesh.material instanceof MeshStandardMaterial
+          && mesh.material.name === "cc0-terrain" && !mesh.material.userData.backdropTransition) {
+          const material = mesh.material, before = material.onBeforeCompile, key = material.customProgramCacheKey();
+          material.userData.backdropTransition = true;
+          material.onBeforeCompile = (shader, gpu) => {
+            before.call(material, shader, gpu);
+            // Whole detail tiles extend past the route corridor. Their distant
+            // coastal faces must meet the forest backdrop in pigment and air,
+            // rather than revealing a diagonal boundary between two materials.
+            shader.fragmentShader = shader.fragmentShader
+              .replace("#include <roughnessmap_fragment>", `
+                float backdropBlend = smoothstep(20.0, 55.0, -photoWorld.x)
+                  * smoothstep(45.0, 85.0, distance(cameraPosition, photoWorld));
+                backdropBlend *= 1.0 - clamp(max(photoMask.y, max(photoMask.z, photoMask.w)), 0.0, 1.0);
+                diffuseColor.rgb *= mix(vec3(1.0), vec3(0.24, 0.60, 0.18), backdropBlend);
+                #include <roughnessmap_fragment>`)
+              .replace("#include <fog_fragment>", `
+                vec3 terrainUnfogged = gl_FragColor.rgb;
+                #include <fog_fragment>
+                #ifdef USE_FOG
+                float backdropRange = distance(cameraPosition, photoWorld);
+                float backdropAir = 1.0 - exp(-max(0.0, backdropRange - 130.0) * 0.0011);
+                float backdropMist = (1.0 - smoothstep(4.0, 40.0, photoWorld.y)) * smoothstep(130.0, 300.0, backdropRange);
+                vec3 backdropColor = mix(terrainUnfogged, vec3(0.12, 0.22, 0.30), backdropAir);
+                backdropColor = mix(backdropColor, fogColor, backdropMist);
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, backdropColor, backdropBlend);
+                #endif`);
+          };
+          material.customProgramCacheKey = () => `${key}:backdrop-transition-v1`;
+          material.needsUpdate = true;
+        }
+        if (mesh.name.startsWith("first-light-sculpted-rock") && mesh.material instanceof MeshStandardMaterial
+          && !mesh.material.userData.mineralScale) {
+          const material = mesh.material, before = material.onBeforeCompile, key = material.customProgramCacheKey();
+          material.userData.mineralScale = true;
+          // Runs after the shared weather shader has attached the resident CC0
+          // atlas. The close face needs sub-metre mineral grain, not 4.7 m stains.
+          material.onBeforeCompile = (shader, gpu) => {
+            before.call(material, shader, gpu);
+            shader.fragmentShader = shader.fragmentShader
+              .replaceAll("cliffUV / 4.7 + warp.xy * 0.17", "cliffUV / 0.95 + warp.xy * 0.04")
+              .replaceAll("cliffUV / 1.9 + vec2(0.43, 0.71)", "cliffUV / 0.61 + vec2(0.43, 0.71)")
+              .replace("vec4 weather = cliffWeather(cliffP, normalize(cliffN), 0.85);",
+                "vec4 weather = cliffWeather(cliffP, normalize(cliffN), 0.85) * vec4(0.25, 0.8, 0.65, 1.0);")
+              .replace("normal = normalize(normal + mat3(viewMatrix) * cliffBump * 0.35 * faceDirection);", `
+                normal = normalize(normal + mat3(viewMatrix) * cliffBump * 0.35 * faceDirection);
+                if (cliffAtlasSize > 0.0) {
+                  vec2 mineralN = cliffPacked.rg * 2.0 - 1.0;
+                  vec3 mineralBump = abs(cliffN.x) > abs(cliffN.z)
+                    ? vec3(0.0, mineralN.y, mineralN.x) : vec3(mineralN.x, mineralN.y, 0.0);
+                  normal = normalize(normal + mat3(viewMatrix) * mineralBump * 0.55 * faceDirection);
+                }`);
+          };
+          material.customProgramCacheKey = () => `${key}:mineral-metres-v1`;
+          material.needsUpdate = true;
+        }
         let entry = residents.get(mesh);
         if (!entry && enabled) {
           const spring = mesh.name !== "terrain-tile";

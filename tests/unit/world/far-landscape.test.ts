@@ -11,12 +11,12 @@ describe("HR-FAR continuous landscape", () => {
   let shared: ReturnType<typeof createFarLandscape>;
   beforeAll(() => { shared = createFarLandscape(); }, 60000);
   afterAll(() => shared.dispose());
-  it("keeps the connected 8 m grid without remote triangle fans and offers a quarter-cost Low index", () => {
+  it("keeps the connected 4 m grid without remote triangle fans and preserves the 16 m Low index", () => {
     const g = shared.mesh.geometry, p = g.getAttribute("position"), index = g.index!;
     expect(p.count).toBe(groundCount);
-    expect(FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells).toBeLessThanOrEqual(8);
+    expect(FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells).toBeLessThanOrEqual(4);
     expect(g.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 * 2);
-    expect(g.userData.lowTriangles).toBe(FAR_LANDSCAPE.cells ** 2 / 2);
+    expect(g.userData.lowTriangles).toBe(FAR_LANDSCAPE.cells ** 2 / 8);
     const stride = FAR_LANDSCAPE.cells + 1;
     let invalid = 0;
     for (let i = 0; i < g.drawRange.count; i += 3) {
@@ -32,7 +32,7 @@ describe("HR-FAR continuous landscape", () => {
   it("switches quality in memory without loading an atlas on Low", () => {
     const renderer = { domElement: { closest: () => ({ dataset: { worldQuality: "low" } }) } };
     shared.mesh.onBeforeRender(renderer as never, {} as never, {} as never, shared.mesh.geometry, shared.mesh.material, null as never);
-    expect(shared.mesh.geometry.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 / 2);
+    expect(shared.mesh.geometry.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 / 8);
     expect(shared.mesh.children[0]!.visible).toBe(false);
     // Both materials must occupy the same queue: Three chooses the queue
     // before onBeforeRender switches the material on a quality transition.
@@ -43,9 +43,35 @@ describe("HR-FAR continuous landscape", () => {
     expect(shared.mesh.geometry.drawRange.count / 3).toBe(FAR_LANDSCAPE.cells ** 2 * 2);
     expect(shared.mesh.children[0]!.visible).toBe(true);
     expect(shared.mesh.material.transparent).toBe(true);
-    expect(shared.mesh.material.depthWrite).toBe(false);
+    expect(shared.mesh.material.depthWrite).toBe(true);
     expect(shared.mesh.renderOrder).toBeGreaterThan(0); // After the depth-writing sea.
     expect(shared.mesh.renderOrder).toBeLessThan(2); // Before foreground surf/rays.
+  });
+  it("uses the cheap draw and shader on software even when overall quality is High", () => {
+    const far = createFarLandscape();
+    const renderer = {
+      domElement: { closest: () => ({ dataset: { worldQuality: "high" } }) },
+      getContext: () => ({ RENDERER: 1, getExtension: () => null, getParameter: () => "ANGLE SwiftShader Device" }),
+    };
+    try {
+      far.mesh.onBeforeRender(renderer as never, {} as never, {} as never, far.mesh.geometry, far.mesh.material, null as never);
+      expect(far.mesh.geometry.drawRange.count / 3).toBe(32768);
+      expect(far.mesh.material.type).toBe("MeshBasicMaterial");
+      expect(far.mesh.children[0]!.visible).toBe(false);
+    } finally { far.dispose(); }
+  });
+  it("returns smoothly from the corridor depression to the Old Trail shoulder without a diagonal wall", () => {
+    const p = shared.mesh.geometry.getAttribute("position"), step = FAR_LANDSCAPE.size / FAR_LANDSCAPE.cells;
+    const stride = FAR_LANDSCAPE.cells + 1;
+    const height = (x: number, z: number) => p.getY(Math.round((x - FAR_LANDSCAPE.originX) / step) * stride
+      + Math.round((z - FAR_LANDSCAPE.originZ) / step));
+    // Exact shoulder behind the right-hand trees in the audit overview. The
+    // former seating cutoff dropped 18.7 m between x=-76 and x=-72, z=-404.
+    for (let x = -108; x <= -64; x += step) for (let z = -416; z <= -376; z += step) {
+      for (const [dx, dz] of [[step, 0], [0, step]]) {
+        expect(Math.abs(height(x + dx!, z + dz!) - height(x, z)) / step, `${x},${z}`).toBeLessThan(2);
+      }
+    }
   });
   it("bounds actual remote summit faces to at least 25 degrees from vertical", () => {
     const p = shared.mesh.geometry.getAttribute("position"), index = shared.mesh.geometry.index!;

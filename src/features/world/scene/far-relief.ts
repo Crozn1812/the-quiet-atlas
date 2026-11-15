@@ -61,7 +61,7 @@ export function farMountainHeight(x: number, z: number) {
     const cut = Math.abs(Math.sin((wz + Math.abs(across) * 0.72
       + (farNoise(wx, wz, 57) - 0.5) * 91) / 24));
     const drainage = (1 - cut) ** 3 * (1 - shoulder * 0.7);
-    const height = (64 + layer * 42) * spine * Math.pow(shoulder, 1.25)
+    const height = (64 + layer * 42) * spine * Math.pow(shoulder * shoulder * (3 - 2 * shoulder), 1.1)
       * (0.60 + ribs * 0.66 - drainage * 0.30);
     mountain = Math.max(mountain, height);
   }

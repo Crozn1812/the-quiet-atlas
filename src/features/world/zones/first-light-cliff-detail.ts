@@ -18,7 +18,9 @@ export function prepareCliffMaterial(material: MeshStandardMaterial) {
     shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>
       varying vec3 cliffP; varying vec3 cliffN;
       vec3 cliffWeights() { vec3 w = pow(abs(cliffN), vec3(4.0)); return w / max(dot(w, vec3(1.0)), 0.0001); }
+      // Keep a metre-based mineral grain instead of stretching a soft baked bed.
       vec3 cliffRead(sampler2D photo, vec3 p) {
+        p *= 4.5;
         vec3 w = cliffWeights();
         return texture2D(photo, p.zy).rgb * w.x + texture2D(photo, p.xz).rgb * w.y + texture2D(photo, p.xy).rgb * w.z;
       }`)
@@ -34,16 +36,16 @@ export function prepareCliffMaterial(material: MeshStandardMaterial) {
         float roughnessFactor = clamp(cliffSurface.g, 0.72, 1.0);`)
       .replace("#include <normal_fragment_maps>", `
         vec3 cliffW = cliffWeights();
-        vec2 cliffNX = texture2D(normalMap, cliffP.zy / 3.5).rg * 2.0 - 1.0;
-        vec2 cliffNY = texture2D(normalMap, cliffP.xz / 3.5).rg * 2.0 - 1.0;
-        vec2 cliffNZ = texture2D(normalMap, cliffP.xy / 3.5).rg * 2.0 - 1.0;
+        vec2 cliffNX = texture2D(normalMap, cliffP.zy / 0.78).rg * 2.0 - 1.0;
+        vec2 cliffNY = texture2D(normalMap, cliffP.xz / 0.78).rg * 2.0 - 1.0;
+        vec2 cliffNZ = texture2D(normalMap, cliffP.xy / 0.78).rg * 2.0 - 1.0;
         vec3 cliffBump = vec3(0.0, cliffNX.y, cliffNX.x) * cliffW.x
           + vec3(cliffNY.x, 0.0, cliffNY.y) * cliffW.y + vec3(cliffNZ.x, cliffNZ.y, 0.0) * cliffW.z;
         normal = normalize(normal + mat3(viewMatrix) * cliffBump * 0.35 * faceDirection);`)
       .replace("#include <aomap_fragment>", ShaderChunk.aomap_fragment
         .replace("texture2D( aoMap, vAoMapUv ).r", "cliffSurface.r"));
   };
-  material.customProgramCacheKey = () => "first-light-cliff-photo-v2";
+  material.customProgramCacheKey = () => "first-light-cliff-mineral-v3";
   material.needsUpdate = true;
 }
 
@@ -80,7 +82,12 @@ export function createFirstLightCliffDetail(root: Object3D, renderer: WebGLRende
       scene.name = `first-light-cliff-${next.toLowerCase()}`;
       scene.traverse(object => {
         if (!(object instanceof Mesh)) return;
-        if (object.material instanceof MeshStandardMaterial && object.material.map) prepareCliffMaterial(object.material);
+        if (object.material instanceof MeshStandardMaterial && object.material.map) {
+          for (const texture of [object.material.map, object.material.normalMap, object.material.roughnessMap]) {
+            if (texture) texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          }
+          prepareCliffMaterial(object.material);
+        }
         object.castShadow = object.receiveShadow = true;
         object.raycast = () => {}; // Camera and movement keep the inexpensive authored proxies.
       });

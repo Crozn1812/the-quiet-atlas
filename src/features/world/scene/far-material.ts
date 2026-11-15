@@ -1,23 +1,17 @@
-import { AlwaysDepth, LessEqualDepth, MeshStandardMaterial, Vector2, WebGLRenderTarget, type WebGLRenderer } from "three";
+import { LessEqualDepth, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, type Texture, type WebGLRenderer } from "three";
 
-/** A backdrop shades its own distance/height air. Keeping it out of the local
- * depth buffer prevents the gameplay aerial pass from fogging it a second time. */
+/** Real depth preserves occlusion between connected ranges and foreground. */
 export function createFarMaterial(firstLightView: { value: number }) {
-  // Alpha stays 1. The transparent queue lets this depth-tested backdrop draw
-  // after the sea, whose transparent material writes depth, without giving the
-  // shared aerial pass a second mountain depth to fog.
+  // Draw after the depth-writing sea; alpha is always opaque.
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 0.96, transparent: true });
-  material.depthWrite = false;
-  let depthCopy: WebGLRenderTarget | undefined;
-  const farDepthActive = { value: 0 }, farDepth = { value: null as WebGLRenderTarget["depthTexture"] };
-  const farDepthSize = { value: new Vector2(1, 1) };
+  const rockPhoto = { value: null as Texture | null }, rockReady = { value: 0 };
+  let disposed = false, loading: Promise<void> | undefined;
   material.addEventListener("dispose", () => {
-    depthCopy?.depthTexture?.dispose(); depthCopy?.dispose(); depthCopy = undefined;
-    farDepth.value = null; farDepthActive.value = 0;
+    disposed = true; rockPhoto.value?.dispose(); rockPhoto.value = null; rockReady.value = 0;
   });
   material.onBeforeCompile = shader => {
     shader.uniforms.firstLightView = firstLightView;
-    Object.assign(shader.uniforms, { farDepthActive, farDepth, farDepthSize });
+    Object.assign(shader.uniforms, { rockPhoto, rockReady });
     shader.vertexShader = "attribute vec3 farHorizon; varying vec3 ridgeHorizon; varying vec3 farWorld; varying vec3 farNormal;\n" + shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
 farWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
@@ -25,34 +19,36 @@ farNormal = normalize(mat3(modelMatrix) * normal);
 ridgeHorizon = farHorizon;`);
     shader.fragmentShader = `varying vec3 farWorld; varying vec3 farNormal; varying vec3 ridgeHorizon;
 uniform float firstLightView;
-uniform float farDepthActive;
-uniform sampler2D farDepth;
-uniform vec2 farDepthSize;
+uniform sampler2D rockPhoto;
+uniform float rockReady;
 float farHash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float farNoise(vec2 p) {
  vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
  return mix(mix(farHash(i),farHash(i+vec2(1,0)),f.x),mix(farHash(i+vec2(0,1)),farHash(i+1.0),f.x),f.y);
 }
 float farCrown(vec2 p) {
- // Rotated, warped frequencies: broad stands, interlocking canopy shadows and
- // fine foliage. No repeated radial crown primitive or regular cell outline.
- vec2 warp=vec2(farNoise(p/39.0),farNoise(p/47.0+31.0));
- vec2 q=p+warp*13.0;
- vec2 r=vec2(q.x*0.8-q.y*0.6,q.x*0.6+q.y*0.8);
- float stands=farNoise(q/105.0)*0.65+farNoise(r/37.0+11.0)*0.35;
- float crowns=farNoise(vec2(r.x*0.12,r.y*0.19))*0.66+farNoise(q*0.34+53.0)*0.34;
- float twigs=farNoise(q*0.89+19.0);
- return stands*0.48+crowns*0.38+twigs*0.14;
+ // Overlapping, jittered crowns resolve a forest skin on the remote relief.
+ // The slope still determines the silhouette; no billboards or repeated cones.
+ vec2 q=(p+vec2(farNoise(p/39.0),farNoise(p/47.0+31.0))*9.0)/5.5;
+ vec2 cell=floor(q), f=fract(q); float crown=0.0;
+ for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++){
+   vec2 site=cell+vec2(float(x),float(y));
+   float seed=farHash(site), other=farHash(site+vec2(57.0,19.0));
+   vec2 d=vec2(float(x),float(y))+vec2(0.18+seed*0.64,0.18+other*0.64)-f;
+   d*=vec2(0.90+other*0.35,0.82+seed*0.42);
+   float cap=max(0.0,1.0-dot(d,d)*(0.85+seed*0.45));
+   crown=max(crown,cap*(0.65+other*0.35));
+ }
+ float stands=farNoise(p/105.0)*0.6+farNoise(p/37.0+11.0)*0.4;
+ // Small foliage and stand variation interrupt each cap before it can read as
+ // a repeated circular mound under derivative lighting.
+ return crown*0.25+stands*0.20+farNoise(p*0.89+19.0)*0.55;
 }
 ` + shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
 float firstLightDither = farHash(gl_FragCoord.xy);
 if (firstLightDither < firstLightView) discard;
-// Preserve foreground occlusion using the depth captured after the sea. Only
-// visible backdrop pixels reset their depth to sky, avoiding double aerial fog
-// from transparent sea fragments whose colour/coverage can be zero inland.
-if(farDepthActive>0.5 && gl_FragCoord.z>texture2D(farDepth,gl_FragCoord.xy/farDepthSize).r) discard;
-gl_FragDepth=farDepthActive>0.5?1.0:gl_FragCoord.z;`);
+// Fixed-function depth preserves both foreground and inter-range occlusion.`);
     shader.fragmentShader = shader.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
 float canopy=farCrown(farWorld.xz);
 float mountain=smoothstep(95.0,165.0,-farWorld.x);
@@ -60,27 +56,29 @@ float slope=1.0-normalize(farNormal).y;
 float soil=farNoise(farWorld.xz/15.0 + vec2(canopy*2.0));
 float footprint=length(fwidth(farWorld.xz));
 float grain=mix(0.5,farNoise(farWorld.xz*2.8),1.0-smoothstep(0.7,2.8,footprint));
-float rock=smoothstep(0.22,0.48,slope + (soil-0.5)*0.17);
+float rock=smoothstep(0.38,0.68,slope + (soil-0.5)*0.10);
 vec2 geology=farWorld.xz*0.18+vec2(farWorld.y*0.07,farWorld.y*0.13);
 geology+=vec2(farNoise(farWorld.xz/17.0),farNoise(farWorld.xz/23.0+37.0))*2.4;
 float strata=0.65*farNoise(geology)+0.35*farNoise(geology*3.7+51.2);
-vec3 stone=mix(vec3(0.085,0.10,0.095),vec3(0.25,0.235,0.19),strata);
-vec3 earth=mix(vec3(0.13,0.105,0.065),vec3(0.24,0.22,0.13),grain);
-vec3 meadow=diffuseColor.rgb*(0.68+canopy*0.54+grain*0.12);
-meadow=mix(meadow,earth,smoothstep(0.50,0.75,soil)*smoothstep(0.025,0.24,slope)*0.65);
-diffuseColor.rgb=mix(meadow,stone,rock*0.9);
+vec3 meadow=mix(vec3(0.075,0.115,0.035),vec3(0.14,0.19,0.065),soil)*(0.60+canopy*0.75);
 // Remote slopes carry a continuous forest skin; no sparse tree cards at skyline.
 vec3 forest=mix(vec3(0.012,0.040,0.020),vec3(0.048,0.125,0.046),soil);
-forest*=0.48+canopy*0.95+grain*0.10;
+forest*=0.30+smoothstep(0.22,0.72,canopy)*1.35+grain*0.16;
 vec3 cliff=mix(vec3(0.065,0.075,0.078),vec3(0.22,0.23,0.22),strata);
-diffuseColor.rgb=mix(diffuseColor.rgb,mix(forest,cliff,rock*0.92),mountain);
+if(rockReady>0.5){
+ vec3 weights=pow(abs(normalize(farNormal)),vec3(4.0)); weights/=dot(weights,vec3(1.0));
+ vec3 photo=texture2D(rockPhoto,farWorld.zy/4.0).rgb*weights.x
+   +texture2D(rockPhoto,farWorld.xz/4.0).rgb*weights.y+texture2D(rockPhoto,farWorld.xy/4.0).rgb*weights.z;
+ cliff=photo*0.32;
+}
+diffuseColor.rgb=mix(mix(meadow,forest,0.7),cliff,rock*0.92);
 // Grey-green pigment at distance complements the shared blue-grey atmospheric air.
 float range=distance(cameraPosition,farWorld);
 float grey=dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));
 diffuseColor.rgb=mix(diffuseColor.rgb,vec3(grey*0.87,grey*1.03,grey*1.10),smoothstep(90.0,650.0,range)*0.26);`);
     shader.fragmentShader = shader.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
 // World-space fine grass/stone relief, filtered by pixel footprint at distance.
-float relief = canopy * 0.75 + strata * rock * 0.3;
+float relief = canopy * 0.32 + strata * rock * 0.3;
 vec3 sx=dFdx(farWorld), sy=dFdy(farWorld);
 vec3 rx=cross(sy,normalize(farNormal)), ry=cross(normalize(farNormal),sx);
 float det=dot(sx,rx);
@@ -113,7 +111,7 @@ outgoingLight=mix(outgoingLight,reliefLight,mountain);
 #include <opaque_fragment>`);
     shader.fragmentShader = shader.fragmentShader.replace("#include <fog_fragment>", `
 #ifdef USE_FOG
-// Backdrop depth stays at sky: this is its only atmospheric extinction.
+// Range extinction complements the optically thin local aerial composite.
 // Distance separates ranges; humidity collects under shoulders, not on summits.
 float airRange=distance(cameraPosition,farWorld);
 float farExtinction=1.0-exp(-max(0.0,airRange-130.0)*0.0011);
@@ -124,41 +122,32 @@ float valleyAir=(1.0-smoothstep(mistTop-4.0,mistTop+32.0,farWorld.y))*smoothstep
 vec3 mountainAir=vec3(0.12,0.22,0.30);
 vec3 target=mix(gl_FragColor.rgb,mountainAir,farExtinction);
 target=mix(target,fogColor,valleyAir);
-float groundFog=smoothstep(fogNear,fogFar,vFogDepth);
-float exposedRange=mountain*smoothstep(4.0,30.0,farWorld.y);
-gl_FragColor.rgb=mix(mix(gl_FragColor.rgb,fogColor,groundFog),target,exposedRange);
+// A single height/range air field covers every connected slope, including the toe.
+gl_FragColor.rgb=target;
 #endif`);
   };
-  material.customProgramCacheKey = () => "hr-far-eroded-ranges-v6";
+  material.customProgramCacheKey = () => "hr-far-depth-relief-v7";
   material.polygonOffset = true;
   material.polygonOffsetFactor = 2; material.polygonOffsetUnits = 4;
   return Object.assign(material, {
-    /** One GPU depth blit, no readback or scene redraw. The copy is distinct
-     * from the live attachment; sampling it while writing that attachment is safe.
-     * Low and startup/direct renders allocate nothing. */
-    prepareDepth(renderer: WebGLRenderer, enabled: boolean) {
-      const source = enabled ? renderer.getRenderTarget?.() : null;
-      const active = !!source?.depthTexture;
-      farDepthActive.value = active ? 1 : 0;
-      // A disabled depth test also disables writes in WebGL. ALWAYS keeps the
-      // sky-depth write enabled after the shader's explicit foreground test.
-      material.depthFunc = active ? AlwaysDepth : LessEqualDepth;
-      material.depthWrite = active;
-      if (!active) return;
-      if (!depthCopy) depthCopy = new WebGLRenderTarget(source.width, source.height, {
-        depthTexture: source.depthTexture!.clone(), depthBuffer: true, generateMipmaps: false,
-      });
-      depthCopy.setSize(source.width, source.height);
-      try {
-        renderer.initRenderTarget(depthCopy);
-        renderer.copyTextureToTexture(source.depthTexture!, depthCopy.depthTexture!);
-      } finally {
-        // Three's depth blit unbinds READ/DRAW framebuffers; restore the source
-        // through its public API before this mesh submits its colour/depth draw.
-        renderer.setRenderTarget(source);
-      }
-      farDepth.value = depthCopy.depthTexture;
-      farDepthSize.value.set(source.width, source.height);
+    prepareDepth(_renderer: WebGLRenderer, enabled: boolean) {
+      material.depthFunc = LessEqualDepth; material.depthWrite = enabled;
+    },
+    /** Reuse the licensed 2K photograph after the playable hardware gate. */
+    startDetail(renderer: WebGLRenderer) {
+      if (disposed) return Promise.resolve();
+      loading ??= (async () => {
+        const { KTX2Loader } = await import("three/examples/jsm/loaders/KTX2Loader.js");
+        const loader = new KTX2Loader().detectSupport(renderer);
+        try {
+          const photo = await loader.loadAsync("/world/cliff/cliff-color.ktx2");
+          if (disposed) { photo.dispose(); return; }
+          photo.wrapS = photo.wrapT = RepeatWrapping; photo.colorSpace = SRGBColorSpace;
+          photo.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          photo.needsUpdate = true; rockPhoto.value = photo; rockReady.value = 1;
+        } finally { loader.dispose(); }
+      })().catch(() => { /* Analytic rock remains available offline. */ });
+      return loading;
     },
   });
 }
