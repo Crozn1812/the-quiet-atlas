@@ -9,3 +9,6 @@
   4. Ghi FPS High của từng góc (đo khi máy không có tác vụ nặng khác của chính mình).
 - Được sửa: `tools/review/hr-audit*.mjs`, `tests/review/HR-AUDIT.md`, `test-results/hr-audit/**`. **Không sửa** `src/**`, `public/**`, `assets/**`.
 - Xong khi: có `tests/review/HR-AUDIT.md` với bảng lỗi kèm đường dẫn ảnh, ít nhất 40 ảnh, và trang `test-results/hr-audit/index.html` xem nhanh. `pnpm lint` + `pnpm typecheck` PASS. Không commit.
+
+**Lead đã thấy (15/11 08:30), ghi vào bảng và tìm nguồn:** ở Horizon nhìn về phía suối, sườn đồi xa bên trái có các **lỗ tròn thủng nhìn xuyên ra trời** (ảnh `D:/tqa-worktrees/W-C/tmp/hr-sky/return1/comparison-horizon.webp`, hàng 3, cả MAIN lẫn HR-SKY). Có thể do mesh lớp xa (HR-FAR), alpha của impostor, hoặc culling địa hình.
+Dùng cổng E2E/serve riêng của slot (`_common-b2`).
