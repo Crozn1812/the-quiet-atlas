@@ -1,10 +1,11 @@
 import { Box3, BufferGeometry, CatmullRomCurve3, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial, TubeGeometry, Vector3, type Material, type Texture, type WebGLRenderer } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import type { HrTreeId } from "./hr-variation";
+import type { HrLandscapeTreeId as HrTreeId } from "./hr-variation";
+import { createCoastalTree, type CoastalTreeId } from "./hr-coastal";
 
 export interface HrPart { geometry: BufferGeometry; material: Material; leaf: boolean; vine?: boolean }
 export interface HrAsset { parts: HrPart[]; bounds: Box3; center: Vector3; dispose(): void }
-interface ManifestTree { id: HrTreeId; bounds: { min: number[]; max: number[] }; impostor: { center: number[] } }
+interface ManifestTree { id: HrTreeId; bounds?: { min: number[]; max: number[] }; impostor?: { center: number[] } }
 
 /** Keep indexed primitives and their photographed PBR maps, never flatten them. */
 export function readHrParts(root: Group): HrPart[] {
@@ -121,12 +122,15 @@ export function acquireHrTree(renderer: WebGLRenderer, id: HrTreeId, level: numb
     const ready = shared.queue.catch(() => {}).then(async () => {
       const decoder = await shared.decoder;
       if (!consumers.refs) throw new Error("Tree tile released before request");
-      const meta = decoder.manifest.assets.find(a => a.id === id);
+      const coastal = id.startsWith("hr-coast-");
+      const meta = decoder.manifest.assets.find(a => a.id === (coastal ? "hr-tree-slender-upright" : id));
       if (!meta) throw new Error(`Missing tree ${id}`);
-      const gltf = await decoder.loader.loadAsync(`/world/lib/${id}-${level === 2 ? "impostor" : `lod${level}`}.glb`);
+      const gltf = await decoder.loader.loadAsync(`/world/lib/${meta.id}-${!coastal && level === 2 && meta.impostor ? "impostor" : `lod${Math.min(level, 1)}`}.glb`);
       const parts = readHrParts(gltf.scene), owned = new Set<Texture>();
-      const bounds = new Box3(new Vector3().fromArray(meta.bounds.min), new Vector3().fromArray(meta.bounds.max));
-      if (level < 2 && !id.includes("bamboo") && !id.includes("dead")) {
+      const coastAsset = coastal ? createCoastalTree(id as CoastalTreeId, parts.find(p => !p.leaf)!.material as MeshStandardMaterial, level) : undefined;
+      const bounds = meta.bounds ? new Box3(new Vector3().fromArray(meta.bounds.min), new Vector3().fromArray(meta.bounds.max))
+        : parts.reduce((box, part) => box.union(part.geometry.boundingBox!), new Box3());
+      if (!coastal && level < 2 && !id.includes("bamboo") && !id.includes("dead") && !id.includes("palm")) {
         const vines = createHrVines(parts, bounds); if (vines) parts.push(vines);
       }
       gltf.scene.traverse(o => { if (o instanceof Mesh) {
@@ -137,7 +141,8 @@ export function acquireHrTree(renderer: WebGLRenderer, id: HrTreeId, level: numb
           m.dispose();
         }
       } });
-      return { parts, bounds, center: new Vector3().fromArray(meta.impostor.center), dispose() {
+      if (coastAsset) { parts.forEach(p => { p.geometry.dispose(); p.material.dispose(); }); return coastAsset; }
+      return { parts, bounds, center: meta.impostor ? new Vector3().fromArray(meta.impostor.center) : bounds.getCenter(new Vector3()), dispose() {
         parts.forEach(p => { p.geometry.dispose(); p.material.dispose(); }); owned.forEach(t => t.dispose());
       } };
     });

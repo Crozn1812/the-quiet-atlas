@@ -77,4 +77,45 @@ describe("HR props streaming", () => {
     expect(hrPropLod(25, 0)).toBe(0); expect(hrPropLod(27, 0)).toBe(1);
     expect(hrPropLod(22, 1)).toBe(1); expect(hrPropLod(20, 1)).toBe(0);
   });
+  it("uses coarse sapling meshes and compacts nearby instances without losing per-LOD transforms or tint", async () => {
+    const { mesh, scene, asset } = fixture();
+    asset.lods[1]![0]!.matrix.makeTranslation(0,0.25,0);
+    const sites: HrPropSite[] = [{ ...site, x: 0, z: 0, tint: .8 }, { ...site, x: 45, z: 0, tint: .6 }];
+    const controller = bindHrProps(mesh,sites,() => 2,undefined,async () => asset,{ minimumLod: 1, radius: 32 });
+    try {
+      expect(await controller.loadDetail(renderer)).toBe(true);
+      const [near,far] = mesh.children[0]!.children as InstancedMesh[];
+      const camera = new PerspectiveCamera(), matrix = new Matrix4(); camera.position.set(0,3,4); camera.updateMatrixWorld(); mesh.updateMatrixWorld(true);
+      const frame = () => mesh.onBeforeRender(renderer,scene,camera,mesh.geometry,mesh.material,null!);
+      frame(); expect(near!.visible).toBe(false); expect(far!.visible).toBe(true); expect(far!.count).toBe(1); expect(far!.castShadow).toBe(false);
+      far!.getMatrixAt(0,matrix); expect(matrix.elements).toEqual(fitHrProp(asset.bounds,sites[0]!,() => 2).multiply(asset.lods[1]![0]!.matrix).elements.map(v => Math.fround(v)));
+      expect(far!.instanceColor!.getX(0)).toBeCloseTo(.8);
+      const version = far!.instanceMatrix.version; frame(); expect(far!.instanceMatrix.version).toBe(version);
+      camera.position.x = 45; camera.updateMatrixWorld(); frame();
+      expect(far!.count).toBe(1); far!.getMatrixAt(0,matrix); expect(matrix.elements[12]).toBeCloseTo(45); expect(far!.instanceColor!.getX(0)).toBeCloseTo(.6);
+      camera.position.x = 100; camera.updateMatrixWorld(); frame(); expect(far!.visible).toBe(false);
+      camera.position.x = 0; camera.updateMatrixWorld(); frame(); expect(far!.visible).toBe(true);
+    } finally { controller.dispose(); mesh.geometry.dispose(); (mesh.material as MeshStandardMaterial).dispose(); }
+  });
+  it("culls offscreen understorey instances and restores them when the camera turns without moving", async () => {
+    const { mesh, scene, asset } = fixture();
+    const sites: HrPropSite[] = [{ ...site, x: 0, z: -8, tint: .8 }, { ...site, x: 0, z: 8, tint: .6 }];
+    mesh.position.set(17, 0, -24); mesh.rotation.y = Math.PI / 3; scene.updateMatrixWorld(true);
+    const controller = bindHrProps(mesh, sites, () => 2, undefined, async () => asset, { minimumLod: 1, radius: 32 });
+    try {
+      expect(await controller.loadDetail(renderer)).toBe(true);
+      const far = mesh.children[0]!.children[1] as InstancedMesh, matrix = new Matrix4();
+      const camera = new PerspectiveCamera(55, 1, .1, 100);
+      camera.position.copy(mesh.localToWorld(new Vector3(0, 3, 0)));
+      const frame = (z: number) => {
+        camera.lookAt(mesh.localToWorld(new Vector3(0, 3, z))); camera.updateMatrixWorld();
+        mesh.onBeforeRender(renderer, scene, camera, mesh.geometry, mesh.material, null!);
+      };
+      frame(-8); expect(far.count).toBe(1); far.getMatrixAt(0, matrix); expect(matrix.elements[14]).toBe(-8);
+      expect(far.instanceColor!.getX(0)).toBeCloseTo(.8);
+      frame(8); expect(far.count).toBe(1); far.getMatrixAt(0, matrix); expect(matrix.elements[14]).toBe(8);
+      expect(far.instanceColor!.getX(0)).toBeCloseTo(.6);
+      const version = far.instanceMatrix.version; frame(8); expect(far.instanceMatrix.version).toBe(version);
+    } finally { controller.dispose(); mesh.geometry.dispose(); (mesh.material as MeshStandardMaterial).dispose(); }
+  });
 });

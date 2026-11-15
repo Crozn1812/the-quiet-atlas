@@ -2,23 +2,13 @@ import { Box3, BufferGeometry, Color, Frustum, Group, InstancedBufferAttribute, 
 import type { Quality } from "../terrain";
 import { acquireHrTree, type HrAsset } from "./hr-library";
 import { installHrMaterial } from "./hr-material";
-import { chooseHrTrees, hrLeafTint, hrTreeLod, treeRandom, type HrTreeId } from "./hr-variation";
+import { chooseHrTrees, hrLeafTint, hrTreeLod, treeRandom, type HrLandscapeTreeId as HrTreeId } from "./hr-variation";
 import { createHrUnderstorey } from "./hr-understorey";
+import { usesSoftwareRasterizer } from "./hr-capabilities";
+import { foliageBiomeAt } from "./scatter";
 
 const clocks = new WeakMap<Scene, Vector2>();
 const cadence = new WeakMap<Scene, { last: number; slowFrames: number; constrained: boolean }>();
-const softwareRenderers = new WeakMap<WebGLRenderer, boolean>();
-function usesSoftwareRasterizer(renderer: WebGLRenderer) {
-  let software = softwareRenderers.get(renderer);
-  if (software === undefined) {
-    const gl = renderer.getContext?.();
-    const debug = gl?.getExtension("WEBGL_debug_renderer_info");
-    const name = debug ? String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)) : "";
-    software = /swiftshader|llvmpipe|softpipe|software rasterizer/i.test(name);
-    softwareRenderers.set(renderer, software);
-  }
-  return software;
-}
 // In-memory world ownership, including unloaded tiles. Neighbours on opposite
 // tile/grove boundaries participate in the same solve and keep their choice on
 // revisit. The entire registry dies with its Scene; nothing is persisted.
@@ -49,7 +39,7 @@ interface Batch { group: Group; meshes: InstancedMesh[]; sites: Site[]; active: 
 
 /** Bind to the existing tile factories. The procedural forest remains playable
  * during streaming and is also the complete Low/network-failure path. */
-export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { canopyOnly?: boolean } = {}) {
+export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { canopyOnly?: boolean; rootAtMinimum?: boolean; companions?: readonly InstancedMesh[] } = {}) {
   let quality: Quality = "High", disposed = false, revision = 0, timer: ReturnType<typeof setTimeout> | undefined;
   let sites: Site[] = [], clock = new Vector2(), lastFrame = -1;
   const group = new Group(); group.name = "hr-tree2-streamed";
@@ -57,40 +47,47 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
   const leases = new Map<string, ReturnType<typeof acquireHrTree>>();
   const failed = new Set<string>();
   let understorey: ReturnType<typeof createHrUnderstorey> | undefined;
-  const materialBackups = fallbacks.map(mesh => mesh.material);
-  const shadowBackups = fallbacks.map(mesh => [mesh.customDepthMaterial, mesh.customDistanceMaterial] as const);
+  const maskedMeshes = [...fallbacks, ...options.companions ?? []];
+  // Legacy trunks share one BufferGeometry; each companion needs its own mask.
+  const companionGeometries = options.companions?.map(mesh => mesh.geometry) ?? [];
+  options.companions?.forEach(mesh => { mesh.geometry = mesh.geometry.clone(); });
+  const materialBackups = maskedMeshes.map(mesh => mesh.material);
+  const shadowBackups = maskedMeshes.map(mesh => [mesh.customDepthMaterial, mesh.customDistanceMaterial] as const);
   const callbacks = fallbacks.map(mesh => mesh.onAfterRender);
   let masked = false, residencyDirty = true, lastConstrained = false;
-  function maskFallback(material: Material) {
+  function maskFallback(material: Material, styled = false) {
     const hook = material.onBeforeCompile.bind(material), key = material.customProgramCacheKey.bind(material);
     material.onBeforeCompile = (shader, renderer) => {
       hook(shader, renderer);
-      shader.vertexShader = "attribute float hrReplaced; varying float vHrReplaced;\n" + shader.vertexShader;
-      shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvHrReplaced = hrReplaced;");
-      shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>", "#include <project_vertex>\nif (hrReplaced > 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);");
+      if (styled && !/attribute\s+vec3\s+treeStyle\b/.test(shader.vertexShader)) shader.vertexShader = "attribute vec3 treeStyle;\n" + shader.vertexShader;
+      shader.vertexShader = (styled ? "" : "attribute float hrReplaced; ") + "varying float vHrReplaced;\n" + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>\nvHrReplaced = ${styled ? "step(3.5, treeStyle.x)" : "hrReplaced"};`);
+      shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>", "#include <project_vertex>\nif (vHrReplaced > 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);");
       shader.fragmentShader = "varying float vHrReplaced;\n" + shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace("#include <clipping_planes_fragment>", "if (vHrReplaced > 0.5) discard;\n#include <clipping_planes_fragment>");
     };
-    material.customProgramCacheKey = () => key() + "|hr-replaced";
+    material.customProgramCacheKey = () => key() + `|hr-replaced:${styled}`;
   }
   const replaced = fallbacks.map(mesh => {
     const attribute = new InstancedBufferAttribute(new Float32Array(mesh.instanceMatrix.count), 1);
-    mesh.geometry.setAttribute("hrReplaced", attribute);
+    if (!mesh.geometry.hasAttribute("treeStyle")) mesh.geometry.setAttribute("hrReplaced", attribute);
     return attribute;
   });
   const nextReplaced = replaced.map(a => new Float32Array(a.count));
+  options.companions?.forEach((mesh, i) => mesh.geometry.setAttribute("hrReplaced", replaced[i]!));
   function maskFallbacks() {
     if (masked) return;
     masked = true;
-    for (const mesh of fallbacks) {
+    for (const mesh of maskedMeshes) {
       const material = (mesh.material as Material).clone();
       const original = mesh.material as Material;
       material.onBeforeCompile = original.onBeforeCompile; material.customProgramCacheKey = original.customProgramCacheKey;
-      maskFallback(material);
+      const styled = mesh.geometry.hasAttribute("treeStyle");
+      maskFallback(material, styled);
       mesh.material = material;
       const depth = mesh.customDepthMaterial?.clone() ?? new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
       const distance = mesh.customDistanceMaterial?.clone() ?? new MeshDistanceMaterial();
-      maskFallback(depth); maskFallback(distance); mesh.customDepthMaterial = depth; mesh.customDistanceMaterial = distance;
+      maskFallback(depth, styled); maskFallback(distance, styled); mesh.customDepthMaterial = depth; mesh.customDistanceMaterial = distance;
     }
   }
   function clearBatches() {
@@ -105,11 +102,19 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
     batches.clear();
     for (const lease of leases.values()) lease.release(); leases.clear(); failed.clear();
     replaced.forEach(a => { a.array.fill(0); a.needsUpdate = true; });
+    fallbacks.forEach(mesh => {
+      const style = mesh.geometry.getAttribute("treeStyle");
+      if (style) { for (let i = 0; i < style.count; i++) style.setX(i, style.getX(i) % 4); style.needsUpdate = true; }
+    });
   }
   function collect(scene: Scene) {
     sites = [];
     for (const mesh of fallbacks) for (let i = 0; i < mesh.count; i++) {
       const matrix = new Matrix4(); mesh.getMatrixAt(i, matrix);
+      if (options.rootAtMinimum) {
+        mesh.geometry.computeBoundingBox();
+        matrix.multiply(new Matrix4().makeTranslation(0, mesh.geometry.boundingBox!.min.y, 0));
+      }
       const p = new Vector3().setFromMatrixPosition(matrix);
       // Additional independent yaw, aspect and slight rooted tilt distinguish
       // neighbouring instances even when they share an architecture.
@@ -124,9 +129,16 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
     let registry = neighbourhoods.get(scene);
     if (!registry) { registry = new Map(); neighbourhoods.set(scene, registry); }
     const namespace = options.canopyOnly ? "roof" : "tree";
-    const neighbours = [...registry.entries()].filter(([key]) => key.startsWith(namespace + ":")).map(([, value]) => value);
+    const neighbours = [...registry.entries()].filter(([key, value]) => key.startsWith(namespace + ":") && value.id.startsWith("hr-tree-"))
+      .map(([, value]) => ({ ...value, id: value.id as import("./hr-variation").HrTreeId }));
     const ids = chooseHrTrees(sites, neighbours);
-    sites.forEach((s, i) => { s.id = ids[i]!; registry.set(`${namespace}:${s.x}:${s.z}`, { x: s.x, z: s.z, id: s.id }); });
+    sites.forEach((s, i) => {
+      const biome = foliageBiomeAt(s.x, s.z), choice = treeRandom(s.x, s.z, 83);
+      s.id = options.canopyOnly || biome === "forest-dawn" ? ids[i]!
+        : biome === "hill" ? (["hr-tree-spreading-crown", "hr-tree-umbrella-crown", "hr-tree-slender-forked"] as const)[Math.floor(choice * 3)]!
+        : (["hr-coast-casuarina", "hr-coast-casuarina-wind", "hr-coast-acacia"] as const)[Math.floor(choice * 3)]!;
+      registry.set(`${namespace}:${s.x}:${s.z}`, { x: s.x, z: s.z, id: s.id });
+    });
   }
   function createBatch(asset: HrAsset, selected: Site[], level: number): Batch {
     maskFallbacks(); residencyDirty = true;
@@ -143,6 +155,10 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       source.geometry.computeBoundingBox();
       const target = source.geometry.boundingBox!, size = target.getSize(new Vector3());
       const fit = new Matrix4().makeScale(size.x / old.x, size.y / old.y, size.z / old.z);
+      if (id.startsWith("hr-coast-")) {
+        const scale = size.y / old.y, spread = id.endsWith("acacia") ? 1.15 : 1;
+        fit.makeScale(Math.min(size.x / old.x, scale * spread), scale, Math.min(size.z / old.z, scale * spread));
+      }
       if (!options.canopyOnly && (id.includes("dead") || id.includes("bamboo"))) {
         const scale = size.y / old.y;
         fit.makeScale(Math.min(size.x / old.x, scale), scale, Math.min(size.z / old.z, scale));
@@ -231,10 +247,14 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
         position.setFromMatrixPosition(site.matrix).applyMatrix4(site.source.matrixWorld);
         const distance = Math.hypot(position.x - eye.x, position.z - eye.z);
         site.level = hrTreeLod(distance, quality === "High", site.level);
+        if (site.id.startsWith("hr-palm-") && site.level === 2) site.level = 1;
         if (constrained && site.level >= 0) site.level = distance < 28 ? 1 : 2;
         site.visible = frustum.intersectsSphere(site.bounds);
         // A roof is a crown slice, not a whole-tree billboard with a floating stem.
         if (options.canopyOnly && site.level === 2) site.level = 1;
+        // Coastal crowns keep their dense sprays at distance: the tropical
+        // billboard would reintroduce the bare, wire-like coastal silhouette.
+        if (site.id.startsWith("hr-coast-") && site.level === 2) site.level = 1;
         if (site.level < 0 || !site.visible) continue;
         const key = `${site.id}:${site.level}`;
         let entry = pending.get(key);
@@ -243,7 +263,7 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       // Yield to paint; the serial decoder queue requests only currently needed LODs.
       if (timer === undefined && [...pending.keys()].some(k => !leases.has(k) && !failed.has(k))) timer = setTimeout(() => {
         timer = undefined; if (disposed || quality === "Low") return;
-        if (!understorey && !options.canopyOnly) { understorey = createHrUnderstorey(sites, clock); group.add(understorey.group); }
+        if (!understorey && !options.canopyOnly) { understorey = createHrUnderstorey(sites.filter(s => foliageBiomeAt(s.x, s.z) === "forest-dawn"), clock); group.add(understorey.group); }
         for (const entry of [...pending.values()].sort((a, b) => a.level - b.level)) request(renderer, entry.sites, entry.level);
       }, 0);
     }
@@ -280,13 +300,23 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
     }
     replaced.forEach((a, i) => {
       const next = nextReplaced[i]!;
-      if (next.some((value, index) => value !== a.getX(index))) { a.array.set(next); a.needsUpdate = true; }
+      if (next.some((value, index) => value !== a.getX(index))) {
+        a.array.set(next); a.needsUpdate = true;
+        // Legacy crowns already consume all 16 WebGL attributes. Pack the mask
+        // into their existing style bucket instead of adding a 17th input.
+        const style = fallbacks[i]!.geometry.getAttribute("treeStyle");
+        if (style) { for (let j = 0; j < style.count; j++) style.setX(j, style.getX(j) % 4 + next[j]! * 4); style.needsUpdate = true; }
+      }
     });
   }
   fallbacks.forEach((mesh, i) => { mesh.onAfterRender = function (renderer, scene, camera, ...args) {
     callbacks[i]!.call(this, renderer, scene, camera, ...args); refresh(renderer, scene, camera);
   }; });
   return {
+    invalidate() {
+      if (timer !== undefined) { clearTimeout(timer); timer = undefined; }
+      revision++; clearBatches(); sites = []; lastFrame = -1; residencyDirty = true;
+    },
     setQuality(next: Quality) {
       if (quality === next) return;
       if (timer !== undefined) { clearTimeout(timer); timer = undefined; }
@@ -296,8 +326,8 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
       if (disposed) return; disposed = true; revision++;
       if (timer !== undefined) clearTimeout(timer);
       clearBatches(); group.removeFromParent();
-      fallbacks.forEach((mesh, i) => {
-        mesh.onAfterRender = callbacks[i]!;
+      fallbacks.forEach((mesh, i) => { mesh.onAfterRender = callbacks[i]!; });
+      maskedMeshes.forEach((mesh, i) => {
         if (masked) {
           (mesh.material as Material).dispose(); mesh.material = materialBackups[i]!;
           mesh.customDepthMaterial?.dispose(); mesh.customDistanceMaterial?.dispose();
@@ -305,6 +335,7 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
         }
         mesh.geometry.deleteAttribute("hrReplaced");
       });
+      options.companions?.forEach((mesh, i) => { mesh.geometry.dispose(); mesh.geometry = companionGeometries[i]!; });
     },
   };
 }

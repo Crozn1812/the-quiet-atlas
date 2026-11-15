@@ -42,7 +42,8 @@ export function createGrassField(quality: Quality, zoneBounds: readonly Box3[] =
   const radius = GRASS_FIELD_RADII[quality];
   // Square torus includes a guard cell; shader clips it to the exact moving circle.
   const half = Math.ceil(radius / S) + 1, side = half * 2 + 1;
-  const capacity = radius ? side * side : 0;
+  // HR-LIGHT's denser, curved field owns High. Do not draw a second dark blade layer.
+  const capacity = radius && quality !== "High" ? side * side : 0;
   const geometry = new BufferGeometry();
   // Four bent blades fanned around the tuft centre (12 triangles).
   const blade = [-0.04, 0, 0, 0.04, 0, 0, 0.01, 0.55, 0.05, 0.06, 0.55, 0.05, 0.14, 1, 0.12];
@@ -104,7 +105,7 @@ if (grassForest > 0.5) vColor.rgb = mix(vec3(${new Color(PALETTE.forestDeep).toA
    * Call with the player/camera XZ, elapsed seconds and current motion preference.
    */
   function update(x: number, z: number, time: number, reducedMotion = false) {
-    if (disposed || !radius) return { sampled: 0, pending: 0 };
+    if (disposed || !capacity) return { sampled: 0, pending: 0 };
     uniforms.grassCenter.value.set(x, z);
     uniforms.grassTime.value = time;
     uniforms.grassWind.value = reducedMotion ? 0 : 1;

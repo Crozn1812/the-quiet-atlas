@@ -63,42 +63,19 @@ it("decodes six real meshopt GLBs with vertex AO and fits the existing triangle 
   } finally { template.dispose(); assets.forEach(asset => asset.dispose()); }
 });
 
-it("defers fetch until play, retains fade/mesh identity and restores Low geometry", async () => {
+it("keeps legacy geometry/fade identity on Low and never requests the retired tree library", () => {
   const fetch = serveAssets();
   vi.stubGlobal("window", { setTimeout });
-  const foliage = createFoliage(2);
-  const crowns = foliage.species.broadleaf.crowns;
+  const foliage = createFoliage(2), crowns = foliage.species.broadleaf.crowns;
   const original = crowns.geometry;
-  const variants = Object.values(foliage.species).flatMap(species => species.variants);
-  const before = variants.map(({ crowns }) => crowns.geometry.index!.count / 3 + 42);
   const alpha = new InstancedBufferAttribute(new Float32Array([.4, 1]), 1);
   original.setAttribute("crownAlpha", alpha);
   try {
-    updateFoliageWind([crowns], 0, false);
-    expect(fetch).not.toHaveBeenCalled();
-    foliage.setQuality("Low");
-    updateFoliageWind([crowns], 1 / 60, false);
-    expect(fetch).not.toHaveBeenCalled();
-    foliage.setQuality("High");
-    updateFoliageWind([crowns], 1 / 60, true);
-    await vi.waitFor(() => expect(crowns.geometry).not.toBe(original), { timeout: 10000 });
-    expect(fetch).toHaveBeenCalledTimes(6);
-    for (const variant of variants) {
-      expect(variant.crowns.geometry.index).toBeNull();
-      for (const name of ["position", "normal", "color", "shapeA", "shapeB", "trailShape"]) {
-        expect(Array.from(variant.crowns.geometry.getAttribute(name).array).every(Number.isFinite)).toBe(true);
-      }
+    for (const quality of ["High", "Low", "High"] as const) {
+      foliage.setQuality(quality); updateFoliageWind([crowns], 1 / 60, true);
+      expect(crowns.geometry).toBe(original);
+      expect(crowns.geometry.getAttribute("crownAlpha")).toBe(alpha);
+      expect(fetch).not.toHaveBeenCalled();
     }
-    expect(crowns.geometry.getAttribute("crownAlpha")).toBe(alpha);
-    expect(crowns.geometry.getAttribute("position").count).toBe(original.index!.count);
-    expect(foliage.group.children).toHaveLength(10);
-    const after = variants.map(({ crowns }) => crowns.geometry.getAttribute("position").count / 3 + 42);
-    expect(after).toEqual(before);
-    process.stdout.write(`G-02 submitted triangles/tree: ${before.join("/")} -> ${after.join("/")}; slots=10 -> 10; extra passes=0\n`);
-    const authored = crowns.geometry;
-    foliage.setQuality("Low");
-    expect(crowns.geometry).toBe(original);
-    foliage.setQuality("High");
-    expect(crowns.geometry).toBe(authored);
   } finally { foliage.dispose(); }
 });

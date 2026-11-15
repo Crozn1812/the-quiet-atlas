@@ -5,6 +5,7 @@ import { bindHrForest, advanceHrTrees } from "../../../src/features/world/foliag
 import { chooseHrTrees, hrLeafTint, hrTreeLod, HR_TREE_IDS, treeRandom } from "../../../src/features/world/foliage/hr-variation";
 import { createHrVines, readHrParts, type HrAsset } from "../../../src/features/world/foliage/hr-library";
 import * as variation from "../../../src/features/world/foliage/hr-variation";
+import { createFoliage } from "../../../src/features/world/foliage/instances";
 
 const { acquire, release, assetDispose } = vi.hoisted(() => ({ acquire: vi.fn(), release: vi.fn(), assetDispose: vi.fn() }));
 vi.mock("../../../src/features/world/foliage/hr-library", async importOriginal => ({ ...await importOriginal<object>(), acquireHrTree: acquire }));
@@ -94,6 +95,34 @@ function asset(): HrAsset {
   const geometry = new BoxGeometry(8, 14, 8).translate(0, 7, 0); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   return { parts: [{ geometry, material: new MeshStandardMaterial({ alphaTest: 0.45 }), leaf: true }], bounds: geometry.boundingBox!.clone(), center: new Vector3(0, 7, 0), dispose: assetDispose };
 }
+
+it("replaces legacy whole trees at their original root, masks their matching trunks and stays within WebGL attributes", async () => {
+  vi.useFakeTimers();
+  const loaded = asset(); acquire.mockReturnValue({ ready: Promise.resolve(loaded), release });
+  const foliage = createFoliage(2), scene = new Scene(), camera = new PerspectiveCamera(65, 1, .1, 300);
+  scene.add(foliage.group);
+  foliage.setTiles([{ x: 31, y: 1, z: 25, kind: "pine", scale: 1, lean: 0 }]);
+  const variant = foliage.species.pine.variants.find(v => v.crowns.count)!;
+  const renderer = { info: { render: { frame: 0 } } } as WebGLRenderer;
+  camera.position.set(32, 5, 29); camera.lookAt(31, 6, 25); camera.updateMatrixWorld(); scene.updateMatrixWorld(true);
+  const frame = () => { renderer.info.render.frame++; variant.crowns.onAfterRender(renderer, scene, camera, variant.crowns.geometry, variant.crowns.material, null!); };
+  try {
+    frame(); await vi.runAllTimersAsync(); expect(acquire).not.toHaveBeenCalled();
+    advanceHrTrees([variant.crowns], .1, false); frame(); await vi.runAllTimersAsync(); frame();
+    expect(acquire).toHaveBeenCalled();
+    expect(acquire.mock.calls.every(call => call[1].startsWith("hr-"))).toBe(true);
+    expect(variant.trunks.geometry.getAttribute("hrReplaced").getX(0)).toBe(1);
+    const shader = { vertexShader: "#include <common>\n#include <begin_vertex>\n#include <project_vertex>", fragmentShader: "", uniforms: {} } as Parameters<Material["onBeforeCompile"]>[0];
+    (variant.crowns.material as Material).onBeforeCompile(shader, renderer);
+    expect(shader.vertexShader).toContain("step(3.5, treeStyle.x)");
+    expect(shader.vertexShader).not.toContain("attribute float hrReplaced");
+    const replacement = scene.getObjectByName("hr-tree2-streamed")!.children.filter(g => g.name.endsWith("-lod0")).flatMap(g => g.children).find(o => o instanceof InstancedMesh) as InstancedMesh;
+    const matrix = new Matrix4(); replacement.getMatrixAt(0, matrix);
+    expect(matrix.elements[13]).toBeCloseTo(1, 1);
+    foliage.setQuality("Low"); expect(variant.trunks.geometry.getAttribute("hrReplaced").getX(0)).toBe(0);
+    expect(variant.crowns.geometry.getAttribute("treeStyle").getX(0)).toBeLessThan(4);
+  } finally { foliage.dispose(); loaded.parts.forEach(p => { p.geometry.dispose(); p.material.dispose(); }); }
+});
 
 it("waits for both intro handoff and deferred dressing even when simulation is active", async () => {
   vi.useFakeTimers();

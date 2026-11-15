@@ -1,4 +1,4 @@
-import { type Box3, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D } from "three";
+import { type Box3, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedMesh, Object3D, Vector3 } from "three";
 import { WORLD_DIRECTION } from "../art/direction";
 import { PALETTE } from "../art/palette";
 import { PATH_BRIDGES } from "../layout/path";
@@ -6,6 +6,7 @@ import { ZONES } from "../layout/zones";
 import { createRampMaterial } from "../materials/ramp";
 import { createRockGeometry } from "../props/rocks";
 import { setBakedPropQuality } from "../props/batched";
+import { bindHrProps, selectHrProp, type HrPropSite } from "../props/hr-props";
 import type { PropGeometryLoader } from "../props/deferred";
 import { PRESETS, type Quality } from "../terrain";
 import { TERRAIN_SEED, waterLevelAt, worldHeight } from "../terrain/height";
@@ -401,7 +402,7 @@ attribute vec3 groundTip;
 vec3 groundSelect(vec3 a, vec3 b, vec3 c) {
   return groundVariant < 0.5 ? a : groundVariant < 1.5 ? b : c;
 }`)
-      .replace("#include <begin_vertex>", "vec3 transformed = groundSelect(position, groundPosition1, groundPosition2);")
+      .replace("#include <begin_vertex>", "vec3 transformed = groundSelect(position, groundPosition1, groundPosition2);\nif (groundVariant > 3.5) transformed = vec3(0.0);")
       .replace("#include <color_vertex>", `#include <color_vertex>
 vColor.rgb = groundSelect(color, groundColor1, groundColor2);
 float blend = groundVariant < 0.5 ? groundBlend.x : groundVariant < 1.5 ? groundBlend.y : groundBlend.z;
@@ -435,6 +436,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
   let submitted: GroundDetail[] = [];
   let disposed = false;
   const proceduralStone = meshes[2]!.geometry;
+  let hrBindings: ReturnType<typeof bindHrProps>[] = [];
   let detailedStone: BufferGeometry | undefined;
   let detailPending: Promise<boolean> | undefined;
   const hasDetail = () => meshes[2]!.geometry === detailedStone;
@@ -479,7 +481,9 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
         const root = kind === "leaf" ? dryTint : kind === "flower" ? new Color(PALETTE[item.variant ? "paper" : "flower"])
           : kind === "grass" && foliageBiomeAt(item.x, item.z) === "forest-dawn" ? new Color(PALETTE.forestDeep) : kind === "grass" ? grassTint.clone().lerp(dryGrass, foliageBiomeAt(item.x, item.z) === "coast-dusk" ? 0.6 : 0) : white;
         mesh.setColorAt(mesh.count, root);
-        mesh.geometry.getAttribute("groundVariant").setX(mesh.count, kind === "log" && hasDetail() ? 2 : kind === "flower" ? 0 : item.variant);
+        // HR-LIGHT owns real-size curled litter as well as grass on High.
+        // Keep the old flattened blade fragments only for the cheap fallback.
+        mesh.geometry.getAttribute("groundVariant").setX(mesh.count, (kind === "grass" || kind === "leaf") && quality === "High" ? item.variant + 4 : kind === "log" && hasDetail() ? 2 : kind === "flower" ? 0 : item.variant);
         const tip = kind === "grass" ? (foliageBiomeAt(item.x, item.z) === "forest-dawn" ? grassTint : dryGrass) : root;
         mesh.geometry.getAttribute("groundTip").setXYZ(mesh.count++, tip.r, tip.g, tip.b);
       }
@@ -506,6 +510,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
         const results = await Promise.allSettled([loader("rock-small-1"), loader("rock-small-2"), loader("prop-log")]);
         const sources = results.flatMap(result => result.status === "fulfilled" ? [result.value] : []);
         if (disposed || sources.length !== 3) { sources.forEach(source => source.dispose()); return false; }
+        hrBindings.forEach(binding => binding.dispose()); hrBindings = [];
         detailedStone = variantGeometry(sources);
         detailedStone.setAttribute("groundVariant", proceduralStone.getAttribute("groundVariant"));
         detailedStone.setAttribute("groundTip", proceduralStone.getAttribute("groundTip"));
@@ -523,6 +528,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
     },
     *setTilesChunks(items: readonly GroundDetail[]): Generator<void> {
       assertLive();
+      hrBindings.forEach(binding => binding.dispose()); hrBindings = [];
       if (items.length > capacity) throw new RangeError("Ground capacity exceeded");
       const next = new Map<string, GroundDetail[]>();
       let proposals = 0;
@@ -568,6 +574,18 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
       buckets = [...selected.values()];
       submitted = items.map(item => ({ ...item }));
       yield* updateChunks();
+      if (quality === "High") {
+        for (let i = 0; i < 3; i++) {
+          const mesh = meshes[i]!;
+          mesh.geometry.computeBoundingBox();
+          const extent = mesh.geometry.boundingBox!.getSize(new Vector3());
+          const sites: HrPropSite[] = buckets.flatMap(bucket => bucket).filter(item => meshIndex(item.kind) === i).map(item => ({
+            asset: selectHrProp(item.kind, item.x, item.z), x: item.x, z: item.z, baseY: item.y,
+            size: [extent.x * item.scale, extent.y * item.scale, extent.z * item.scale], yaw: item.rotation, tint: 1,
+          }));
+          if (sites.length) hrBindings.push(bindHrProps(mesh, sites, worldHeight));
+        }
+      }
     },
     /** Update after crossing a terrain cell; no geometry allocation or extra draw calls. */
     setFocus(x: number, z: number) {
@@ -582,6 +600,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
       if (!Object.hasOwn(GROUND_LIMITS, next)) throw new RangeError("Invalid ground quality");
       setBakedPropQuality(group.parent ?? group, next);
       if (quality === next) return;
+      hrBindings.forEach(binding => binding.dispose()); hrBindings = [];
       quality = next;
       meshes[2]!.geometry = next === "Low" ? proceduralStone : detailedStone ?? proceduralStone;
       this.setTiles(submitted);
@@ -590,6 +609,7 @@ if (blend >= 0.0) vColor.rgb = mix(instanceColor.rgb, groundTip, blend);`);
       if (disposed) return;
       disposed = true;
       detailLoaders.delete(group);
+      hrBindings.forEach(binding => binding.dispose()); hrBindings = [];
       buckets = [];
       submitted = [];
       group.removeFromParent();

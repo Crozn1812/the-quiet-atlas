@@ -16,6 +16,7 @@ vi.mock("three/addons/loaders/GLTFLoader.js", () => ({ GLTFLoader: class {
 vi.mock("three/addons/loaders/KTX2Loader.js", () => ({ KTX2Loader: class {
   setWorkerLimit() { return this; }
   detectSupport() { return this; }
+  load() {}
   dispose() { decoderDisposed(); }
 } }));
 afterEach(() => { vi.restoreAllMocks(); load.mockReset(); decoderDisposed.mockReset(); });
@@ -140,7 +141,7 @@ it("swaps whole batches after deferred loads and restores the exact fallback syn
     expect(meshes.filter((mesh,i) => mesh.geometry !== fallback[i])).toHaveLength(3);
     expect(meshes.every(mesh => mesh.geometry.getAttribute("position").array.every(Number.isFinite))).toBe(true);
   } finally { workshop.dispose(); workshop.dispose(); }
-  await vi.waitFor(() => expect(decoderDisposed).toHaveBeenCalledTimes(10));
+  await vi.waitFor(() => expect(decoderDisposed).toHaveBeenCalledTimes(1));
 });
 
 it("culls distant submissions, waits for play, and never requests detail on Low", () => {

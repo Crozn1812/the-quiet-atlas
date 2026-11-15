@@ -6,6 +6,7 @@ import { createBroadleafBush, createFern } from "./ground";
 import { isGroundCoverExcluded } from "./scatter";
 import { installHrMaterial } from "./hr-material";
 import { treeRandom, type HrSite } from "./hr-variation";
+import { bindHrProps } from "../props/hr-props";
 
 function saplingGeometry() {
   const stem = new CylinderGeometry(0.009, 0.027, 1.8, 7, 4).translate(0, 0.9, 0);
@@ -47,6 +48,12 @@ export function createHrUnderstorey(sites: readonly HrSite[], clock: Vector2) {
     installHrMaterial(material, clock, true);
     const mesh = new InstancedMesh(geometry, material, count); mesh.count = 0; mesh.receiveShadow = true; group.add(mesh); return mesh;
   });
+  const geometries = meshes.map(mesh => mesh.geometry);
+  const bindings = meshes.map((mesh, kind) => bindHrProps(mesh, nodes.filter(node => node.kind === kind).map(node => ({
+    asset: kind === 0 ? "hr-prop-fern-arching" : kind === 1 ? "hr-prop-bush-broadleaf" : "hr-tree-slender-upright",
+    x: node.x, z: node.z, baseY: node.y, size: kind === 2 ? [node.scale * 0.8, node.scale * 1.8, node.scale * 0.8] : [node.scale * 1.1, node.scale * 0.9, node.scale * 1.1],
+    yaw: node.yaw, tint: 1,
+  })), worldHeight, undefined, undefined, { minimumLod: kind === 2 ? 1 : 0, radius: 32 }));
   const transform = new Object3D();
   const lastEye = new Vector3(Infinity, Infinity, Infinity);
   let lastHigh: boolean | undefined;
@@ -59,13 +66,13 @@ export function createHrUnderstorey(sites: readonly HrSite[], clock: Vector2) {
         if (Math.hypot(eye.x - node.x, eye.z - node.z) > (high ? 48 : 30)) continue;
         const mesh = meshes[node.kind]!;
         transform.position.set(node.x, node.y, node.z); transform.rotation.set(0, node.yaw, 0); transform.scale.setScalar(node.scale); transform.updateMatrix();
-        mesh.setMatrixAt(mesh.count, transform.matrix); mesh.geometry.getAttribute("hrSeed").setX(mesh.count, treeRandom(node.x, node.z, 3)); mesh.count++;
+        mesh.setMatrixAt(mesh.count, transform.matrix); geometries[node.kind]!.getAttribute("hrSeed").setX(mesh.count, treeRandom(node.x, node.z, 3)); mesh.count++;
       }
-      for (const mesh of meshes) {
-        mesh.instanceMatrix.needsUpdate = true; mesh.geometry.getAttribute("hrSeed").needsUpdate = true;
+      for (const [i, mesh] of meshes.entries()) {
+        mesh.instanceMatrix.needsUpdate = true; geometries[i]!.getAttribute("hrSeed").needsUpdate = true;
         mesh.computeBoundingSphere(); if (mesh.boundingSphere) mesh.boundingSphere.radius += 0.15;
       }
     },
-    dispose() { group.removeFromParent(); for (const mesh of meshes) { mesh.dispose(); mesh.geometry.dispose(); mesh.material.dispose(); } group.clear(); },
+    dispose() { bindings.forEach(binding => binding.dispose()); group.removeFromParent(); for (const mesh of meshes) { mesh.dispose(); mesh.geometry.dispose(); mesh.material.dispose(); } group.clear(); },
   };
 }

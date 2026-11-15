@@ -35,7 +35,9 @@ describe("deferred forest floor", () => {
     expect(a.attributes.position!.array).toEqual(b.attributes.position!.array);
     expect([...a.attributes.normal!.array].every(Number.isFinite)).toBe(true);
     a.computeBoundingBox();
-    expect(a.boundingBox!.getSize(new Vector3()).y).toBeGreaterThan(0.02);
+    const height = a.boundingBox!.getSize(new Vector3()).y;
+    expect(height).toBeGreaterThan(kind === "leaf" ? 0.002 : 0.02);
+    if (kind === "leaf") expect(height).toBeLessThan(0.006);
     a.dispose(); b.dispose();
   });
   it("keeps Low empty and releases resources once", () => {
@@ -55,7 +57,9 @@ describe("deferred forest floor", () => {
     try {
       for (let i = 0; i < 120; i++) floor.update(camera, "High", 1 / 60);
       const grass = floor.group.getObjectByName("hr-floor-grass") as InstancedMesh;
-      expect(grass.count).toBeGreaterThan(1000);
+      // Only cells in the padded camera frustum are submitted; the old full
+      // disk count included unseen grass behind the camera.
+      expect(grass.count).toBeGreaterThan(500);
       const versions = floor.group.children.map(m => (m as InstancedMesh).instanceMatrix.version);
       for (let i = 0; i < 20; i++) floor.update(camera, "High", 1 / 60);
       expect(floor.group.children.map(m => (m as InstancedMesh).instanceMatrix.version)).toEqual(versions);

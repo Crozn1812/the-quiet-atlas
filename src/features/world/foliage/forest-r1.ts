@@ -48,7 +48,7 @@ export function createForestR1Trees(trees: readonly FoliageTree[], options?: {
   const fades = meshes.map(mesh => createCrownFade(mesh, trees.length));
   // Retain three draws per streamed tile. Hill stands use the three conifers;
   // forest stands use the three overlapping broadleaf silhouettes.
-  const library = options ? [] : [bindHrForest(meshes)];
+  const library = [bindHrForest(meshes)];
   const matrix = new Matrix4(), rotation = new Matrix4();
   function setQuality(quality: Quality) {
     library.forEach(binding => binding.setQuality(quality));

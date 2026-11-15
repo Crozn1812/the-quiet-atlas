@@ -10,6 +10,7 @@ import { createRockGeometry } from "../props/rocks";
 import { createPlankGeometry, createPostGeometry } from "../props/wood";
 import { bindWorkshopBatch } from "../props/workshop-library";
 import { bindHrProps, selectHrProp, type HrPropSite } from "../props/hr-props";
+import { bindHrStructure } from "../props/hr-structures";
 import { createWorkshopDressing } from "./workshop-dressing";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneCollider, type ZoneSceneContext, type ZoneSceneFactory } from "./types";
 
@@ -739,6 +740,7 @@ export const createWorkshopScene: ZoneSceneFactory = context => {
         }
       }
       parts.forEach(part => part.dispose());
+      if (surface === "wood" || surface === "stone") releases.push(bindHrStructure(mesh, surface === "wood"));
       mesh.castShadow = surface !== "flower";
       mesh.receiveShadow = surface !== "flower";
       parent.add(mesh);

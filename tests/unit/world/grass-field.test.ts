@@ -11,7 +11,7 @@ import { waterLevelAt, worldHeight } from "../../../src/features/world/terrain/h
 describe("camera grass field", () => {
   it("fills the deep forest incrementally with low forest-colored tufts in the existing batch", () => {
     // First Light now owns authored clumps; retain this generic forest contract farther along the route.
-    const field = createGrassField("High"), p = pathPointAt(0.1);
+    const field = createGrassField("Balanced"), p = pathPointAt(0.1);
     expect(field.mesh.visible).toBe(false);
     expect(field.mesh.instanceMatrix.array.every((v, i) => v === (i % 16 === 15 ? 1 : 0))).toBe(true);
     let result = field.update(p.x, p.z, 0, true);
@@ -36,7 +36,7 @@ describe("camera grass field", () => {
     material.onBeforeCompile(shader as Parameters<typeof material.onBeforeCompile>[0], {} as WebGLRenderer);
     expect(shader.vertexShader).toContain(new Color(PALETTE.forestDeep).toArray().join(","));
     expect(shader.vertexShader).toContain(new Color(PALETTE.grass).toArray().join(","));
-    expect(field.mesh.count * 12).toBe(36_300); // Same High submission budget as B2-214.
+    expect(field.mesh.count * 12).toBe(18_252); // Same High submission budget as B2-214.
     field.dispose();
   });
   it("preserves ramp shading, root/tip pigment, distance fade and reduced-motion wind", () => {
@@ -70,7 +70,7 @@ describe("camera grass field", () => {
       reportBudget("tests/unit/world/grass-field.test.ts:69 field.mesh.count * 12", field.mesh.count * 12, 60000);
       expect(field.mesh.geometry.index!.count).toBe(36);
       expect(field.radius).toBe({ High: 18, Balanced: 12, Low: 0 }[quality]);
-      expect(field.mesh.count === 0).toBe(quality === "Low");
+      expect(field.mesh.count === 0).toBe(quality !== "Balanced");
       field.dispose(); field.dispose();
     }
   });
@@ -93,7 +93,7 @@ describe("camera grass field", () => {
   });
 
   it("seeds by world position and resamples only entering torus cells after 10 m", () => {
-    const field = createGrassField("High");
+    const field = createGrassField("Balanced");
     const point = pathPointAt(0.65);
     const timings: number[] = [];
     const drain = (x: number) => {
@@ -133,7 +133,7 @@ describe("camera grass field", () => {
   });
 
   it("stops sampling once its 0.9 ms frame budget is spent (controlled clock)", () => {
-    const field = createGrassField("High");
+    const field = createGrassField("Balanced");
     const point = pathPointAt(0.65);
     let clock = 0;
     const now = vi.spyOn(performance, "now").mockImplementation(() => (clock += 0.05));
@@ -150,7 +150,7 @@ describe("camera grass field", () => {
 
 
 it("resamples retained grass cells when deferred prop bounds arrive", () => {
-  const bounds: Box3[] = [], field = createGrassField("High", bounds), spawn = pathPointAt(0.1);
+  const bounds: Box3[] = [], field = createGrassField("Balanced", bounds), spawn = pathPointAt(0.1);
   const drain = () => { while (field.update(spawn.x, spawn.z, 0).pending) { /* incremental fill */ } };
   try {
     drain();
