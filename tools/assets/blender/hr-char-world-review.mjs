@@ -1,13 +1,22 @@
 // Source-only Edge GPU evidence when reviewing the HR character. Production build/e2e are separate gates.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
+import { baselinePlugin } from './hr-char-b-baseline.mjs';
 
 const directory = 'tmp/hr-char-world';
-const output = process.env.HR_REVIEW_OUTPUT ?? 'test-results/hr-char/world';
-const port = Number(process.env.HR_REVIEW_PORT ?? 4224);
+const output = process.env.HR_REVIEW_OUTPUT ?? 'test-results/hr-char-b/world';
+const port = Number(process.env.HR_REVIEW_PORT ?? 4203);
+// Vite does not implement Next's generated content route. Serve the actual
+// static export in the QA harness so Roots uses real content in both A and B.
+const content = await readFile('out/en/world-content.json');
+const contentPlugin = { name: 'hr-review-static-content', configureServer(server) {
+  server.middlewares.use((req, res, next) => {
+    if (req.url?.split('?')[0] !== '/en/world-content.json') return next();
+    res.setHeader('Content-Type', 'application/json'); res.end(content);
+  });
+} };
 await mkdir(directory, { recursive: true });
 await mkdir(output, { recursive: true });
 await writeFile(`${directory}/index.html`, `<!doctype html><html><head><link rel="icon" href="data:,"></head>
@@ -19,14 +28,12 @@ window.__tqaSkipIntro = true; window.__tqaJourney = true;
 window.unmount = await mountWorld(document.querySelector('#world'), { quality: 'high' });
 window.ready = true;
 `);
-const previous = execFileSync('git', ['show', 'HEAD:src/features/world/character/baked-appearance.ts'], { encoding: 'utf8' });
 const report = { mode: 'Vite source review, not the production export; non-isolated machine; ABBA order', runs: [] };
 const browser = await chromium.launch({ channel: 'msedge', headless: false });
 try {
   for (const [index, variant] of ['before', 'after', 'after', 'before'].entries()) {
     const server = await createServer({ configFile: false, root: process.cwd(), cacheDir: `tmp/hr-char-cache/node_modules/world-${variant}`,
-      plugins: variant === 'before' ? [{ name: 'hr-character-baseline', enforce: 'pre',
-        transform(code, id) { if (id.replaceAll('\\', '/').endsWith('/src/features/world/character/baked-appearance.ts')) return previous; } }] : [],
+      plugins: [contentPlugin, ...(variant === 'before' ? [baselinePlugin()] : [])],
       server: { host: '127.0.0.1', port, strictPort: true,
         watch: { ignored: ['**/tmp/hr-char-evidence/**', '**/tmp/hr-char-check/**'] } } });
     await server.listen();
@@ -35,6 +42,8 @@ try {
     report.runs.push(run);
     try {
       page.on('pageerror', error => run.errors.push(error.message));
+      page.on('console', message => { if (message.type() === 'error') run.errors.push(`${message.text()} (${message.location().url})`); });
+      page.on('response', response => { if (response.status() >= 400) console.log('HTTP', response.status(), response.url()); });
       await page.addInitScript(() => {
         const counts = { calls: 0, triangles: 0 };
         for (const [method, indexed, instanced] of [['drawArrays', false, false], ['drawElements', true, false], ['drawArraysInstanced', false, true], ['drawElementsInstanced', true, true]]) {

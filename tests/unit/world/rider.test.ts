@@ -187,8 +187,9 @@ describe("D-23 mounted pose", () => {
     const inside = (name: string, min: [number, number, number], max: [number, number, number]) =>
       expect(new Box3(new Vector3(...min), new Vector3(...max)).containsPoint(local(name)), name).toBe(true);
     inside("hips", [-.04, .77, -.26], [.04, .84, -.16]);
-    inside("hand.L", [.29, .98, .31], [.38, 1.05, .40]);
-    inside("hand.R", [-.38, .98, .31], [-.29, 1.05, .40]);
+    // Wrist is behind/above the grip; the palm and morph enclose the cylinder.
+    inside("hand.L", [.29, 1.02, .25], [.38, 1.07, .31]);
+    inside("hand.R", [-.38, 1.02, .25], [-.29, 1.07, .31]);
     inside("foot.R", [-.23, .37, -.14], [-.14, .43, -.05]);
     if (speed === 0) inside("foot.L", [.31, .08, -.24], [.39, .14, -.16]);
     else inside("foot.L", [.14, .37, -.14], [.23, .43, -.05]);

@@ -2,11 +2,11 @@ import { reportBudget } from "./report-budget";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import {
-  Bone, BoxGeometry, Camera, Group, MeshStandardMaterial, MeshToonMaterial, Scene,
+  Bone, BoxGeometry, Camera, Float32BufferAttribute, Group, MeshStandardMaterial, MeshToonMaterial, Scene,
   Skeleton, SkinnedMesh, Texture, type Material, type WebGLRenderer,
 } from "three";
 import {
-  bakedUV, installBakedAppearance, setBakedAppearanceTransitionGuard, vehicleSurface, type BakedResources,
+  bakedUV, installBakedAppearance, setBakedAppearanceGrip, setBakedAppearanceTransitionGuard, vehicleSurface, type BakedResources,
 } from "../../../src/features/world/character/baked-appearance";
 
 afterEach(() => vi.useRealTimers());
@@ -32,6 +32,27 @@ function bundle(): BakedResources {
 }
 
 describe("GFX-P5 deferred appearance and LOD", () => {
+  it("keeps a requested grip through late loading and LOD swaps, and restores the original morph state on Low/dispose", async () => {
+    vi.useFakeTimers();
+    const f = fixture(), resource = bundle();
+    resource.geometry!.morphAttributes.position = [new Float32BufferAttribute(new Float32Array(resource.geometry!.attributes.position!.count * 3), 3)];
+    resource.geometry!.morphTargetsRelative = true;
+    const originalInfluences = f.mesh.morphTargetInfluences;
+    const appearance = installBakedAppearance(f.mesh, true, vi.fn().mockResolvedValue(resource));
+    setBakedAppearanceGrip(f.mesh, 1);
+    f.render(); await vi.runAllTimersAsync(); f.render();
+    expect(f.mesh.morphTargetInfluences).toEqual([1]);
+    appearance.setQuality("Low");
+    expect(f.mesh.morphTargetInfluences).toEqual([0]);
+    setBakedAppearanceGrip(f.mesh, .4);
+    appearance.setQuality("High"); f.render();
+    expect(f.mesh.morphTargetInfluences).toEqual([.4]);
+    setBakedAppearanceGrip(f.mesh, 0);
+    expect(f.mesh.morphTargetInfluences).toEqual([0]);
+    appearance.dispose();
+    expect(f.mesh.geometry).toBe(f.geometry);
+    expect(f.mesh.morphTargetInfluences).toBe(originalInfluences);
+  });
   it("defers queued loads and applying late resources until the rider finishes transitioning", async () => {
     vi.useFakeTimers();
     const f = fixture(), resource = bundle();

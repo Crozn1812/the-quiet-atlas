@@ -1,13 +1,14 @@
 // HR-CHAR packaging: Blender export (tmp/hr-char) -> meshopt + KTX2 GLBs in public/world/character.
-// Run after: blender -b --factory-startup -P tools/assets/blender/hr-char.py -- tmp/hr-char-src tmp/hr-char
-// No downloads here. Textures are the PNGs written by hr-char.py (procedural or remapped CC0 MakeHuman).
+// Run after: blender -b --factory-startup -t 4 -P tools/assets/blender/hr-char-b.py -- tmp/hr-char-src tmp/hr-char
+// No downloads here. PNGs come from hr-char.py + hr-char-b.py (procedural or remapped CC0 MakeHuman).
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { meshopt, prune, dedup } from '@gltf-transform/functions';
-import { KHRTextureBasisu } from '@gltf-transform/extensions';
+import { reorder, quantize, prune, dedup } from '@gltf-transform/functions';
+import { EXTMeshoptCompression, KHRTextureBasisu } from '@gltf-transform/extensions';
 import { MeshoptEncoder } from 'meshoptimizer';
-import { Matrix4, Vector3 } from 'three';
+import { Matrix3, Matrix4, Vector3 } from 'three';
 import { createIO, statistics } from '../shared.mjs';
 
 const source = 'tmp/hr-char';
@@ -23,8 +24,8 @@ const MATERIALS = {
   cornea: { factor: [1, 1, 1, 0.06], rough: 0.03, alpha: 'BLEND' },
   brow: { color: 'brow', rough: 0.7, alpha: 'MASK', cutoff: 0.4, double: true },
   lash: { color: 'lash', rough: 0.7, alpha: 'MASK', cutoff: 0.4, double: true },
-  hair_cap: { color: 'hair_cap', rough: 0.6, alpha: 'MASK', cutoff: 0.4 },
-  hair_card: { color: 'hair_card', rough: 0.5, alpha: 'MASK', cutoff: 0.35, double: true },
+  hair_cap: { color: 'hair_cap', normal: 'hair_normal', normalScale: 0.28, rough: 0.92, alpha: 'MASK', cutoff: 0.08, double: true },
+  hair_card: { color: 'hair_card', normal: 'hair_card_normal', normalScale: 0.4, rough: 0.62, alpha: 'MASK', cutoff: 0.08, double: true },
   cloth: { color: 'cloth_albedo', normal: 'cloth_normal', orm: 'cloth_orm', rough: 1, double: true },
   canvas: { color: 'canvas_albedo', normal: 'canvas_normal', normalScale: 0.8, rough: 0.9 },
   rubber: { color: 'rubber_albedo', normal: 'rubber_normal', normalScale: 0.5, rough: 0.75 },
@@ -53,8 +54,17 @@ function encode(name, kind, edge) {
     : kind === 'orm'
       ? [...common, '--encode', 'etc1s', '--qlevel', '200', '--assign_oetf', 'linear']
       : [...common, '--encode', 'etc1s', '--qlevel', '220', '--assign_oetf', 'srgb'];
+  const stamp = createHash('sha256').update(readFileSync(`${source}/${name}.png`)).update(JSON.stringify(args)).digest('hex');
+  const cacheStamp = `${target}.sha256`;
+  if (!process.env.HR_REENCODE && existsSync(target)
+    && (existsSync(cacheStamp) ? readFileSync(cacheStamp, 'utf8') === stamp
+      : statSync(target).mtimeMs >= statSync(`${source}/${name}.png`).mtimeMs)) {
+    writeFileSync(cacheStamp, stamp);
+    return target;
+  }
   const result = spawnSync(TOKTX, [...args, target, `${source}/${name}.png`], { windowsHide: true, encoding: 'utf8' });
   if (result.error || result.status !== 0) throw new Error(`${name}: ${result.error?.message ?? result.stderr}`);
+  writeFileSync(cacheStamp, stamp);
   return target;
 }
 
@@ -83,6 +93,7 @@ for (const lod of LODS) {
   const drift = Math.max(...toRef.map(m => Math.max(...m.elements.map((v, i) => Math.abs(v - M.elements[i])))));
   if (drift > 1e-4) throw new Error(`${lod.file}: rig differs from start/character-duy.glb beyond a constant transform (${drift})`);
   const inverse = M.clone().invert();
+  const deltaTransform = new Matrix3().setFromMatrix4(inverse);
   const seen = new Set();
   const point = new Vector3();
   for (const mesh of root.listMeshes()) for (const primitive of mesh.listPrimitives()) {
@@ -92,6 +103,14 @@ for (const lod of LODS) {
     const array = position.getArray();
     for (let i = 0; i < array.length; i += 3) point.fromArray(array, i).applyMatrix4(inverse).toArray(array, i);
     position.setArray(array);
+    for (const target of primitive.listTargets()) {
+      const delta = target.getAttribute('POSITION');
+      if (!delta || seen.has(delta)) continue;
+      seen.add(delta);
+      const values = delta.getArray();
+      for (let i = 0; i < values.length; i += 3) point.fromArray(values, i).applyMatrix3(deltaTransform).toArray(values, i);
+      delta.setArray(values);
+    }
   }
   skin.getInverseBindMatrices().setArray(new Float32Array(reference.ibm));
   // Blender omits UVs on untextured primitives (cornea, lens, frame); runtime merges all
@@ -130,7 +149,13 @@ for (const lod of LODS) {
   for (const texture of root.listTextures()) if (texture.getMimeType() !== 'image/ktx2') texture.dispose();
   document.createExtension(KHRTextureBasisu).setRequired(true);
   root.getAsset().generator = 'The Quiet Atlas HR-CHAR (tools/assets/blender/hr-char.py + hr-char-package.mjs)';
-  await document.transform(prune({ keepAttributes: true }), dedup(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+  // POSITION must remain in the shipped rig's bind space. Quantizing positions
+  // rewrites IBMs, invalidating an in-place skin swap, and crushes 0.1mm fibres.
+  // Meshopt still compresses Float32 positions and relative morph deltas.
+  await document.transform(prune({ keepAttributes: true }), dedup(), reorder({ encoder: MeshoptEncoder, target: 'size' }),
+    quantize({ pattern: /^(?!POSITION$).*/, patternTargets: /^(?!POSITION$).*/ }));
+  document.createExtension(EXTMeshoptCompression).setRequired(true)
+    .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE });
   const file = `${output}/${lod.file}`;
   await io.write(file, document);
   const bytes = (await stat(file)).size;
@@ -139,28 +164,28 @@ for (const lod of LODS) {
 
 const authoring = JSON.parse(await readFile(`${source}/manifest.json`, 'utf8'));
 const manifest = {
-  id: 'hr-char',
-  delivery: 'deferred after playable frame; High near = LOD0, Balanced near / High far = LOD1; Low + software keep start/character-duy.glb',
+  id: 'hr-char-b',
+  delivery: 'deferred after playable frame; High near = LOD0, Balanced near = LOD1; distant + Low + software keep start/character-duy.glb',
   rig: 'public/world/start/character-duy.glb skeleton (19 joints, same order and inverse binds; checked at package time)',
   height: authoring.height, lods: report, parts: authoring.parts,
   sources: [
     'MPFB2 base mesh + macro targets (CC0): https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md',
     'MakeHuman system assets (CC0): https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html',
   ],
-  derived: 'skin diffuse young_asian_male (tinted), eye brown, eyebrow001, eyelashes01, hair short02 (recoloured), male_casualsuit01 geometry + luminance/normal/AO (recoloured), shoes06 geometry only; everything else procedural in hr-char.py',
+  derived: 'HR-CHAR CC0 generic MakeHuman face geometry unchanged; natural forehead diffuse. HR-CHAR-B R1: three layers of surface-following short alpha strand cards, measured <=6mm lift, feathered scalp roots and strand normals; runtime anisotropic highlights and object-space alpha hash with opaque depth writes (no transparent sorting). Plain procedural cotton weave, relaxed shirt and HandlebarGrip morph unchanged. Positions/morph deltas stay Float32 in meshopt to preserve exact shipped inverse binds. shoes06 geometry only. hr-char.py + hr-char-b.py.',
 };
 await writeFile(`${output}/hr-manifest.json`, JSON.stringify(manifest, null, 2) + '\n');
 
 const licensePath = 'assets/LICENSES.csv';
 let licenses = await readFile(licensePath, 'utf8');
-const proof = 'https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md ; https://static.makehumancommunity.org/assets/assetpacks.html ; https://creativecommons.org/publicdomain/zero/1.0/ ; tools/assets/blender/hr-char.py + hr-char-package.mjs';
+const proof = 'https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md ; https://static.makehumancommunity.org/assets/assetpacks.html ; https://creativecommons.org/publicdomain/zero/1.0/ ; tools/assets/blender/hr-char.py + hr-char-b.py + hr-char-package.mjs';
 const rows = [
   [`${output}/character-hr.glb`, '2048/1024 KTX2', '14', 'LOD0'],
   [`${output}/character-hr-lod1.glb`, '1024/512 KTX2', '14', 'LOD1'],
   [`${output}/hr-manifest.json`, '-', '-', '-'],
 ];
 for (const [file, size, materials, level] of rows) {
-  if (licenses.includes(`${file},`)) continue;
+  licenses = licenses.split('\n').filter(line => !line.startsWith(`${file},`)).join('\n');
   licenses += (licenses.endsWith('\n') ? '' : '\n') +
     `${file},MakeHuman/MPFB2 community (CC0 base mesh/targets/proxies/textures) + The Quiet Atlas (fitting/tailoring/procedural maps),CC0-1.0,yes,yes,yes,none,${proof},${size},${materials},${level},-\n`;
 }

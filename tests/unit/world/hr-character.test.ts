@@ -6,7 +6,7 @@ import { HR_CHARACTER_URLS, tuneHrMaterial } from "../../../src/features/world/c
 type Gltf = {
   nodes: { name: string }[];
   skins: { joints: number[]; inverseBindMatrices: number }[];
-  meshes: { primitives: { attributes: Record<string, number>; material: number }[] }[];
+  meshes: { weights?: number[]; primitives: { attributes: Record<string, number>; material: number; targets?: Record<string, number>[] }[] }[];
   materials: { name: string; alphaMode?: string }[];
   extensionsUsed?: string[];
   accessors: { bufferView: number; byteOffset?: number; count: number }[];
@@ -30,8 +30,13 @@ describe("HR-CHAR photoreal close-up skin", () => {
     // Every primitive must be mergeable into one grouped geometry for the in-place swap.
     for (const primitive of gltf.meshes.flatMap(mesh => mesh.primitives)) {
       expect(Object.keys(primitive.attributes).sort()).toEqual(["JOINTS_0", "NORMAL", "POSITION", "TEXCOORD_0", "WEIGHTS_0"]);
+      expect(primitive.targets).toHaveLength(1);
+      expect(gltf.accessors[primitive.targets![0]!.POSITION!]!.count).toBe(gltf.accessors[primitive.attributes.POSITION!]!.count);
+      expect(primitive.targets![0]).toHaveProperty("NORMAL");
     }
     expect(gltf.materials.find(material => material.name === "hair_card")!.alphaMode).toBe("MASK");
+    expect(gltf.materials.find(material => material.name === "hair_cap")!.alphaMode).toBe("MASK");
+    expect(gltf.meshes[0]!.weights).toEqual([0]);
   });
 
   it("tunes cornea/lens to additive reflections and skin to a sheened physical material", () => {
@@ -44,6 +49,18 @@ describe("HR-CHAR photoreal close-up skin", () => {
     expect((skin as MeshPhysicalMaterial).sheen).toBeGreaterThan(0);
     expect((skin as MeshPhysicalMaterial).roughness).toBe(.4);
     const hair = tuneHrMaterial(Object.assign(new MeshStandardMaterial(), { name: "hair_card" }), true);
-    expect(hair.alphaToCoverage).toBe(true);
+    expect(hair).toBeInstanceOf(MeshPhysicalMaterial);
+    expect((hair as MeshPhysicalMaterial).defines).toHaveProperty("PHYSICAL");
+    expect(hair.alphaToCoverage).toBe(false);
+    expect(hair.alphaHash).toBe(true);
+    expect((hair as MeshPhysicalMaterial).anisotropy).toBeGreaterThan(.5);
+    expect((hair as MeshPhysicalMaterial).anisotropyRotation).toBe(Math.PI / 2);
+    expect((hair as MeshStandardMaterial).transparent).toBe(false);
+    expect((hair as MeshStandardMaterial).depthWrite).toBe(true);
+    const unaliased = tuneHrMaterial(Object.assign(new MeshStandardMaterial(), { name: "hair_card" }), false);
+    expect(unaliased.alphaToCoverage).toBe(false);
+    expect(unaliased.alphaHash).toBe(true);
+    expect(unaliased.alphaTest).toBe(0);
+    expect(unaliased.depthWrite).toBe(true);
   });
 });

@@ -137,6 +137,9 @@ export function installBakedAppearance(mesh: SkinnedMesh, character: boolean, lo
   const originalGeometry = mesh.geometry;
   const originalMaterial = mesh.material;
   const originalAfter = mesh.onAfterRender;
+  const originalInfluences = mesh.morphTargetInfluences;
+  const originalDictionary = mesh.morphTargetDictionary;
+  let grip = 0;
   // Low, distant, software and build-pending frames keep main's original
   // material: no extra shader program compiles mid-game, no unlit look on Low.
   const fallbackMaterial = originalMaterial;
@@ -151,8 +154,26 @@ export function installBakedAppearance(mesh: SkinnedMesh, character: boolean, lo
   const scheduled = new Map<AppearanceQuality, ReturnType<typeof setTimeout>>();
   const uploaded = new WeakSet<Texture>();
   const origin = new Vector3(), view = new Vector3();
-  function restore() { mesh.geometry = originalGeometry; mesh.material = originalMaterial; }
-  function applyFallback() { mesh.geometry = originalGeometry; mesh.material = fallbackMaterial; }
+  function assignGeometry(geometry: BufferGeometry) {
+    if (mesh.geometry === geometry) return;
+    mesh.geometry = geometry;
+    if (geometry === originalGeometry) {
+      // Render lists can still hold the HR geometry for another group/pass in
+      // this same frame (e.g. the bike's glass transmission pass). Keep a zero
+      // slot until teardown so that cached morph draws remain valid on Low.
+      mesh.morphTargetInfluences = originalInfluences ?? [0];
+      mesh.morphTargetDictionary = originalDictionary;
+    } else {
+      mesh.updateMorphTargets();
+      if (mesh.morphTargetInfluences?.length) mesh.morphTargetInfluences[0] = grip;
+    }
+  }
+  function restore() {
+    assignGeometry(originalGeometry); mesh.material = originalMaterial;
+    mesh.morphTargetInfluences = originalInfluences;
+    mesh.morphTargetDictionary = originalDictionary;
+  }
+  function applyFallback() { assignGeometry(originalGeometry); mesh.material = fallbackMaterial; }
   function apply(renderer: WebGLRenderer, camera: Camera) {
     if (software === undefined) {
       // Same renderer detection as materials/cc0.ts, including manually pinned High.
@@ -196,7 +217,7 @@ export function installBakedAppearance(mesh: SkinnedMesh, character: boolean, lo
           uploaded.add(texture);
         }
       }
-      mesh.geometry = bundle.geometry ?? originalGeometry;
+      assignGeometry(bundle.geometry ?? originalGeometry);
       mesh.material = bundle.materials ?? bundle.material;
       return;
     }
@@ -221,6 +242,10 @@ export function installBakedAppearance(mesh: SkinnedMesh, character: boolean, lo
     }, 0));
   }
   const controller = {
+    setGrip(value: number) {
+      grip = Math.max(0, Math.min(1, value));
+      if (mesh.geometry !== originalGeometry && mesh.morphTargetInfluences?.length) mesh.morphTargetInfluences[0] = grip;
+    },
     setTransitionGuard(guard: () => boolean) { transitioning = guard; },
     setQuality(quality: AppearanceQuality) {
       if (disposed) return;
@@ -257,6 +282,11 @@ export function setBakedAppearanceQuality(mesh: SkinnedMesh, quality: Appearance
 /** Presentation-only guard, supplied by the existing rider pose. */
 export function setBakedAppearanceTransitionGuard(mesh: SkinnedMesh, guard: () => boolean): void {
   appearances.get(mesh)?.setTransitionGuard(guard);
+}
+
+/** The grip morph is presentation state; Low stays on the original cheap skin. */
+export function setBakedAppearanceGrip(mesh: SkinnedMesh, amount: number): void {
+  appearances.get(mesh)?.setGrip(amount);
 }
 
 /** Authoring helper used by vehicle mesh batching; preserves one material/draw. */

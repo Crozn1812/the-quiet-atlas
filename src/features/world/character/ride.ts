@@ -1,14 +1,15 @@
-import { Bone, Object3D, Quaternion, SkinnedMesh, Vector3 } from "three";
+import { Bone, Matrix4, Object3D, Quaternion, SkinnedMesh, Vector3 } from "three";
 import { VEHICLE_TRANSITION_SECONDS, type VehicleState } from "../../vehicle/model";
 import { GD110_SCALE, STEERING_PIVOT } from "../vehicle/mesh";
 import type { Character } from "./runtime";
-import { setBakedAppearanceTransitionGuard } from "./baked-appearance";
+import { setBakedAppearanceGrip, setBakedAppearanceTransitionGuard } from "./baked-appearance";
 
 const point = (x: number, y: number, z: number) => new Vector3(x, y, z).multiplyScalar(GD110_SCALE);
 /** Bike-local contact points, in metres; ankles sit above the soles on the pegs. */
 export const RIDE_CONTACTS = {
   hips: point(0, .99, -.25),
-  leftHand: point(.395, 1.25, .44), rightHand: point(-.395, 1.25, .44),
+  // Wrist lies behind/above the cylinder; the palm and curled digits enclose it.
+  leftHand: point(.395, 1.29, .34), rightHand: point(-.395, 1.29, .34),
   leftFoot: point(.23, .49, -.12), rightFoot: point(-.23, .49, -.12),
   plantedFoot: point(.43, .13, -.25),
 };
@@ -33,6 +34,23 @@ export function createRiderPose(character: Character) {
   root.updateWorldMatrix(true, true);
   const rootInverse = root.getWorldQuaternion(new Quaternion()).invert();
   const orientations = new Map([...bones].map(([name, bone]) => [name, rootInverse.clone().multiply(bone.getWorldQuaternion(new Quaternion()))]));
+  const gripRotations = new Map<string, Quaternion>();
+  for (const side of ["L", "R"] as const) {
+    const name = `hand.${side}`, rest = orientations.get(name);
+    if (!rest) continue;
+    const sign = side === "L" ? 1 : -1;
+    // Rest fingers point along bone Y. Palm faces medially in the CC0 A-pose.
+    const y = new Vector3(0, 1, 0).applyQuaternion(rest).normalize();
+    const z = new Vector3(-sign, 0, 0).addScaledVector(y, sign * y.x).normalize();
+    const x = y.clone().cross(z).normalize();
+    const source = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(x, y, z));
+    const forward = new Vector3(0, -.12, 1).normalize();
+    const palm = new Vector3(0, -1, -.12).normalize();
+    // A slight wrist roll follows the 19-degree backsweep of each actual grip.
+    const target = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(forward.clone().cross(palm), forward, palm));
+    target.premultiply(new Quaternion().setFromAxisAngle(upAxis, -sign * .34));
+    gripRotations.set(name, target.multiply(source.invert()).multiply(rest));
+  }
   const walkingRotation = root.quaternion.clone();
   let riding = false;
   let transition: "mount" | "dismount" | undefined;
@@ -168,6 +186,7 @@ export function createRiderPose(character: Character) {
             }
           }
         }
+        for (const { mesh } of skins) setBakedAppearanceGrip(mesh, transition === "dismount" ? Math.max(0, 1 - elapsed / duration) : 0);
         return;
       }
       if (!riding) {
@@ -206,7 +225,7 @@ export function createRiderPose(character: Character) {
         limb(`upper_arm.${side}`, `forearm.${side}`, `hand.${side}`,
           handTarget, new Vector3(sign * .5, .9, .05));
         orient(bones.get(`hand.${side}`)!, root.getWorldQuaternion(new Quaternion())
-          .multiply(new Quaternion().setFromAxisAngle(up, steering)).multiply(orientations.get(`hand.${side}`)!));
+          .multiply(new Quaternion().setFromAxisAngle(up, steering)).multiply(gripRotations.get(`hand.${side}`)!));
         limb(`thigh.${side}`, `shin.${side}`, `foot.${side}`,
           side === "L" ? Math.abs(state.speed) < .1 ? RIDE_CONTACTS.plantedFoot : RIDE_CONTACTS.leftFoot : RIDE_CONTACTS.rightFoot,
           new Vector3(sign * .35, .5, .5));
@@ -233,6 +252,9 @@ export function createRiderPose(character: Character) {
           }
         }
       }
+      for (const { mesh } of skins) setBakedAppearanceGrip(mesh, transition === "mount" ? Math.min(1, elapsed / duration) : 1);
     },
   };
 }
+
+const upAxis = new Vector3(0, 1, 0);

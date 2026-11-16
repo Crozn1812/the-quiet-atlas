@@ -2,11 +2,31 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { createIO } from '../shared.mjs';
 
 const manifest = JSON.parse(await readFile('public/world/character/hr-manifest.json', 'utf8'));
+const io = await createIO();
+const reference = (await io.read('public/world/start/character-duy.glb')).getRoot().listSkins()[0];
+const binds = reference.getInverseBindMatrices().getArray();
 for (const lod of manifest.lods) {
   const bytes = await readFile(lod.file);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), lod.sha256);
+  const root = (await io.read(lod.file)).getRoot();
+  const actual = root.listSkins()[0].getInverseBindMatrices().getArray();
+  const bindDrift = Math.max(...Array.from(actual, (value, index) => Math.abs(value - binds[index])));
+  assert.ok(bindDrift < 1e-6, `${lod.file}: changed inverse binds (${bindDrift})`);
+  for (const mesh of root.listMeshes()) {
+    assert.deepEqual(mesh.getWeights(), [0]);
+    let moved = 0;
+    for (const primitive of mesh.listPrimitives()) {
+      assert.equal(primitive.getAttribute('POSITION').getArray().constructor.name, 'Float32Array');
+      assert.equal(primitive.listTargets().length, 1);
+      const target = primitive.listTargets()[0].getAttribute('POSITION').getArray();
+      assert.ok(Array.from(target).every(Number.isFinite));
+      moved += Array.from(target).filter(value => Math.abs(value) > .0001).length;
+    }
+    assert.ok(moved > 100, `${lod.file}: missing anatomical grip`);
+  }
   const jsonLength = bytes.readUInt32LE(12);
   const gltf = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString());
   const binOffset = 20 + jsonLength + 8;

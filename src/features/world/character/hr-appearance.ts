@@ -46,10 +46,33 @@ export function tuneHrMaterial(material: MeshStandardMaterial, antialias: boolea
       material.dispose();
       return skin;
     }
-    case "hair_card": case "hair_cap": case "brow": case "lash":
+    case "hair_card": case "hair_cap": {
+      const hair = new MeshPhysicalMaterial();
+      MeshStandardMaterial.prototype.copy.call(hair, material);
+      hair.defines = { STANDARD: "", PHYSICAL: "" };
+      // Object-space hashed coverage avoids overlapping MSAA masks exposing
+      // the scalp through an otherwise dense groom. Opaque depth writes make
+      // card order independent, including the non-MSAA production target.
+      hair.alphaToCoverage = false;
+      hair.alphaHash = true;
+      hair.alphaTest = 0;
+      hair.transparent = false;
+      hair.depthWrite = true;
+      hair.roughness = material.name === "hair_card" ? .78 : .96;
+      hair.anisotropy = material.name === "hair_card" ? .8 : .35;
+      // Card V runs root to tip. Three derives the tangent frame from UVs.
+      hair.anisotropyRotation = Math.PI / 2;
+      hair.specularIntensity = material.name === "hair_card" ? .24 : .08;
+      hair.envMapIntensity = .12;
+      material.dispose();
+      return hair;
+    }
+    case "brow": case "lash":
       // Hair is lit mostly by direct light; a strong room reflection turns thin cards grey.
-      material.alphaToCoverage = antialias && material.name !== "hair_cap";
+      material.alphaToCoverage = antialias;
       material.envMapIntensity = .3;
+      material.transparent = false;
+      material.depthWrite = true;
       return material;
     default:
       return material;
@@ -63,6 +86,16 @@ export function plainAttributes(geometry: BufferGeometry): BufferGeometry {
     const array = name === "skinIndex" ? new Uint16Array(count * itemSize) : new Float32Array(count * itemSize);
     for (let i = 0; i < count; i++) for (let c = 0; c < itemSize; c++) array[i * itemSize + c] = attribute.getComponent(i, c);
     geometry.setAttribute(name, new BufferAttribute(array, itemSize));
+  }
+  // Morph accessors may also be quantised/interleaved after meshopt encoding.
+  for (const [name, attributes] of Object.entries(geometry.morphAttributes)) {
+    geometry.morphAttributes[name as keyof typeof geometry.morphAttributes] = attributes!.map(attribute => {
+      const array = new Float32Array(attribute.count * attribute.itemSize);
+      for (let i = 0; i < attribute.count; i++) for (let c = 0; c < attribute.itemSize; c++) {
+        array[i * attribute.itemSize + c] = attribute.getComponent(i, c);
+      }
+      return new BufferAttribute(array, attribute.itemSize);
+    });
   }
   return geometry;
 }
