@@ -66,7 +66,7 @@ Quy tắc: nền kem và xanh chiếm phần lớn; cam/đỏ chỉ là chấm n
 - Trang phục chính (đúng spec): sơ mi trắng/kem rộng, xắn tay, quần short đen, tất trắng, giày vải xanh lá. Áo trơn, không logo.
 - Phụ kiện: túi vải tote màu kem.
 - Biến thể có thể dùng cho cảnh ending/biển chiều: áo khoác hoodie xám + khăn quàng (như ảnh trên đồi gió) — Lead quyết.
-- Không làm khuôn mặt giống người thật đến mức nhận diện; giữ cách điệu nhưng bắt được tinh thần: hiền, hay cười, hay nhìn xa.
+- ~~Không làm khuôn mặt giống người thật đến mức nhận diện~~ **Thay 16/11 (Duy):** khuôn mặt là đại diện của dự án, phải **giống chính Duy, chân thật từng góc cạnh**, theo ảnh Duy cung cấp (`docs/art-bible/refs/duy-face/`, gitignore). Duy đồng ý dùng chân dung của mình trong asset public. Tinh thần: hiền, hay cười, hay nhìn xa.
 
 ### 5.7 Xe Suzuki GD110 (theo ảnh)
 

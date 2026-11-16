@@ -20,3 +20,7 @@
 - Áp dụng cho mọi nội dung 3D: nhân vật, xe, sinh vật, đạo cụ, công trình, địa hình, nước, bầu trời. Không còn ngoại lệ "giữ cách điệu". Riêng tượng ở Milestones vốn là tượng sứ, nên "thật" nghĩa là sứ, đá và vết nứt thật.
 - Vẫn giữ: không logo, không thương hiệu; tham chiếu chỉ lấy cảm hứng. Khuôn mặt nhân vật là người thật về da, tóc, tỉ lệ, nhưng **không dựng theo ảnh của Duy đến mức nhận diện** (taste.md §5.6). Muốn đổi điểm này phải có quyết định riêng của Duy.
 - Giao diện portfolio 2D (Welcome, Quick, case study) không thuộc phạm vi này.
+
+## Cập nhật 16/11: khuôn mặt nhân vật là mặt thật của Duy
+
+Duy chấm mặt nhân vật MakeHuman (HR-CHAR) là "khá đáng sợ" và quyết định: khuôn mặt là đại diện của cả dự án, phải giống mặt Duy, chân thật từng góc cạnh, không còn kiểu siêu thực chung chung. Thay taste.md §5.6 (trước cấm mặt nhận diện được). Duy là chủ chân dung và đồng ý dùng trong asset public (GLB, texture). Ảnh tham chiếu để ở `docs/art-bible/refs/duy-face/` (gitignore, không commit ảnh gốc). Texture sinh từ ảnh của Duy ghi trong LICENSES.csv là ảnh của chủ dự án, có đồng ý. Ticket: HR-FACE.
