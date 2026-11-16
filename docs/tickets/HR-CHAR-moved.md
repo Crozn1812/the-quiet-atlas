@@ -1,5 +1,5 @@
 ## HR-CHAR — chuyển từ subagent sang Codex C (16/11)
 Patch phần đã làm đã được áp vào worktree này (chưa commit). Đã có: `character-hr.glb`, `character-hr-lod1.glb`, `hr-manifest.json` từ MakeHuman/MPFB2 CC0 (dòng LICENSES.csv đã có), `character/hr-appearance.ts`, sửa `baked-appearance.ts`, test `hr-character.test.ts`, script `tools/assets/blender/hr-char*.{py,mjs}`.
 Lần chạy cuối, người làm trước vừa sửa: bỏ cờ `--normal_mode` khi encode normal map KTX2 (gây lốm đốm), giảm phản chiếu giác mạc. Bước tiếp theo của họ là build đúng một lần.
-Việc của bạn: kiểm tra hai sửa đó đã có trong mã và asset chưa (nếu chưa thì làm), rồi chạy đủ điều kiện xong của card: lint, typecheck, vitest, build, `E2E_PORT=4203 pnpm exec playwright test tests/e2e/world --workers=2`, check:assets, check:licenses. Chụp Edge GPU High trước/sau: cận mặt, toàn thân, đang đi, đang lái xe, ở `test-results/hr-char/`.
+Việc của bạn: kiểm tra hai sửa đó đã có trong mã và asset chưa (nếu chưa thì làm), rồi chạy đủ điều kiện xong của card: lint, typecheck, vitest, build, `E2E_PORT=4204 pnpm exec playwright test tests/e2e/world --workers=2`, check:assets, check:licenses. Chụp Edge GPU High trước/sau: cận mặt, toàn thân, đang đi, đang lái xe, ở `test-results/hr-char/`.
 Mặt không được dựa trên ảnh Duy, không nhận diện được (taste.md §5.6). Áo trơn, không logo. Không commit.
