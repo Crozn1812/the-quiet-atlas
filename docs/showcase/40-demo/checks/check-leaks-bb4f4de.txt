@@ -1,0 +1,7 @@
+$ node tools/scan-leaks/index.mjs src/content out
+scan-leaks (§4.6) — dirs: src/content, out; files scanned: 161, binary skipped: 260
+
+Warnings:
+  - TQA_DENYLIST_FILE chưa đặt — bỏ qua luật R5 (denylist khách hàng/đối tác/email đồng nghiệp).
+
+RESULT: PASS

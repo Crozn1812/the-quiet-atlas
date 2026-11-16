@@ -1,5 +1,26 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## Gate cuối và demo — 16/11 16:00 (Claude-Lead)
+
+Tất cả ticket HR đã merge. Commit cuối: **af49ccd** (HR-CHAR-B: tóc nhiều lớp, áo, tay nắm ghi đông). Showcase demo: `docs/showcase/40-demo/`; ảnh tổng `sheet-high.webp` và `sheet-low.webp`, phiếu chấm `checklist.md`, bằng chứng trong `checks/`.
+
+| Gate | Kết quả | Bản build |
+|---|---|---|
+| build | **PASS**. Lượt đầu thoát -1073741502, do một build cũ vẫn chạy chồng lên; build lại một mình thì PASS | af49ccd |
+| full e2e (cổng 4191, `--workers=2`) | **PASS 158/158** | af49ccd |
+| FPS High, Edge, RTX 3060, 52 góc | **PASS**: thấp nhất 65,6 (first-light-overview), 71,4 (first-light-path); Roots 100; 47/52 góc ≥ 99,7 | af49ccd |
+| showcase | **PASS**: 62 ảnh, 15,2 MB; console 0 lỗi. Tổng asset tải trong phiên: 741 request, 625 MB (chỉ báo cáo, ADR 0019) | af49ccd |
+| bundle, leaks, cv, terraform validate, assets, licenses, gitleaks, load budget, Lighthouse | **PASS**. Chạy trên bb4f4de, trước HR-CHAR-B; HR-CHAR-B chỉ đổi nhân vật và tool | bb4f4de |
+| journey (ADR 0017) | **FAIL theo test**: 242,6 s > 240 s. **Duy chấp nhận** (Q-52) | bb4f4de |
+| T08/T09 Iris Xe | **NOT RUN** (chỉ Duy) | — |
+
+**Lead thấy trên ảnh, để Duy chấm:**
+- First Light: phía trên vách đá có mảng xanh đậm phẳng.
+- Milestones: tượng trắng như ma-nơ-canh.
+- Chim vẫn như thú bông (Q-53).
+- Đồi Horizon nhìn gần còn trơn.
+- Bọt sóng còn mép sáng thẳng.
+
 ## Đợt siêu thực (HR) — cập nhật 16/11 05:00 (Claude-Lead)
 
 **Merge thêm từ 15/11 04:50.** Gate là lint, typecheck, unit, assets, licenses, chạy trên main khi merge. e2e world do Lead chạy trên cổng 4191 sau khi build lại.

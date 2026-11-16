@@ -1,0 +1,736 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-11-16T08:47:51.908Z",
+  "build": "D:\\the-quiet-atlas\\out",
+  "viewport": {
+    "width": 1600,
+    "height": 900
+  },
+  "webpQuality": 82,
+  "assetRequests": 741,
+  "assetBytes": 625378876,
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "cancelledRequests": [],
+  "sessions": [
+    {
+      "label": "high",
+      "assetRequests": 259,
+      "assetBytes": 238296365
+    },
+    {
+      "label": "low",
+      "assetRequests": 135,
+      "assetBytes": 86931235
+    },
+    {
+      "label": "intro",
+      "assetRequests": 126,
+      "assetBytes": 103772795
+    },
+    {
+      "label": "ending",
+      "assetRequests": 221,
+      "assetBytes": 196378481
+    }
+  ],
+  "zones": {
+    "first-light": {
+      "name": "Ánh sáng đầu tiên",
+      "high": {
+        "luma": [
+          0.3548,
+          0.4436,
+          0.3864
+        ],
+        "assetRequests": 68,
+        "assetBytes": 82843229
+      },
+      "low": {
+        "luma": [
+          0.6652
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "workshop": {
+      "name": "Xưởng",
+      "high": {
+        "luma": [
+          0.3308,
+          0.3145,
+          0.3402
+        ],
+        "assetRequests": 21,
+        "assetBytes": 13384998
+      },
+      "low": {
+        "luma": [
+          0.5852
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "roots": {
+      "name": "Cội rễ",
+      "high": {
+        "luma": [
+          0.3787,
+          0.3823,
+          0.3736
+        ],
+        "assetRequests": 8,
+        "assetBytes": 14224354
+      },
+      "low": {
+        "luma": [
+          0.5486
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "milestones": {
+      "name": "Cột mốc",
+      "high": {
+        "luma": [
+          0.3515,
+          0.3521,
+          0.3773
+        ],
+        "assetRequests": 3,
+        "assetBytes": 7775868
+      },
+      "low": {
+        "luma": [
+          0.5611
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "old-trail": {
+      "name": "Lối mòn cũ",
+      "high": {
+        "luma": [
+          0.3436,
+          0.3479,
+          0.3473
+        ],
+        "assetRequests": 6,
+        "assetBytes": 3278336
+      },
+      "low": {
+        "luma": [
+          0.5938
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "horizon": {
+      "name": "Chân trời",
+      "high": {
+        "luma": [
+          0.4572,
+          0.4487,
+          0.4371
+        ],
+        "assetRequests": 13,
+        "assetBytes": 17939331
+      },
+      "low": {
+        "luma": [
+          0.6617
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "quiet-shore": {
+      "name": "Bờ yên tĩnh",
+      "high": {
+        "luma": [
+          0.4115,
+          0.386,
+          0.4447
+        ],
+        "assetRequests": 7,
+        "assetBytes": 851036
+      },
+      "low": {
+        "luma": [
+          0.6239
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    },
+    "last-postcard": {
+      "name": "Tấm bưu thiếp cuối",
+      "high": {
+        "luma": [
+          0.4242,
+          0.3764,
+          0.4522
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      },
+      "low": {
+        "luma": [
+          0.6392
+        ],
+        "assetRequests": 0,
+        "assetBytes": 0
+      }
+    }
+  },
+  "captures": [
+    {
+      "file": "high-first-light-01.webp",
+      "bytes": 224126,
+      "luma": 0.3548,
+      "quality": "high",
+      "zone": "first-light",
+      "angle": "standard"
+    },
+    {
+      "file": "high-first-light-02.webp",
+      "bytes": 271902,
+      "luma": 0.4436,
+      "quality": "high",
+      "zone": "first-light",
+      "angle": "left"
+    },
+    {
+      "file": "high-first-light-03.webp",
+      "bytes": 262390,
+      "luma": 0.3864,
+      "quality": "high",
+      "zone": "first-light",
+      "angle": "right"
+    },
+    {
+      "file": "high-workshop-01.webp",
+      "bytes": 237500,
+      "luma": 0.3308,
+      "quality": "high",
+      "zone": "workshop",
+      "angle": "standard"
+    },
+    {
+      "file": "high-workshop-02.webp",
+      "bytes": 215644,
+      "luma": 0.3145,
+      "quality": "high",
+      "zone": "workshop",
+      "angle": "left"
+    },
+    {
+      "file": "high-workshop-03.webp",
+      "bytes": 242046,
+      "luma": 0.3402,
+      "quality": "high",
+      "zone": "workshop",
+      "angle": "right"
+    },
+    {
+      "file": "high-roots-01.webp",
+      "bytes": 258506,
+      "luma": 0.3787,
+      "quality": "high",
+      "zone": "roots",
+      "angle": "standard"
+    },
+    {
+      "file": "high-roots-02.webp",
+      "bytes": 252556,
+      "luma": 0.3823,
+      "quality": "high",
+      "zone": "roots",
+      "angle": "left"
+    },
+    {
+      "file": "high-roots-03.webp",
+      "bytes": 269576,
+      "luma": 0.3736,
+      "quality": "high",
+      "zone": "roots",
+      "angle": "right"
+    },
+    {
+      "file": "high-milestones-01.webp",
+      "bytes": 268640,
+      "luma": 0.3515,
+      "quality": "high",
+      "zone": "milestones",
+      "angle": "standard"
+    },
+    {
+      "file": "high-milestones-02.webp",
+      "bytes": 257666,
+      "luma": 0.3521,
+      "quality": "high",
+      "zone": "milestones",
+      "angle": "left"
+    },
+    {
+      "file": "high-milestones-03.webp",
+      "bytes": 283286,
+      "luma": 0.3773,
+      "quality": "high",
+      "zone": "milestones",
+      "angle": "right"
+    },
+    {
+      "file": "high-old-trail-01.webp",
+      "bytes": 247070,
+      "luma": 0.3436,
+      "quality": "high",
+      "zone": "old-trail",
+      "angle": "standard"
+    },
+    {
+      "file": "high-old-trail-02.webp",
+      "bytes": 249168,
+      "luma": 0.3479,
+      "quality": "high",
+      "zone": "old-trail",
+      "angle": "left"
+    },
+    {
+      "file": "high-old-trail-03.webp",
+      "bytes": 252258,
+      "luma": 0.3473,
+      "quality": "high",
+      "zone": "old-trail",
+      "angle": "right"
+    },
+    {
+      "file": "high-horizon-01.webp",
+      "bytes": 245766,
+      "luma": 0.4572,
+      "quality": "high",
+      "zone": "horizon",
+      "angle": "standard"
+    },
+    {
+      "file": "high-horizon-02.webp",
+      "bytes": 233420,
+      "luma": 0.4487,
+      "quality": "high",
+      "zone": "horizon",
+      "angle": "left"
+    },
+    {
+      "file": "high-horizon-03.webp",
+      "bytes": 266614,
+      "luma": 0.4371,
+      "quality": "high",
+      "zone": "horizon",
+      "angle": "right"
+    },
+    {
+      "file": "high-quiet-shore-01.webp",
+      "bytes": 223694,
+      "luma": 0.4115,
+      "quality": "high",
+      "zone": "quiet-shore",
+      "angle": "standard"
+    },
+    {
+      "file": "high-quiet-shore-02.webp",
+      "bytes": 254878,
+      "luma": 0.386,
+      "quality": "high",
+      "zone": "quiet-shore",
+      "angle": "left"
+    },
+    {
+      "file": "high-quiet-shore-03.webp",
+      "bytes": 211310,
+      "luma": 0.4447,
+      "quality": "high",
+      "zone": "quiet-shore",
+      "angle": "right"
+    },
+    {
+      "file": "high-last-postcard-01.webp",
+      "bytes": 173190,
+      "luma": 0.4242,
+      "quality": "high",
+      "zone": "last-postcard",
+      "angle": "standard"
+    },
+    {
+      "file": "high-last-postcard-02.webp",
+      "bytes": 178118,
+      "luma": 0.3764,
+      "quality": "high",
+      "zone": "last-postcard",
+      "angle": "left"
+    },
+    {
+      "file": "high-last-postcard-03.webp",
+      "bytes": 161344,
+      "luma": 0.4522,
+      "quality": "high",
+      "zone": "last-postcard",
+      "angle": "right"
+    },
+    {
+      "file": "character-01.webp",
+      "bytes": 332792,
+      "luma": 0.3964,
+      "quality": "high",
+      "subject": "character",
+      "angle": 1
+    },
+    {
+      "file": "character-02.webp",
+      "bytes": 340584,
+      "luma": 0.3524,
+      "quality": "high",
+      "subject": "character",
+      "angle": 2
+    },
+    {
+      "file": "character-03.webp",
+      "bytes": 340392,
+      "luma": 0.361,
+      "quality": "high",
+      "subject": "character",
+      "angle": 3
+    },
+    {
+      "file": "vehicle-01.webp",
+      "bytes": 315450,
+      "luma": 0.3393,
+      "quality": "high",
+      "subject": "vehicle",
+      "angle": 1
+    },
+    {
+      "file": "vehicle-02.webp",
+      "bytes": 284414,
+      "luma": 0.3662,
+      "quality": "high",
+      "subject": "vehicle",
+      "angle": 2
+    },
+    {
+      "file": "vehicle-03.webp",
+      "bytes": 253856,
+      "luma": 0.3643,
+      "quality": "high",
+      "subject": "vehicle",
+      "angle": 3
+    },
+    {
+      "file": "low-first-light-01.webp",
+      "bytes": 41010,
+      "luma": 0.6652,
+      "quality": "low",
+      "zone": "first-light",
+      "angle": "standard"
+    },
+    {
+      "file": "low-workshop-01.webp",
+      "bytes": 59478,
+      "luma": 0.5852,
+      "quality": "low",
+      "zone": "workshop",
+      "angle": "standard"
+    },
+    {
+      "file": "low-roots-01.webp",
+      "bytes": 64482,
+      "luma": 0.5486,
+      "quality": "low",
+      "zone": "roots",
+      "angle": "standard"
+    },
+    {
+      "file": "low-milestones-01.webp",
+      "bytes": 45558,
+      "luma": 0.5611,
+      "quality": "low",
+      "zone": "milestones",
+      "angle": "standard"
+    },
+    {
+      "file": "low-old-trail-01.webp",
+      "bytes": 50512,
+      "luma": 0.5938,
+      "quality": "low",
+      "zone": "old-trail",
+      "angle": "standard"
+    },
+    {
+      "file": "low-horizon-01.webp",
+      "bytes": 41728,
+      "luma": 0.6617,
+      "quality": "low",
+      "zone": "horizon",
+      "angle": "standard"
+    },
+    {
+      "file": "low-quiet-shore-01.webp",
+      "bytes": 67120,
+      "luma": 0.6239,
+      "quality": "low",
+      "zone": "quiet-shore",
+      "angle": "standard"
+    },
+    {
+      "file": "low-last-postcard-01.webp",
+      "bytes": 42980,
+      "luma": 0.6392,
+      "quality": "low",
+      "zone": "last-postcard",
+      "angle": "standard"
+    },
+    {
+      "file": "intro-00000.webp",
+      "bytes": 27308,
+      "luma": 0.4309,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 0
+    },
+    {
+      "file": "intro-03000.webp",
+      "bytes": 26156,
+      "luma": 0.4213,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 3000
+    },
+    {
+      "file": "intro-06000.webp",
+      "bytes": 28016,
+      "luma": 0.3217,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 6000
+    },
+    {
+      "file": "intro-09000.webp",
+      "bytes": 28276,
+      "luma": 0.2994,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 9000
+    },
+    {
+      "file": "intro-12000.webp",
+      "bytes": 25036,
+      "luma": 0.3001,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 12000
+    },
+    {
+      "file": "intro-15000.webp",
+      "bytes": 24346,
+      "luma": 0.296,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 15000
+    },
+    {
+      "file": "intro-18000.webp",
+      "bytes": 23700,
+      "luma": 0.2418,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 18000
+    },
+    {
+      "file": "intro-21000.webp",
+      "bytes": 33698,
+      "luma": 0.2738,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 21000
+    },
+    {
+      "file": "intro-24000.webp",
+      "bytes": 38456,
+      "luma": 0.294,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 24000
+    },
+    {
+      "file": "intro-27000.webp",
+      "bytes": 45674,
+      "luma": 0.3207,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 27000
+    },
+    {
+      "file": "intro-30000.webp",
+      "bytes": 224778,
+      "luma": 0.3403,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 30000
+    },
+    {
+      "file": "intro-33000.webp",
+      "bytes": 224680,
+      "luma": 0.3394,
+      "quality": "high",
+      "cinematic": "intro",
+      "atMs": 33000
+    },
+    {
+      "file": "ending-00500.webp",
+      "bytes": 101126,
+      "luma": 0.3037,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 500
+    },
+    {
+      "file": "ending-03600.webp",
+      "bytes": 140534,
+      "luma": 0.2873,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 3600
+    },
+    {
+      "file": "ending-06700.webp",
+      "bytes": 146104,
+      "luma": 0.2854,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 6700
+    },
+    {
+      "file": "ending-09800.webp",
+      "bytes": 152614,
+      "luma": 0.2881,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 9800
+    },
+    {
+      "file": "ending-12900.webp",
+      "bytes": 165378,
+      "luma": 0.2923,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 12900
+    },
+    {
+      "file": "ending-16000.webp",
+      "bytes": 170484,
+      "luma": 0.2856,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 16000
+    },
+    {
+      "file": "ending-19100.webp",
+      "bytes": 133528,
+      "luma": 0.3128,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 19100
+    },
+    {
+      "file": "ending-22200.webp",
+      "bytes": 96178,
+      "luma": 0.3359,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 22200
+    },
+    {
+      "file": "ending-25300.webp",
+      "bytes": 87590,
+      "luma": 0.3318,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 25300
+    },
+    {
+      "file": "ending-28400.webp",
+      "bytes": 86032,
+      "luma": 0.33,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 28400
+    },
+    {
+      "file": "ending-31500.webp",
+      "bytes": 72962,
+      "luma": 0.3699,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 31500
+    },
+    {
+      "file": "ending-34600.webp",
+      "bytes": 63496,
+      "luma": 0.4608,
+      "quality": "high",
+      "cinematic": "ending",
+      "atMs": 34600
+    }
+  ],
+  "cinematics": {
+    "intro": {
+      "mode": "video",
+      "file": "intro.webm",
+      "bytes": 2261229,
+      "durationSeconds": 41.931,
+      "frames": [
+        "intro-00000.webp",
+        "intro-03000.webp",
+        "intro-06000.webp",
+        "intro-09000.webp",
+        "intro-12000.webp",
+        "intro-15000.webp",
+        "intro-18000.webp",
+        "intro-21000.webp",
+        "intro-24000.webp",
+        "intro-27000.webp",
+        "intro-30000.webp",
+        "intro-33000.webp"
+      ],
+      "audio": false
+    },
+    "ending": {
+      "mode": "video",
+      "file": "ending.webm",
+      "bytes": 2141547,
+      "durationSeconds": 36.58,
+      "frames": [
+        "ending-00500.webp",
+        "ending-03600.webp",
+        "ending-06700.webp",
+        "ending-09800.webp",
+        "ending-12900.webp",
+        "ending-16000.webp",
+        "ending-19100.webp",
+        "ending-22200.webp",
+        "ending-25300.webp",
+        "ending-28400.webp",
+        "ending-31500.webp",
+        "ending-34600.webp"
+      ],
+      "audio": false
+    }
+  },
+  "elapsedSeconds": 296.1,
+  "totalBytes": 15232123
+}

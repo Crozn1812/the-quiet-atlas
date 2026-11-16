@@ -1,0 +1,46 @@
+$ node tools/checks/terraform.mjs
+Terraform v1.16.6 (TERRAFORM_BIN=terraform)
+
+$ (infra/bootstrap) terraform fmt -check -recursive -diff -no-color
+PASS: fmt infra/bootstrap
+
+$ (infra/envs/prod) terraform fmt -check -recursive -diff -no-color
+PASS: fmt infra/envs/prod
+
+$ (infra/modules) terraform fmt -check -recursive -diff -no-color
+PASS: fmt infra/modules
+
+$ (infra/bootstrap) terraform init -backend=false -input=false -no-color -lockfile=readonly
+Initializing provider plugins...
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Installing hashicorp/aws v6.71.0...
+- Installed hashicorp/aws v6.71.0 (signed by HashiCorp)
+
+Terraform has been successfully initialized!
+PASS: init infra/bootstrap
+
+$ (infra/bootstrap) terraform validate -no-color
+Success! The configuration is valid.
+
+PASS: validate infra/bootstrap
+
+$ (infra/envs/prod) terraform init -backend=false -input=false -no-color -lockfile=readonly
+Initializing modules...
+- static_site in ..\..\modules\static-site
+- dns in ..\..\modules\dns
+- monitoring in ..\..\modules\monitoring
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Installing hashicorp/aws v6.71.0...
+- Installed hashicorp/aws v6.71.0 (signed by HashiCorp)
+
+Terraform has been successfully initialized!
+PASS: init infra/envs/prod
+
+$ (infra/envs/prod) terraform validate -no-color
+Success! The configuration is valid.
+
+PASS: validate infra/envs/prod
+
+terraform: PASS (7/7)

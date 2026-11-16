@@ -1,0 +1,37 @@
+$ lhci autorun --config=tools/checks/lighthouserc.cjs && node tools/checks/lighthouse-report.mjs
+✅  .lighthouseci/ directory writable
+✅  Configuration file found
+✅  Chrome installation found
+⚠️   GitHub token not set
+Healthcheck passed!
+
+Started a web server with "node tools/load-budget/serve-gzip.mjs out --port 4175"...
+Running Lighthouse 5 time(s) on http://127.0.0.1:4175/en/
+Run #1...done.
+Run #2...done.
+Run #3...done.
+Run #4...done.
+Run #5...done.
+Running Lighthouse 5 time(s) on http://127.0.0.1:4175/en/quick/
+Run #1...done.
+Run #2...done.
+Run #3...done.
+Run #4...done.
+Run #5...done.
+Running Lighthouse 5 time(s) on http://127.0.0.1:4175/en/projects/cms-devops-platform-aws-eks/
+Run #1...done.
+Run #2...done.
+Run #3...done.
+Run #4...done.
+Run #5...done.
+Done running Lighthouse!
+
+Checking assertions against 3 URL(s), 15 total run(s)
+
+All results processed!
+
+Dumping 15 reports to disk at D:\the-quiet-atlas\test-results\lhci...
+Done writing reports to disk.
+
+Done running autorun.
+{"mode":"report-only","measuredAt":"2026-11-16T04:53:14.314Z","previousAt":null,"metrics":{"/en/:largest-contentful-paint:median":2203.6015500000003,"/en/:largest-contentful-paint:worst":2206.8445,"/en/:total-blocking-time:median":47,"/en/:total-blocking-time:worst":51,"/en/:cumulative-layout-shift:median":0.01973808292701742,"/en/:cumulative-layout-shift:worst":0.01973808292701742,"/en/:bootup-time:median":158.5120000000001,"/en/:bootup-time:worst":172.44399999999973,"/en/quick/:largest-contentful-paint:median":1729.0189,"/en/quick/:largest-contentful-paint:worst":1803.8937,"/en/quick/:total-blocking-time:median":22.5,"/en/quick/:total-blocking-time:worst":23.5,"/en/quick/:cumulative-layout-shift:median":0.04460896925438652,"/en/quick/:cumulative-layout-shift:worst":0.04460896925438652,"/en/quick/:bootup-time:median":161.77600000000007,"/en/quick/:bootup-time:worst":166.86000000000033,"/en/projects/cms-devops-platform-aws-eks/:largest-contentful-paint:median":2048.6977,"/en/projects/cms-devops-platform-aws-eks/:largest-contentful-paint:worst":2124.734,"/en/projects/cms-devops-platform-aws-eks/:total-blocking-time:median":44,"/en/projects/cms-devops-platform-aws-eks/:total-blocking-time:worst":44,"/en/projects/cms-devops-platform-aws-eks/:cumulative-layout-shift:median":0.004726475081942009,"/en/projects/cms-devops-platform-aws-eks/:cumulative-layout-shift:worst":0.004726475081942009,"/en/projects/cms-devops-platform-aws-eks/:bootup-time:median":151.71600000000038,"/en/projects/cms-devops-platform-aws-eks/:bootup-time:worst":164.92400000000004},"delta":{"/en/:largest-contentful-paint:median":null,"/en/:largest-contentful-paint:worst":null,"/en/:total-blocking-time:median":null,"/en/:total-blocking-time:worst":null,"/en/:cumulative-layout-shift:median":null,"/en/:cumulative-layout-shift:worst":null,"/en/:bootup-time:median":null,"/en/:bootup-time:worst":null,"/en/quick/:largest-contentful-paint:median":null,"/en/quick/:largest-contentful-paint:worst":null,"/en/quick/:total-blocking-time:median":null,"/en/quick/:total-blocking-time:worst":null,"/en/quick/:cumulative-layout-shift:median":null,"/en/quick/:cumulative-layout-shift:worst":null,"/en/quick/:bootup-time:median":null,"/en/quick/:bootup-time:worst":null,"/en/projects/cms-devops-platform-aws-eks/:largest-contentful-paint:median":null,"/en/projects/cms-devops-platform-aws-eks/:largest-contentful-paint:worst":null,"/en/projects/cms-devops-platform-aws-eks/:total-blocking-time:median":null,"/en/projects/cms-devops-platform-aws-eks/:total-blocking-time:worst":null,"/en/projects/cms-devops-platform-aws-eks/:cumulative-layout-shift:median":null,"/en/projects/cms-devops-platform-aws-eks/:cumulative-layout-shift:worst":null,"/en/projects/cms-devops-platform-aws-eks/:bootup-time:median":null,"/en/projects/cms-devops-platform-aws-eks/:bootup-time:worst":null}}

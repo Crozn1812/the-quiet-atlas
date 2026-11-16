@@ -1,0 +1,5 @@
+  ✓  157 [msedge] › tests\e2e\world.spec.ts:11:3 › World /en/: Enter World loads the world chunk; Exit world tears it down (12.0s)
+  ✓  158 [msedge] › tests\e2e\world.spec.ts:11:3 › World /vi/: Enter World loads the world chunk; Exit world tears it down (12.7s)
+[vehicle] vehicle with motion: E during mount ends upright beside the parked bike: build=done 19622ms after Enter World
+  ✓  156 [msedge] › tests\e2e\world-vehicle.spec.ts:27:3 › vehicle with motion: E during mount ends upright beside the parked bike (30.6s)
+  158 passed (7.6m)

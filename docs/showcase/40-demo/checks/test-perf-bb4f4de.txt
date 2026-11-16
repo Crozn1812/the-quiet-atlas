@@ -1,0 +1,73 @@
+$ playwright test -c tests/perf/playwright.perf.config.ts
+
+Running 3 tests using 1 worker
+
+  ✘  1 tests\perf\journey.perf.ts:22:1 › B2-210 main journey at walking speed (4.2m)
+run 1: Welcome /en/ initial transfer=225482 PASS; Welcome /en/ JS (gzip)=139804 PASS; Quick /en/quick/ initial transfer=184804 PASS; Quick /en/quick/ JS (gzip)=135841 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2268887 PASS; Time to playable=7543.300048828125 PASS
+run 2: Welcome /en/ initial transfer=225482 PASS; Welcome /en/ JS (gzip)=139804 PASS; Quick /en/quick/ initial transfer=184804 PASS; Quick /en/quick/ JS (gzip)=135841 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2268887 PASS; Time to playable=7608.900146484375 PASS
+run 3: Welcome /en/ initial transfer=225482 PASS; Welcome /en/ JS (gzip)=139804 PASS; Quick /en/quick/ initial transfer=184804 PASS; Quick /en/quick/ JS (gzip)=135841 PASS; Welcome /en/ 3D requests before Enter World=0 PASS; Quick /en/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2268887 PASS; Time to playable=7583.800048828125 PASS
+{"mode":"report-only","measuredAt":"2026-11-16T04:49:24.717Z","previousAt":null,"metrics":{"Welcome /en/:initial-total":225482,"Welcome /en/:initial-js":139804,"Quick /en/quick/:initial-total":184804,"Quick /en/quick/:initial-js":135841,"Welcome /en/:no-3d-before-enter":0,"Quick /en/quick/:no-3d-before-enter":0,"world-bytes":2268887,"time-to-playable":7608.900146484375},"delta":{"Welcome /en/:initial-total":null,"Welcome /en/:initial-js":null,"Quick /en/quick/:initial-total":null,"Quick /en/quick/:initial-js":null,"Welcome /en/:no-3d-before-enter":null,"Quick /en/quick/:no-3d-before-enter":null,"world-bytes":null,"time-to-playable":null}}
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /en/ initial transfer | Report only (ADR 0019) | 220.2 KB (225482 B) | 220.2 KB (225482 B) | 220.2 KB (225482 B) | 220.2 KB (225482 B) | **REPORT** |
+| Welcome /en/ JS (gzip) | Report only (ADR 0019) | 136.5 KB (139804 B) | 136.5 KB (139804 B) | 136.5 KB (139804 B) | 136.5 KB (139804 B) | **REPORT** |
+| Quick /en/quick/ initial transfer | Report only (ADR 0019) | 180.5 KB (184804 B) | 180.5 KB (184804 B) | 180.5 KB (184804 B) | 180.5 KB (184804 B) | **REPORT** |
+| Quick /en/quick/ JS (gzip) | Report only (ADR 0019) | 132.7 KB (135841 B) | 132.7 KB (135841 B) | 132.7 KB (135841 B) | 132.7 KB (135841 B) | **REPORT** |
+| Welcome /en/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /en/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | Report only (ADR 0019) | 2.16 MB (2268887 B) | 2.16 MB (2268887 B) | 2.16 MB (2268887 B) | 2.16 MB (2268887 B) | **REPORT** |
+| Time to playable | Report only (ADR 0019) | 7.54 s | 7.61 s | 7.58 s | 7.61 s | **REPORT** |
+
+Tổng: **PASS** (ADR 0019: only functional invariants block; worst of 3 cold loads).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.60","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\the-quiet-atlas\test-results\load-budget
+  ✓  2 tests\perf\load-budget.perf.ts:223:3 › load budget §8 /en/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (49.1s)
+run 1: Welcome /vi/ initial transfer=231756 PASS; Welcome /vi/ JS (gzip)=139804 PASS; Quick /vi/quick/ initial transfer=191210 PASS; Quick /vi/quick/ JS (gzip)=135841 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2262835 PASS; Time to playable=7602.10009765625 PASS
+run 2: Welcome /vi/ initial transfer=231756 PASS; Welcome /vi/ JS (gzip)=139804 PASS; Quick /vi/quick/ initial transfer=191210 PASS; Quick /vi/quick/ JS (gzip)=135841 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2262835 PASS; Time to playable=7633.5 PASS
+run 3: Welcome /vi/ initial transfer=231756 PASS; Welcome /vi/ JS (gzip)=139804 PASS; Quick /vi/quick/ initial transfer=191210 PASS; Quick /vi/quick/ JS (gzip)=135841 PASS; Welcome /vi/ 3D requests before Enter World=0 PASS; Quick /vi/quick/ 3D requests before Enter World=0 PASS; 3D bytes Enter World → playable=2262835 PASS; Time to playable=7626.300048828125 PASS
+{"mode":"report-only","measuredAt":"2026-11-16T04:50:13.612Z","previousAt":null,"metrics":{"Welcome /vi/:initial-total":231756,"Welcome /vi/:initial-js":139804,"Quick /vi/quick/:initial-total":191210,"Quick /vi/quick/:initial-js":135841,"Welcome /vi/:no-3d-before-enter":0,"Quick /vi/quick/:no-3d-before-enter":0,"world-bytes":2262835,"time-to-playable":7633.5},"delta":{"Welcome /vi/:initial-total":null,"Welcome /vi/:initial-js":null,"Quick /vi/quick/:initial-total":null,"Quick /vi/quick/:initial-js":null,"Welcome /vi/:no-3d-before-enter":null,"Quick /vi/quick/:no-3d-before-enter":null,"world-bytes":null,"time-to-playable":null}}
+
+| Gate (§8) | Ngưỡng | Lần 1 | Lần 2 | Lần 3 | Xấu nhất | Kết quả |
+|---|---|---|---|---|---|---|
+| Welcome /vi/ initial transfer | Report only (ADR 0019) | 226.3 KB (231756 B) | 226.3 KB (231756 B) | 226.3 KB (231756 B) | 226.3 KB (231756 B) | **REPORT** |
+| Welcome /vi/ JS (gzip) | Report only (ADR 0019) | 136.5 KB (139804 B) | 136.5 KB (139804 B) | 136.5 KB (139804 B) | 136.5 KB (139804 B) | **REPORT** |
+| Quick /vi/quick/ initial transfer | Report only (ADR 0019) | 186.7 KB (191210 B) | 186.7 KB (191210 B) | 186.7 KB (191210 B) | 186.7 KB (191210 B) | **REPORT** |
+| Quick /vi/quick/ JS (gzip) | Report only (ADR 0019) | 132.7 KB (135841 B) | 132.7 KB (135841 B) | 132.7 KB (135841 B) | 132.7 KB (135841 B) | **REPORT** |
+| Welcome /vi/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| Quick /vi/quick/ 3D requests before Enter World | = 0 | 0 | 0 | 0 | 0 | **PASS** |
+| 3D bytes Enter World → playable | Report only (ADR 0019) | 2.16 MB (2262835 B) | 2.16 MB (2262835 B) | 2.16 MB (2262835 B) | 2.16 MB (2262835 B) | **REPORT** |
+| Time to playable | Report only (ADR 0019) | 7.60 s | 7.63 s | 7.63 s | 7.63 s | **REPORT** |
+
+Tổng: **PASS** (ADR 0019: only functional invariants block; worst of 3 cold loads).
+
+machine: {"label":"desktop dGPU RTX 3060","os":"Windows_NT 10.0.26200 (Windows 11 Pro) x64","cpu":"Intel(R) Core(TM) i5-14400F × 16 logical","ramGB":32,"browser":"msedge 157.0.4341.60","headless":true,"cpuThrottle":1,"webglRenderer":"ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)","power":"Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)","viewport":"1366×800","dpr":1,"node":"v26.13.0"}
+results: D:\the-quiet-atlas\test-results\load-budget
+  ✓  3 tests\perf\load-budget.perf.ts:223:3 › load budget §8 /vi/: Welcome/Quick initial transfer, 0 3D before Enter World, Enter World → playable (worst of cold runs) (48.9s)
+
+
+  1) tests\perf\journey.perf.ts:22:1 › B2-210 main journey at walking speed ────────────────────────
+
+    Error: Measured gates failed; tune through playtest
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PASS"
+    Received: "FAIL"
+
+      134 |     }
+      135 |   }
+    > 136 |   expect(status, reason).toBe("PASS");
+          |                          ^
+      137 |
+      138 |   function evaluateChecks() {
+      139 |     return {
+        at D:\the-quiet-atlas\tests\perf\journey.perf.ts:136:26
+
+    Error Context: test-results\perf-artifacts\journey.perf.ts-B2-210-main-journey-at-walking-speed\error-context.md
+
+  1 failed
+    tests\perf\journey.perf.ts:22:1 › B2-210 main journey at walking speed ─────────────────────────
+  2 passed (5.8m)
+[ELIFECYCLE] Command failed with exit code 1.
