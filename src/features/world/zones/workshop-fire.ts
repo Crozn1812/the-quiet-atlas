@@ -1,6 +1,6 @@
 import {
-  AdditiveBlending, BufferGeometry, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedBufferGeometry,
-  Mesh, NormalBlending, Points, ShaderMaterial, Vector2, type Vector3,
+  AddEquation, AdditiveBlending, BufferGeometry, CustomBlending, Float32BufferAttribute, Group, InstancedBufferAttribute, InstancedBufferGeometry,
+  Mesh, NormalBlending, OneFactor, OneMinusSrcAlphaFactor, Points, ShaderMaterial, Vector2, type Vector3,
 } from "three";
 
 /** HR-FIX-SETPIECE A06: camera-facing flame sheets with scrolling turbulence, thin smoke and
@@ -38,26 +38,27 @@ varying vec2 vUv;
 varying float vSeed;
 ${NOISE}
 void main() {
-  float x = vUv.x, y = vUv.y, t = time * (0.9 + fract(vSeed * 7.31) * 0.25) + vSeed * 13.0;
-  float broad = fbm(vec2(x * 1.6 + vSeed * 5.0, y * 2.1 - t * 1.9));
-  float fine = fbm(vec2(x * 4.3 - vSeed * 3.0, y * 4.8 - t * 3.4));
-  // Buoyant flame: the tongue narrows, leans and breaks up as it rises.
-  float lean = (broad - 0.5) * 0.9 * y + sin(t * 2.3 + y * 5.0) * 0.05 * y;
-  float width = mix(0.66, 0.06, pow(y, 0.72)) * (0.78 + 0.5 * fine);
-  float body = 1.0 - smoothstep(0.0, width, abs(x + lean));
-  float reach = 1.0 - smoothstep(0.42 + 0.4 * broad, 0.98, y + (fine - 0.5) * 0.42);
-  float heat = body * reach * smoothstep(0.0, 0.05, y);
-  heat = clamp(heat * (0.72 + 0.7 * fine), 0.0, 1.0);
-  vec3 ember = vec3(0.75, 0.09, 0.01), orange = vec3(1.0, 0.36, 0.04), yellow = vec3(1.0, 0.74, 0.22), core = vec3(1.0, 0.95, 0.82);
-  vec3 color = mix(ember, orange, smoothstep(0.08, 0.32, heat));
-  color = mix(color, yellow, smoothstep(0.3, 0.62, heat));
-  color = mix(color, core, smoothstep(0.62, 0.95, heat));
-  // The hottest gas at the fuel burns blue before the soot starts to glow.
-  float blue = body * (1.0 - smoothstep(0.02, 0.2, y)) * smoothstep(0.25, 0.8, 1.0 - abs(x) * 1.6);
-  color = mix(color, vec3(0.32, 0.5, 1.0), blue * 0.6);
-  float alpha = smoothstep(0.04, 0.3, heat);
-  // Three sheets add up under the bloom pass: keep each one well below white.
-  gl_FragColor = vec4(color * alpha * (0.34 + heat * 0.62), 1.0);
+  float x = vUv.x, y = vUv.y, t = time * (0.85 + fract(vSeed * 7.31) * 0.4) + vSeed * 13.0;
+  vec2 rise = vec2(x * 1.5 + vSeed * 5.0, y * 1.6 - t * 1.7);
+  float broad = fbm(rise), fine = fbm(rise * 2.4 + vec2(3.1, -t * 1.5));
+  // Buoyant sheet: broad at the fuel, leaning with the turbulence, pointed where it burns out.
+  float lean = (broad - 0.5) * 0.85 * y + sin(t * 2.1 + y * 4.0) * 0.06 * y;
+  float envelope = 1.0 - smoothstep(0.0, mix(0.82, 0.1, pow(y, 0.62)), abs(x + lean));
+  // Rising noise tears the sheet into separate tongues; the gaps widen with height.
+  float tongue = smoothstep(y * 0.8 - 0.06, y * 0.8 + 0.24, fine * 0.62 + broad * 0.46 + envelope * 0.3);
+  float reach = 1.0 - smoothstep(0.5 + 0.34 * broad, 1.0, y + (fine - 0.5) * 0.3);
+  float density = envelope * tongue * reach * smoothstep(0.0, 0.04, y);
+  density *= 0.6 + 0.4 * (1.0 - smoothstep(0.0, 0.6, y));
+  // Soot-glow ramp only: deep red edge, orange body, amber-yellow heart. It never reaches white.
+  vec3 color = mix(vec3(0.5, 0.06, 0.01), vec3(0.96, 0.31, 0.03), smoothstep(0.1, 0.38, density));
+  color = mix(color, vec3(1.0, 0.58, 0.1), smoothstep(0.34, 0.66, density));
+  color = mix(color, vec3(1.0, 0.8, 0.36), smoothstep(0.66, 0.98, density));
+  float blue = envelope * (1.0 - smoothstep(0.0, 0.09, y)) * (1.0 - smoothstep(0.2, 0.7, density));
+  color = mix(color, vec3(0.22, 0.34, 0.85), blue * 0.4);
+  float alpha = smoothstep(0.07, 0.48, density);
+  // Premultiplied "over" with a little added light: stacked sheets occlude each other instead
+  // of summing to a white column under the bloom pass.
+  gl_FragColor = vec4(color * alpha * 1.12, alpha * 0.62);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -111,12 +112,16 @@ export function createHrFire(sources: readonly FireSource[], seedPhase = 0) {
   quad.setAttribute("position", new Float32BufferAttribute([-0.5, 0, 0, 0.5, 0, 0, 0.5, 1, 0, -0.5, 1, 0], 3));
   quad.setIndex([0, 1, 2, 0, 2, 3]);
   const time = { value: 0 }, pixels = { value: 900 };
-  function sheets(layers: readonly (readonly [number, number, number])[], lift: number) {
+  /** Layers are [width, height, lift, sideways shift] in fractions of the source size. */
+  function sheets(layers: readonly (readonly [number, number, number, number])[], lift: number) {
     const geometry = new InstancedBufferGeometry();
     geometry.index = quad.index; geometry.setAttribute("position", quad.getAttribute("position"));
     const origin: number[] = [], extent: number[] = [], seed: number[] = [];
-    sources.forEach((source, s) => layers.forEach(([w, h, offset], layer) => {
-      origin.push(source.position.x, source.position.y + source.height * (lift + offset), source.position.z);
+    sources.forEach((source, s) => layers.forEach(([w, h, offset, shift], layer) => {
+      // Each tongue stands at its own spot on the fuel bed, so they part and cross as the eye moves.
+      const angle = s * 2.4 + layer * 1.9;
+      origin.push(source.position.x + Math.cos(angle) * shift * source.width * 0.5, source.position.y + source.height * (lift + offset),
+        source.position.z + Math.sin(angle) * shift * source.width * 0.5);
       extent.push(source.width * w, source.height * h);
       seed.push(((s * 0.37 + layer * 0.21 + seedPhase * 0.1) % 1 + 1) % 1);
     }));
@@ -126,10 +131,10 @@ export function createHrFire(sources: readonly FireSource[], seedPhase = 0) {
     geometry.instanceCount = seed.length;
     return geometry;
   }
-  const flameGeometry = sheets([[1.0, 1, 0], [0.74, 0.78, 0.02], [0.52, 1.1, 0.04]], 0);
-  const smokeGeometry = sheets([[1.9, 2.2, 0], [1.5, 1.8, 0.35]], 0.7);
+  const flameGeometry = sheets([[1.05, 0.78, 0, 0], [0.62, 1.0, 0.01, -0.3], [0.58, 0.9, 0.02, 0.32], [0.46, 0.62, 0.03, -0.1], [0.4, 1.12, 0.03, 0.12]], 0);
+  const smokeGeometry = sheets([[1.9, 2.2, 0, 0], [1.5, 1.8, 0.35, 0.1]], 0.7);
   const flameMaterial = new ShaderMaterial({ uniforms: { time }, vertexShader: BILLBOARD, fragmentShader: FLAME,
-    transparent: true, depthWrite: false, blending: AdditiveBlending });
+    transparent: true, depthWrite: false, blending: CustomBlending, blendEquation: AddEquation, blendSrc: OneFactor, blendDst: OneMinusSrcAlphaFactor });
   const smokeMaterial = new ShaderMaterial({ uniforms: { time }, vertexShader: BILLBOARD, fragmentShader: SMOKE,
     transparent: true, depthWrite: false, blending: NormalBlending });
   const sparkGeometry = new BufferGeometry();

@@ -1,5 +1,6 @@
-import { Group, Mesh, SkinnedMesh, Vector3, type Object3D, type BufferGeometry, type Camera, type Material, type MeshPhysicalMaterial, type Texture, type WebGLRenderer } from "three";
+import { Group, Mesh, SkinnedMesh, Vector3, type Object3D, type BufferGeometry, type Camera, type Material, type MeshPhysicalMaterial, type Scene, type Texture, type WebGLRenderer } from "three";
 import { disposeBakedAppearance } from "../character/baked-appearance";
+import { acquireSetpiece, type SetpieceAsset } from "../zones/setpiece-hr";
 
 type Target = "chassis" | "steering" | "front_wheel" | "rear_wheel";
 export interface HrVehiclePart { target: Target; mesh: Object3D }
@@ -101,11 +102,43 @@ diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.36, 0.31, 0.24), hrDust * 0.5);`
   paint.needsUpdate = true;
 }
 
+/** HR-SETPIECE-B: centres of the two flat mirror discs in the steering mesh's own vertex space
+ * (read from vehicle-gd110.glb; both LODs share them). Each authored head (plastic shell, soft
+ * rim, glass facing the rider, ball joint) encloses its disc, so the vehicle file is unchanged.
+ */
+export const HR_MIRROR_SEATS = [[-0.5399, 0.903, -0.2219], [0.6117, 0.903, -0.2219]] as const;
+export type HrMirrorLoader = (renderer: WebGLRenderer) => { ready: Promise<SetpieceAsset>; release(): void };
+
+/** Adds the heads under every steering LOD; returns the objects it created. */
+export function attachHrMirrors(asset: SetpieceAsset, steering: readonly Object3D[]) {
+  const heads: Object3D[] = [];
+  for (const host of steering) for (const seat of HR_MIRROR_SEATS) {
+    const head = asset.piece("mirror");
+    head.position.set(seat[0], seat[1], seat[2]); head.scale.setScalar(1 / host.scale.x);
+    // A slight toe-in towards the rider; any more and the old disc would show through the glass.
+    head.rotation.y = seat[0] < 0 ? -0.06 : 0.06;
+    head.traverse(child => {
+      if (!(child instanceof Mesh)) return;
+      const material = child.material as MeshPhysicalMaterial;
+      if (material.name !== "setpiece-mirror-glass") return;
+      // Silvered glass reflects the sky/treeline probe at full strength, independent of the
+      // deliberately dim scene-wide image-based light.
+      child.onBeforeRender = (_renderer, scene) => {
+        const environment = (scene as Scene).environment;
+        if (environment && material.envMap !== environment) { material.envMap = environment; material.envMapIntensity = 3.2; material.needsUpdate = true; }
+      };
+    });
+    host.add(head); heads.push(head);
+  }
+  return heads;
+}
+
 /** Installs on the view, never on the Low factory. Existing bones, rider frame,
  * lean and simulation/collider ownership remain unchanged. The first rendered
  * playable frame schedules decoding; no renderer/loader work during module load.
  */
-export function installHrVehicle(bike: Group, transitioning: () => boolean, load: HrVehicleLoader = loadHrVehicle) {
+export function installHrVehicle(bike: Group, transitioning: () => boolean, load: HrVehicleLoader = loadHrVehicle,
+  loadMirrors: HrMirrorLoader | undefined = load === loadHrVehicle ? renderer => acquireSetpiece(renderer, "mirror") : undefined) {
   const fallback = bike.getObjectByName("chassis") as SkinnedMesh;
   disposeBakedAppearance(fallback);
   const originalAfter = fallback.onAfterRender;
@@ -117,6 +150,8 @@ export function installHrVehicle(bike: Group, transitioning: () => boolean, load
   let timer: ReturnType<typeof setTimeout> | undefined;
   let explicitQuality: "low" | "balanced" | "high" | undefined;
   const origin = new Vector3(), view = new Vector3();
+  let mirrorLease: ReturnType<HrMirrorLoader> | undefined;
+  const mirrors: Object3D[] = [];
   const status = { state: "fallback", lod: -1 };
   bike.userData.hrVehicle = status;
 
@@ -148,6 +183,11 @@ export function installHrVehicle(bike: Group, transitioning: () => boolean, load
           mesh.traverse(child => { if (child instanceof Mesh) child.onAfterRender = afterRender; });
         }
         attached = true;
+        if (loadMirrors && !mirrorLease) {
+          const steering = asset.lods.flatMap(parts => parts.filter(part => part.target === "steering").map(part => part.mesh));
+          mirrorLease = loadMirrors(renderer);
+          void mirrorLease.ready.then(heads => { if (!disposed) mirrors.push(...attachHrMirrors(heads, steering)); }).catch(() => {});
+        }
       }
       if (!asset && !pending && !failed) {
         pending = true;
@@ -190,6 +230,7 @@ export function installHrVehicle(bike: Group, transitioning: () => boolean, load
       if (disposed) return;
       disposed = true; cancelScheduled();
       fallback.visible = true; fallback.onAfterRender = originalAfter;
+      mirrors.splice(0).forEach(head => head.removeFromParent()); mirrorLease?.release(); mirrorLease = undefined;
       if (asset) for (const parts of asset.lods) for (const { mesh } of parts) mesh.removeFromParent();
       asset?.dispose(); asset = undefined;
       delete bike.userData.hrVehicle;

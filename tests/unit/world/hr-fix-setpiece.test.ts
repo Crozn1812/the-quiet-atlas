@@ -77,7 +77,7 @@ describe("HR-FIX-SETPIECE runtime", () => {
     fire.setTime(3.5);
     const flames = fire.group.children[1] as Mesh;
     expect((flames.material as unknown as { uniforms: { time: { value: number } } }).uniforms.time.value).toBe(3.5);
-    expect((flames.geometry as unknown as { instanceCount: number }).instanceCount).toBe(6);
+    expect((flames.geometry as unknown as { instanceCount: number }).instanceCount).toBe(10);
     const parent = new Group(); parent.add(fire.group);
     fire.dispose(); fire.dispose();
     expect(parent.children).toHaveLength(0);
@@ -103,7 +103,8 @@ describe("HR-FIX-SETPIECE assets", () => {
     const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ "meshopt.decoder": MeshoptDecoder });
     const manifest = JSON.parse(await readFile("public/world/lib/manifest.json", "utf8"));
     const licenses = (await readFile("assets/LICENSES.csv", "utf8")).split("\n");
-    const entries = manifest.assets.filter((asset: { id: string }) => asset.id.startsWith("hr-setpiece-"));
+    // HR-SETPIECE-B adds the shelter and mirror models; they have their own test.
+    const entries = manifest.assets.filter((asset: { id: string }) => /^hr-setpiece-(horizon|last-postcard|quiet-shore|signpost|workshop)$/.test(asset.id));
     expect(entries.map((entry: { id: string }) => entry.id).sort()).toEqual(
       ["horizon", "last-postcard", "quiet-shore", "signpost", "workshop"].map(name => `hr-setpiece-${name}`));
     const pieces = entries.flatMap((entry: { pieces: { name: string }[] }) => entry.pieces.map(piece => piece.name)).sort();

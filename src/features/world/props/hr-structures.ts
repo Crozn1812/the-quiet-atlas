@@ -7,6 +7,7 @@ import { usesSoftwareRasterizer } from "../foliage/hr-capabilities";
 import { bindTimberUv, timberSurfaceGeometry } from "./timber-surface";
 import { bindAuthoredDetail } from "./authored-detail";
 import { bindFasteners, timberFastenerGeometry } from "./fasteners";
+import { bindSetpieces } from "../zones/setpiece-hr";
 
 /** Keep the authored solid and every walking/contact face. Only the render copy
  * gains crease normals and photographic base/normal/roughness atlas samples.
@@ -155,6 +156,43 @@ if(edge < .065+fleck*.11 || fleck > .79) discard;`);};
   };
 }
 
+/** HR-SETPIECE-B: the Quiet Shore shelter as joinery, not boxes. The zone records the vertex
+ * ranges of its "porch" prop in every pigment batch; the authored frame, board deck, corrugated
+ * roof and landing replace exactly those ranges. Colliders, the piano target and Low are untouched.
+ */
+export function bindQuietShoreShelter(anchor: Mesh, load?: import("../zones/setpiece-hr").SetpieceLoader) {
+  const zone = anchor.parent, porch = zone?.getObjectByName("porch"), piano = zone?.getObjectByName("piano");
+  const batches = porch?.userData.batches as { mesh: string; start: number; count: number }[] | undefined;
+  if (!zone || !porch || !piano || !Array.isArray(batches)) return undefined;
+  // The piano stands 0.85 m path-side of the shelter centre, on the deck: that fixes side and floor.
+  const side = piano.position.x < porch.position.x ? 1 : -1, floor = piano.position.y;
+  const hide: { mesh: Mesh; ranges: { start: number; count: number }[] }[] = [];
+  let landing = -Infinity;
+  for (const batch of batches) {
+    const mesh = zone.getObjectByName(batch.mesh);
+    if (!(mesh instanceof Mesh) || mesh === anchor) continue;
+    hide.push({ mesh, ranges: [{ start: batch.start, count: batch.count }] });
+    const position = mesh.geometry.getAttribute("position");
+    if (batch.mesh !== "quiet-shore-wood" || !position || position.count < batch.start + batch.count) continue;
+    // The landing is the only shelter timber beyond the path-side posts; the radio and dog rest on its top.
+    for (let i = batch.start; i < batch.start + batch.count; i++) {
+      if ((position.getX(i) - porch.position.x) * side < -1.45) landing = Math.max(landing, position.getY(i));
+    }
+  }
+  if (!hide.length) return undefined;
+  if (!Number.isFinite(landing)) landing = floor - 0.1;
+  return bindSetpieces(anchor, {
+    file: "porch", hide, load,
+    place(asset, add) {
+      const shelter = asset.piece("porch");
+      shelter.position.set(porch.position.x, floor, porch.position.z); shelter.rotation.y = side < 0 ? Math.PI : 0;
+      const step = asset.piece("stepdeck");
+      step.position.set(porch.position.x - side * 1.76, landing, porch.position.z); step.rotation.y = shelter.rotation.y;
+      add(shelter, zone); add(step, zone);
+    },
+  });
+}
+
 /** Dressing is the zone-owned lifecycle anchor. Discover once after assembly,
  * before streaming; Roots is explicitly excluded from this ticket's rollout.
  */
@@ -175,6 +213,7 @@ export function bindHrZoneStructures(anchor: Mesh) {
     }
     if (started || disposed || !anchor.parent || !/^(first-light-clearing|milestones-hillside|old-trail|horizon-overlook|quiet-shore|last-postcard)$/.test(anchor.parent.name)) return;
     started = true;
+    if (anchor.parent.name === "quiet-shore") { const release = bindQuietShoreShelter(anchor); if (release) releases.push(release); }
     anchor.parent.traverse(object => {
       if (!(object instanceof Mesh) || object === anchor) return;
       const wood = object.userData.photoSurface === "bark" || /^(first-light-wood|quiet-shore-wood|last-postcard-wood|weathered-trail-timber)$/.test(object.name);

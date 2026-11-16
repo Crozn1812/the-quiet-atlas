@@ -9,7 +9,7 @@ import { bakedPropQuality } from "../props/batched";
  * The procedural solids stay the Low/software path and keep every collider, pick and
  * interaction anchor; on hardware Balanced/High the authored model replaces only their render.
  */
-export type SetpieceFile = "signpost" | "workshop" | "horizon" | "quiet-shore" | "last-postcard";
+export type SetpieceFile = "signpost" | "workshop" | "horizon" | "quiet-shore" | "last-postcard" | "porch" | "mirror";
 export interface SetpieceAsset {
   /** A new group of meshes for one authored piece; geometry and materials stay shared. */
   piece(name: string): Group;
@@ -98,20 +98,29 @@ export function acquireSetpiece(renderer: WebGLRenderer, file: SetpieceFile) {
   } };
 }
 
-/** Copy of a non-indexed batch without the triangles whose centroid lies in any box.
- * No boxes: every triangle belongs to the replaced object, so the copy is empty.
+/** What an authored model replaces inside one merged batch. Neither field: the whole draw. */
+export interface SetpieceRemoval {
+  /** Mesh-local volumes; a triangle goes when its centroid lies inside one. */
+  boxes?: readonly Box3[];
+  /** Vertex ranges of the original non-indexed batch (e.g. a prop node's `userData.batches`). */
+  ranges?: readonly { start: number; count: number }[];
+}
+
+/** Copy of a non-indexed batch without the replaced triangles. Source bounds are kept so the
+ * emptied draw stays in the render list for its hooks.
  */
-export function retainOutside(source: BufferGeometry, boxes?: readonly Box3[]): BufferGeometry {
+export function retainWithout(source: BufferGeometry, removals: readonly SetpieceRemoval[]): BufferGeometry {
   const geometry = new BufferGeometry();
-  // Keep the source bounds: the emptied draw must stay in the render list for its hooks.
   if (!source.boundingSphere) source.computeBoundingSphere();
   if (!source.boundingBox) source.computeBoundingBox();
   geometry.boundingSphere = source.boundingSphere!.clone(); geometry.boundingBox = source.boundingBox!.clone();
-  if (!boxes) return geometry;
+  if (removals.some(removal => !removal.boxes && !removal.ranges)) return geometry;
   const flat = source.index ? source.toNonIndexed() : source;
   const position = flat.getAttribute("position"), keep: number[] = [];
+  const boxes = removals.flatMap(removal => removal.boxes ?? []), ranges = removals.flatMap(removal => removal.ranges ?? []);
   const centroid = new Vector3(), point = new Vector3();
   for (let i = 0; i + 2 < position.count; i += 3) {
+    if (ranges.some(range => i >= range.start && i < range.start + range.count)) continue;
     centroid.set(0, 0, 0);
     for (let j = 0; j < 3; j++) centroid.add(point.fromBufferAttribute(position, i + j));
     centroid.divideScalar(3);
@@ -128,13 +137,35 @@ export function retainOutside(source: BufferGeometry, boxes?: readonly Box3[]): 
   if (flat !== source) flat.dispose();
   return geometry;
 }
+/** No boxes: every triangle belongs to the replaced object, so the copy is empty. */
+export function retainOutside(source: BufferGeometry, boxes?: readonly Box3[]): BufferGeometry {
+  return retainWithout(source, [boxes ? { boxes } : {}]);
+}
+
+/** Several bindings may replace parts of the same batch (zone furniture and, separately, its
+ * shelter). The shown geometry is always the original minus every active removal, so the
+ * order in which bindings switch on, off or release cannot leave a stale copy behind.
+ */
+const batches = new WeakMap<Mesh, { full: BufferGeometry; active: Map<object, SetpieceRemoval>; shown?: BufferGeometry }>();
+function setRemoval(mesh: Mesh, owner: object, removal?: SetpieceRemoval) {
+  let entry = batches.get(mesh);
+  if (!entry) {
+    if (!removal) return;
+    entry = { full: mesh.geometry, active: new Map() }; batches.set(mesh, entry);
+  }
+  if (removal) entry.active.set(owner, removal); else if (!entry.active.delete(owner)) return;
+  entry.shown?.dispose(); entry.shown = undefined;
+  if (!entry.active.size) { mesh.geometry = entry.full; batches.delete(mesh); return; }
+  entry.shown = retainWithout(entry.full, [...entry.active.values()]);
+  mesh.geometry = entry.shown;
+}
 
 export interface SetpieceBinding {
   file: SetpieceFile;
   /** Build the placed model once the file is decoded. `add` parents to the anchor's parent by default. */
   place(asset: SetpieceAsset, add: (object: Object3D, parent?: Object3D) => void): void;
-  /** Procedural draws that the model replaces; `boxes` (mesh-local) limit the removal to part of a batch. */
-  hide?: readonly { mesh: Mesh; boxes?: readonly Box3[] }[];
+  /** Procedural draws that the model replaces; `boxes` / `ranges` limit the removal to part of a batch. */
+  hide?: readonly ({ mesh: Mesh } & SetpieceRemoval)[];
   /** Called when the authored model is shown or withdrawn (quality change, release). */
   onToggle?(active: boolean): void;
   load?: SetpieceLoader;
@@ -145,7 +176,7 @@ export interface SetpieceBinding {
  */
 export function bindSetpieces(anchor: Mesh, binding: SetpieceBinding) {
   const before = anchor.onBeforeRender;
-  const placed: Object3D[] = [], swapped = new Map<Mesh, BufferGeometry>(), retained = new Map<BufferGeometry, BufferGeometry>();
+  const placed: Object3D[] = [], owner = {};
   let state: "idle" | "loading" | "ready" | "failed" = "idle", active = false, disposed = false;
   let lease: { release(): void } | undefined, custom: SetpieceAsset | undefined;
   const status = { state: state as string, active };
@@ -154,18 +185,7 @@ export function bindSetpieces(anchor: Mesh, binding: SetpieceBinding) {
   function toggle(next: boolean) {
     active = next; status.active = next;
     for (const object of placed) object.visible = next;
-    for (const { mesh, boxes } of binding.hide ?? []) {
-      if (next) {
-        const full = mesh.geometry;
-        let copy = retained.get(full);
-        if (!copy) { copy = retainOutside(full, boxes); retained.set(full, copy); }
-        swapped.set(mesh, full); mesh.geometry = copy;
-      } else {
-        const full = swapped.get(mesh);
-        if (full) mesh.geometry = full;
-        swapped.delete(mesh);
-      }
-    }
+    for (const { mesh, boxes, ranges } of binding.hide ?? []) setRemoval(mesh, owner, next ? { boxes, ranges } : undefined);
     binding.onToggle?.(next);
   }
   function start(renderer: WebGLRenderer) {
@@ -201,7 +221,7 @@ export function bindSetpieces(anchor: Mesh, binding: SetpieceBinding) {
     if (active) toggle(false);
     anchor.onBeforeRender = before;
     placed.splice(0).forEach(object => object.removeFromParent());
-    retained.forEach(geometry => geometry.dispose()); retained.clear();
+    for (const { mesh } of binding.hide ?? []) setRemoval(mesh, owner);
     lease?.release(); custom?.dispose();
     delete anchor.userData.hrSetpiece;
   };

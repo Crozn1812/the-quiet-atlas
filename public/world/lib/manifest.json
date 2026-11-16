@@ -5711,6 +5711,209 @@
           "note": "same file as level 0"
         }
       ]
+    },
+    {
+      "id": "hr-setpiece-porch",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-setpiece-b-build.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts via props/hr-structures.ts and vehicle/hr-runtime.ts; hardware Balanced/High only",
+      "textureMaxDimension": 1024,
+      "pieces": [
+        {
+          "name": "porch",
+          "triangles": 46288,
+          "draws": 3
+        },
+        {
+          "name": "stepdeck",
+          "triangles": 1392,
+          "draws": 2
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-porch.glb",
+          "path": "/world/lib/hr-prop-setpiece-porch.glb",
+          "bytes": 341444,
+          "sha256": "2c8a5d7f2d0f8fbdcc66f3f2e81f0dd08584bb936d25c3480decdd7803967f8f",
+          "triangles": 47680,
+          "materials": 3,
+          "textures": 7,
+          "drawCalls": 5,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-a3c54a80652090c2.ktx2",
+              "bytes": 674579,
+              "sha256": "a3c54a80652090c2ed508273f4fc3ae7881f49390be9fcd6a91c717a1e6d13b7",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-9d7ba419bb204a73.ktx2",
+              "bytes": 895431,
+              "sha256": "9d7ba419bb204a73d425ca83a9c6d7c19632d0036a1f06909bb90470954b6f97",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-62f3f6239075b3ea.ktx2",
+              "bytes": 468087,
+              "sha256": "62f3f6239075b3ea7db21e1427dd045aad2a6ca6996432d50fb1ce31c62e1fb9",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-086b4c20dd7ea83f.ktx2",
+              "bytes": 81014,
+              "sha256": "086b4c20dd7ea83fe9fa74f56395fd9eac6926a2e7f5134639def0e267e185b2",
+              "reused": false
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-porch.glb",
+          "path": "/world/lib/hr-prop-setpiece-porch.glb",
+          "bytes": 341444,
+          "sha256": "2c8a5d7f2d0f8fbdcc66f3f2e81f0dd08584bb936d25c3480decdd7803967f8f",
+          "triangles": 47680,
+          "materials": 3,
+          "textures": 7,
+          "drawCalls": 5,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-a3c54a80652090c2.ktx2",
+              "bytes": 674579,
+              "sha256": "a3c54a80652090c2ed508273f4fc3ae7881f49390be9fcd6a91c717a1e6d13b7",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-9d7ba419bb204a73.ktx2",
+              "bytes": 895431,
+              "sha256": "9d7ba419bb204a73d425ca83a9c6d7c19632d0036a1f06909bb90470954b6f97",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-62f3f6239075b3ea.ktx2",
+              "bytes": 468087,
+              "sha256": "62f3f6239075b3ea7db21e1427dd045aad2a6ca6996432d50fb1ce31c62e1fb9",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-734c11f243d28961.ktx2",
+              "bytes": 1148881,
+              "sha256": "734c11f243d289613b4550c43512ee5f1cb769a279d915b9b304dbb23c31c128",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-11c1042df4aaf87a.ktx2",
+              "bytes": 1174721,
+              "sha256": "11c1042df4aaf87ac179a77252fdee6dac77abc18aeeba73f44fba4975c9735a",
+              "reused": true
+            },
+            {
+              "path": "/world/lib/hr-setpiece-086b4c20dd7ea83f.ktx2",
+              "bytes": 81014,
+              "sha256": "086b4c20dd7ea83fe9fa74f56395fd9eac6926a2e7f5134639def0e267e185b2",
+              "reused": false
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
+    },
+    {
+      "id": "hr-setpiece-mirror",
+      "category": "setpiece",
+      "license": "CC0-1.0",
+      "source": [
+        "https://polyhaven.com/a/rough_wood",
+        "https://polyhaven.com/a/rusty_metal_02",
+        "https://polyhaven.com/license",
+        "https://creativecommons.org/publicdomain/zero/1.0/"
+      ],
+      "derivation": "Original Blender geometry (tools/assets/blender/hr-setpiece-b-build.py) with Poly Haven CC0 scans graded by hr-fix-setpiece-prepare.mjs; no third-party models, logos or AI pixels.",
+      "delivery": "deferred-after-play",
+      "integration": "zones/setpiece-hr.ts via props/hr-structures.ts and vehicle/hr-runtime.ts; hardware Balanced/High only",
+      "textureMaxDimension": 64,
+      "pieces": [
+        {
+          "name": "mirror",
+          "triangles": 1120,
+          "draws": 2
+        }
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "file": "hr-prop-setpiece-mirror.glb",
+          "path": "/world/lib/hr-prop-setpiece-mirror.glb",
+          "bytes": 10316,
+          "sha256": "fb6a65cbe4a1ddb8a019be1192ccaf2309af2f348fcb46eb368ed039d3d8e92d",
+          "triangles": 1120,
+          "materials": 2,
+          "textures": 1,
+          "drawCalls": 2,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860",
+              "reused": true
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "file": "hr-prop-setpiece-mirror.glb",
+          "path": "/world/lib/hr-prop-setpiece-mirror.glb",
+          "bytes": 10316,
+          "sha256": "fb6a65cbe4a1ddb8a019be1192ccaf2309af2f348fcb46eb368ed039d3d8e92d",
+          "triangles": 1120,
+          "materials": 2,
+          "textures": 1,
+          "drawCalls": 2,
+          "sharedTextures": [
+            {
+              "path": "/world/lib/hr-setpiece-0999ee3c79e5545b.ktx2",
+              "bytes": 1359,
+              "sha256": "0999ee3c79e5545b8e2cf46596c1d3bcfadd3e14ec9b0e42d1772b0f68d15860",
+              "reused": true
+            }
+          ],
+          "note": "same file as level 0"
+        }
+      ]
     }
   ]
 }
