@@ -57,7 +57,7 @@ e2e world của Lead trên e571bc1 + 4a3fa22: đang chạy.
 - FPS High từng góc trên máy rảnh sau HR-CHAR-B — NOT RUN.
 - Final showcase — NOT RUN.
 - T08/T09 trên Iris Xe — NOT RUN (chỉ Duy).
-- Journey chạy lại với ngưỡng mới — NOT RUN (số ở trên đo với ngưỡng cũ, rồi so tay với ADR 0017).
+- Journey chạy lại với ngưỡng ADR 0017 (12:10): **FAIL 1/5**: cả tuyến 242,61 s (> 240 s). Đạt: Workshop 36,9 s, Roots 48,9 s, Milestones 59,7 s, 0 lần kẹt.
 
 ## Đợt siêu thực (HR) — cập nhật 15/11 04:50 (Claude-Lead)
 
