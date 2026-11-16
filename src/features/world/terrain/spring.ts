@@ -185,6 +185,8 @@ export function createSpring() {
   const fallSurface = createWaterSurface(fallGeometry, createWaterMaterial("Balanced"));
   const fall = fallSurface.mesh;
   fall.name = "spring-cleft-flow";
+  // Kept for the shared water clock and surface list; the visible fall is the strands in cascade.ts.
+  fall.visible = false;
   group.add(fall);
   // Whitewater, plunge foam and spray share the fall's clock (pause/reduced motion/quality).
   const cascade = createSpringCascade(origin, forward, level, () => fall.material);

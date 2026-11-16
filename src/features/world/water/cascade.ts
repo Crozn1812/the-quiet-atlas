@@ -1,10 +1,13 @@
-import { AdditiveBlending, BufferGeometry, CircleGeometry, Color, DoubleSide, Float32BufferAttribute, Mesh,
-  Points, ShaderMaterial, Vector3, type Material, type Object3D } from "three";
+import { AdditiveBlending, BufferGeometry, CircleGeometry, Color, DoubleSide, Float32BufferAttribute, FramebufferTexture, LinearFilter, Mesh,
+  Points, ShaderMaterial, Vector2, Vector3, type Material, type Object3D } from "three";
 import type { WaterMaterial } from "./material";
 
 /** Arc of the falling sheet: [along the stream from the spring (m), height above the pool (m)]. */
 export const CASCADE_PROFILE = [[-2.6, 1.65], [-2.15, 1.5], [-1.7, 0.8], [-1.2, 0.15], [-0.4, -0.04]] as const;
 export const CASCADE_ROWS = 18;
+/** Separate falling strands (one mesh, one draw) and quads across each strand. */
+export const CASCADE_STRANDS = 7;
+export const CASCADE_STRAND_COLUMNS = 4;
 
 /** Catmull-Rom through the authored profile, so the sheet bends smoothly over the lip. */
 export function cascadeProfile(rows = CASCADE_ROWS): [number, number][] {
@@ -43,7 +46,7 @@ const NOISE_GLSL = /* glsl */ `
   }
 `;
 
-/** Aerated whitewater over the clear sheet, the plunge foam and a fine spray.
+/** Separate clear strands, aerated whitewater, plunge foam and fine spray.
  * Visual only (no raycast), clocked by the spring's own water material so pause,
  * reduced motion and quality swaps behave exactly as the river does. */
 export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly<Vector3>, level: number,
@@ -61,22 +64,40 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
     uniforms.uTint.value.copy(material.uniforms.uEdgeColor!.value as Color);
     uniforms.uMotion.value = material.quality === "Low" ? 0 : 1;
   };
-  // Whitewater sheet: rides 1.5 cm proud of the clear sheet, slightly wider, ragged sides.
+  // The fall is several separate strands, not one board: water leaves the lip as an
+  // almost continuous sheet, then splits into ropes that narrow, separate and aerate.
   const profile = cascadeProfile();
-  const positions: number[] = [], uvs: number[] = [], indices: number[] = [];
+  const positions: number[] = [], uvs: number[] = [], seeds: number[] = [], indices: number[] = [];
   let distance = 0;
-  const columns = 6;
-  for (const [row, [along, rise]] of profile.entries()) {
-    if (row) distance += Math.hypot(along - profile[row - 1]![0], rise - profile[row - 1]![1]);
-    const width = 0.44 + row / CASCADE_ROWS * 0.4;
-    for (let column = 0; column <= columns; column++) {
-      const u = column / columns;
-      const p = origin.clone().addScaledVector(forward, along).addScaledVector(right, (u * 2 - 1) * width);
-      positions.push(p.x, level + rise + 0.015, p.z);
-      uvs.push(u, distance);
-      if (row && column < columns) {
-        const a = (row - 1) * (columns + 1) + column, b = a + columns + 1;
-        indices.push(a, b, a + 1, a + 1, b, b + 1);
+  for (let strand = 0; strand < CASCADE_STRANDS; strand++) {
+    const seed = (Math.sin(strand * 91.7 + 3.1) * 43758.5453) % 1;
+    const jitter = Math.abs(seed);
+    const centre = ((strand + 0.5) / CASCADE_STRANDS * 2 - 1) * 0.82 + (jitter - 0.5) * 0.02;
+    // Thicker strands carry more water and fall slightly further out.
+    const weight = 0.75 + jitter * 0.5;
+    const first = positions.length / 3;
+    distance = 0;
+    for (const [row, [along, rise]] of profile.entries()) {
+      if (row) distance += Math.hypot(along - profile[row - 1]![0], rise - profile[row - 1]![1]);
+      const fall = row / CASCADE_ROWS;
+      const width = 0.44 + fall * 0.4;
+      const half = (0.09 - fall * (0.04 - jitter * 0.015)) * weight;
+      const outward = (weight - 1) * fall * 0.18;
+      const before = profile[Math.max(0, row - 1)]!, after = profile[Math.min(CASCADE_ROWS, row + 1)]!;
+      const normal = forward.clone().multiplyScalar(before[1] - after[1]);
+      normal.y = after[0] - before[0]; normal.normalize();
+      for (let column = 0; column <= CASCADE_STRAND_COLUMNS; column++) {
+        const u = column / CASCADE_STRAND_COLUMNS;
+        const p = origin.clone().addScaledVector(forward, along * (1 + outward) + (jitter - 0.5) * 0.05)
+          .addScaledVector(right, (centre + (u * 2 - 1) * half) * width);
+        // A bowed cross-section gives each ribbon a real changing surface normal.
+        p.addScaledVector(normal, Math.sin(u * Math.PI) * half * width * 0.65);
+        positions.push(p.x, level + rise + 0.012 + jitter * 0.01, p.z);
+        uvs.push(u, distance); seeds.push(jitter + strand);
+        if (row && column < CASCADE_STRAND_COLUMNS) {
+          const a = first + (row - 1) * (CASCADE_STRAND_COLUMNS + 1) + column, b = a + CASCADE_STRAND_COLUMNS + 1;
+          indices.push(a, b, a + 1, a + 1, b, b + 1);
+        }
       }
     }
   }
@@ -84,34 +105,63 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
   uniforms.uLength.value = distance;
   sheetGeometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   sheetGeometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+  sheetGeometry.setAttribute("strandSeed", new Float32BufferAttribute(seeds, 1));
   sheetGeometry.setIndex(indices); sheetGeometry.computeVertexNormals();
   const sheetMaterial = new ShaderMaterial({
-    name: "spring-whitewater", uniforms, transparent: true, depthWrite: false, side: DoubleSide, fog: false,
+    name: "spring-whitewater", uniforms: { ...uniforms, uBackdrop: { value: null }, uResolution: { value: new Vector2(1, 1) }, uRefraction: { value: 0 } },
+    transparent: true, depthWrite: false, side: DoubleSide, fog: false, forceSinglePass: true,
     vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      attribute float strandSeed;
+      varying vec2 vUv; varying float vSeed; varying vec3 vNormal; varying vec3 vView;
+      void main() {
+        vUv = uv; vSeed = strandSeed;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vNormal = normalMatrix * normal; vView = -mv.xyz;
+        gl_Position = projectionMatrix * mv;
+      }`,
     fragmentShader: /* glsl */ `
       uniform float uTime; uniform vec3 uLight; uniform vec3 uTint; uniform float uMotion; uniform float uLength;
-      varying vec2 vUv;
+      uniform sampler2D uBackdrop; uniform vec2 uResolution; uniform float uRefraction;
+      varying vec2 vUv; varying float vSeed; varying vec3 vNormal; varying vec3 vView;
       ${NOISE_GLSL}
       void main() {
         float fall = vUv.y;
-        // Free-fall accelerates the streaks; the lip is glassy, the foot fully aerated.
-        float speed = 1.2 + fall * 0.9;
-        float flowY = fall * 1.3 - uTime * speed * uMotion;
-        // Streaks stretched along the fall (sampled in a 1:6 domain), gently meandering.
-        float meander = cascadeFbm(vec2(vUv.x * 3.0, flowY * 0.4)) - 0.5;
-        float strands = cascadeFbm(vec2((vUv.x + meander * 0.08) * 11.0, flowY * 0.22));
-        float fine = cascadeFbm(vec2((vUv.x + meander * 0.05) * 30.0, flowY * 0.7 + 4.0));
-        float aeration = smoothstep(0.15, 1.3, fall);
-        float white = smoothstep(0.38 - aeration * 0.2, 0.7, strands * 0.8 + fine * 0.3);
-        float side = abs(vUv.x * 2.0 - 1.0);
-        float wobble = (cascadeNoise(vec2(fall * 3.5 - uTime * 2.4 * uMotion, vUv.x * 3.0)) - 0.5) * 0.45;
-        float body = 1.0 - smoothstep(0.55, 0.95, side + wobble);
-        float lip = smoothstep(0.0, 0.25, fall) * (1.0 - smoothstep(uLength - 0.9 + wobble, uLength - 0.1, fall));
-        float alpha = body * lip * (0.12 + 0.78 * white * (0.45 + 0.55 * aeration));
+        // Glassy over the lip, aerated toward the foot; free fall accelerates the texture.
+        float aeration = smoothstep(0.25, 1.7, fall);
+        float flowY = fall * 1.4 - uTime * (1.3 + fall * 1.1) * uMotion;
+        float x = vUv.x * 2.0 - 1.0;
+        // Torn, wandering edges that travel down with the water.
+        float wobble = (cascadeNoise(vec2(flowY * 1.6, vSeed * 17.0)) - 0.5) * 0.55
+          + (cascadeNoise(vec2(flowY * 5.0, vSeed * 5.0 + 3.0)) - 0.5) * 0.3 * aeration;
+        float side = abs(x + wobble * 0.35);
+        float body = 1.0 - smoothstep(0.6 - 0.25 * aeration, 0.98, side + abs(wobble) * 0.25);
+        // Low in the fall each strand frays into ropes and drops.
+        float rope = cascadeFbm(vec2(vUv.x * 3.0 + vSeed * 9.0, flowY * 0.45));
+        body *= mix(1.0, smoothstep(0.32, 0.56, rope), aeration * 0.85);
+        float lip = smoothstep(0.0, 0.12, fall) * (1.0 - smoothstep(uLength - 0.75, uLength - 0.05, fall));
+        // Clear water: a dark refracting core, bright rims (Fresnel on a round strand)
+        // and sliding specular highlights where the surface catches the sky.
+        float facing = abs(dot(normalize(vNormal), normalize(vView)));
+        float fresnel = pow(1.0 - facing, 2.5);
+        float glint = smoothstep(0.48, 0.72, cascadeFbm(vec2(vUv.x * 6.0 + vSeed * 3.0, flowY * 0.2)))
+          * (1.0 - smoothstep(0.12, 0.42, abs(x - 0.32)));
+        float sparkle = smoothstep(0.72, 0.88, cascadeFbm(vec2(vUv.x * 14.0 + vSeed, flowY * 0.7 + 2.0))) * (0.4 + 0.6 * aeration);
+        float white = smoothstep(0.52 - aeration * 0.24, 0.8, cascadeFbm(vec2(vUv.x * 5.0 + vSeed * 4.0, flowY * 0.32 + 1.0))) * aeration;
+        vec3 color = uTint * (0.35 + 0.25 * facing) + uLight * (0.12 + 0.32 * fresnel + 0.85 * glint + 0.55 * sparkle);
+        color = mix(color, uLight, white * 0.85);
+        float alpha = body * lip * clamp(0.32 + 0.45 * fresnel + 0.55 * max(glint, sparkle) + 0.65 * white, 0.0, 0.92);
+        if (uRefraction > 0.5) {
+          // Sample the actual rocks/bed already rendered behind this fall. No
+          // second scene pass: one framebuffer copy while the fall is visible.
+          vec3 n = normalize(vNormal); vec3 view = normalize(vView);
+          if (dot(n, view) < 0.0) n = -n;
+          vec2 bend = refract(-view, n, 0.7502).xy * (0.003 + 0.002 * wobble);
+          vec2 screen = gl_FragCoord.xy / uResolution;
+          vec3 refracted = texture2D(uBackdrop, clamp(screen + bend, vec2(0.001), vec2(0.999))).rgb;
+          color = mix(refracted * vec3(0.95, 0.985, 0.98), color, clamp(0.18 + fresnel * 0.3 + glint * 0.65 + white * 0.65, 0.0, 1.0));
+          alpha = max(alpha, body * lip * 0.85);
+        }
         if (alpha < 0.01) discard;
-        vec3 color = mix(uTint * 1.3 + uLight * 0.15, uLight * 1.05, white);
         gl_FragColor = vec4(color, alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -119,7 +169,23 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
   });
   const sheet = new Mesh(sheetGeometry, sheetMaterial);
   sheet.name = "spring-whitewater"; sheet.raycast = () => {}; sheet.renderOrder = 3;
-  sheet.onBeforeRender = sync;
+  let backdrop: FramebufferTexture | undefined;
+  sheet.onBeforeRender = renderer => {
+    sync();
+    const target = renderer.getRenderTarget();
+    // The existing High/Balanced post target is linear HDR. Low/direct output
+    // uses the clear alpha fallback, avoiding a second tone/color conversion.
+    sheetMaterial.uniforms.uRefraction!.value = target && uniforms.uMotion.value ? 1 : 0;
+    if (!target || !uniforms.uMotion.value) return;
+    if (!backdrop || backdrop.image.width !== target.width || backdrop.image.height !== target.height || backdrop.type !== target.texture.type) {
+      backdrop?.dispose(); backdrop = new FramebufferTexture(target.width, target.height);
+      backdrop.type = target.texture.type; backdrop.format = target.texture.format;
+      backdrop.minFilter = backdrop.magFilter = LinearFilter;
+      sheetMaterial.uniforms.uBackdrop!.value = backdrop;
+      (sheetMaterial.uniforms.uResolution!.value as Vector2).set(target.width, target.height);
+    }
+    renderer.copyFramebufferToTexture(backdrop);
+  };
   // Plunge pool: bubbles spread outward from the impact, thinning into the pool.
   const impact = origin.clone().addScaledVector(forward, -0.45);
   const foamGeometry = new CircleGeometry(1.15, 40, 0, Math.PI * 2).rotateX(-Math.PI / 2);
@@ -165,7 +231,7 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
   foam.name = "spring-plunge-foam"; foam.raycast = () => {}; foam.renderOrder = 2;
   foam.onBeforeRender = sync;
   // Spray: droplets thrown from the impact and from the lip, each on its own ballistic loop.
-  const count = 140, seeds: number[] = [], anchors: number[] = [];
+  const count = 140, spraySeeds: number[] = [], anchors: number[] = [];
   let state = 0x51ed27;
   const random = () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state / 4294967296; };
   for (let i = 0; i < count; i++) {
@@ -173,11 +239,11 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
     const at = lip ? origin.clone().addScaledVector(forward, -1.95).addScaledVector(right, (random() - 0.5) * 0.8)
       : impact.clone().addScaledVector(right, (random() - 0.5) * 0.7).addScaledVector(forward, (random() - 0.5) * 0.3);
     anchors.push(at.x, level + (lip ? 1.05 : 0.02), at.z);
-    seeds.push(random(), random(), random(), lip ? 1 : 0);
+    spraySeeds.push(random(), random(), random(), lip ? 1 : 0);
   }
   const sprayGeometry = new BufferGeometry();
   sprayGeometry.setAttribute("position", new Float32BufferAttribute(anchors, 3));
-  sprayGeometry.setAttribute("spraySeed", new Float32BufferAttribute(seeds, 4));
+  sprayGeometry.setAttribute("spraySeed", new Float32BufferAttribute(spraySeeds, 4));
   const sprayMaterial = new ShaderMaterial({
     name: "spring-spray", uniforms: { ...uniforms, uForward: { value: new Vector3().copy(forward) } },
     transparent: true, depthWrite: false, blending: AdditiveBlending,
@@ -209,11 +275,57 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
   const spray = new Points(sprayGeometry, sprayMaterial);
   spray.name = "spring-spray"; spray.raycast = () => {}; spray.renderOrder = 4;
   spray.onBeforeRender = sync;
-  const objects: Object3D[] = [sheet, foam, spray];
-  const materials: Material[] = [sheetMaterial, foamMaterial, sprayMaterial];
+  // Mist: a few large, faint billows rising from the impact and drifting downstream.
+  const mistCount = 26, mistAnchors: number[] = [], mistSeeds: number[] = [];
+  for (let i = 0; i < mistCount; i++) {
+    const at = impact.clone().addScaledVector(right, (random() - 0.5) * 0.9).addScaledVector(forward, (random() - 0.3) * 0.6);
+    mistAnchors.push(at.x, level + 0.05, at.z);
+    mistSeeds.push(random(), random(), random(), random());
+  }
+  const mistGeometry = new BufferGeometry();
+  mistGeometry.setAttribute("position", new Float32BufferAttribute(mistAnchors, 3));
+  mistGeometry.setAttribute("mistSeed", new Float32BufferAttribute(mistSeeds, 4));
+  const mistMaterial = new ShaderMaterial({
+    name: "spring-mist", uniforms: { ...uniforms, uForward: { value: new Vector3().copy(forward) } },
+    transparent: true, depthWrite: false,
+    vertexShader: /* glsl */ `
+      attribute vec4 mistSeed; uniform float uTime; uniform vec3 uForward; uniform float uMotion;
+      varying float vFade; varying float vSeed;
+      void main() {
+        float life = fract(uTime * (0.08 + mistSeed.x * 0.06) + mistSeed.y);
+        float angle = mistSeed.z * 6.2831;
+        vec3 drift = vec3(cos(angle), 0.0, sin(angle)) * 0.25 + uForward * 0.45;
+        vec3 p = position + drift * life + vec3(0.0, 0.15 + life * (0.7 + mistSeed.w * 0.5), 0.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        // 0.5-1.1 m billows at roughly 860 px per radian, capped for close cameras.
+        gl_PointSize = min(420.0, (0.5 + mistSeed.w * 0.6) * (0.6 + life * 0.6) * 860.0 / max(-mv.z, 0.3)) * uMotion;
+        vFade = sin(life * 3.14159) * uMotion; vSeed = mistSeed.x;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uLight; varying float vFade; varying float vSeed;
+      ${NOISE_GLSL}
+      void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float wisp = cascadeNoise(gl_PointCoord * 3.0 + vSeed * 11.0);
+        float a = exp(-dot(c, c) * 14.0) * (0.55 + 0.45 * wisp) * vFade * 0.075;
+        if (a < 0.003) discard;
+        gl_FragColor = vec4(uLight, a);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const mist = new Points(mistGeometry, mistMaterial);
+  mist.name = "spring-mist"; mist.raycast = () => {}; mist.renderOrder = 5;
+  mist.onBeforeRender = sync;
+  const objects: Object3D[] = [sheet, foam, spray, mist];
+  const materials: Material[] = [sheetMaterial, foamMaterial, sprayMaterial, mistMaterial];
+  let disposed = false;
   return { objects, dispose() {
+    if (disposed) return;
+    disposed = true;
     for (const object of objects) object.removeFromParent();
-    sheetGeometry.dispose(); foamGeometry.dispose(); sprayGeometry.dispose();
+    sheetGeometry.dispose(); foamGeometry.dispose(); sprayGeometry.dispose(); mistGeometry.dispose();
+    backdrop?.dispose();
     materials.forEach(material => material.dispose());
   } };
 }

@@ -22,7 +22,10 @@ describe("FISH-01 procedural schools", () => {
       const triangles = fish.mesh.geometry.index!.count / 3;
       reportBudget("tests/unit/world/fish.test.ts:22 triangles", triangles, 120);
       reportBudget("tests/unit/world/fish.test.ts:23 triangles * fish.mesh.count", triangles * fish.mesh.count, 8000);
-      expect(fish.mesh.material.transparent).toBe(false);
+      expect(fish.mesh.material.transparent).toBe(true);
+      expect(fish.mesh.material.depthWrite).toBe(true);
+      expect(fish.mesh.material.forceSinglePass).toBe(true);
+      expect(fish.mesh.renderOrder).toBeLessThan(0);
       expect(fish.mesh.material.uniforms.fogColor).toBeDefined();
       const back = fish.mesh.material.uniforms.uBack!.value as Color;
       const belly = fish.mesh.material.uniforms.uBelly!.value as Color;

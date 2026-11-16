@@ -19,6 +19,8 @@ export function createFirstLightFish() {
   const count = schools.reduce((sum, school) => sum + school.count, 0);
   const mesh = new InstancedMesh(geometry, material, count);
   mesh.name = "first-light-stream-fish";
+  // Draw translucent fins over the opaque bed, before the river/pool overlay.
+  mesh.renderOrder = -1;
   mesh.raycast = () => {}; // Shader positions are visual only, never camera/player obstacles.
   const centers: number[] = [], motions: number[] = [], reaches: number[] = [];
   const matrix = new Matrix4();

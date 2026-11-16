@@ -67,6 +67,8 @@ export function createFishGeometry() {
 export function createFishMaterial(route: Vector4[]) {
   return new ShaderMaterial({
     name: "submerged-fish", fog: true, side: DoubleSide,
+    // Opaque body fragments retain depth; the fins blend with the actual bed.
+    transparent: true, depthWrite: true, forceSinglePass: true,
     uniforms: UniformsUtils.merge([UniformsLib.fog, {
       uTime: { value: 0 }, uCalm: { value: 0 }, uLowSchool: { value: -1 },
       // XYZ = player; W = most recent approach time. One uniform for the reaction.
@@ -213,14 +215,17 @@ export function createFishMaterial(route: Vector4[]) {
         float pupil = (1.0 - smoothstep(0.0045, 0.0056, eyeDistance)) * eyeMask;
         pigment = mix(pigment, vec3(0.42, 0.33, 0.14), iris);
         pigment = mix(pigment, vec3(0.012, 0.012, 0.01), pupil);
-        // Thin translucent fins: radiating rays over a membrane tinted by the water behind.
+        // Thin translucent fins: radiating rays over a genuinely transparent membrane.
         vec3 finVector = p - vRoot;
         float rayAngle = atan(finVector.y + finVector.x, abs(finVector.z) + 0.0001);
         float rays = 0.5 + 0.5 * cos(rayAngle * 46.0);
         float finReach = clamp(length(finVector) * 14.0, 0.0, 1.0);
         vec3 finTint = mix(vec3(0.42, 0.36, 0.25), vec3(0.62, 0.3, 0.14), step(0.62, vHue));
-        vec3 membrane = mix(uWater * 0.5, finTint, 0.2 + 0.32 * rays * (1.0 - finReach * 0.6));
-        membrane = mix(membrane, uBack * 1.4, (1.0 - finReach) * 0.5);
+        float rayInk = rays * (1.0 - finReach * 0.55);
+        vec3 membrane = finTint;
+        membrane = mix(membrane, uBack * 1.3, (1.0 - finReach) * 0.45);
+        float finEdge = smoothstep(0.82, 1.0, finReach);
+        membrane += vec3(0.05, 0.05, 0.045) * finEdge * (0.5 + 0.5 * rays);
         pigment = mix(pigment, membrane, vPart);
         // Daylight comes through the surface: wrap diffuse from above, cool fill below.
         float lightUp = dot(n, normalize(vUp));
@@ -234,7 +239,8 @@ export function createFishMaterial(route: Vector4[]) {
         color += vec3(0.11, 0.1, 0.085) * pupil * pow(max(dot(n, halfway), 0.0), 60.0);
         // GFX-P4 Beer-Lambert coefficient: depth softens the submerged silhouette.
         float transmission = exp(-max(vDepth, 0.0) * 0.85);
-        gl_FragColor = vec4(mix(uWater * 0.35, color, transmission), 1.0);
+        float membraneAlpha = clamp(0.12 + rayInk * 0.28 + (1.0 - finReach) * 0.28 + finEdge * 0.08, 0.0, 0.72);
+        gl_FragColor = vec4(mix(uWater * 0.35, color, transmission), mix(1.0, membraneAlpha, vPart));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         #include <fog_fragment>

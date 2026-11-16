@@ -84,26 +84,32 @@ export function createBirdGeometry(gull: boolean, low = false, species = 0) {
   // a visible collar seam and made the head look like a separate wooden bead.
   const profile = [
     [-0.13, 0, 0, -0.025], [-0.11, 0.043, 0.070, -0.025],
-    [-0.08, 0.073, 0.120, -0.035], [-0.03, 0.095, 0.180, -0.025],
-    [0.02, 0.092, 0.177, -0.010], [0.07, 0.075, 0.148, 0.018],
-    [0.10, 0.064, 0.105, 0.073], [0.13, 0.062, 0.080, 0.143],
+    [-0.08, 0.061, 0.103, -0.035], [-0.03, 0.079, 0.149, -0.025],
+    [0.02, 0.078, 0.149, -0.010], [0.07, 0.067, 0.129, 0.018],
+    [0.10, 0.059, 0.096, 0.073], [0.13, 0.059, 0.076, 0.143],
     [0.16, 0.061, 0.072, 0.164], [0.19, 0.043, 0.050, 0.164],
     [0.208, 0.015, 0.018, 0.160], [0.212, 0, 0, 0.159],
   ];
-  const vertices: number[] = [], indices: number[] = [];
-  const rings = low ? 22 : 88, segments = low ? 12 : 48;
-  for (let ring = 0; ring <= rings; ring++) {
-    const t = ring / rings * (profile.length - 1), at = Math.min(profile.length - 2, Math.floor(t)), f = t - at;
+  function skin(t: number, angle: number, lift = 0) {
+    const at = Math.min(profile.length - 2, Math.floor(t)), f = t - at;
     const values = [0, 1, 2, 3].map(axis => {
       const a = profile[Math.max(0, at - 1)]![axis]!, b = profile[at]![axis]!;
       const c = profile[at + 1]![axis]!, d = profile[Math.min(profile.length - 1, at + 2)]![axis]!;
       return 0.5 * (2 * b + (-a + c) * f + (2 * a - 5 * b + 4 * c - d) * f * f + (-a + 3 * b - 3 * c + d) * f * f * f);
     });
     const [y, rx, rz, z] = values as [number, number, number, number];
+    return new Vector3(Math.cos(angle) * Math.max(0, rx + lift), y, z + Math.sin(angle) * Math.max(0, rz + lift));
+  }
+  const vertices: number[] = [], indices: number[] = [];
+  const rings = low ? 22 : 88, segments = low ? 12 : 48;
+  for (let ring = 0; ring <= rings; ring++) {
+    const t = ring / rings * (profile.length - 1);
     for (let segment = 0; segment <= segments; segment++) {
       const angle = segment / segments * Math.PI * 2;
-      const down = !low && ring > 1 && ring < rings - 1 ? Math.sin(angle * 47 + y * 673) * 0.00035 : 0;
-      vertices.push(Math.cos(angle) * Math.max(0, rx + down), y, z + Math.sin(angle) * Math.max(0, rz + down));
+      // Overlapping contour-feather tips break the outline slightly (no smooth plush shell).
+      const lobe = Math.pow(0.5 + 0.5 * Math.sin(angle * 31 + ring * 1.9 + Math.sin(ring * 0.7) * 2), 3);
+      const down = !low && ring > 1 && ring < rings - 1 ? Math.sin(angle * 47 + t * 17) * 0.00025 + lobe * 0.0008 : 0;
+      vertices.push(...skin(t, angle, down).toArray());
       if (ring < rings && segment < segments) {
         const a = ring * (segments + 1) + segment, b = a + segments + 1;
         indices.push(a, b, a + 1, b, b + 1, a + 1);
@@ -112,10 +118,32 @@ export function createBirdGeometry(gull: boolean, low = false, species = 0) {
   }
   const torso = new BufferGeometry(); torso.setAttribute("position", new Float32BufferAttribute(vertices, 3)); torso.setIndex(indices);
   torso.computeVertexNormals(); part(torso, back, 0, false, true);
+  // Small, overlapping contour feathers sit on the skin, each with a raised
+  // centre and a tapered free tip. They catch light as layers, not plush fuzz.
+  if (!low) for (let row = 0; row < 10; row++) for (let column = 0; column < 26; column++) {
+    const t = 2.6 + row * 0.36;
+    const angle = (column + (row % 2) * 0.5) / 26 * Math.PI * 2;
+    const p: number[] = [], triangles: number[] = [];
+    for (let station = 0; station <= 3; station++) for (let edge = -1; edge <= 1; edge++) {
+      const s = station / 3, width = Math.sin(Math.PI * s) * 0.16 + 0.01;
+      const v = skin(t - s * 0.52, angle + edge * width, 0.00055 + (1 - Math.abs(edge)) * Math.sin(s * Math.PI) * 0.0006);
+      p.push(...v.toArray());
+      if (station && edge < 1) {
+        const a = (station - 1) * 3 + edge + 1, b = a + 3;
+        triangles.push(a, a + 1, b, a + 1, b + 1, b);
+      }
+    }
+    const g = new BufferGeometry(); g.setAttribute("position", new Float32BufferAttribute(p, 3)); g.setIndex(triangles);
+    g.computeVertexNormals();
+    const tone = new Color(back).lerp(new Color(breast), Math.max(0, Math.sin(angle)) * (1 - row / 13));
+    part(g, tone.getHex(), 0, true, true);
+  }
   for (const side of [-1, 1]) {
     oval(side * 0.055, 0.155, 0.197, 0.0028, 0.0048, 0.0048, 0x090e0d);
     if (!low) oval(side * 0.057, 0.157, 0.199, 0.0008, 0.0011, 0.0011, 0xf5eddd);
-    oval(side * 0.17, 0.035, -0.025, 0.115, 0.033, 0.13, back, side, side * 0.15, true);
+    // Folded wing covers the flank from shoulder to rump, as on a perched passerine.
+    oval(side * 0.17, 0.045, -0.01, 0.115, 0.056, 0.19, back, side, side * 0.15, true);
+    if (!low) oval(side * 0.15, 0.065, 0.02, 0.09, 0.03, 0.11, crown, side, side * 0.1, true);
     const count = low ? 5 : 9;
     for (let i = 0; i < count; i++) {
       const t = i / (count - 1);
@@ -125,14 +153,15 @@ export function createBirdGeometry(gull: boolean, low = false, species = 0) {
       if (!low) oval(side * (0.13 + t * 0.14), 0.057, -0.01 - t * 0.025,
         0.022, 0.009, 0.055, i % 3 === 0 ? bar : back, side, side * 0.35, true);
     }
-    for (let i = 0; i < (low ? 2 : 4); i++) oval(side * (0.012 + i * 0.013), -0.025, -0.245 + i * 0.012,
-      0.014, 0.005, (species === 1 ? 0.18 : 0.14) - i * 0.009, species === 1 && i > 1 ? bar : back, 0, side * (0.025 + i * 0.045), true);
+    // Overlapping rectrices: a closed, slightly notched tail rather than separate sticks.
+    for (let i = 0; i < (low ? 2 : 6); i++) oval(side * (0.008 + i * 0.008), -0.025 + i * 0.001, -0.245 + i * 0.008,
+      0.02, 0.0045, (species === 1 ? 0.18 : 0.14) - i * 0.009, species === 1 && i > 3 ? bar : back, 0, side * (0.015 + i * 0.03), true);
     // Jointed tarsi, three gripping toes and rear toe. Feet meet y=-0.20.
-    const leg = (a: Vector3, b: Vector3, radius: number) => {
-      const g = new CylinderGeometry(radius * 0.7, radius, a.distanceTo(b), low ? 4 : 7);
+    const leg = (a: Vector3, b: Vector3, radius: number, claw = false) => {
+      const g = new CylinderGeometry(claw ? radius * 0.08 : radius * 0.7, radius, a.distanceTo(b), low ? 4 : 7);
       g.applyQuaternion(new Quaternion().setFromUnitVectors(axis, b.clone().sub(a).normalize()));
       g.translate(...a.clone().add(b).multiplyScalar(0.5).toArray());
-      part(g, 0x86725a);
+      part(g, claw ? 0x34332b : 0x86725a);
     };
     const ankle = new Vector3(side * 0.035, -0.166, 0.027);
     leg(new Vector3(side * 0.035, -0.085, -0.015), new Vector3(side * 0.035, -0.116, 0.037), 0.005);
@@ -140,8 +169,10 @@ export function createBirdGeometry(gull: boolean, low = false, species = 0) {
     for (let toe = -1; toe <= 1; toe++) {
       const knuckle = new Vector3(side * 0.035 + toe * 0.014, -0.175, 0.062);
       leg(ankle, knuckle, 0.003); leg(knuckle, new Vector3(knuckle.x, -0.20, 0.065), 0.002);
+      if (!low) leg(new Vector3(knuckle.x, -0.196, 0.065), new Vector3(knuckle.x, -0.203, 0.056), 0.0018, true);
     }
     leg(ankle, new Vector3(side * 0.035, -0.20, -0.010), 0.003);
+    if (!low) leg(new Vector3(side * 0.035, -0.197, -0.010), new Vector3(side * 0.035, -0.203, 0.002), 0.0018, true);
   }
   // Separate mandibles leave a small dark seam; shorter, stout sparrow bill.
   for (const upper of [true, false]) {
@@ -212,7 +243,7 @@ float plumage = resolved * body;
 float mottle = birdNoise(p.xz * 160.0 + p.y * 90.0) - 0.5;
 diffuseColor.rgb *= 1.0 + plumage * (barb * 0.015 - overlap * 0.06 + fringe * 0.045 + tone * 0.1 + mottle * 0.08)
   - streak * breastMask * plumage * 0.2;
-float dorsalTract = smoothstep(0.02, 0.09, p.y) * (1.0 - smoothstep(0.12, 0.16, p.y)) * smoothstep(0.05, -0.05, p.z);
+float dorsalTract = smoothstep(0.02, 0.09, p.y) * (1.0 - smoothstep(0.12, 0.16, p.y)) * (1.0 - smoothstep(-0.05, 0.05, p.z));
 diffuseColor.rgb *= 1.0 - plumage * dorsalTract * (1.0 - smoothstep(0.05, 0.28, abs(cell.x))) * step(0.45, birdHash(cellId + 5.0)) * 0.35;
 float featherHeight = plumage * (1.0 - overlap) * 0.6;
 // Flight feathers: dark rachis, oblique barbs, pale fringe and slightly darker tip.
@@ -234,6 +265,6 @@ featherHeight += flight * (shaft * 0.5 + barbs * 0.15 - edge * 0.3);`)
   normal = normalize(abs(det) * normal - grad * 0.0007);
 }`);
   };
-  material.customProgramCacheKey = () => "hr-birds-anatomy-v4";
+  material.customProgramCacheKey = () => "hr-birds-anatomy-v5";
   return material;
 }

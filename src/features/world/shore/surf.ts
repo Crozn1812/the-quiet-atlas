@@ -112,7 +112,7 @@ export function createSurf(material: () => WaterMaterial) {
     current.polygonOffsetUnits = -2;
     const compile = current.onBeforeCompile.bind(current);
     const cacheKey = current.customProgramCacheKey();
-    current.customProgramCacheKey = () => `${cacheKey}:surf-v3`;
+    current.customProgramCacheKey = () => `${cacheKey}:surf-v4`;
     current.onBeforeCompile = (shader, renderer) => {
       compile(shader, renderer);
       Object.assign(shader.uniforms, { uSurfTime: time, uSurfDetail: detail, uSurfWetness: wetness, uSurfWater: water, uSurfFoam: foam });
@@ -162,31 +162,61 @@ export function createSurf(material: () => WaterMaterial) {
           // The bore is white only while it advances; the backwash thins into lace.
           float advancing = smoothstep(0.16, 0.24, p) * (1.0 - smoothstep(0.42, 0.6, p));
           float edge = (1.0 - smoothstep(0.03, 0.22 + 0.25 * advancing, abs(d - front))) * mix(0.25, 1.0, advancing);
-          // World-space foam (isotropic), pushed up the beach and drawn back with the swash.
-          vec2 foamUv = vSurfWorld * 1.3 + vec2(d - p * 2.5) * 0.9;
-          // Domain-warped, multi-scale foam: blobs and torn sheets, then a fine
-          // irregular bubble lace in patches. Never one cell size or a regular net.
-          vec2 warp = vec2(surfNoise(foamUv * 1.7 + uSurfTime * 0.05), surfNoise(foamUv * 1.7 + 5.2)) - 0.5;
-          vec2 fp = foamUv + warp * 1.2;
-          float blobs = surfNoise(fp * 1.1) * 0.5 + surfNoise(mat2(0.8, 0.6, -0.6, 0.8) * fp * 2.6 + 3.0) * 0.3
-            + surfNoise(mat2(0.28, -0.96, 0.96, 0.28) * fp * 6.1 - 7.0) * 0.2;
-          float holes = 1.0 - smoothstep(0.0, 0.1, surfFoamCells(fp * 7.5 + warp * 2.0));
-          float froth = mix(1.0, (0.25 + 0.75 * smoothstep(0.3, 0.62, blobs)) * (1.0 - (1.0 - holes) * 0.25), uSurfDetail);
           float draining = smoothstep(0.44, 0.55, p) * (1.0 - smoothstep(0.82, 0.98, p));
-          float lacePatch = smoothstep(0.5, 0.72, surfNoise(fp * 0.8 + 21.0) * 0.6 + blobs * 0.4);
-          float lace = (1.0 - smoothstep(0.0, 0.06, surfFoamCells(fp * 11.0 - warp * 3.0))) * 0.7
-            * lacePatch * draining * flooded * uSurfDetail;
+          // Real swash foam is a thin torn net confined to a contour-following band.
+          // It rides with the front, so it is pushed up the beach and
+          // drawn back with the backwash, thinning as it drains.
+          float behind = front - d;
+          float lace = 0.0, edgeLine = 0.0;
+          if (uSurfDetail > 0.5) {
+            // World xz: the contour turns through headlands, so no along-shore axis is assumed.
+            // A slow drift keeps the net moving with the water instead of printed on the sand.
+            vec2 shoreUv = vSurfWorld * 3.0 + vec2(sin(p * 6.2832), cos(p * 6.2832)) * 0.35;
+            vec2 warp = vec2(surfNoise(shoreUv * 0.6 + vec2(uSurfTime * 0.03, 1.7)),
+              surfNoise(shoreUv * 0.6 + vec2(5.2, -uSurfTime * 0.02))) - 0.5;
+            vec2 laceUv = shoreUv + warp * 1.3 + vec2(floor(uSurfTime / 8.0 - vSurfAlong * 0.017) * 7.3, 3.1);
+            // Cell-scale warp bends every bubble wall: no polygonal honeycomb.
+            vec2 bend = vec2(surfNoise(laceUv * 2.3 + 4.1), surfNoise(laceUv * 2.3 - 9.7)) - 0.5;
+            vec2 bendFine = vec2(surfNoise(laceUv * 5.9 + 1.3), surfNoise(laceUv * 5.9 + 8.2)) - 0.5;
+            float coarse = surfFoamCells(laceUv * 2.8 + bend * 0.3 + bendFine * 0.08);
+            float fine = surfFoamCells(mat2(0.8, 0.6, -0.6, 0.8) * laceUv * 6.6 + bend * 0.45 + 7.0);
+            float aaC = length(fwidth(laceUv)) * 2.8, aaF = length(fwidth(laceUv)) * 6.6;
+            // Strand thickness varies: thick ropes where bubbles pile up, threads elsewhere.
+            float thickness = mix(0.007, 0.035, smoothstep(0.3, 0.8, surfNoise(laceUv * 1.1 + 2.0)));
+            // Preserve strand coverage below a pixel; widening the AA ramp alone
+            // turned distant foam into a continuous white strip.
+            float strands = (1.0 - smoothstep(max(0.0, thickness - aaC), thickness + aaC, coarse))
+              * thickness / max(thickness, aaC);
+            float bubbles = (1.0 - smoothstep(max(0.0, 0.025 - aaF), 0.025 + aaF, fine))
+              * 0.025 / max(0.025, aaF);
+            float distanceToFront = max(behind, 0.0);
+            // Torn patches: most of the swash is clear water; the net survives in islands
+            // that are densest just behind the front.
+            float tear = surfNoise(laceUv * 0.42 + 11.0) * 0.6 + surfNoise(laceUv * 1.3 - 4.0) * 0.4;
+            float patchy = smoothstep(0.4 + distanceToFront * 0.1, 0.58 + distanceToFront * 0.1, tear + 0.14 * (1.0 - smoothstep(0.0, 0.6, distanceToFront)));
+            float band = smoothstep(-0.02, 0.1, behind) * exp(-distanceToFront * mix(1.7, 0.8, advancing));
+            float density = band * flooded * (1.0 - draining * 0.55);
+            lace = (strands * 0.85 + bubbles * 0.35 * strands) * patchy * density
+              + bubbles * 0.25 * smoothstep(0.35, 0.6, tear) * density * (1.0 - patchy);
+            // Leading edge: a narrow beaded line with gaps, bright only while the bore advances.
+            float gaps = smoothstep(0.46, 0.64, surfNoise(vSurfWorld * 0.8 + floor(uSurfTime / 8.0) * 5.1) * 0.65
+              + surfNoise(vSurfWorld * 2.9 + uSurfTime * 0.07) * 0.35);
+            float width = 0.02 + 0.025 * advancing + fwidth(d) * 0.6;
+            edgeLine = (1.0 - smoothstep(width * 0.35, width, abs(behind - 0.04)))
+              * gaps * mix(0.3, 1.0, advancing) * (0.35 + 0.65 * max(bubbles, strands));
+          }
           // A lagged envelope leaves a dark wet band after water recedes, drying before the next wave.
           float wetReach = max(runup, surfRunup(max(0.0, p - 0.15)) * mix(1.0, reach, uSurfDetail)) + lobes * 0.3;
           float wet = (1.0 - smoothstep(wetReach, wetReach + 0.8, d)) * step(0.0, d);
           // Sheen on the freshly drained sand mirrors the sky; it fades as water soaks in.
           float sheen = wet * (1.0 - flooded) * (1.0 - smoothstep(0.55, 0.95, p)) * uSurfDetail;
           outgoingLight *= 1.0 - (uSurfWetness + 0.14) * wet * uSurfDetail;
-          outgoingLight += uSurfFoam * sheen * 0.05;
+          outgoingLight += uSurfFoam * sheen * 0.09;
           float sheet = flooded * (0.35 + 0.35 * smoothstep(0.0, 0.8, front - d));
           // The swash is a thin clear film: tint the wet sand, never paint it over.
           outgoingLight = mix(outgoingLight, uSurfWater * 0.8, sheet * 0.4 * uSurfDetail);
-          float whitewater = clamp(edge * froth * 0.9 + lace * 0.45, 0.0, 0.92);
+          float lowGaps = smoothstep(0.35, 0.65, surfNoise(vSurfWorld * 2.3 + p));
+          float whitewater = uSurfDetail > 0.5 ? clamp(edgeLine * 0.8 + lace * 0.8, 0.0, 0.86) : edge * lowGaps * 0.5;
           outgoingLight = mix(outgoingLight, uSurfFoam, whitewater);
           diffuseColor.a = border * beach * max(max(sheet * 0.7 * uSurfDetail, whitewater), wet * 0.8 * uSurfDetail);
           if (diffuseColor.a < 0.005) discard;
