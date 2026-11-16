@@ -7,6 +7,7 @@ import { PATH_WIDTH, riverWidthAt, TERRAIN_SEED, waterLevelAt, worldHeight } fro
 import { nearestPath, nearestRiver } from "./samples";
 import type { TerrainTile } from "./tiles";
 import { COAST_SAND_Z, routeZ } from "../layout/scale";
+import { hillDrainage, hillNoise, nearHillWeight } from "./hills";
 
 const grass = new Color(hex("grass"));
 const grassDry = new Color(hex("grassDry"));
@@ -64,6 +65,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   const cc0Surface = new Float32Array(stride ** 2 * 4);
   const groundSurface = new Float32Array(stride ** 2 * 4);
   const cliffSurface = new Float32Array(stride ** 2 * 2);
+  const nearHillSurface = new Float32Array(stride ** 2 * 2);
   const indices = new Uint16Array(cells ** 2 * 6);
   const tint = new Color();
   const color = new Color();
@@ -88,6 +90,10 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     const aboveWater = origin.y + height - waterLevelAt(wz);
     const path = nearestPath(wx, wz);
     const river = nearestRiver(wx, wz);
+    const nearHill = nearHillWeight(wx, wz, path.distance, river.distance, path.t)
+      * smoothstep(0.5, 1.5, aboveWater);
+    const drainage = nearHill > 0 ? hillDrainage(wx, wz) : 0;
+    nearHillSurface.set([nearHill, drainage], vertex * 2);
     // Preserve the old pigment under the 5 m asphalt and its gravel shoulders.
     const groundDetail = 1 - smoothstep(0.76, 0.78, path.t) * (1 - smoothstep(4, 7, path.distance));
     const patch = pigmentNoise(wx, wz, 8);
@@ -147,6 +153,12 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
     hillSurface[vertex] = hill * smoothstep(1.2, 2.2, aboveWater) * (1 - cliff) * groundDetail;
     tint.copy(rock).lerp(rockDark, 0.08 + 0.2 * detail);
     color.lerp(tint, cliff);
+    if (nearHill > 0) {
+      const dry = hillNoise(wx, wz, 13);
+      tint.setRGB(0.25 + dry * 0.08, 0.22 + dry * 0.055, 0.085 + dry * 0.035);
+      tint.lerp(dampSoil, drainage * 0.48);
+      color.lerp(tint, nearHill * (1 - cliff));
+    }
 
     // Lead fix: sand and seabed belong to real water only. waterLevelAt() is the valley's river level, so low meadow
     // ground far from the stream must stay grass. Sea: beyond the shared coast boundary. Stream: within ~3 m of
@@ -208,6 +220,7 @@ export function createTileMesh<M extends Material>(tile: TerrainTile, material: 
   geometry.setAttribute("cc0Surface", new BufferAttribute(cc0Surface, 4));
   geometry.setAttribute("groundSurface", new BufferAttribute(groundSurface, 4));
   geometry.setAttribute("cliffSurface", new BufferAttribute(cliffSurface, 2));
+  geometry.setAttribute("nearHillSurface", new BufferAttribute(nearHillSurface, 2));
   geometry.setIndex(new BufferAttribute(indices, 1));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

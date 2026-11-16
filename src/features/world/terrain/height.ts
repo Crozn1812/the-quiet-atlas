@@ -3,6 +3,7 @@ import { clampProgress, riverLength, riverPointAt, riverTangentAt } from "../lay
 import { ZONES } from "../layout/zones";
 import { COAST_BEACH_Z, WORLD_LENGTH, WORLD_SCALE, routeZ } from "../layout/scale";
 import { nearestPath, nearestRiver } from "./samples";
+import { horizonHillRegion, nearHillRelief, nearHillWeight } from "./hills";
 
 export const TERRAIN_SEED = 73021;
 export const PATH_WIDTH = 3;
@@ -306,6 +307,10 @@ export function roadBaseHeight(x: number, z: number): number {
     * smoothstep(PATH_WIDTH / 2, 4, path.distance)
     * smoothstep(7 * WORLD_SCALE, 12 * WORLD_SCALE, alongSource);
   height += (waterLevelAt(z) - 0.42 - height) * wading;
+  const nearHill = nearHillWeight(x, z, path.distance, river.distance, path.t)
+    * smoothstep(2, 5, height - waterLevelAt(z))
+    * smoothstep(5, 15, Math.hypot(x - horizon.x, z - horizon.z));
+  if (nearHill > 0) height += nearHillRelief(x, z) * nearHill * (1 + horizonHillRegion(x, z) * 0.8);
   return height;
 }
 

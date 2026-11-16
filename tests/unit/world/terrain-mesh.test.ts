@@ -175,7 +175,7 @@ describe("terrain tile mesh", () => {
       const position = mesh.geometry.getAttribute("position");
       const normal = mesh.geometry.getAttribute("normal");
       const indices = mesh.geometry.getIndex()!;
-      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["cc0Surface", "cliffSurface", "coastSurface", "color", "forestSurface", "groundSurface", "hillSurface", "normal", "position"]);
+      expect(Object.keys(mesh.geometry.attributes).sort()).toEqual(["cc0Surface", "cliffSurface", "coastSurface", "color", "forestSurface", "groundSurface", "hillSurface", "nearHillSurface", "normal", "position"]);
       const forestSurface = mesh.geometry.getAttribute("forestSurface");
       const photoSurface = mesh.geometry.getAttribute("cc0Surface");
       const cliffSurface = mesh.geometry.getAttribute("cliffSurface");

@@ -1,4 +1,5 @@
 import { LessEqualDepth, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, type Texture, type WebGLRenderer } from "three";
+import { nearHillFieldShader, nearHillRegionShader } from "../terrain/hill-material";
 
 /** Real depth preserves occlusion between connected ranges and foreground. */
 export function createFarMaterial(firstLightView: { value: number }) {
@@ -21,6 +22,8 @@ ridgeHorizon = farHorizon;`);
 uniform float firstLightView;
 uniform sampler2D rockPhoto;
 uniform float rockReady;
+${nearHillRegionShader}
+${nearHillFieldShader}
 float farHash(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float farNoise(vec2 p) {
  vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -72,6 +75,17 @@ if(rockReady>0.5){
  cliff=photo*0.32;
 }
 diffuseColor.rgb=mix(mix(meadow,forest,0.7),cliff,rock*0.92);
+// Near dry hills retain their grass skin beyond the resident tile corridor.
+float nearHill=nearHillRegion(farWorld.xz) * (1.0-smoothstep(105.0,155.0,abs(farWorld.x)))
+  * smoothstep(22.0,42.0,abs(farWorld.x));
+if(nearHill>0.001){
+ float runnel=hillFieldDrainage(farWorld.xz);
+ float dryPatch=hillFieldNoise(farWorld.xz,13.0);
+ vec3 dryHill=mix(vec3(0.12,0.155,0.045),vec3(0.34,0.265,0.12),dryPatch);
+ dryHill=mix(dryHill,vec3(0.09,0.105,0.045),runnel*smoothstep(0.02,0.14,slope)*0.75);
+ dryHill*=0.68+hillFieldNoise(farWorld.xz,1.7)*0.65;
+ diffuseColor.rgb=mix(diffuseColor.rgb,mix(dryHill,cliff,rock*0.75),nearHill);
+}
 // Grey-green pigment at distance complements the shared blue-grey atmospheric air.
 float range=distance(cameraPosition,farWorld);
 float grey=dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));
@@ -126,7 +140,7 @@ target=mix(target,fogColor,valleyAir);
 gl_FragColor.rgb=target;
 #endif`);
   };
-  material.customProgramCacheKey = () => "hr-far-depth-relief-v7";
+  material.customProgramCacheKey = () => "hr-far-depth-relief-hill-v9";
   material.polygonOffset = true;
   material.polygonOffsetFactor = 2; material.polygonOffsetUnits = 4;
   return Object.assign(material, {

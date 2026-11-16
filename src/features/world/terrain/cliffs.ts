@@ -1,14 +1,29 @@
-import { Box3, BufferGeometry, CatmullRomCurve3, Float32BufferAttribute, Group, Matrix3, Mesh, MeshStandardMaterial,
+import { Box3, BufferGeometry, CatmullRomCurve3, DoubleSide, Float32BufferAttribute, Group, Matrix3, Mesh, MeshStandardMaterial,
   TubeGeometry, Vector3, type Object3D, type Texture, type WebGLRenderer } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { createHrPropsBatch, type HrPropSite } from "../props/hr-props";
+import { bindHrProps, createHrPropsBatch, type HrPropSite } from "../props/hr-props";
 import { setBakedPropQuality } from "../props/batched";
 import { cliffRandom, createTerrainCliffRelief, springCliffRelief } from "./cliff-relief";
 import { surfaceHeight, waterLevelAt } from "./height";
-import { nearestPath } from "./samples";
+import { nearestPath, nearestRiver } from "./samples";
 import { createCliffCoverMaterial } from "../materials/cliff";
+import { horizonHillRegion, nearHillWeight } from "./hills";
+import { nearHillSites } from "./hill-dressing";
+import { bindNearHillMaterial } from "./hill-material";
 
 interface Column { x: number; z: number; topX: number; topZ: number; low: number; high: number; nx: number; nz: number }
+
+/** The cross-stream view needs the sparse hill outcrops beyond the 70 m zone cull.
+ * Cull individual sites, keep only their cheaper LOD, and reuse the HR leases. */
+function createHorizonBatch(fallback: BufferGeometry, sites: readonly HrPropSite[]) {
+  const material = new MeshStandardMaterial({ vertexColors: true, roughness: .96, side: DoubleSide });
+  material.forceSinglePass = true;
+  const mesh = new Mesh(fallback, material); mesh.receiveShadow = true; mesh.raycast = () => {};
+  const controller = bindHrProps(mesh, sites, surfaceHeight, undefined, undefined, { minimumLod: 1, radius: 150 });
+  return { mesh, loadDetail: controller.loadDetail, dispose() {
+    controller.dispose(); mesh.removeFromParent(); fallback.dispose(); material.dispose();
+  } };
+}
 
 /** Sample exposed wall columns, never the playable heightfield/collider. */
 export function cliffColumns(mesh: Mesh, spring = false): Column[] {
@@ -36,9 +51,10 @@ export function cliffColumns(mesh: Mesh, spring = false): Column[] {
 }
 
 /** Reuse approved HR stones; short roots/vines are original curve geometry. */
-function createAccents(columns: readonly Column[], spring: boolean) {
+function createAccents(columns: readonly Column[], spring: boolean, hillBounds?: Box3) {
   const group = new Group(); group.name = "terrain-cliff-accents";
-  const stones: HrPropSite[] = [], roots: BufferGeometry[] = [], vines: BufferGeometry[] = [];
+  const stones: HrPropSite[] = hillBounds ? nearHillSites(hillBounds) : [];
+  const roots: BufferGeometry[] = [], vines: BufferGeometry[] = [];
   const cover: number[] = [], coverColors: number[] = [], coverMasks: number[] = [];
   const triangle = (a: Vector3, b: Vector3, c: Vector3, color: readonly number[], soil = false) => {
     for (const [i, point] of [a, b, c].entries()) {
@@ -46,6 +62,9 @@ function createAccents(columns: readonly Column[], spring: boolean) {
     }
   };
   for (const column of columns) {
+    const path = nearestPath(column.x, column.z);
+    // Dry hills own catchment clusters instead of the repeated column fan.
+    if (!spring && nearHillWeight(column.x, column.z, path.distance, nearestRiver(column.x, column.z).distance, path.t) > 0.05) continue;
     const random = cliffRandom(column.x, column.z);
     const length = Math.hypot(column.nx, column.nz);
     if (length < .1) continue;
@@ -123,8 +142,9 @@ function createAccents(columns: readonly Column[], spring: boolean) {
   // never be rendered as giant triangles while the HR asset is decoding.
   fallback.boundingBox = new Box3();
   for (const site of stones) fallback.boundingBox.expandByPoint(new Vector3(site.x, surfaceHeight(site.x, site.z), site.z));
-  const batch = stones.length ? createHrPropsBatch(fallback, [], (x, z) => surfaceHeight(x, z) - .12,
-    undefined, undefined, stones) : undefined;
+  const horizon = stones.some(site => horizonHillRegion(site.x, site.z) > 0);
+  const batch = !stones.length ? undefined : horizon ? createHorizonBatch(fallback, stones)
+    : createHrPropsBatch(fallback, [], (x, z) => surfaceHeight(x, z) - .12, undefined, undefined, stones);
   if (batch) { group.add(batch.mesh); batch.mesh.name = "terrain-cliff-talus"; }
   return { group, batch, setTextures(textures: readonly Texture[], size: number) { coverSurface?.setTextures(textures, size); }, dispose() {
     batch?.dispose(); if (!batch) fallback.dispose();
@@ -154,6 +174,7 @@ export function createTerrainCliffs(root: Object3D, renderer: WebGLRenderer) {
       for (const mesh of sources) {
         if (mesh.name === "terrain-tile" && mesh.material instanceof MeshStandardMaterial
           && mesh.material.name === "cc0-terrain" && !mesh.material.userData.backdropTransition) {
+          bindNearHillMaterial(mesh.material);
           const material = mesh.material, before = material.onBeforeCompile, key = material.customProgramCacheKey();
           material.userData.backdropTransition = true;
           material.onBeforeCompile = (shader, gpu) => {
@@ -166,6 +187,7 @@ export function createTerrainCliffs(root: Object3D, renderer: WebGLRenderer) {
                 float backdropBlend = smoothstep(20.0, 55.0, -photoWorld.x)
                   * smoothstep(45.0, 85.0, distance(cameraPosition, photoWorld));
                 backdropBlend *= 1.0 - clamp(max(photoMask.y, max(photoMask.z, photoMask.w)), 0.0, 1.0);
+                backdropBlend *= 1.0 - hillCover.x;
                 diffuseColor.rgb *= mix(vec3(1.0), vec3(0.24, 0.60, 0.18), backdropBlend);
                 #include <roughnessmap_fragment>`)
               .replace("#include <fog_fragment>", `
@@ -231,7 +253,9 @@ export function createTerrainCliffs(root: Object3D, renderer: WebGLRenderer) {
           });
           else collect(mesh);
           // One instanced talus batch for the complete spring, not one per cull section.
-          const accents = createAccents([...columns.values()], spring);
+          mesh.geometry.computeBoundingBox();
+          const hillBounds = spring ? undefined : mesh.geometry.boundingBox!.clone().applyMatrix4(mesh.matrixWorld);
+          const accents = createAccents([...columns.values()], spring, hillBounds);
           // World-space accents stay independent of normalized GLB node transforms.
           mesh.updateWorldMatrix(true, false);
           // Inverse non-uniform GLB scale + rotation can contain shear. Keep the
