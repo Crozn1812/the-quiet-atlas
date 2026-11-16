@@ -65,4 +65,14 @@ paths = [
   '''tools/scan-leaks/index\.mjs''',
   '''docs/tickets/L3-002-leak-scan-and-licenses\.md''',
   '''docs/evidence/A1/repo-scan-2026-11-04\.md''',
+  # 16/11 (Lead, final gate): every hit below was checked and is not an account ID.
+  # Binary 3D assets: random byte runs in GLB/KTX2 look like 12 digits (36 hits in out/).
+  '''\.(glb|ktx2)$''',
+  # Lighthouse reports and CPU profiles: microsecond trace timestamps (*Ts, startTime, endTime).
+  '''docs/showcase/[^/]+/checks/lighthouse/[^/]+\.report\.(json|html)$''',
+  '''docs/showcase/[^/]+/perf/profile-[0-9]+\.json$''',
+  # Terraform validation regex `arn:aws:sns:us-east-1:[0-9]{12}:...`, not a value.
+  '''infra/modules/monitoring/variables\.tf''',
+  # Ticket quoting a past R4 finding by name.
+  '''docs/tickets/LEAK-01\.md''',
 ]

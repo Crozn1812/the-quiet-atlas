@@ -28,7 +28,36 @@ e2e world của Lead trên e571bc1 + 4a3fa22: đang chạy.
 | HR-HILL | Codex C | W-C | đồi gần Old Trail còn đá xếp thành hàng |
 
 **Codex:** A và B giới hạn tuần đến 20/11; D hết credit; C dùng được.
-**Chưa chạy:** gate cuối (full e2e, load/Lighthouse/ABBA, FPS High trên máy rảnh, final showcase) — NOT RUN. T08/T09 Iris Xe — NOT RUN (chỉ Duy).
+
+### Cập nhật 16/11 12:00
+
+**Merge thêm:**
+
+| Commit | Ticket | Ghi chú |
+|---|---|---|
+| 81e09bc | HR-SETPIECE-B | Lửa cam, chòi gỗ, vỏ gương |
+| fb3c867 | HR-HILL | Đồi hết đá xếp hàng |
+| 8bd2ae5 | HR-CHAR | Nhân vật siêu thực MakeHuman CC0. Build + e2e 43/43 do Lead chạy |
+| bb4f4de | HR-WATER-B | Bọt ren, thác tách dải, vây trong mờ |
+
+**Đang dở:** HR-CHAR-B. Áo và tay nắm ghi đông đã đạt; tóc bị trả vòng 1. Codex C bị giới hạn ngắn hạn, tự chạy tiếp lúc 14:43.
+
+**Gate trước khi chốt, chạy trên main bb4f4de, máy rảnh:**
+
+| Kiểm | Kết quả |
+|---|---|
+| full e2e (`--workers=2`, cổng 4191) | **PASS 158/158** (7,7 phút). Các lỗi e2e trước đây chỉ do máy tải nặng |
+| check:bundle, check:leaks (R5 bỏ qua vì chưa có denylist), check:cv, check:terraform (validate 7/7, không apply), check:assets, check:licenses (251 file) | **PASS** |
+| gitleaks v8.28.0 (binary chính thức, checksum khớp) | Lượt đầu FAIL: 685 + 36 phát hiện, Lead đã kiểm từng nhóm, toàn bộ là dương tính giả (dấu thời gian Lighthouse/CPU profile, byte GLB, regex trong `.tf`, ticket trích dẫn). Allowlist đúng các đường dẫn đó, luật giữ nguyên → **PASS 3/3** |
+| test:perf load-budget /en/, /vi/ | **PASS**. 0 request 3D trước Enter World. Thời gian tới chơi được ≤ 7,61 s; 3D 2,16 MB tới chơi được (chỉ báo cáo) |
+| perf:lhci | Chạy xong (chỉ báo cáo). LCP /en/ ≈ 2,2 s |
+| test:perf journey B2-210 | **FAIL** (sát nút). Test đã sửa theo ADR 0017 (trước đó vẫn dùng mục tiêu 5–7 phút cũ). Đo: cả tuyến 242,9 s (mục tiêu 200–240 s), Milestones 60,01 s (≤ 60 s); Workshop 37 s và Roots 49 s đạt; 0 lần kẹt. Hỏi Duy ở Q-52, không tự nới ngưỡng |
+
+**Chưa chạy:**
+- FPS High từng góc trên máy rảnh sau HR-CHAR-B — NOT RUN.
+- Final showcase — NOT RUN.
+- T08/T09 trên Iris Xe — NOT RUN (chỉ Duy).
+- Journey chạy lại với ngưỡng mới — NOT RUN (số ở trên đo với ngưỡng cũ, rồi so tay với ADR 0017).
 
 ## Đợt siêu thực (HR) — cập nhật 15/11 04:50 (Claude-Lead)
 

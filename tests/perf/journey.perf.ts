@@ -137,10 +137,11 @@ test("B2-210 main journey at walking speed", async ({ page, browser }) => {
 
   function evaluateChecks() {
     return {
-      "Total 5:00–7:00": totalMs !== null && totalMs >= 300_000 && totalMs <= 420_000,
-      "Workshop 45–60 s": arrivals.workshop !== undefined && arrivals.workshop >= 45_000 && arrivals.workshop <= 60_000,
-      "Roots ≤90 s": arrivals.roots !== undefined && arrivals.roots <= 90_000,
-      "Milestones ≤90 s": arrivals.milestones !== undefined && arrivals.milestones <= 90_000,
+      // ADR 0017 (owner decision 2026-11-13) replaces spec §7.1 / §2.1 pacing targets.
+      "Total 200–240 s": totalMs !== null && totalMs >= 200_000 && totalMs <= 240_000,
+      "Workshop 25–45 s": arrivals.workshop !== undefined && arrivals.workshop >= 25_000 && arrivals.workshop <= 45_000,
+      "Roots ≤60 s": arrivals.roots !== undefined && arrivals.roots <= 60_000,
+      "Milestones ≤60 s": arrivals.milestones !== undefined && arrivals.milestones <= 60_000,
       "Zero stuck episodes": stuck.length === 0,
     };
   }
