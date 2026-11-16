@@ -23,3 +23,7 @@
 - Ticket MAP-01 làm một mình (dời vị trí mọi khu), sau khi các ticket vòng 2 đã merge.
 - Test `layout.test.ts` đổi theo bảng trên. Bằng chứng đi bộ phím thật (RC-01: 367,91 s) phải đo lại.
 - Tổng world có thể nhẹ hơn (ít ô terrain). Ngân sách ADR 0015 giữ nguyên.
+
+## Cập nhật 16/11: Duy chấp nhận số đo đi bộ thật
+
+Bot đi phím thật (B2-210) trên main bb4f4de đo cả tuyến 242,61 s, lố mục tiêu 200–240 s 2,6 s; Workshop 36,9 s, Roots 48,9 s, Milestones 59,7 s đạt, 0 lần kẹt. Duy chấp nhận kết quả này ("nếu vậy thì pass", Q-52). Tuyến giữ nguyên. Ngưỡng trong test giữ đúng bảng trên, nên test vẫn báo FAIL ở mục tổng; báo cáo ghi "FAIL theo test, Duy chấp nhận".
