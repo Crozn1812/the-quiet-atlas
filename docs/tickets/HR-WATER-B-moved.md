@@ -1,0 +1,3 @@
+## HR-WATER-B — chuyển từ subagent sang Codex C (16/11)
+Patch phần đã làm đã được áp vào worktree này (chưa commit): sửa `fauna/geometry.ts`, `shore/surf.ts`, `terrain/spring.ts`, `water/cascade.ts`, `water/fish-shader.ts`. Chưa build, chưa kiểm. Người làm trước không tìm được mesh chim CC0 đã kiểm chứng, nên làm chim bằng thủ tục.
+Đọc diff hiện tại, làm tiếp các mục của card theo thứ tự ưu tiên (bọt sóng → thác → chim → vây cá), rồi chạy đủ điều kiện xong của card với `E2E_PORT=4203`. Ảnh trước lấy từ main (chụp trước khi áp patch nếu cần) hoặc từ `D:/tqa-worktrees/evidence/HR-FIX-WATER/hr-fix-water/final/`. Không commit.
