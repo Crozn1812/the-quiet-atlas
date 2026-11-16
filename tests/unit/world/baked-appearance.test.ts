@@ -211,7 +211,8 @@ it("ships a single UV-mapped compatible 19-joint skin and linear KTX2 tier sizes
   reportBudget("tests/unit/world/baked-appearance.test.ts:210 buffer.byteLength", buffer.byteLength, 600000);
   const uv = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
   expect(uv).toBeTypeOf("number");
-  const files = readdirSync("public/world/character");
+  // HR-CHAR (ADR 0019 15/11) lifts the cap for the photoreal skin; the legacy vehicle atlas keeps its tiers.
+  const files = readdirSync("public/world/character").filter(file => !file.startsWith("character-hr") && file !== "hr-manifest.json");
   expect(files.reduce((sum, file) => sum + statSync(`public/world/character/${file}`).size, 0)).toBeLessThanOrEqual(2000000);
   expect(files.some(file => file.includes("2048"))).toBe(false);
   for (const size of [1024, 512]) {

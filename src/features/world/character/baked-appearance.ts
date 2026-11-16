@@ -1,9 +1,10 @@
 import {
-  BufferGeometry, Camera, Float32BufferAttribute, MeshStandardMaterial,
+  BufferGeometry, Camera, Float32BufferAttribute, Material, MeshStandardMaterial,
   NoColorSpace, SkinnedMesh, Texture, Vector3, type WebGLRenderer,
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import { HR_CHARACTER_URLS, loadHrCharacterSkin } from "./hr-appearance";
 
 export type AppearanceQuality = "Low" | "Balanced" | "High";
 export type BakedSurface = "linen" | "shorts" | "skin" | "hair" | "glass" | "paint" | "metal" | "rubber" | "leather";
@@ -26,6 +27,10 @@ export function vehicleSurface(name: string, metal: boolean): BakedSurface {
 
 export interface BakedResources {
   material: MeshStandardMaterial;
+  /** HR-CHAR: one material per geometry group (photoreal close-up skin). */
+  materials?: Material[];
+  /** Every texture to upload before first use; defaults to the atlas pair. */
+  textures?: Texture[];
   geometry?: BufferGeometry;
   dispose(): void;
 }
@@ -80,6 +85,12 @@ async function loadAtlas(renderer: WebGLRenderer, size: number): Promise<Texture
 }
 
 export async function loadBakedResources(renderer: WebGLRenderer, quality: AppearanceQuality, character: boolean): Promise<BakedResources> {
+  if (character) {
+    // HR-CHAR (ADR 0019): photoreal skin on the same skeleton; High = LOD0, Balanced = LOD1.
+    const skin = await loadHrCharacterSkin(renderer, HR_CHARACTER_URLS[quality === "High" ? "High" : "Balanced"]);
+    skin.geometry.userData.bones = skin.bones;
+    return { material: skin.materials[0] as MeshStandardMaterial, materials: skin.materials, textures: skin.textures, geometry: skin.geometry, dispose: skin.dispose };
+  }
   const atlas = await acquireAtlas(renderer, quality === "High" ? 1024 : 512);
   const material = new MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 1 });
   let geometry: BufferGeometry | undefined;
@@ -179,14 +190,14 @@ export function installBakedAppearance(mesh: SkinnedMesh, character: boolean, lo
     if (bundle) {
       // Upload now, while the guard is false. A mount can start between this
       // after-draw callback and the next draw that first uses the material.
-      for (const texture of [bundle.material.normalMap, bundle.material.roughnessMap]) {
+      for (const texture of bundle.textures ?? [bundle.material.normalMap, bundle.material.roughnessMap]) {
         if (texture && !uploaded.has(texture)) {
           renderer.initTexture(texture);
           uploaded.add(texture);
         }
       }
       mesh.geometry = bundle.geometry ?? originalGeometry;
-      mesh.material = bundle.material;
+      mesh.material = bundle.materials ?? bundle.material;
       return;
     }
     applyFallback();

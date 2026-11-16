@@ -1,0 +1,46 @@
+{
+  "id": "hr-char",
+  "delivery": "deferred after playable frame; High near = LOD0, Balanced near / High far = LOD1; Low + software keep start/character-duy.glb",
+  "rig": "public/world/start/character-duy.glb skeleton (19 joints, same order and inverse binds; checked at package time)",
+  "height": 1.72,
+  "lods": [
+    {
+      "file": "public/world/character/character-hr.glb",
+      "bytes": 5151552,
+      "sha256": "65a052c793456a5d651dbf3cd0120afc0301e91e34d0539cfae4f98feda116fe",
+      "triangles": 52242,
+      "materials": 14,
+      "textures": 18
+    },
+    {
+      "file": "public/world/character/character-hr-lod1.glb",
+      "bytes": 1620916,
+      "sha256": "2e5e18d7d128324f9ac5db2412e1352a332edcddc09b2f735387ca0d8d78d576",
+      "triangles": 18284,
+      "materials": 14,
+      "textures": 18
+    }
+  ],
+  "parts": {
+    "body": 17520,
+    "eyes": 2040,
+    "brows": 192,
+    "lashes": 368,
+    "hair": 3344,
+    "shoes": 2560,
+    "shirt": 7552,
+    "shorts": 3482,
+    "cornea": 512,
+    "frame": 1172,
+    "lens": 336,
+    "tote": 3364,
+    "hair_cards": 8576,
+    "socks": 504,
+    "laces": 720
+  },
+  "sources": [
+    "MPFB2 base mesh + macro targets (CC0): https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md",
+    "MakeHuman system assets (CC0): https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html"
+  ],
+  "derived": "skin diffuse young_asian_male (tinted), eye brown, eyebrow001, eyelashes01, hair short02 (recoloured), male_casualsuit01 geometry + luminance/normal/AO (recoloured), shoes06 geometry only; everything else procedural in hr-char.py"
+}
