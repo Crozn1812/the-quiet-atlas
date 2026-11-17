@@ -24,3 +24,7 @@
 ## Cập nhật 16/11: khuôn mặt nhân vật là mặt thật của Duy
 
 Duy chấm mặt nhân vật MakeHuman (HR-CHAR) là "khá đáng sợ" và quyết định: khuôn mặt là đại diện của cả dự án, phải giống mặt Duy, chân thật từng góc cạnh, không còn kiểu siêu thực chung chung. Thay taste.md §5.6 (trước cấm mặt nhận diện được). Duy là chủ chân dung và đồng ý dùng trong asset public (GLB, texture). Ảnh tham chiếu để ở `docs/art-bible/refs/duy-face/` (gitignore, không commit ảnh gốc). Texture sinh từ ảnh của Duy ghi trong LICENSES.csv là ảnh của chủ dự án, có đồng ý. Ticket: HR-FACE.
+
+## Cập nhật 17/11: dừng HR-FACE
+
+HR-FACE qua 3 vòng (Codex C, dựng tay từ 8 ảnh) không ra mặt Duy: vòng 3 da loang, nụ cười như răng giả, tóc như cái bát. Duy chọn demo với mặt MakeHuman hiện có và bỏ việc làm mặt theo ảnh. Không merge HR-FACE. Patch vòng 3 và ảnh so sánh lưu ở `D:/tqa-worktrees/evidence/HR-FACE/` (ngoài repo, có ảnh riêng của Duy). Nếu sau này làm lại, hướng Lead đề xuất là quét 3D đầu (Meshroom, chạy trên máy).

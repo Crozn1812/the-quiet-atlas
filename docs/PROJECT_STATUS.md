@@ -1,5 +1,9 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## HR-FACE dừng — 17/11 12:00 (Claude-Lead)
+
+HR-FACE (mặt nhân vật theo ảnh Duy) qua 3 vòng không đạt. Duy chọn demo với mặt MakeHuman hiện có, không merge HR-FACE. Mã game trên main không đổi kể từ af49ccd, nên gate cuối và showcase `40-demo` bên dưới vẫn đúng cho bản demo.
+
 ## Gate cuối và demo — 16/11 16:00 (Claude-Lead)
 
 Tất cả ticket HR đã merge. Commit cuối: **af49ccd** (HR-CHAR-B: tóc nhiều lớp, áo, tay nắm ghi đông). Showcase demo: `docs/showcase/40-demo/`; ảnh tổng `sheet-high.webp` và `sheet-low.webp`, phiếu chấm `checklist.md`, bằng chứng trong `checks/`.
