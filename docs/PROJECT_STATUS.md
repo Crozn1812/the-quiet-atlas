@@ -1,5 +1,18 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## HR-FACELESS — 19/11 01:00 (Claude-Lead)
+
+Duy (18/11): nhân vật mặt trơn, tóc rẽ ngôi sắc nét theo ảnh tham chiếu. Lead tự làm (`hr-faceless.py`), merge c49e62d (Duy chọn merge rồi sửa tiếp tóc).
+
+| Kiểm tra | Kết quả |
+|---|---|
+| lint, typecheck, assets, licenses, unit 2057 | PASS (gate merge) |
+| build | PASS |
+| e2e world 43 | PASS (W-E, 4205; lần đầu 31 lỗi ENOENT do hai lượt e2e chồng nhau, chạy lại riêng PASS) |
+| FPS High với nhân vật mới | NOT RUN |
+
+Nhân vật LOD0 16,7 MB / 630k tam giác (trước 5,8 MB / 98k), chỉ báo cáo (ADR 0019). Tóc trong game còn mượt, chưa dày/rối như ảnh mẫu: đang sửa (HR-FACELESS-2). Bằng chứng: `D:/tqa-worktrees/evidence/HR-FACELESS/`. Next.js 16.4.4 báo lỗ hổng đã công bố khi build (build lại thì qua); đề xuất nâng, chờ Duy.
+
 ## HR-FACE dừng — 17/11 12:00 (Claude-Lead)
 
 HR-FACE (mặt nhân vật theo ảnh Duy) qua 3 vòng không đạt. Duy chọn demo với mặt MakeHuman hiện có, không merge HR-FACE. Mã game trên main không đổi kể từ af49ccd, nên gate cuối và showcase `40-demo` bên dưới vẫn đúng cho bản demo.

@@ -67,6 +67,7 @@ Quy tắc: nền kem và xanh chiếm phần lớn; cam/đỏ chỉ là chấm n
 - Phụ kiện: túi vải tote màu kem.
 - Biến thể có thể dùng cho cảnh ending/biển chiều: áo khoác hoodie xám + khăn quàng (như ảnh trên đồi gió) — Lead quyết.
 - ~~Không làm khuôn mặt giống người thật đến mức nhận diện~~ **Thay 16/11 (Duy):** khuôn mặt là đại diện của dự án, phải **giống chính Duy, chân thật từng góc cạnh**, theo ảnh Duy cung cấp (`docs/art-bible/refs/duy-face/`, gitignore). Duy đồng ý dùng chân dung của mình trong asset public. Tinh thần: hiền, hay cười, hay nhìn xa.
+- **18/11 (Duy):** nhân vật **không có mặt**: mặt trơn, không mắt/mũi/miệng/kính; tóc rẽ ngôi lệch trái, mái rủ hai bên, sợi sắc nét, theo ảnh tham chiếu Duy gửi (ảnh chỉ để tham khảo, không dùng pixel). Script: `tools/assets/blender/hr-faceless.py` (HR-FACELESS).
 - **17/11 (Duy):** dừng làm mặt theo ảnh sau 3 vòng HR-FACE không đạt; nhân vật giữ mặt MakeHuman CC0 hiện có. Patch và bằng chứng lưu ngoài repo (`D:/tqa-worktrees/evidence/HR-FACE/`), có thể làm tiếp bằng quét 3D nếu Duy muốn.
 
 ### 5.7 Xe Suzuki GD110 (theo ảnh)
