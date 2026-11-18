@@ -6,17 +6,17 @@
   "lods": [
     {
       "file": "public/world/character/character-hr.glb",
-      "bytes": 17135140,
-      "sha256": "a496d84497db0574260aa68d24522f90569f4346ae60ed51d647e6a65952db24",
-      "triangles": 657114,
+      "bytes": 17340100,
+      "sha256": "47138a3f9069566689078a5f61ff9fbc7f69589848183350719e7968bf739675",
+      "triangles": 664006,
       "materials": 8,
       "textures": 17
     },
     {
       "file": "public/world/character/character-hr-lod1.glb",
-      "bytes": 5596892,
-      "sha256": "72858ce4263700f681a4cd86a3847eb0c72c68084f899cd078ffe356af63174f",
-      "triangles": 230256,
+      "bytes": 5663112,
+      "sha256": "62794bb7b22b65e19477d7ac50c8bba595b05f717188389a94aedfb31c3fe956",
+      "triangles": 232368,
       "materials": 8,
       "textures": 17
     }
@@ -30,7 +30,7 @@
     "socks": 504,
     "laces": 720,
     "hair": 664,
-    "hair_cards": 622384
+    "hair_cards": 629276
   },
   "sources": [
     "MPFB2 base mesh + macro targets (CC0): https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md",

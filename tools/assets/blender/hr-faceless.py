@@ -267,7 +267,7 @@ def scalp_layer(body, f, lift=.0012):
     return obj
 
 
-def curtain_groom(body, f, count=14000, flyaways=0, segments=16):
+def curtain_groom(body, f, count=14000, flyaways=180, segments=16):
     """Strand-textured cards grown from the scalp: centre-left part, curtain fringe, full rounded volume."""
     mesh = body.data
     bvh = BVHTree.FromPolygons([v.co for v in mesh.vertices], [p.vertices[:] for p in mesh.polygons])
@@ -332,6 +332,9 @@ def curtain_groom(body, f, count=14000, flyaways=0, segments=16):
         # Crown strands get a second card tilted 60 degrees about the strand: the top silhouette
         # stays full when the camera looks along the scalp (single cards turn edge-on there).
         tilts = (0.0, math.radians(60)) if root.z > 1.675 else (0.0,)
+        # Clumps do not share one smooth normal: each card leans its shading normal its own way,
+        # so light breaks up across the groom (messy, textured) instead of one sleek helmet sheen.
+        lean = rng.uniform(-.55, .55)
         for tilt in tilts:
             base = len(verts)
             for i, p in enumerate(path):
@@ -348,7 +351,10 @@ def curtain_groom(body, f, count=14000, flyaways=0, segments=16):
                 for e in (-.5, .5):
                     verts.append(p + across * w * e)
                     uvs.append((u0 + (e + .5) * .25, t))
-                    normals.append(radial)
+                    card_normal = across.cross(tangent.normalized()) if tangent.length > 1e-6 else radial
+                    if card_normal.dot(radial) < 0:
+                        card_normal = -card_normal
+                    normals.append((radial + card_normal * lean + across * lean * .5).normalized())
             for i in range(m):
                 a = base + 2 * i
                 faces.append((a, a + 1, a + 3, a + 2))
@@ -397,7 +403,8 @@ def hair_textures(out, tex, f=None):
     within = x - index
     profile = np.clip(1 - np.abs(within - .5) / .5, 0, 1) ** .7
     key = (index * 7.13 + slot * 3.7) % 1.0
-    shade = .38 + .45 * ((index * 0.618 + slot * .31) % 1.0)
+    # The four card variants differ in tone too: neighbouring clumps read as separate locks.
+    shade = (.38 + .45 * ((index * 0.618 + slot * .31) % 1.0)) * (.7 + .2 * slot)
     ends = .78 + .21 * ((index * 4.33 + slot * 1.9) % 1.0)
     tip = np.clip((ends - v) / .05, 0, 1)
     taper = np.clip(1 - np.abs(within - .5) * 2 / np.maximum(tip, .05), 0, 1)

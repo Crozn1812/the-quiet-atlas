@@ -60,11 +60,11 @@ export function tuneHrMaterial(material: MeshStandardMaterial, antialias: boolea
       hair.alphaTest = material.name === "hair_card" ? .45 : .5;
       hair.transparent = false;
       hair.depthWrite = true;
-      hair.roughness = material.name === "hair_card" ? .78 : .96;
+      hair.roughness = material.name === "hair_card" ? .86 : .96;
       hair.anisotropy = material.name === "hair_card" ? .8 : .35;
       // Card V runs root to tip. Three derives the tangent frame from UVs.
       hair.anisotropyRotation = Math.PI / 2;
-      hair.specularIntensity = material.name === "hair_card" ? .1 : .08;
+      hair.specularIntensity = material.name === "hair_card" ? .05 : .08;
       // Card edges seen at grazing angles pick up Fresnel sky reflections (grey-blue flashes on black hair).
       hair.envMapIntensity = material.name === "hair_card" ? .02 : .12;
       material.dispose();
