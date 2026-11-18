@@ -53,17 +53,20 @@ export function tuneHrMaterial(material: MeshStandardMaterial, antialias: boolea
       // Object-space hashed coverage avoids overlapping MSAA masks exposing
       // the scalp through an otherwise dense groom. Opaque depth writes make
       // card order independent, including the non-MSAA production target.
+      // Sharp strands (Duy, 2026-11-18): a hard alpha cut, not a dithered hash. The cinematic composer
+      // renders into a non-MSAA target, so alpha-to-coverage would do nothing there.
       hair.alphaToCoverage = false;
-      hair.alphaHash = true;
-      hair.alphaTest = 0;
+      hair.alphaHash = false;
+      hair.alphaTest = material.name === "hair_card" ? .45 : .5;
       hair.transparent = false;
       hair.depthWrite = true;
       hair.roughness = material.name === "hair_card" ? .78 : .96;
       hair.anisotropy = material.name === "hair_card" ? .8 : .35;
       // Card V runs root to tip. Three derives the tangent frame from UVs.
       hair.anisotropyRotation = Math.PI / 2;
-      hair.specularIntensity = material.name === "hair_card" ? .24 : .08;
-      hair.envMapIntensity = .12;
+      hair.specularIntensity = material.name === "hair_card" ? .1 : .08;
+      // Card edges seen at grazing angles pick up Fresnel sky reflections (grey-blue flashes on black hair).
+      hair.envMapIntensity = material.name === "hair_card" ? .02 : .12;
       material.dispose();
       return hair;
     }

@@ -262,18 +262,8 @@ def build_character():
     oval("quiet face", (0, -0.004, 1.568), (0.085, 0.083, 0.119), skin)
     for side in (-1, 1):
         oval("ear", (side * 0.084, 0, 1.57), (0.017, 0.02, 0.028), skin)
-        ring("round frame", (side * 0.044, -0.087, 1.596), 0.035, 0.0017, metal)
-        segment("frame temple", (side * 0.079, -0.084, 1.596),
-                (side * 0.086, 0.017, 1.59), 0.0017, metal)
-    segment("frame bridge", (-0.009, -0.091, 1.596),
-            (0.009, -0.091, 1.596), 0.0017, metal)
-    oval("nose suggestion", (0, -0.085, 1.567), (0.012, 0.022, 0.022), skin)
-    # A small upturned arc follows the face surface, with no detailed eyes.
-    smile_points = [(-0.023, -0.082, 1.536), (-0.012, -0.084, 1.532),
-                    (0, -0.085, 1.531), (0.012, -0.084, 1.532),
-                    (0.023, -0.082, 1.536)]
-    for start, end in zip(smile_points, smile_points[1:]):
-        segment("quiet smile", start, end, 0.0012, smile)
+    # 2026-11-18 (Duy): the face is blank, like the close-up HR character (hr-faceless.py):
+    # no glasses, nose or smile on the distant/Low body either.
     tousled_hair(dark)
     pivot = Matrix.Translation((0, 0, 1.46))
     tilt = pivot @ Matrix.Rotation(math.radians(-5), 4, "X") @ pivot.inverted()

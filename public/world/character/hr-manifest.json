@@ -6,41 +6,35 @@
   "lods": [
     {
       "file": "public/world/character/character-hr.glb",
-      "bytes": 5852052,
-      "sha256": "017c6434a6ce655ee7c5c8f03c64b0e16d862a03d37953edbd52e3f1ce61f459",
-      "triangles": 98338,
-      "materials": 14,
-      "textures": 20
+      "bytes": 17135140,
+      "sha256": "a496d84497db0574260aa68d24522f90569f4346ae60ed51d647e6a65952db24",
+      "triangles": 657114,
+      "materials": 8,
+      "textures": 17
     },
     {
       "file": "public/world/character/character-hr-lod1.glb",
-      "bytes": 1915704,
-      "sha256": "2b986d5b4fc2a6f9f1f5913cbd4bca8a58126a1f256487d451e36ba4b7416c89",
-      "triangles": 46099,
-      "materials": 14,
-      "textures": 20
+      "bytes": 5596892,
+      "sha256": "72858ce4263700f681a4cd86a3847eb0c72c68084f899cd078ffe356af63174f",
+      "triangles": 230256,
+      "materials": 8,
+      "textures": 17
     }
   ],
   "parts": {
-    "body": 17520,
-    "eyes": 2040,
-    "brows": 192,
-    "lashes": 368,
-    "hair": 13376,
+    "body": 15884,
     "shoes": 2560,
     "shirt": 7552,
     "shorts": 3482,
-    "cornea": 512,
-    "frame": 1172,
-    "lens": 336,
     "tote": 3364,
-    "hair_cards": 44640,
     "socks": 504,
-    "laces": 720
+    "laces": 720,
+    "hair": 664,
+    "hair_cards": 622384
   },
   "sources": [
     "MPFB2 base mesh + macro targets (CC0): https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md",
     "MakeHuman system assets (CC0): https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html"
   ],
-  "derived": "HR-CHAR CC0 generic MakeHuman face geometry unchanged; natural forehead diffuse. HR-CHAR-B R1: three layers of surface-following short alpha strand cards, measured <=6mm lift, feathered scalp roots and strand normals; runtime anisotropic highlights and object-space alpha hash with opaque depth writes (no transparent sorting). Plain procedural cotton weave, relaxed shirt and HandlebarGrip morph unchanged. Positions/morph deltas stay Float32 in meshopt to preserve exact shipped inverse binds. shoes06 geometry only. hr-char.py + hr-char-b.py."
+  "derived": "HR-FACELESS (Duy, 2026-11-18): blank featureless face (eye, nostril and mouth openings closed; face replaced by a smooth symmetric surface fitted to the CC0 head; face area of the skin maps evened out), no eyes, brows, lashes or glasses. Procedural curtain haircut: centre-left part, fringe framing the forehead, upper ears covered; ~14k strand-textured cards grown over the scalp (UASTC, sharp alpha-tested fibres). Plain procedural cotton weave, relaxed shirt and HandlebarGrip morph unchanged. Positions/morph deltas stay Float32 in meshopt to preserve exact shipped inverse binds. shoes06 geometry only. hr-char.py + hr-char-b.py + hr-faceless.py."
 }

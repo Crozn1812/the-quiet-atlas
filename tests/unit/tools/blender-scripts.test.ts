@@ -51,7 +51,9 @@ describe('character Blender authoring scripts (static Node checks)', () => {
     expect(source).toContain('(STRAP_WIDTH, 0.005, direction.length');
     expect(source).toContain('(0.088, 0.083, HAIR_CROWN_HEIGHT)');
     expect(source).toContain('loose_shirt(cloth)');
-    expect(source).toContain('segment("quiet smile", start, end, 0.0012, smile)');
+    // HR-FACELESS (Duy, 2026-11-18): the distant/Low body has a blank face too.
+    expect(source).not.toContain('segment("quiet smile"');
+    expect(source).not.toContain('ring("round frame"');
   });
 
   it('exports the named untextured GLB with post-modifier triangle and byte gates', async () => {

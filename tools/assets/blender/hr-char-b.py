@@ -381,4 +381,5 @@ def main(argv):
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out, "hr-char-b.blend"))
 
 
-main(sys.argv[sys.argv.index("--") + 1:])
+if __name__ == "__main__":
+    main(sys.argv[sys.argv.index("--") + 1:])

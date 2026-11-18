@@ -26,7 +26,8 @@ describe("HR-CHAR photoreal close-up skin", () => {
     expect(jointNames(gltf)).toEqual(jointNames(reference));
     expect(gltf.extensionsUsed).toEqual(expect.arrayContaining(["KHR_texture_basisu", "EXT_meshopt_compression"]));
     const names = gltf.materials.map(material => material.name).sort();
-    expect(names).toEqual(["brow", "canvas", "cloth", "cornea", "eye", "frame", "hair_cap", "hair_card", "lash", "lens", "rubber", "skin", "sock", "tote"]);
+    // HR-FACELESS (Duy, 2026-11-18): blank face, so no eye, cornea, brow, lash, frame or lens surfaces.
+    expect(names).toEqual(["canvas", "cloth", "hair_cap", "hair_card", "rubber", "skin", "sock", "tote"]);
     // Every primitive must be mergeable into one grouped geometry for the in-place swap.
     for (const primitive of gltf.meshes.flatMap(mesh => mesh.primitives)) {
       expect(Object.keys(primitive.attributes).sort()).toEqual(["JOINTS_0", "NORMAL", "POSITION", "TEXCOORD_0", "WEIGHTS_0"]);
@@ -52,15 +53,16 @@ describe("HR-CHAR photoreal close-up skin", () => {
     expect(hair).toBeInstanceOf(MeshPhysicalMaterial);
     expect((hair as MeshPhysicalMaterial).defines).toHaveProperty("PHYSICAL");
     expect(hair.alphaToCoverage).toBe(false);
-    expect(hair.alphaHash).toBe(true);
+    expect(hair.alphaHash).toBe(false);
+    expect(hair.alphaTest).toBeGreaterThan(.3);
     expect((hair as MeshPhysicalMaterial).anisotropy).toBeGreaterThan(.5);
     expect((hair as MeshPhysicalMaterial).anisotropyRotation).toBe(Math.PI / 2);
     expect((hair as MeshStandardMaterial).transparent).toBe(false);
     expect((hair as MeshStandardMaterial).depthWrite).toBe(true);
     const unaliased = tuneHrMaterial(Object.assign(new MeshStandardMaterial(), { name: "hair_card" }), false);
     expect(unaliased.alphaToCoverage).toBe(false);
-    expect(unaliased.alphaHash).toBe(true);
-    expect(unaliased.alphaTest).toBe(0);
+    expect(unaliased.alphaHash).toBe(false);
+    expect(unaliased.alphaTest).toBeGreaterThan(.3);
     expect(unaliased.depthWrite).toBe(true);
   });
 });

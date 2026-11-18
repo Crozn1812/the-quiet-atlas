@@ -1,5 +1,5 @@
 // HR-CHAR packaging: Blender export (tmp/hr-char) -> meshopt + KTX2 GLBs in public/world/character.
-// Run after: blender -b --factory-startup -t 4 -P tools/assets/blender/hr-char-b.py -- tmp/hr-char-src tmp/hr-char
+// Run after: blender -b --factory-startup -t 8 -P tools/assets/blender/hr-faceless.py -- tmp/hr-char-src tmp/hr-char all
 // No downloads here. PNGs come from hr-char.py + hr-char-b.py (procedural or remapped CC0 MakeHuman).
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -38,7 +38,9 @@ const LODS = [
   { file: 'character-hr.glb', from: 'character-hr.glb', max: 2048, small: 1024 },
   { file: 'character-hr-lod1.glb', from: 'character-hr-lod1.glb', max: 1024, small: 512 },
 ];
-const BIG = new Set(['skin_albedo', 'skin_orm', 'cloth_albedo', 'cloth_normal', 'cloth_orm']);
+const BIG = new Set(['skin_albedo', 'skin_orm', 'cloth_albedo', 'cloth_normal', 'cloth_orm', 'hair_card']);
+/** Strand cards stay sharp: UASTC keeps single-texel fibres and alpha edges that ETC1S blurs into blocks. */
+const SHARP = new Set(['hair_card']);
 /** Tiled micro-detail maps: small is plenty. */
 const TILE = new Set(['rubber_normal', 'rubber_albedo', 'sock_normal', 'sock_albedo']);
 
@@ -49,7 +51,9 @@ const io = await createIO();
 function encode(name, kind, edge) {
   const target = `${source}/ktx/${name}-${edge}.ktx2`;
   const common = ['--t2', '--genmipmap', '--resize', `${edge}x${edge}`];
-  const args = kind === 'normal'
+  const args = SHARP.has(name)
+    ? [...common, '--encode', 'uastc', '--uastc_quality', '2', '--uastc_rdo_l', '1.0', '--zcmp', '18', '--assign_oetf', 'srgb']
+    : kind === 'normal'
     ? [...common, '--encode', 'uastc', '--uastc_quality', '2', '--uastc_rdo_l', '3.0', '--zcmp', '18', '--assign_oetf', 'linear']
     : kind === 'orm'
       ? [...common, '--encode', 'etc1s', '--qlevel', '200', '--assign_oetf', 'linear']
@@ -172,16 +176,16 @@ const manifest = {
     'MPFB2 base mesh + macro targets (CC0): https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md',
     'MakeHuman system assets (CC0): https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html',
   ],
-  derived: 'HR-CHAR CC0 generic MakeHuman face geometry unchanged; natural forehead diffuse. HR-CHAR-B R1: three layers of surface-following short alpha strand cards, measured <=6mm lift, feathered scalp roots and strand normals; runtime anisotropic highlights and object-space alpha hash with opaque depth writes (no transparent sorting). Plain procedural cotton weave, relaxed shirt and HandlebarGrip morph unchanged. Positions/morph deltas stay Float32 in meshopt to preserve exact shipped inverse binds. shoes06 geometry only. hr-char.py + hr-char-b.py.',
+  derived: 'HR-FACELESS (Duy, 2026-11-18): blank featureless face (eye, nostril and mouth openings closed; face replaced by a smooth symmetric surface fitted to the CC0 head; face area of the skin maps evened out), no eyes, brows, lashes or glasses. Procedural curtain haircut: centre-left part, fringe framing the forehead, upper ears covered; ~14k strand-textured cards grown over the scalp (UASTC, sharp alpha-tested fibres). Plain procedural cotton weave, relaxed shirt and HandlebarGrip morph unchanged. Positions/morph deltas stay Float32 in meshopt to preserve exact shipped inverse binds. shoes06 geometry only. hr-char.py + hr-char-b.py + hr-faceless.py.',
 };
 await writeFile(`${output}/hr-manifest.json`, JSON.stringify(manifest, null, 2) + '\n');
 
 const licensePath = 'assets/LICENSES.csv';
 let licenses = await readFile(licensePath, 'utf8');
-const proof = 'https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md ; https://static.makehumancommunity.org/assets/assetpacks.html ; https://creativecommons.org/publicdomain/zero/1.0/ ; tools/assets/blender/hr-char.py + hr-char-b.py + hr-char-package.mjs';
+const proof = 'https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md ; https://static.makehumancommunity.org/assets/assetpacks.html ; https://creativecommons.org/publicdomain/zero/1.0/ ; tools/assets/blender/hr-char.py + hr-char-b.py + hr-faceless.py + hr-char-package.mjs';
 const rows = [
-  [`${output}/character-hr.glb`, '2048/1024 KTX2', '14', 'LOD0'],
-  [`${output}/character-hr-lod1.glb`, '1024/512 KTX2', '14', 'LOD1'],
+  [`${output}/character-hr.glb`, '2048/1024 KTX2', '8', 'LOD0'],
+  [`${output}/character-hr-lod1.glb`, '1024/512 KTX2', '8', 'LOD1'],
   [`${output}/hr-manifest.json`, '-', '-', '-'],
 ];
 for (const [file, size, materials, level] of rows) {
