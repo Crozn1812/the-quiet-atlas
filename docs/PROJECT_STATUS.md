@@ -9,7 +9,7 @@ Duy chơi demo và gửi 9 mục. ADR 0020 (xe tự do, chỉ Low/High).
 | QF-01 | Bỏ Balanced, chỉ Low/High | merged 3ca90dc (Codex A) |
 | QF-02 | Xe lái tự do, qua cầu | merged 5c054f4 (Codex A; Lead cho phép lái khi cruise) |
 | QF-03 | Intro High chờ cảnh dựng xong (trần 8 s) | merged 5c81ca7 (Codex C) |
-| QF-04 | Cây sồi cổ thụ Roots | trả lại vòng 2 (21/11 00:20): dáng xòe đạt nhưng thân/cành quá mảnh, tán xanh nõn; vòng 3 Lead tự sửa |
+| QF-04 | Cây sồi cổ thụ Roots | merged efdb8da (Codex C, vòng 3 sau 2 lần trả lại); ảnh Roots chụp lại 10e8d1c |
 | QF-05 | Đá ven biển HR + **sửa adaptive quality tụt High→Low** | merged d720110 (Lead) |
 | QF-06 | Piano chơi bằng bàn phím ở Quiet Shore | merged 4d731ba (Lead) |
 | QF-07 | Tàu đắm ngoài khơi có khói | merged 5528847 (Codex A, vòng 2: khói thành cột mềm) |
@@ -22,6 +22,7 @@ Nguyên nhân gốc của "ảnh/intro thô": adaptive quality hạ High→Low v
 | gate merge (lint, typecheck, assets, licenses, unit 2034) | PASS |
 | e2e world (48) trên main 4d731ba+QF-02 | 42 PASS, 6 FAIL vehicle (timeout build khi máy tải nặng); chạy riêng vehicle: 5 PASS + 1 FAIL, chạy lại ca đó PASS → FLAKY dưới tải |
 | Sửa e2e vehicle (QF-E2E, b152e4c): dựng cảnh ở Low trước khi chờ; phanh cho phép lùi | world 46/48 (1 FAIL phanh đã sửa, 1 timeout dưới tải 2 worker); vehicle chạy riêng 6/6 PASS |
+| e2e world trên main cuối 10e8d1c (2 worker) | 42 PASS, 6 FAIL vehicle (cảnh vẫn dựng dở sau 90 s khi chạy song song); vehicle chạy riêng 6/6 PASS → FLAKY dưới tải song song. Việc tiếp: tách vehicle spec chạy một mình (L4) |
 | Next.js 16.4.6 (31820d0, Duy duyệt 20/11) | build 3/3 không còn SecurityFatalError; unit 2033 PASS; e2e 157 PASS + 6 FAIL vehicle (đã sửa ở QF-E2E) |
 | e2e piano + content | PASS (5) |
 | FPS High nhân vật mới | NOT RUN |
