@@ -217,10 +217,12 @@ test.describe("Q21 language switch inside the world", () => {
     await expect(page.locator(HUD).getByRole("link", { name: "Quick Portfolio" })).toHaveAttribute("href", "/vi/quick/");
 
     await test.step("axe on the open menu (vi): 0 critical/serious", async () => {
+      // Let the dialog's 180 ms fade finish first; a mid-fade opacity blends the pressed buttons with the backdrop.
+      await dialog(page).evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"]).analyze();
       const blocking = results.violations.filter(v => v.impact === "critical" || v.impact === "serious");
       test.info().annotations.push({ type: "axe vi menu", description: `violations: ${results.violations.map(v => `${v.id} (${v.impact})`).join(", ") || "none"}` });
-      expect(blocking.map(v => `${v.impact} ${v.id}: ${v.help} → ${v.nodes.map(n => n.target.join(" ")).join(", ")}`)).toEqual([]);
+      expect(blocking.map(v => `${v.impact} ${v.id}: ${v.help} → ${v.nodes.map(n => `${n.target.join(" ")} ${JSON.stringify(n.any.map(c => c.data))}`).join(", ")}`)).toEqual([]);
     });
 
     await expectSameWorld(page, webgl2Before);

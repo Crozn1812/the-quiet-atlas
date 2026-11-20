@@ -41,8 +41,10 @@ for (const scenario of ["brake to rest", "E while rolling", "E during mount"] as
     // Deferred scenery only builds while the session can simulate. A second
     // Edge worker may start blurred, so restore focus before waiting for it.
     await expect(world!).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
-    // High is pinned using the same event as the menu; motion stays enabled.
-    await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "high" } })));
+    // High is pinned using the same event as the menu; motion stays enabled. SwiftShader on CI cannot drive
+    // High in real time, so CI keeps Low (the dismount logic is quality-independent).
+    const quality = process.env.CI ? "low" : "high";
+    await world!.evaluate((el, q) => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: q } })), quality);
     expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(false);
     await world!.locator("canvas").focus();
     await world!.evaluate(el => (el as JourneyElement).__tqaJourney.nearVehicle());
@@ -82,7 +84,7 @@ for (const scenario of ["brake to rest", "E while rolling", "E during mount"] as
     expect(standing.torsoUp).toBeGreaterThan(.95);
     expect(standing.distanceToBike).toBeGreaterThan(.8);
     expect(standing.distanceToBike).toBeLessThan(1.7);
-    await expect(world!).toHaveAttribute("data-world-quality", "high");
+    await expect(world!).toHaveAttribute("data-world-quality", quality);
     expect(errors).toEqual([]);
   });
 }
