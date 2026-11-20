@@ -13,7 +13,7 @@ const base = new URL(suppliedBase);
 if (!["127.0.0.1", "localhost"].includes(base.hostname)) throw new Error("Use a local build");
 const out = resolve(directory);
 await mkdir(out, { recursive: true });
-const browser = await chromium.launch({ channel: "msedge", headless: false });
+const browser = await chromium.launch({ channel: "msedge", headless: false, args: ["--ignore-gpu-blocklist", "--enable-gpu-rasterization"] });
 const errors = [];
 try {
   if (mode === "hero") {
@@ -29,19 +29,19 @@ try {
     await world.evaluate(el => el.__tqaJourney.goTo("last-postcard"));
     await world.locator("canvas").focus();
     await page.keyboard.press("Escape");
-    await page.locator('.world-menu dialog input[value="high"]').check();
+    await page.locator('.world-menu dialog button[value="high"]').click();
     await page.keyboard.press("Escape");
     const views = [[-20,4,4,0,4,-28],[-8,3,6,7,3,-23],[-28,5,0,-5,5,-35]];
     const manifest = [];
     for (const [index, view] of views.entries()) {
       await world.evaluate((el, v) => { const p=el.__tqaJourney.position(); el.dispatchEvent(new CustomEvent("tqa:postcard",{detail:{position:[p.x+v[0],p.y+v[1],p.z+v[2]],target:[p.x+v[3],p.y+v[4],p.z+v[5]]}})); },view);
       const hidden = await page.addStyleTag({content:'body *:not(canvas):not(:has(canvas)),.world-hud,[data-hud-keys]{visibility:hidden!important}'});
-      await page.waitForTimeout(1800);
+      await page.waitForLoadState("networkidle"); await page.waitForTimeout(5000);
       if (await world.getAttribute("data-world-quality") !== "high") throw new Error("Quality dropped below High");
       const clip = await world.locator("canvas").boundingBox();
       const png = await page.screenshot({path:join(out,`hero-source-${index}.png`),clip});
       await hidden.evaluate(el=>el.remove());
-      for (const [width, limit] of [[1920,60_000],[960,25_000]]) {
+      for (const [width, limit] of [[1920,240_000],[960,90_000]] /* QF (Duy 20/11): a sharp, realistic first image */) {
         let bytes,quality;
         for(quality=85;quality>=25;quality--){bytes=await sharp(png).resize(width,width*9/16).webp({quality,effort:6}).toBuffer();if(bytes.length<=limit)break;}
         if(bytes.length>limit)throw new Error(`${width}: exceeds ${limit}`);

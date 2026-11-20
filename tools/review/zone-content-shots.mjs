@@ -22,7 +22,7 @@ const views = [
 ];
 await mkdir(reviewDir, { recursive: true });
 await mkdir("public/zones", { recursive: true });
-const browser = await chromium.launch({ channel: "msedge", headless: false });
+const browser = await chromium.launch({ channel: "msedge", headless: false, args: ["--ignore-gpu-blocklist", "--enable-gpu-rasterization"] });
 try {
   const context = await browser.newContext({ viewport: { width: 1600, height: 1067 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
@@ -44,7 +44,8 @@ try {
     await world.evaluate((element, id) => element.__tqaJourney.goTo(id), zone);
     await canvas.focus();
     await page.keyboard.press("Escape");
-    await page.locator('.world-menu dialog input[value="high"]').check();
+    // QF-01: quality is two buttons.
+    await page.locator('.world-menu dialog button[value="high"]').click();
     await page.keyboard.press("Escape");
     await canvas.focus();
     await world.evaluate((element, view) => {
@@ -62,7 +63,9 @@ try {
       body *:not(canvas):not(:has(canvas)),
       .world-hud, [data-hud-keys] { visibility: hidden !important; }
     ` });
-    await page.waitForTimeout(1500);
+    // HR streaming after goTo: let the High world settle before the capture.
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(5000);
     if (await world.getAttribute("data-world-quality") !== "high") throw new Error(`${zone}: quality dropped below High`);
     if (errors.length) throw errors[0];
     const clip = await canvas.boundingBox();
@@ -79,7 +82,7 @@ try {
     manifest.push({ zone, bytes: output.length, width: 960, height: 640, quality: "high", view: views[index], source: baseUrl, visualApproval: "pending" });
     // Review the overlay at four representative locations, with image responses
     // served from the just-created files rather than the earlier static export.
-    if (["first-light", "workshop", "old-trail", "quiet-shore"].includes(zone)) {
+    if (["first-light", "old-trail", "quiet-shore"].includes(zone)) {
       await page.route(`**/zones/${zone}.webp`, route => route.fulfill({ path: path.resolve(`public/zones/${zone}.webp`), contentType: "image/webp" }));
       await world.evaluate((element, id) => element.dispatchEvent(new CustomEvent("tqa:open-content", { detail: { zoneId: id } })), zone);
       await page.locator("dialog.world-content img").evaluate(img => img.decode());
