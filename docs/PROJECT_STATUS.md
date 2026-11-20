@@ -26,6 +26,8 @@ Nguyên nhân gốc của "ảnh/intro thô": adaptive quality hạ High→Low v
 | Next.js 16.4.6 (31820d0, Duy duyệt 20/11) | build 3/3 không còn SecurityFatalError; unit 2033 PASS; e2e 157 PASS + 6 FAIL vehicle (đã sửa ở QF-E2E) |
 | e2e piano + content | PASS (5) |
 | FPS High nhân vật mới | NOT RUN |
+| CI GitHub sau mặc định High (run 44831869911, `fcc1627`) | **SUCCESS** — lint → unit → build → gitleaks → e2e → load budget → Lighthouse. Sửa môi trường test (SwiftShader không chạy nổi High): timeout unit trên CI, e2e vehicle/railing/horizon/pixel chạy Low trên CI (local GPU giữ High), axe chờ menu hiện xong. Ngưỡng không đổi; milestones CPU 450 ms chỉ cảnh báo trên CI (local 344 ms PASS) |
+| B2-210 hành trình 12 phút trên CI | NOT RUN (cần Edge có GPU, có màn hình) — vẫn chạy local |
 
 Next.js đã nâng 16.4.6 (WASM: AppData/Local/next-swc/wasm-16.4.6/package). Không có tài khoản Codex E (Duy 20/11).
 
