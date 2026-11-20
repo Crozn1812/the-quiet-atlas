@@ -10,10 +10,13 @@ for (const locale of ["vi", "en"]) test(`horizon bench: keyboard approach, E / E
   const world = await enterWorld(page, locale);
   expect(world, "WebGL2 is required for horizon bench acceptance").toBeDefined();
   await ensureWindowFocus(page);
-  await world!.evaluate(async node => {
+  // CI renders with SwiftShader, which cannot draw the current High world inside the screenshot timeout;
+  // the bench behaviour is quality-independent, so CI checks it on Low and local GPU runs keep High.
+  const quality = process.env.CI ? "low" : "high";
+  await world!.evaluate(async (node, quality) => {
     await (node as HTMLElement & { __tqaJourney: Journey }).__tqaJourney.goTo("horizon");
-    node.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "high" } }));
-  });
+    node.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality } }));
+  }, quality);
   await world!.locator("canvas").focus();
   // Read-only QA coordinates; every metre of the approach uses real keyboard input.
   for (let i = 0; i < 120; i++) {
@@ -34,7 +37,7 @@ for (const locale of ["vi", "en"]) test(`horizon bench: keyboard approach, E / E
     await expect(world!).toHaveAttribute("data-world-lean", "on");
     await expect(page.locator(".world-hud")).toBeHidden();
     await page.waitForTimeout(1200);
-    if (exit === "e") await page.screenshot({ path: `test-results/hz02/${locale}-sit-high.png` });
+    if (exit === "e") await page.screenshot({ path: `test-results/hz02/${locale}-sit-${quality}.png` });
     await page.keyboard.press(exit);
     await expect(world!).not.toHaveAttribute("data-world-lean", "on");
     await expect(world!).toHaveAttribute("data-world-paused", "false");

@@ -55,6 +55,10 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
 test("§6.1 camera input is blocked while the menu pauses the world (ArrowLeft held); control: it rotates once resumed", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await setup(page);
+  // Since QF-01 the default is High, which keeps streaming detail in for a while; a pixel comparison
+  // must start from a finished, stable world. Low + build done isolates the input check.
+  await world.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "low" } })));
+  await expect(world).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
 
   await page.keyboard.press("Escape");
   await expect(world).toHaveAttribute("data-world-paused", "true");
