@@ -1,7 +1,7 @@
 import { reportBudget } from "../report-budget";
 import { createHash } from "node:crypto";
 import {
-  Box3, BufferGeometry, Color, Mesh, MeshBasicMaterial, MeshStandardMaterial, MeshToonMaterial, Raycaster, Vector3,
+  Box3, BufferGeometry, Color, DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial, MeshToonMaterial, Raycaster, Vector3,
 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PALETTE } from "../../../../src/features/world/art/palette";
@@ -192,7 +192,7 @@ describe("The Roots procedural zone", () => {
       return { colliders: scene.colliders, interactable: scene.interactable };
     });
     expect(createHash("sha256").update(JSON.stringify(contracts)).digest("hex"))
-      .toBe("0fdf0b29951a6106ae2029468cf8014d3c9341a5cb329b9e20c5d4106f4e17d0");
+      .toBe("e28523f15dc80535088fa527af99b04e5f0877d14ffc7303a2bdacfd72e013fa");
   });
   it("places the complete world on the rendered terrain without throwing", () => {
     let terrain: ZoneSceneContext | undefined;
@@ -218,6 +218,16 @@ describe("The Roots procedural zone", () => {
       }
       console.info("roots real terrain:", roots.interactable.position.toArray(), roots.target.position.toArray());
       const board = roots.colliders.find(collider => Math.abs(collider.size.y - 4.2) < 0.1)!;
+      const oak = roots.group.getObjectByName("roots-ancient-tree") as Mesh;
+      const probeMaterial = new MeshBasicMaterial({ side: DoubleSide }), probe = new Mesh(oak.geometry, probeMaterial);
+      probe.updateMatrixWorld(true);
+      const eye = new Vector3(-5.4953875142, board.center.y, -10.8999187197);
+      for (const dx of [-1.2, 0, 1.2]) for (const dy of [-1.5, 0, 1.5]) {
+        const target = board.center.clone().add(new Vector3(dx, dy, -.095));
+        const ray = new Raycaster(eye, target.clone().sub(eye).normalize(), 0, eye.distanceTo(target));
+        expect(ray.intersectObject(probe)).toHaveLength(0);
+      }
+      probeMaterial.dispose();
       console.info("HR-ROOTS-SIGN review camera:", JSON.stringify({
         position: roots.group.localToWorld(board.center.clone().add(new Vector3(-0.6, 0.2, -6))).toArray(),
         target: roots.group.localToWorld(board.center.clone()).toArray(),
@@ -317,13 +327,19 @@ describe("The Roots procedural zone", () => {
           }
           expect(Math.abs(x)).toBeGreaterThan(PATH_CLEARANCE);
           expect(ctx.onPath(x, z)).toBe(false);
-          expect(ctx.underWater(x, z)).toBe(false);
+          expect(ctx.underWater(x, z), `${mesh.name}: ${x}, ${y}, ${z}`).toBe(false);
           expect(y).toBeGreaterThanOrEqual(ctx.heightAt(x, z) - 0.1);
           expect(Math.hypot(x, z)).toBeLessThanOrEqual(ZONE_BUDGET.radius);
         }
       }
-      expect(scene.colliders.length).toBeGreaterThan(8);
+      // Four retained board/bole boxes, plus at most eight dry ground contacts.
+      expect(scene.colliders.length).toBeGreaterThanOrEqual(4);
+      expect(scene.colliders.length).toBeLessThanOrEqual(12);
       for (const { center, size, yaw } of scene.colliders) {
+        if (Math.abs(size.y - .44) < .001) {
+          const side = Math.sign(scene.interactable.position.x), z = center.z - scene.interactable.position.z;
+          expect(side * center.x < 2 || side * center.x > 7.5 || z < -14 || z > -3.5).toBe(true);
+        }
         expect(yaw ?? 0).toBe(0);
         expect(Math.abs(center.x) - size.x / 2).toBeGreaterThan(PATH_CLEARANCE);
         expect(size.toArray().every(value => value > 0)).toBe(true);
@@ -351,11 +367,11 @@ describe("The Roots procedural zone", () => {
     const shifted = create(context({ underWater: (_x, z) => Math.abs(z) < 5 }));
     expect(mirrored.interactable.position.x).toBeLessThan(-PATH_CLEARANCE);
     expect(Math.abs(shifted.interactable.position.z)).toBeGreaterThan(5);
-    expect(meshes(mirrored).map(mesh => mesh.geometry.getAttribute("position").count))
-      .toEqual(meshes(normal).map(mesh => mesh.geometry.getAttribute("position").count));
+    expect(meshes(mirrored).filter(mesh => mesh.name !== "roots-moss").map(mesh => mesh.geometry.getAttribute("position").count))
+      .toEqual(meshes(normal).filter(mesh => mesh.name !== "roots-moss").map(mesh => mesh.geometry.getAttribute("position").count));
   });
 
-  it("has a living canopy above the root collar and seven visible root tips on either verge", () => {
+  it("has a short wide live oak above the soil on either verge", () => {
     for (const side of [1, -1]) {
       const ctx = context({ heightAt: (x, z) => x * 0.03 - z * 0.01,
         underWater: x => side * x < -2.6 });
@@ -363,13 +379,17 @@ describe("The Roots procedural zone", () => {
       // RC-02 replaces the cut tabletop with a living tree above the same root collar.
       expect(scene.group.getObjectByName("roots-cut")).toBeUndefined();
       const tree = scene.group.getObjectByName("roots-ancient-tree") as PaintedMesh;
+      const decorativeHits: never[] = []; tree.raycast({} as never, decorativeHits);
+      expect(decorativeHits).toEqual([]);
       const bounds = new Box3().setFromObject(tree), size = bounds.getSize(new Vector3());
-      expect(size.y).toBeGreaterThanOrEqual(30);
-      expect(size.y).toBeLessThanOrEqual(45);
+      expect(size.y).toBeGreaterThanOrEqual(11);
+      expect(size.y).toBeLessThanOrEqual(14);
+      expect(size.x / size.y).toBeGreaterThanOrEqual(2.5);
+      expect(size.x / size.y).toBeLessThanOrEqual(3);
       expect(size.x).toBeGreaterThan(25);
       const collar = ctx.heightAt(side * 6.4, scene.interactable.position.z) + 1.28 * 1.6;
       expect(bounds.min.y).toBeLessThan(collar);
-      expect(bounds.min.y).toBeGreaterThan(collar - 1.1);
+      expect(bounds.min.y).toBeGreaterThan(collar - 3);
       const wood = scene.group.getObjectByName("roots-wood") as PaintedMesh;
       for (const rings of rootSections(scene).slice(0, 7)) {
         // Follow the actual S tangent into the narrow tip, away from the cap edge.
@@ -533,7 +553,7 @@ describe("The Roots procedural zone", () => {
   it("reserves about a tenth of the surface for ink and two tiny flower accents", () => {
     const scene = create();
     // Ink coverage still describes the root collar, independently of the new canopy.
-    const areas = meshes(scene).filter(mesh => mesh.name !== "roots-ancient-tree").map(mesh => {
+    const areas = meshes(scene).filter(mesh => mesh.name !== "roots-ancient-tree" && mesh.name !== "roots-moss").map(mesh => {
       const p = mesh.geometry.getAttribute("position");
       let area = 0;
       for (let i = 0; i < p.count; i += 3) {
@@ -735,7 +755,7 @@ describe("The Roots procedural zone", () => {
     }
   });
 
-  it("locks the r4 stump, roots and pebble geometry fingerprint", () => {
+  it("locks the QF-04 oak and board geometry fingerprint", () => {
     const scene = create();
     scene.group.updateMatrixWorld(true);
     const triangles: string[] = [];
@@ -751,9 +771,8 @@ describe("The Roots procedural zone", () => {
     const fingerprint = createHash("sha256").update(JSON.stringify({
       triangles: triangles.sort(), colliders: scene.colliders, interactable: scene.interactable,
     })).digest("hex");
-    // HR-ROOTS-SIGN replaces only the board face with six chipped, bevelled planks;
-    // the separate collider/interaction fingerprint above remains unchanged.
-    expect(fingerprint).toBe("f6165638710cc491c254d3b52da5e6987925119e8c7f28757ce6197170da5ad9");
+    // QF-04: short bole, tapered low forks, and dry ground-contact colliders.
+    expect(fingerprint).toBe("2c903d65d6be91155e269f8f8037e5d56bfa622a1499035029345ccbb4f2d8f7");
   });
 
 });

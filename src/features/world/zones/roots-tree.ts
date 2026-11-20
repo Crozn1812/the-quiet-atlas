@@ -1,9 +1,62 @@
-import { BufferGeometry, Float32BufferAttribute, Group, Mesh, Vector3, type Texture, type WebGLRenderer } from "three";
+import { Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshStandardMaterial, ShaderChunk, Vector3, type Texture, type WebGLRenderer } from "three";
 import { bakedPropQuality, bindBakedPropQuality } from "../props/batched";
 import type { Quality } from "../terrain";
 
 export interface RootsTreeAsset { group: Group; dispose(): void }
 export type RootsTreeLoader = (renderer: WebGLRenderer, level: 0 | 1) => Promise<RootsTreeAsset>;
+
+/** Matching offline oak profile; units are metres, radii rather than diameters. */
+export function rootsOakLimb(i: number) {
+  const a = i * Math.PI / 4 + .16 + Math.sin(i * 2.7) * .12;
+  const reach = 15.2 + Math.sin(i * 1.9) * 1.6;
+  const radial = (angle: number, r: number, y: number) => new Vector3(Math.cos(angle) * r + .8, y, Math.sin(angle) * r);
+  const contact = radial(a + .1, 10 + (i % 3) * 1.25, .14);
+  return { a, reach, contact, radial, points: [radial(a, .7, 2.6 + i % 3 * .12), radial(a - .06, 3.6, 2.6 + Math.sin(i * 1.7) * .65),
+    radial(a + .04, 6.5, 1.8 + Math.cos(i * 2.1) * .7), contact,
+    radial(a - .03, reach * .93, 2.5 + i % 2), radial(a + .08 * Math.sin(i), reach + 1, 4.8 + Math.sin(i * 1.4) * .6)] };
+}
+
+/** A continuous clearance field avoids pulling single bark/moss vertices into walls. */
+export function rootsOakClearance(blocked: (x: number, z: number) => boolean, bole?: { x: number; z: number }) {
+  const samples = new Map<string, number>();
+  const mask = new Map<string, boolean>();
+  const blockedAt = (x: number, z: number) => {
+    const key = `${x},${z}`, cached = mask.get(key);
+    if (cached !== undefined) return cached;
+    const value = blocked(x, z); mask.set(key, value); return value;
+  };
+  const sample = (x: number, z: number) => {
+    const key = `${x},${z}`, cached = samples.get(key);
+    if (cached !== undefined) return cached;
+    let distance = 5;
+    for (let dx = -4; dx <= 4; dx += .5) for (let dz = -4; dz <= 4; dz += .5) {
+      if (Math.hypot(dx, dz) < distance && blockedAt(x + dx, z + dz)) distance = Math.hypot(dx, dz);
+    }
+    const t = Math.min(1, Math.max(0, (3.5 - distance) / 2));
+    // The unchanged Skills board reaches about 5 m above its bank. Limbs on
+    // its road-facing side pass above the whole board and its 5 m approach.
+    const lift = 6.5 * t * t * (3 - 2 * t);
+    samples.set(key, lift); return lift;
+  };
+  return (x: number, z: number, height: number, ground: number) => {
+    const ix = Math.floor(x * 2) / 2, iz = Math.floor(z * 2) / 2, fx = (x - ix) * 2, fz = (z - iz) * 2;
+    const a = sample(ix, iz) * (1 - fx) + sample(ix + .5, iz) * fx;
+    const b = sample(ix, iz + .5) * (1 - fx) + sample(ix + .5, iz + .5) * fx;
+    const collar = bole ? Math.min(1, Math.max(0, Math.hypot(x - bole.x, z - bole.z) - 3)) : 1;
+    const lift = (a * (1 - fz) + b * fz) * collar * collar * (3 - 2 * collar);
+    // Add a smooth displacement, preserving the cross-section and moss separation.
+    return height + lift * Math.max(0, 1 - (height - ground) / 9.5);
+  };
+}
+
+/** Appended to index.ts's zoneBounds before composing ground/forest.
+ * The canopy exclusion is independent of physics: only the bole/elbows are solid.
+ * Derive the fixed bole from the unchanged interaction, even before its idle mesh exists. */
+export function rootsCanopyGroundBounds(group: Group, interaction: Readonly<Vector3>): Box3 {
+  const side = Math.sign(interaction.x) || 1;
+  const center = group.localToWorld(new Vector3(interaction.x + side * 2.5864, interaction.y - 1.15, interaction.z));
+  return new Box3().setFromCenterAndSize(center, new Vector3(45, 40, 45));
+}
 
 /** A rounded soil collar covers the open ends of the generator's fused tubes.
  * Its outer ring is buried in the same sampled soil as the original roots. */
@@ -17,7 +70,7 @@ export function rootsSoilCollar(placement: { side: number; x: number; y: number;
       // Smooth union of the fluted bole and its eight fused columns. A broad,
       // irregular flare blends into soil instead of ending in straight teeth.
       const lobes = Math.pow(0.5 + 0.5 * Math.cos((a - 0.25) * 8), 0.65);
-      const radius = 1.72 + lobes * 0.34 + t * (0.8 + Math.sin(a * 3 + 1.3) * 0.12);
+      const radius = 1.15 + lobes * 0.18 + t * (1.5 + Math.sin(a * 3 + 1.3) * 0.12);
       const x = placement.x + placement.side * (0.8 + Math.cos(a) * radius);
       const z = placement.z + placement.side * Math.sin(a) * radius;
       const ground = placement.heightAt(x, z);
@@ -76,17 +129,20 @@ export async function loadRootsTree(renderer: WebGLRenderer, level: 0 | 1): Prom
  * select streamed LODs with hysteresis; physics and interaction stay in roots.ts.
  * A failed request leaves a complete tree and is not retried every frame. */
 export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side: number; x: number; y: number; z: number;
-  heightAt(x: number, z: number): number; onDetail?(active: boolean): void }, load: RootsTreeLoader = loadRootsTree) {
+  heightAt(x: number, z: number): number; blocked?(x: number, z: number): boolean; onDetail?(active: boolean): void }, load: RootsTreeLoader = loadRootsTree) {
   const group = new Group(); group.name = "roots-tree-streamed";
   let quality: Quality = "High", disposed = false, selected: 0 | 1 = 0;
   let renderer: WebGLRenderer | undefined, started = false, revision = 0;
   const assets = new Map<0 | 1, RootsTreeAsset>(), pending = new Set<0 | 1>(), failed = new Set<0 | 1>();
   const eye = new Vector3(), origin = new Vector3();
-  const detail = { value: 0 }, decorated = new WeakSet<import("three").Material>();
+  const detail = { value: 1 }, decorated = new WeakSet<import("three").Material>();
+  const clearance = rootsOakClearance(placement.blocked ?? (() => false), { x: placement.x + placement.side * .8, z: placement.z });
   const refresh = () => {
     const active = quality === "Low" ? undefined : assets.get(selected) ?? assets.get(selected === 0 ? 1 : 0);
     fallback.visible = !active;
-    detail.value = active ? 1 : 0; placement.onDetail?.(!!active);
+    const canvas = renderer?.domElement, state = active ? active.group.name : "fallback";
+    if (canvas?.getAttribute?.("data-roots-tree") !== state) canvas?.setAttribute?.("data-roots-tree", state);
+    detail.value = 1; placement.onDetail?.(true);
     for (const asset of assets.values()) asset.group.visible = asset === active;
   };
   const unbind = bindBakedPropQuality(fallback, next => { quality = next; refresh(); });
@@ -103,6 +159,9 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
       asset.group.traverse(object => {
         if (!(object instanceof Mesh)) return;
         meshes.push(object);
+        if (object.material instanceof MeshStandardMaterial && object.material.name === "roots-tree-leaves") {
+          object.material.emissive.setRGB(.005, .009, .002);
+        }
         // meshopt quantization uses normalized attributes and node transforms.
         // Expand those before baking the zone placement/terrain deformation.
         for (const name of ["position", "normal"]) {
@@ -114,9 +173,20 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
         object.geometry.applyMatrix4(object.matrixWorld);
         object.position.set(0, 0, 0); object.quaternion.identity(); object.scale.set(1, 1, 1); object.updateMatrix();
         const p = object.geometry.getAttribute("position");
+        // Custom anchors stay in the generator's metre coordinates through meshopt.
+        // Apply one displacement to each whole section, including its moss/ferns.
+        const centers = object.geometry.getAttribute("_roots_center");
         // The generator's tube UV has its U axis around the branch. Pine bark
         // grows along texture V; retain that orientation at metre-scale density.
         if (!Array.isArray(object.material) && object.material.name === "roots-tree-bark") {
+          const compile = object.material.onBeforeCompile;
+          object.material.onBeforeCompile = (shader: Parameters<MeshStandardMaterial["onBeforeCompile"]>[0], gpu: WebGLRenderer) => {
+            compile(shader, gpu);
+            // Sample only the bark quadrant of the reused CC0 roughness atlas.
+            const roughness = ShaderChunk.roughnessmap_fragment.replace("texture2D( roughnessMap, vRoughnessMapUv )", "texture2D( roughnessMap, vec2(0.506, 0.506) + fract(vRoughnessMapUv) * 0.488 )");
+            shader.fragmentShader = shader.fragmentShader.replace("#include <roughnessmap_fragment>", roughness + "\nroughnessFactor = max(0.84, roughnessFactor);");
+          };
+          object.material.customProgramCacheKey = () => "roots-oak-rough-bark-v1";
           const source = object.geometry.getAttribute("uv"), uv = new Float32Array(source.count * 2);
           for (let i = 0; i < source.count; i++) { uv[i * 2] = source.getX(i) * 2; uv[i * 2 + 1] = source.getY(i) * 2.2; }
           object.geometry.setAttribute("uv", new Float32BufferAttribute(uv, 2));
@@ -131,7 +201,15 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
           // the sink above the collar so there is no exposed serrated cut.
           const foot = Math.min(1, Math.max(0, y / 0.9));
           const sink = 0.48 * (1 - foot * foot * (3 - 2 * foot));
-          p.setXYZ(i, x * scale, y + support - sink, z * scale);
+          const px = x * scale, pz = z * scale;
+          const height = y + support - sink;
+          let lift: number;
+          if (centers) {
+            const cx = placement.x + placement.side * centers.getX(i), cz = placement.z + placement.side * centers.getZ(i), cy = centers.getY(i);
+            const soil = placement.heightAt(cx, cz), centerHeight = cy + soil + (placement.y - soil) * Math.min(1, Math.max(0, cy / 3));
+            lift = clearance(cx, cz, centerHeight, soil) - centerHeight;
+          } else lift = clearance(px, pz, height, placement.heightAt(px, pz)) - height;
+          p.setXYZ(i, px, height + lift, pz);
         }
         // A half turn preserves triangle winding on the opposite verge.
         if (placement.side < 0) {
@@ -141,6 +219,20 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
         // Terrain following changes the root slopes; imported normals no longer
         // describe those surfaces (or their normal-mapped bark).
         object.geometry.computeVertexNormals();
+        // Clearance can turn an authored upper surface upright. Keep moss on
+        // the upper face after placement as well, rather than green side walls.
+        if (!Array.isArray(object.material) && object.material.name === "roots-tree-moss") {
+          const indices = object.geometry.index, kept: number[] = [];
+          const a = new Vector3(), b = new Vector3(), c = new Vector3();
+          const count = indices?.count ?? p.count;
+          for (let i = 0; i < count; i += 3) {
+            const ids = [0, 1, 2].map(j => indices ? indices.getX(i + j) : i + j);
+            a.fromBufferAttribute(p, ids[0]!); b.fromBufferAttribute(p, ids[1]!); c.fromBufferAttribute(p, ids[2]!);
+            if (b.sub(a).cross(c.sub(a)).normalize().y > .45) kept.push(...ids);
+          }
+          object.geometry.setIndex(kept);
+        }
+        object.geometry.deleteAttribute("_roots_center");
         object.geometry.computeBoundingBox(); object.geometry.computeBoundingSphere();
         object.castShadow = level === 0; object.receiveShadow = true;
         // These meshes are decorative, and must not change interaction raycasts.
@@ -202,6 +294,7 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
   trigger.onAfterRender = function (...args) { after.apply(this, args); if (started && !disposed) void request(selected); };
   return { group, refresh, dispose() {
     if (disposed) return; disposed = true; revision++;
+    renderer?.domElement?.removeAttribute?.("data-roots-tree");
     unbind(); trigger.onBeforeRender = before; trigger.onAfterRender = after;
     group.removeFromParent();
     for (const asset of assets.values()) asset.dispose(); assets.clear(); group.clear();

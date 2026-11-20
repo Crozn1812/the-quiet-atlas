@@ -21,6 +21,7 @@ import { createMeshPhysics } from "./scene/mesh-physics";
 import { ZONES } from "./layout/zones";
 import { createDeferredZoneScenes, createZoneEntryTracker, zoneFoliageBounds } from "./zones";
 import { createForestSunShafts } from "./zones/first-light";
+import { rootsCanopyGroundBounds } from "./zones/roots-tree";
 import { placeDressing } from "./dressing";
 import { createFarLandscape, GAMEPLAY_FAR } from "./scene/far-landscape";
 import { addBridgeColliders } from "./bridges";
@@ -149,6 +150,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const zoneBoxes = [...zones.flatMap(zone => zone.boxes), ...dressing.boxes];
     const fixedMeshes: Mesh[] = [...zoneBoxes, ...dressing.surfaces];
     const zoneBounds = zoneFoliageBounds(zones);
+    const rootsOak = zones.find(zone => zone.zoneId === "roots");
+    if (rootsOak) zoneBounds.push(rootsCanopyGroundBounds(rootsOak.group, rootsOak.interactable.position));
     for (const zone of zones) scene.add(zone.group);
     for (const group of dressing.groups) scene.add(group);
     // B2-179: the first playable frame only needs the nearby world and fixed colliders.

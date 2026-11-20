@@ -1,15 +1,15 @@
 import { readFile } from "node:fs/promises";
-import { BoxGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "three";
+import { BoxGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3, type WebGLRenderer } from "three";
 import { describe, expect, it, vi } from "vitest";
 import { setBakedPropQuality } from "../../../../src/features/world/props/batched";
-import { createRootsTree, rootsSoilCollar, type RootsTreeAsset, type RootsTreeLoader } from "../../../../src/features/world/zones/roots-tree";
+import { createRootsTree, rootsCanopyGroundBounds, rootsOakClearance, rootsSoilCollar, type RootsTreeAsset, type RootsTreeLoader } from "../../../../src/features/world/zones/roots-tree";
 
-function setup(load: RootsTreeLoader) {
+function setup(load: RootsTreeLoader, blocked?: (x: number, z: number) => boolean) {
   const scene = new Scene(), geometry = new BoxGeometry(), material = new MeshBasicMaterial();
   const fallback = new Mesh(geometry, material), trigger = new Mesh(geometry, material);
   scene.add(fallback, trigger);
   const before = vi.fn(), after = vi.fn(); trigger.onBeforeRender = before; trigger.onAfterRender = after;
-  const tree = createRootsTree(fallback, trigger, { side: 1, x: 6.4, y: 0, z: 0, heightAt: () => 0 }, load);
+  const tree = createRootsTree(fallback, trigger, { side: 1, x: 6.4, y: 0, z: 0, heightAt: () => 0, blocked }, load);
   scene.add(tree.group);
   let playable = false;
   const renderer = { domElement: { closest: () => ({ getAttribute: () => playable ? "done" : "building" }) } } as unknown as WebGLRenderer;
@@ -29,7 +29,71 @@ function asset(): RootsTreeAsset {
 }
 const settle = async () => { await Promise.resolve(); await Promise.resolve(); };
 
-describe("Roots banyan streaming lifecycle", () => {
+describe("Roots live oak streaming lifecycle", () => {
+  it("keeps moss on upward faces after terrain and clearance placement", async () => {
+    const a = asset(), mesh = a.group.children[0] as Mesh;
+    (mesh.material as MeshBasicMaterial).name = "roots-tree-moss";
+    const s = setup(async () => a);
+    s.play(); s.frame(); await settle();
+    const p = mesh.geometry.getAttribute("position"), indices = mesh.geometry.index!;
+    expect(indices.count).toBe(6);
+    for (let i = 0; i < indices.count; i += 3) {
+      const origin = new Vector3().fromBufferAttribute(p, indices.getX(i));
+      const b = new Vector3().fromBufferAttribute(p, indices.getX(i + 1)).sub(origin);
+      const c = new Vector3().fromBufferAttribute(p, indices.getX(i + 2)).sub(origin);
+      expect(b.cross(c).normalize().y).toBeGreaterThan(.45);
+    }
+    s.dispose();
+  });
+  it("moves an anchored section rigidly so limbs and fern cards cannot become flat walls", async () => {
+    const a = asset(), mesh = a.group.children[0] as Mesh;
+    mesh.geometry.translate(-5, 3, 10);
+    const centers: number[] = [];
+    for (let i = 0; i < mesh.geometry.getAttribute("position").count; i++) centers.push(-5, 3, 10);
+    mesh.geometry.setAttribute("_roots_center", new Float32BufferAttribute(centers, 3));
+    const s = setup(async () => a, () => true);
+    s.play(); s.frame(); await settle();
+    expect(mesh.geometry.boundingBox!.getSize(new Vector3()).toArray()).toEqual([1, 1, 1]);
+    expect(mesh.geometry.boundingBox!.getCenter(new Vector3()).y).toBeGreaterThan(6);
+    expect(mesh.geometry.hasAttribute("_roots_center")).toBe(false);
+    s.dispose();
+  });
+  it("lifts low limbs smoothly across a road while preserving bark/moss separation", () => {
+    const lift = rootsOakClearance(x => Math.abs(x) <= 3.2);
+    let previous = lift(-9, 0, .2, 0);
+    for (let x = -8.95; x <= 9; x += .05) {
+      const y = lift(x, 0, .2, 0);
+      expect(Math.abs(y - previous)).toBeLessThan(.25);
+      expect(lift(x, 0, .222, 0)).toBeGreaterThan(y);
+      if (Math.abs(x) <= 2.6) expect(y).toBeGreaterThan(3.15);
+      expect(lift(x, 0, 12, 0)).toBe(12);
+      previous = y;
+    }
+    // A branch in front of the fixed board must pass above its top edge.
+    expect(lift(4.5, -11, .2, 0)).toBeGreaterThan(5.6);
+    const planted = rootsOakClearance(x => Math.abs(x) <= 3.2, { x: 7.2864, z: 0 });
+    expect(planted(4.6, 0, .2, 0)).toBe(.2);
+  });
+  it("keeps bark and moss continuous beside a narrow wet pocket between metre samples", () => {
+    const lift = rootsOakClearance((x, z) => x > .18 && x < .8 && z > .18 && z < .8);
+    let previous = lift(-4, .5, .2, 0);
+    for (let x = -3.95; x < 4; x += .05) {
+      const y = lift(x, .5, .2, 0);
+      expect(Math.abs(y - previous)).toBeLessThan(.25);
+      expect(lift(x, .5, .222, 0) - y).toBeGreaterThan(0);
+      previous = y;
+    }
+  });
+  it.each([1, -1])("provides a world-space canopy exclusion before the idle mesh exists on side %s", side => {
+    const group = new Group(); group.position.set(30, 5, -110); group.rotation.y = .7;
+    const bounds = rootsCanopyGroundBounds(group, new Vector3(side * 4.7, 1.15, 0));
+    // Include the authored asset extremes and the complete collar after zone rotation.
+    for (const local of [[-19.11, 0, 0], [21, 0, 0], [.8, 0, -17.72], [.8, 0, 20.42]]) {
+      const point = group.localToWorld(new Vector3(side * (6.4864 + local[0]!), local[1]!, side * local[2]!));
+      expect(bounds.containsPoint(point)).toBe(true);
+    }
+    expect(group.children).toHaveLength(0);
+  });
   it.each([1, -1])("seats the rounded collar in sloping soil with outward normals on side %s", side => {
     const heightAt = (x: number, z: number) => x * 0.12 + z * 0.07;
     const collar = rootsSoilCollar({ side, x: 6.4, y: 1, z: 2, heightAt });
@@ -137,18 +201,27 @@ describe("Roots delivery artifacts", () => {
   it("ships distinct meshopt LODs, shared HR KTX2 maps and licensed baked AO", async () => {
     const manifest = JSON.parse(await readFile("public/world/roots/roots-tree.json", "utf8"));
     const licenses = await readFile("assets/LICENSES.csv", "utf8");
+    expect(manifest.primaryLimbs).toBe(8);
+    expect(manifest.aerialRoots).toBe(0);
     expect(manifest.assets[1].triangles).toBeLessThan(manifest.assets[0].triangles * .5);
     for (const entry of manifest.assets) {
       const file = `public/world/roots/${entry.file}`, bytes = await readFile(file);
       expect(bytes.length).toBe(entry.bytes);
+      expect(bytes.length).toBeLessThanOrEqual(entry.level === 0 ? 6000000 : 1500000);
+      expect(entry.drawCalls).toBe(3);
       const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
       expect(json.extensionsRequired).toContain("EXT_meshopt_compression");
       expect(json.extensionsRequired).toContain("KHR_texture_basisu");
       expect(json.meshes[0].primitives).toHaveLength(3);
-      expect(json.materials.find((m: { name: string }) => m.name === "roots-tree-bark").normalTexture).toBeDefined();
-      for (const primitive of json.meshes[0].primitives) expect(primitive.attributes.COLOR_0).toBeDefined();
+      const bark = json.materials.find((m: { name: string }) => m.name === "roots-tree-bark");
+      expect(bark.normalTexture).toBeDefined();
+      expect(bark.pbrMetallicRoughness.metallicRoughnessTexture).toBeDefined();
+      for (const primitive of json.meshes[0].primitives) {
+        expect(primitive.attributes.COLOR_0).toBeDefined();
+        expect(primitive.attributes._ROOTS_CENTER).toBeDefined();
+      }
       for (const image of json.images) {
-        expect(image.uri).toMatch(/^\.\.\/lib\/hr-shared-[a-f0-9]+\.ktx2$/);
+        expect(image.uri).toMatch(/^\.\.\/lib\/hr-(shared|prop-atlas)-[a-f0-9]+\.ktx2$/);
         expect((await readFile(`public/world/roots/${image.uri}`)).length).toBeGreaterThan(0);
       }
       expect(licenses.split("\n").filter(line => line.startsWith(file + ","))).toHaveLength(1);

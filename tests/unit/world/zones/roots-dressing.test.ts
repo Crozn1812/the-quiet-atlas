@@ -31,8 +31,9 @@ const triangles = (mesh: Mesh) => (mesh.geometry.index?.count ?? mesh.geometry.g
 describe("Roots dressing", () => {
   it("follows mirrored/offset tree placement and protects the complete path, water and E footprints", () => {
     const sites = rootsDressingSites(context);
-    expect(sites).toHaveLength(14);
-    expect(new Set(sites.map(site => site.asset)).size).toBe(6);
+    expect(sites).toHaveLength(10);
+    expect(sites.some(site => site.asset === "prop-grass")).toBe(false);
+    expect(new Set(sites.map(site => site.asset)).size).toBe(5);
     expect(sites).toEqual(rootsDressingSites(context));
     expect(sites).not.toEqual(rootsDressingSites({ ...context, seed: 42 }));
     const mirror = rootsDressingSites(context, -1, 8);
@@ -64,6 +65,7 @@ describe("Roots dressing", () => {
     const retained = moss(), releaseMoss = vi.spyOn(retained, "dispose");
     const batch = createRootsDressing(context, retained, 1, 0, load), root = new Group(); root.add(batch.mesh);
     const fallback = batch.mesh.geometry;
+    const retainedPositions = Array.from(retained.getAttribute("position").array);
     expect(batch.mesh.geometry.groups).toHaveLength(0);
     expect("update" in batch).toBe(false);
     setBakedPropQuality(root, "Low"); await batch.loadDetail(renderer);
@@ -74,10 +76,10 @@ describe("Roots dressing", () => {
     batch.mesh.onAfterRender(pendingRenderer, new Scene(), new PerspectiveCamera(), fallback, batch.mesh.material, null!);
     expect(load).not.toHaveBeenCalled();
     await batch.loadDetail(renderer);
-    expect(load).toHaveBeenCalledTimes(6);
-    expect(triangles(batch.mesh)).toBe(12 + 14 * 12);
+    expect(load).toHaveBeenCalledTimes(5);
+    expect(triangles(batch.mesh)).toBe(12 + fallback.userData.litterVertices / 3 + 10 * 12);
     expect(Array.from(batch.mesh.geometry.getAttribute("position").array).slice(0, 108))
-      .toEqual(Array.from(retained.getAttribute("position").array));
+      .toEqual(retainedPositions);
     const detail = batch.mesh.geometry, material = batch.mesh.material;
     const disposals = [fallback, detail, material].map(resource => vi.spyOn(resource, "dispose"));
     setBakedPropQuality(root, "Low"); expect(batch.mesh.geometry).toBe(fallback);

@@ -1,12 +1,11 @@
 import { BufferGeometry, Color, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { PALETTE } from "../art/palette";
-import { createFern, createGrassTuft } from "../foliage/ground";
+import { createFern } from "../foliage/ground";
 import { createLibraryBatch, fitDressing, type DressingLoader, type DressingSite } from "../props/library-batch";
 import { PATH_CLEARANCE, ZONE_BUDGET, type ZoneSceneContext } from "./types";
 
-// Damp shade hugs the buttresses; a fallen limb and split boulder sit behind
-// the tree. The small sunlit grass gap stays opposite the Skills approach.
+// Ferns, a fallen limb and boulders sit in the oak shade; no grass under its canopy.
 const composition: readonly Omit<DressingSite, "tint">[] = [
   { asset: "rock-boulder-1", x: 10.3, z: 3.9, size: [1.9, 0.95, 1.5], yaw: 0.35 },
   { asset: "rock-boulder-3", x: 11.4, z: 4.6, size: [1.1, 0.55, 0.85], yaw: -0.6 },
@@ -18,10 +17,6 @@ const composition: readonly Omit<DressingSite, "tint">[] = [
   { asset: "prop-bush", x: 11.6, z: -2.8, size: [1.6, 1.1, 1.4], yaw: 0.7 },
   { asset: "prop-bush", x: 10.8, z: -4.1, size: [1.0, 0.65, 0.9], yaw: -0.4 },
   { asset: "prop-fallen-log", x: 11.7, z: 0.8, size: [3.1, 0.55, 0.7], yaw: -0.9 },
-  { asset: "prop-grass", x: 5.0, z: 7.2, size: [0.65, 0.85, 0.6], yaw: 0.3 },
-  { asset: "prop-grass", x: 5.7, z: 7.6, size: [0.8, 1.0, 0.7], yaw: -0.7 },
-  { asset: "prop-grass", x: 6.5, z: 7.8, size: [0.55, 0.7, 0.5], yaw: 1.1 },
-  { asset: "prop-grass", x: 6.9, z: 7.1, size: [0.6, 0.8, 0.55], yaw: -1.2 },
 ];
 
 /** Follow the accepted stump bank/offset; reject entire rotated footprints. */
@@ -60,11 +55,38 @@ export function createRootsDressing(context: ZoneSceneContext, moss: BufferGeome
   // foot ferns/cut patches after them stay available on every quality tier.
   const surface = moss.getAttribute("dressingSurface");
   for (let i = 0; i < Math.min(surface.count, 9 * 48 * 3); i++) surface.setX(i, -2);
+  // A dry red-brown litter floor replaces grass below the broad oak canopy.
+  // Retained in the existing dressing draw on every quality; no extra requests.
+  const mossVertices = moss.getAttribute("position").count;
+  const litterPosition: number[] = [], litterColor: number[] = [];
+  const emit = (x: number, z: number, tint: number) => {
+    litterPosition.push(x, context.heightAt(x, z) + .035, z);
+    litterColor.push(.25 * tint, .105 * tint, .045 * tint);
+  };
+  for (let x = -10; x < 24; x += .65) for (let z = -17; z < 17; z += .65) {
+    const corners = [[x - .25, z - .25], [x + .9, z - .25], [x + .9, z + .9], [x - .25, z + .9]];
+    if (corners.some(([cx, cz]) => Math.hypot(cx! - 7.2864, cz!) > 16.5 || Math.hypot(cx!, offsetZ + cz!) > 29.7 || Math.abs(cx!) <= PATH_CLEARANCE || context.onPath(side * cx!, offsetZ + cz!) || context.underWater(side * cx!, offsetZ + cz!))) continue;
+    // Individual curled leaf diamonds avoid a tiled ground sheet.
+    for (let leaf = 0; leaf < 2; leaf++) {
+      const hash = Math.sin(x * 127.1 + z * 311.7 + leaf * 73.3) * 43758.5453;
+      const f = hash - Math.floor(hash), yaw = f * Math.PI * 2;
+      const cx = side * (x + .12 + f * .4), cz = offsetZ + z + .12 + ((f * 7) % 1) * .4;
+      const length = .13 + f * .08, width = length * .4, tint = .85 + f * .65;
+      const points = [[Math.cos(yaw) * length, Math.sin(yaw) * length], [-Math.sin(yaw) * width, Math.cos(yaw) * width],
+        [-Math.cos(yaw) * length, -Math.sin(yaw) * length], [Math.sin(yaw) * width, -Math.cos(yaw) * width]];
+      if (points.some(([dx, dz]) => context.onPath(cx + dx!, cz + dz!) || context.underWater(cx + dx!, cz + dz!) || Math.abs(cx + dx!) <= PATH_CLEARANCE)) continue;
+      for (const k of [0, 2, 1, 0, 3, 2]) { const [dx, dz] = points[k]!; emit(cx + dx!, cz + dz!, tint); }
+    }
+  }
+  const litter = new BufferGeometry();
+  litter.setAttribute("position", new Float32BufferAttribute(litterPosition, 3));
+  litter.setAttribute("color", new Float32BufferAttribute(litterColor, 3)); litter.computeVertexNormals(); batchAttributes(litter);
+  litter.getAttribute("dressingSurface").array.fill(-.25);
+  const retained = mergeGeometries([moss, litter])!; moss.dispose(); litter.dispose(); moss = retained;
   const sites = rootsDressingSites(context, side, offsetZ);
-  const parts = sites.map((site, index) => {
+  const parts = sites.map(site => {
     let source: BufferGeometry;
     if (site.asset === "prop-fern") source = createFern();
-    else if (site.asset === "prop-grass") source = createGrassTuft(context.seed + index);
     else if (site.asset === "prop-fallen-log") source = new CylinderGeometry(0.5, 0.42, 2, 7).rotateZ(Math.PI / 2);
     else source = new IcosahedronGeometry(1, site.asset === "prop-bush" ? 1 : 0);
     const flat = source.index ? source.toNonIndexed() : source;
@@ -80,7 +102,8 @@ export function createRootsDressing(context: ZoneSceneContext, moss: BufferGeome
     return fitted;
   });
   const fallback = mergeGeometries([moss, ...parts])!;
-  fallback.userData.mossVertices = moss.getAttribute("position").count;
+  fallback.userData.mossVertices = mossVertices;
+  fallback.userData.litterVertices = litterPosition.length / 3;
   parts.forEach(part => part.dispose());
   fallback.computeBoundingBox(); fallback.computeBoundingSphere();
   const batch = createLibraryBatch(fallback, sites, context.heightAt, load, moss);
@@ -90,7 +113,7 @@ export function createRootsDressing(context: ZoneSceneContext, moss: BufferGeome
   // islands. Library ferns, rocks, grass and logs keep their authored surfaces.
   const compile = batch.mesh.material.onBeforeCompile;
   const cacheKey = batch.mesh.material.customProgramCacheKey.bind(batch.mesh.material);
-  const detail = { value: 0 };
+  const detail = { value: 1 };
   batch.mesh.material.onBeforeCompile = (shader, renderer) => {
     compile(shader, renderer);
     shader.uniforms.rootsTreeDetail = detail;
@@ -109,5 +132,5 @@ if (vDressingSurface < -0.5) {
 #include <alphamap_fragment>`);
   };
   batch.mesh.material.customProgramCacheKey = () => cacheKey() + "|roots-tree-moss-islands-v1";
-  return { ...batch, setTreeDetail(active: boolean) { detail.value = active ? 1 : 0; } };
+  return { ...batch, setTreeDetail(active: boolean) { detail.value = 1; void active; } };
 }

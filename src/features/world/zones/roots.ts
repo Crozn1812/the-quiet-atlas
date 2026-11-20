@@ -9,7 +9,7 @@ import { createPropMaterial } from "../props/materials";
 import { createRockGeometry } from "../props/rocks";
 import { createStumpGeometry } from "../props/wood";
 import { createRootsDressing } from "./roots-dressing";
-import { createRootsTree } from "./roots-tree";
+import { createRootsTree, rootsOakClearance, rootsOakLimb } from "./roots-tree";
 import { bindRootsBoardGrain, createRootsBoardGeometry, createRootsPostGeometry, createRootsSign } from "./roots-sign";
 import {
   PATH_CLEARANCE, ZONE_BUDGET,
@@ -364,83 +364,74 @@ function addBarkFill(material: MeshToonMaterial, masked = false) {
   material.customProgramCacheKey = () => key() + `|roots-bark-fill-${masked}`;
 }
 
-/** Static, vertex-painted scaffold with twisted forks and three overlapping crowns.
- * Height is independent of the horizontal streaming radius; no per-frame work. */
-function createAncientTree(seed: number): BufferGeometry {
+/** Cheap oak uses the same eight low forks and grounded elbows as the streamed asset. */
+function createAncientTree(): BufferGeometry {
   const pieces: BufferGeometry[] = [];
-  const bark = new Color("#64503a");
-  const phase = (seed >>> 0) / 4294967296 * Math.PI * 2;
-  function paint(source: BufferGeometry, color: Color, barkFill = 0) {
-    const part = source.index ? source.toNonIndexed() : source;
-    if (part !== source) source.dispose();
-    part.deleteAttribute("uv");
-    const p = part.getAttribute("position"), colors: number[] = [];
+  const paint = (g: BufferGeometry, color: Color, fill: number) => {
+    if (!g.hasAttribute("oakCenter")) {
+      g.computeBoundingSphere();
+      const center = g.boundingSphere!.center, centers: number[] = [];
+      for (let i = 0; i < g.getAttribute("position").count; i++) centers.push(center.x, center.y, center.z);
+      g.setAttribute("oakCenter", new Float32BufferAttribute(centers, 3));
+    }
+    const flat = g.index ? g.toNonIndexed() : g;
+    if (flat !== g) g.dispose();
+    flat.deleteAttribute("uv");
+    const p = flat.getAttribute("position"), colors: number[] = [];
     for (let i = 0; i < p.count; i++) {
-      const wash = 0.88 + Math.sin(p.getX(i) * 1.7 + p.getY(i) * 0.9 + phase) * 0.09;
-      colors.push(color.r * wash, color.g * wash, color.b * wash);
+      const shade = .87 + Math.sin(p.getX(i) * 3 + p.getY(i) * 7) * .1;
+      colors.push(color.r * shade, color.g * shade, color.b * shade);
     }
-    part.setAttribute("color", new Float32BufferAttribute(colors, 3));
-    part.setAttribute("barkFill", new Float32BufferAttribute(new Array(p.count).fill(barkFill), 1));
-    pieces.push(part);
+    flat.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    flat.setAttribute("barkFill", new Float32BufferAttribute(new Float32Array(p.count).fill(fill), 1));
+    pieces.push(flat);
+  };
+  const limb = (points: Vector3[], radius: number, end: number, steps = 12, sides = 7, bole = false) => {
+    const curve = new CatmullRomCurve3(points), g = new TubeGeometry(curve, steps, radius, sides, false);
+    const p = g.getAttribute("position");
+    const centers: number[] = [];
+    for (let i = 0; i < p.count; i++) {
+      const t = Math.floor(i / (sides + 1)) / steps, c = curve.getPointAt(t);
+      const taper = bole ? 1 - t * (1 - end / radius) : (1 - t) ** .85 + end / radius * t;
+      const q = new Vector3().fromBufferAttribute(p, i).sub(c).multiplyScalar(taper).add(c);
+      p.setXYZ(i, q.x, q.y, q.z);
+      centers.push(c.x, c.y, c.z);
+    }
+    g.setAttribute("oakCenter", new Float32BufferAttribute(centers, 3));
+    if (bole) {
+      const index = Array.from(g.index!.array), base = steps * (sides + 1);
+      const a = new Vector3().fromBufferAttribute(p, base), b = new Vector3().fromBufferAttribute(p, base + 1), c = new Vector3().fromBufferAttribute(p, base + 2);
+      const forward = b.sub(a).cross(c.sub(a)).dot(curve.getTangent(1)) > 0;
+      for (let j = 1; j < sides - 1; j++) index.push(base, base + j + (forward ? 0 : 1), base + j + (forward ? 1 : 0));
+      g.setIndex(index);
+    }
+    paint(g, new Color("#3c342b"), 1);
+  };
+  const radial = (a: number, r: number, y: number) => new Vector3(Math.cos(a) * r + .8, y, Math.sin(a) * r);
+  limb([new Vector3(.8, -.35, 0), new Vector3(.7, .45, .05), new Vector3(.85, 1.35, -.1), new Vector3(.8, 3.1, 0)], 1.45, 1.18, 12, 12, true);
+  for (let i = 0; i < 7; i++) {
+    const a = i * Math.PI * 2 / 7 + .3;
+    limb([radial(a, .65, 1.1), radial(a + .06, 1.6, .35), radial(a + .12, 2.8, -.15)], .65, .045, 8, 6);
   }
-  function limb(points: Vector3[], radius: number, steps: number, sides = 8) {
+  for (let i = 0; i < 8; i++) {
+    const { a, points } = rootsOakLimb(i);
+    limb(points, .55 + i % 3 * .025, .09, 28, 9);
     const curve = new CatmullRomCurve3(points);
-    const part = new TubeGeometry(curve, steps, radius, sides, false);
-    const p = part.getAttribute("position");
-    for (let ring = 0; ring <= steps; ring++) {
-      const t = ring / steps, center = curve.getPoint(t);
-      for (let j = 0; j <= sides; j++) {
-        const i = ring * (sides + 1) + j;
-        const v = new Vector3().fromBufferAttribute(p, i).sub(center).multiplyScalar(1 - t * 0.86).add(center);
-        p.setXYZ(i, v.x, v.y, v.z);
-      }
-    }
-    paint(part, bark, 1);
-    const painted = pieces.at(-1)!, colors = painted.getAttribute("color");
-    const vertices = painted.getAttribute("position");
-    for (let i = 0; i < colors.count; i++) {
-      const y = vertices.getY(i);
-      const seam = Math.sin(Math.atan2(vertices.getZ(i), vertices.getX(i)) * 3 + y * 0.65);
-      if (seam > 0.45 && y < 12) {
-        const tint = new Color().fromBufferAttribute(colors, i).lerp(new Color(PALETTE.forestLight), 0.35);
-        colors.setXYZ(i, tint.r, tint.g, tint.b);
+    for (let j = 0; j < 3; j++) {
+      const sign = j % 2 ? 1 : -1;
+      const start = curve.getPoint(.91 + j * .035), end = radial(a + sign * (.28 + j * .06), 12 + j * 1.7, 6.8 + Math.sin(i * 2.1 + j) * 1.1 + j * .5);
+      const bend = start.clone().lerp(end, .44).add(new Vector3(sign * .8, 0, .65));
+      const secondary = [start, bend, bend.clone().lerp(end, .6).add(new Vector3(-.45, 1.2, -.3)), end];
+      limb(secondary, .23 - j * .035, .024, 10, 5);
+      for (let k = 0; k < 3; k++) {
+        const origin = new CatmullRomCurve3(secondary).getPoint(.5 + k * .23);
+        const twig = origin.clone().add(new Vector3(Math.sin(i * 17 + j * 5 + k) * 2.3, 1 + Math.cos(i + k), Math.cos(i * 5 + j + k) * 2.3));
+        limb([origin, origin.clone().lerp(twig, .5).add(new Vector3(.3, .4, -.3)), twig], .06, .008, 5, 5);
+        paint(new IcosahedronGeometry(1, 0).scale(1.15, .65, 1.1).rotateY(a + j + k).translate(twig.x, twig.y + .35, twig.z), new Color("#394923"), 0);
       }
     }
   }
-  // Interwoven buttresses open into great forks at 6–9 m, inside the playing view.
-  for (let i = 0; i < 4; i++) {
-    const a = i * Math.PI / 2 + phase;
-    const point = (r: number, y: number, turn = 0) => new Vector3(
-      Math.cos(a + turn) * r + 0.8, y, Math.sin(a + turn) * r);
-    limb([point(2.1, 0), point(1.35, 3, 0.7), point(1.8, 7, 1.3),
-      point(5.8, 10, 1.8), point(9.5, 14, 2.1)], 1.85, 18, 10);
-  }
-  limb([new Vector3(0.8, 0, 0), new Vector3(-0.9, 6, 0.8), new Vector3(1.8, 14, -1),
-    new Vector3(-0.8, 24, 0.6), new Vector3(0, 32, 0)], 2.2, 20, 10);
-  for (let tier = 0; tier < 3; tier++) {
-    for (let i = 0; i < 7; i++) {
-      const angle = i * Math.PI * 2 / 7 + tier * 0.72 + phase;
-      const reach = 12.8 - tier * 2.7, y = 5.5 + tier * 8.5;
-      const radial = (r: number, h: number, turn = 0) => new Vector3(Math.cos(angle + turn) * r, h, Math.sin(angle + turn) * r);
-      const fork = radial(reach * 0.7, y + 2.5, 0.3), tip = radial(reach, y + 6, 0.65);
-      limb([radial(0.3, y), radial(reach * 0.38, y + 0.5, -0.3), fork, tip], 1.15 - tier * 0.2, 12);
-      limb([fork, radial(reach * 0.85, y + 5, -0.12), radial(reach * 0.98, y + 7, -0.3)], 0.45, 6);
-      for (let lobe = 0; lobe < 4; lobe++) {
-        const at = radial(reach * (0.6 + lobe * 0.13), y + 8 + (lobe % 2) * 1.2, 0.2 + lobe * 0.25);
-        paint(new IcosahedronGeometry(1, 1).scale(5.2 - tier * 0.6, 3.1, 4.3 - tier * 0.3)
-          .rotateY(angle + lobe).translate(at.x, at.y, at.z),
-        new Color("#203a19").lerp(new Color("#486130"), lobe * 0.13));
-      }
-      if (tier === 0 && i % 2 === 0) {
-        const end = radial(reach * 0.85, 3.2, 0.65);
-        limb([tip, tip.clone().lerp(end, 0.5).add(new Vector3(0.6, 0, -0.3)), end], 0.12, 8, 5);
-      }
-    }
-  }
-  const merged = mergeGeometries(pieces, false)!;
-  pieces.forEach(part => part.dispose());
-  merged.computeVertexNormals();
-  return merged;
+  const merged = mergeGeometries(pieces)!; pieces.forEach(p => p.dispose()); merged.computeVertexNormals(); return merged;
 }
 
 export const createRootsScene: ZoneSceneFactory = context => {
@@ -494,6 +485,10 @@ export const createRootsScene: ZoneSceneFactory = context => {
     else details.forEach(part => part.geometry.dispose());
   }
   const ground = context.heightAt(side * STUMP_X, offsetZ);
+  // The fixed board's full five-metre approach also needs overhead clearance.
+  const treeBlocked = (x: number, z: number) => Math.abs(x) <= PATH_CLEARANCE + .6 || context.onPath(x, z) || context.underWater(x, z)
+    || (side * x >= 2 && side * x <= 7.5 && z - offsetZ >= -14 && z - offsetZ <= -3.5);
+  const treeClearance = rootsOakClearance(treeBlocked, { x: side * (STUMP_X + .8864), z: offsetZ });
   const batches = new Map<Surface, BufferGeometry[]>();
   const colliders: ZoneCollider[] = [];
   for (const part of parts) {
@@ -540,7 +535,7 @@ export const createRootsScene: ZoneSceneFactory = context => {
     part.geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
     part.geometry.computeVertexNormals();
     part.geometry.computeBoundingBox();
-    if (part.solid) {
+    if (part.solid && parts.indexOf(part) < 3) {
       // Physics retains the authored pre-r4 boxes independently of the richer silhouette.
       const collision = part.collision;
       if (collision) {
@@ -556,10 +551,19 @@ export const createRootsScene: ZoneSceneFactory = context => {
       const box = (collision ?? part.geometry).boundingBox!;
       colliders.push({ center: box.getCenter(new Vector3()), size: box.getSize(new Vector3()) });
       collision?.dispose();
-    }
+    } else part.collision?.dispose();
     const batch = batches.get(part.surface) ?? [];
     batch.push(part.geometry);
     batches.set(part.surface, batch);
+  }
+  // Upper limbs are open to walking/riding. Only the bole and soil contacts are solid.
+  colliders.push({ center: new Vector3(side * (STUMP_X + .8864), ground + 1.15, offsetZ), size: new Vector3(3, 2.3, 3) });
+  for (let i = 0; i < 8; i++) {
+    const { contact } = rootsOakLimb(i);
+    const x = side * (STUMP_X + .0864 + contact.x), z = offsetZ + side * contact.z;
+    if (treeClearance(x, z, 0, 0) > .1) continue;
+    if (Math.abs(x) < PATH_CLEARANCE + .6 || [-.4, 0, .4].some(dx => [-.4, 0, .4].some(dz => context.onPath(x + dx, z + dz) || context.underWater(x + dx, z + dz)))) continue;
+    colliders.push({ center: new Vector3(x, context.heightAt(x, z) + .22, z), size: new Vector3(.8, .44, .8) });
   }
   const group = new Group();
   group.name = "roots";
@@ -573,31 +577,48 @@ export const createRootsScene: ZoneSceneFactory = context => {
       z: offsetZ, heightAt: context.heightAt, onDetail(active) {
         const ink = group.getObjectByName("roots-ink"); if (ink) ink.visible = !active;
         dressing?.setTreeDetail(active);
-      } });
+      }, blocked: treeBlocked });
+    for (const name of ["roots-node", "roots-vine", "roots-flower"]) {
+      const legacy = group.getObjectByName(name); if (legacy) legacy.visible = false;
+    }
     group.add(tree.group);
   };
   const buildTree = () => {
     if (disposed) return;
-    const ancientGeometry = createAncientTree(context.seed);
-    const localPositions = ancientGeometry.getAttribute("position");
-    for (let i = 0; i < localPositions.count; i++) {
-      if (localPositions.getY(i) < 1.3) localPositions.setX(i, Math.max(-2.7, localPositions.getX(i)));
-    }
+    const ancientGeometry = createAncientTree();
     // A half-turn mirrors the road-facing silhouette without reversing winding.
     ancientGeometry.scale(side, 1, side);
-    ancientGeometry.translate(side * (STUMP_X + 0.0864), ground + CUT_HEIGHT - 0.28, offsetZ);
+    ancientGeometry.translate(side * (STUMP_X + 0.0864), ground, offsetZ);
     const crownPositions = ancientGeometry.getAttribute("position");
+    const centers = ancientGeometry.getAttribute("oakCenter");
+    const clearance = treeClearance;
     for (let i = 0; i < crownPositions.count; i++) {
       const x = crownPositions.getX(i), z = crownPositions.getZ(i);
       const scale = Math.min(1, (ZONE_BUDGET.radius - 0.2) / Math.hypot(x, z));
-      crownPositions.setXYZ(i, x * scale, crownPositions.getY(i), z * scale);
+      const y = crownPositions.getY(i) - ground, terrain = context.heightAt(x * scale, z * scale);
+      const support = terrain + (ground - terrain) * Math.min(1, Math.max(0, y / 3));
+      const px = x * scale, pz = z * scale;
+      const height = y < 0 ? terrain + y * .15 : y + support;
+      const cx = side * (STUMP_X + .0864 + centers.getX(i)), cz = offsetZ + side * centers.getZ(i), cy = centers.getY(i);
+      const soil = context.heightAt(cx, cz), centerHeight = cy + soil + (ground - soil) * Math.min(1, Math.max(0, cy / 3));
+      const lift = clearance(cx, cz, centerHeight, soil) - centerHeight;
+      crownPositions.setXYZ(i, px, height + lift, pz);
     }
+    ancientGeometry.deleteAttribute("oakCenter");
     ancientGeometry.computeVertexNormals();
     const ancientMaterial = createPropMaterial("wood");
     ancientMaterial.color.setRGB(1, 1, 1);
     addBarkFill(ancientMaterial, true);
+    const compileOak = ancientMaterial.onBeforeCompile;
+    ancientMaterial.onBeforeCompile = (shader, renderer) => {
+      compileOak(shader, renderer);
+      shader.fragmentShader = shader.fragmentShader.replace("vec3 rampShadow = mix( rampShadowTint, diffuseColor.rgb, 0.5 );", "vec3 rampShadow = diffuseColor.rgb * 0.65;");
+    };
     const ancientTree = new Mesh(ancientGeometry, ancientMaterial);
     ancientTree.name = "roots-ancient-tree";
+    // Match streamed LODs: only the authored bole/elbow boxes own collision.
+    // A deferred decorative mesh can still have an identity world matrix before its first paint.
+    ancientTree.raycast = () => {};
     ancientTree.castShadow = true;
     group.add(ancientTree);
     bindTree();

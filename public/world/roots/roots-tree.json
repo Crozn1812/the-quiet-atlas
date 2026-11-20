@@ -1,11 +1,14 @@
 {
   "license": "CC0-1.0",
-  "delivery": "after playable paint; Low uses procedural fallback; LOD0 within 26m / LOD1 beyond 32m",
+  "species": "project-original ancient live oak",
+  "primaryLimbs": 8,
+  "aerialRoots": 0,
+  "delivery": "after playable paint; Low uses matching procedural oak; LOD0 within 26m / LOD1 beyond 32m",
   "assets": [
     {
       "file": "roots-tree-lod0.glb",
       "level": 0,
-      "triangles": 259007,
+      "triangles": 166347,
       "materials": 3,
       "textures": [
         {
@@ -19,17 +22,21 @@
         {
           "uri": "../lib/hr-shared-4647bcc174d32efd.ktx2",
           "bytes": 851984
+        },
+        {
+          "uri": "../lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+          "bytes": 2820970
         }
       ],
       "drawCalls": 3,
-      "bytes": 2623160,
+      "bytes": 3281740,
       "ao": "baked vertex occlusion in trunk flutes and damp root feet",
       "source": "tools/assets/blender/roots-tree-generate.mjs"
     },
     {
       "file": "roots-tree-lod1.glb",
       "level": 1,
-      "triangles": 104327,
+      "triangles": 62514,
       "materials": 3,
       "textures": [
         {
@@ -43,10 +50,14 @@
         {
           "uri": "../lib/hr-shared-4647bcc174d32efd.ktx2",
           "bytes": 851984
+        },
+        {
+          "uri": "../lib/hr-prop-atlas-48e024b701b0a0e8.ktx2",
+          "bytes": 2820970
         }
       ],
       "drawCalls": 3,
-      "bytes": 1198288,
+      "bytes": 1298140,
       "ao": "baked vertex occlusion in trunk flutes and damp root feet",
       "source": "tools/assets/blender/roots-tree-generate.mjs"
     }
