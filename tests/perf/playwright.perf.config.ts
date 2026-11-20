@@ -21,7 +21,7 @@ export default defineConfig({
   retries: 0,
   forbidOnly: isCI,
   timeout: 10 * 60_000,
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["github"]] : "list",
   use: { baseURL: `http://127.0.0.1:${PORT}` },
   webServer: {
     command: `node tools/load-budget/serve-gzip.mjs out --port ${PORT}`,

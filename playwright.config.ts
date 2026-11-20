@@ -23,7 +23,8 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
   // Software WebGL (SwiftShader) saturates the CPU: more than 4 local workers time out Enter World (2026-11-09).
   workers: isCI ? 2 : 4,
-  reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
+  // "github" turns each failure into a public annotation (job logs need a login).
+  reporter: isCI ? [["list"], ["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: "retain-on-failure",
