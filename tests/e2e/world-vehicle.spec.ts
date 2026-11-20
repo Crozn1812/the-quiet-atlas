@@ -36,6 +36,8 @@ for (const scenario of ["brake to rest", "E while rolling", "E during mount"] as
     const world = await enterWorld(page, "en");
     test.skip(!world, "NOT RUN: WebGL2 unavailable");
     await ensureWindowFocus(page);
+    // QF-01 made High the default; on software WebGL the deferred build then outlasts the wait. Build on Low.
+    await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "low" } })));
     // Deferred scenery only builds while the session can simulate. A second
     // Edge worker may start blurred, so restore focus before waiting for it.
     await expect(world!).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
@@ -63,7 +65,9 @@ for (const scenario of ["brake to rest", "E while rolling", "E during mount"] as
       await page.keyboard.up("w");
       if (scenario === "brake to rest") {
         await page.keyboard.down("s");
-        await expect.poll(async () => Math.abs(await world!.evaluate(el => (el as JourneyElement).__tqaJourney.vehicle().speed)),
+        // QF-02: holding S past rest reverses (1.5 m/s), so a slow frame can skip the zero crossing.
+        // Forward motion has stopped once the signed speed is at or below .2.
+        await expect.poll(async () => await world!.evaluate(el => (el as JourneyElement).__tqaJourney.vehicle().speed),
           { timeout: 15_000, intervals: [16] }).toBeLessThan(.2);
         await page.keyboard.up("s");
         await expect.poll(async () => Math.abs(await world!.evaluate(el => (el as JourneyElement).__tqaJourney.vehicle().speed)),
@@ -89,6 +93,8 @@ async function mountForJourney(page: import("@playwright/test").Page) {
   const world = await enterWorld(page, "en");
   test.skip(!world, "NOT RUN: WebGL2 unavailable");
   await ensureWindowFocus(page);
+  // QF-01 made High the default; on software WebGL the deferred build then outlasts the wait. Build on Low.
+  await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "low" } })));
   await expect(world!).toHaveAttribute("data-world-build", "done", { timeout: 90_000 });
   await world!.evaluate(el => el.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "low" } })));
   await world!.locator("canvas").focus();
