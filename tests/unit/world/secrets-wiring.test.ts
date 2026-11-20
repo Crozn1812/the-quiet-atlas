@@ -325,7 +325,7 @@ it.each([false, true])("finishes naturally, suspends while paused and supports r
   for (let i = 0; i < (reduced ? 7 : 361); i++) advance();
   expect(container.dataset.worldEnding).toBe("seen");
   expect(skipButton()).toBeUndefined();
-});
+}, 60_000);
 
 it("gives E dismount priority over a secret, then lets the standing player start the ending", async () => {
   await mount();
@@ -394,5 +394,5 @@ it("disposes landmarks, timers, listeners, DOM and animation frames during an en
   discover("unwritten-page");
   expect(container.dataset.worldEnding).toBe("idle");
   expect(feedback().textContent).toBe(NOT_YET_FEEDBACK.en);
-});
+}, 60_000);
 

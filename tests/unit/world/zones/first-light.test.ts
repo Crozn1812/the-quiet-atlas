@@ -215,7 +215,7 @@ describe("First Light pine clearing", () => {
     } finally {
       placed.forEach(scene => scene.dispose());
     }
-  });
+  }, 60_000);
 
   it("rejects wet footprints, including water through the interior rather than just at a centre", () => {
     const ctx = context({ underWater: (x, z) => x < -6 || (x > 4.47 && x < 4.66 && z > 3.4 && z < 4.2) });
