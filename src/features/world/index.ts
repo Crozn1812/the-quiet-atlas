@@ -1296,6 +1296,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     if (last && canSimulate(state)) {
       const ms = now - last;
       perf?.record(ms);
+      // Duy 20/11: loading hitches (deferred dressing, HR streaming, shader compiles) dropped the default High world
+      // to Low within seconds, so viewers saw the stylized Low look. Only judge frames of the finished world:
+      // the warm-up restarts until dressing and the intro are both done.
+      if (container.dataset.worldBuild !== "done" || container.dataset.worldIntro !== "done") adaptive = { ...initialAdaptive(), manual: adaptive.manual };
       const result = sampleQuality(adaptive, ms, quality);
       adaptive = result.state;
       applyQuality(result.quality);

@@ -4,12 +4,17 @@ export const QUALITY_WARMUP_MS = 5000;
 export const QUALITY_WINDOW_MS = 3000;
 export const QUALITY_LOCK_MS = 10000;
 export const QUALITY_P95_LIMIT_MS = 1000 / 30;
+/** QF (Duy 20/11): streaming hitches alone must not drop High. Lower only when the typical frame is slow too. */
+export const QUALITY_MEDIAN_LIMIT_MS = 1000 / 30;
+export const QUALITY_SLOW_WINDOWS = 3;
 export interface AdaptiveState {
   elapsed: number;
   lockedUntil: number;
   frames: readonly number[];
   windowTime: number;
   manual: boolean;
+  /** Consecutive slow windows; a streaming burst rarely lasts three. */
+  slowWindows?: number;
 }
 export const initialAdaptive = (): AdaptiveState => ({
   elapsed: 0,
@@ -35,7 +40,10 @@ export function sampleQuality(state: AdaptiveState, ms: number, quality: Quality
   }
   const sorted = [...frames].sort((a, b) => a - b);
   const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1]!;
-  const lower = p95 > QUALITY_P95_LIMIT_MS;
+  const median = sorted[Math.floor((sorted.length - 1) / 2)]!;
+  const slow = p95 > QUALITY_P95_LIMIT_MS && median > QUALITY_MEDIAN_LIMIT_MS;
+  const slowWindows = slow ? (state.slowWindows ?? 0) + 1 : 0;
+  const lower = slowWindows >= QUALITY_SLOW_WINDOWS;
   return {
     state: {
       ...state,
@@ -43,6 +51,7 @@ export function sampleQuality(state: AdaptiveState, ms: number, quality: Quality
       lockedUntil: lower ? elapsed + QUALITY_LOCK_MS : state.lockedUntil,
       frames: [],
       windowTime: 0,
+      slowWindows: lower ? 0 : slowWindows,
     },
     quality: lower ? "Low" : quality,
   };

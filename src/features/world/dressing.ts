@@ -14,6 +14,7 @@ import { nearestPath } from "./terrain/samples";
 import { sampleShoreContour, shoreGroundHeight, shoreNormal, type ShorePoint } from "./shore/contour";
 import { SHORE_SEED, shorePlacementClear, type ShoreLayout, type ShoreStone, type Pebble, type Boulder, type Cairn, type SandPatch } from "./shore/layout";
 import { createShoreRockGeometry } from "./shore/geometry";
+import { bindHrProps, type HrPropId, type HrPropSite } from "./props/hr-props";
 import { createRoadLayout } from "./road/layout";
 import { createRoadInstances, createRoadWires } from "./road/posts";
 
@@ -285,6 +286,18 @@ function dressingShoreLayout() {
   return { layout, build: build() };
 }
 
+/** Rocks near water read wet and mossy; dry ones are bare boulders or slate. Prisms sit on their base, scans sink 15%. */
+function hrShoreRock(item: ShoreStone, pebble: boolean): HrPropSite {
+  const wet = worldHeight(item.x, item.z) < waterLevelAt(item.z) + 0.6;
+  const pick = random(item.x, item.z, 41);
+  const family: readonly HrPropId[] = pebble ? ["hr-rock-river", "hr-rock-moss-river"]
+    : wet ? ["hr-rock-moss-boulder", "hr-rock-moss-slate", "hr-rock-river"] : ["hr-rock-boulder", "hr-rock-slate", "hr-rock-moss-boulder"];
+  const asset = family[Math.min(family.length - 1, Math.floor(pick * family.length))]!;
+  const [w, h, d] = item.size;
+  return { asset, x: item.x, z: item.z, baseY: item.y - h * 0.15, size: [w * 1.1, h * 1.15, d * 1.1], yaw: item.yaw,
+    tint: 0.78 + item.pigment * 0.3 };
+}
+
 function deferredShore() {
   // Only the contour and solid layout are needed up front; pebble/sand placement is deferred.
   const { layout, build: placement } = dressingShoreLayout();
@@ -299,6 +312,7 @@ function deferredShore() {
   const geometries: BufferGeometry[] = [];
   const materials: MeshToonMaterial[] = [];
   const instances: InstancedMesh[] = [];
+  const bindings: ReturnType<typeof bindHrProps>[] = [];
   function* stones(name: string, items: readonly ShoreStone[], sides: 4 | 6, material: MeshToonMaterial) {
     const geometry = createShoreRockGeometry(sides);
     geometries.push(geometry);
@@ -324,6 +338,10 @@ function deferredShore() {
     mesh.computeBoundingBox();
     yield;
     mesh.computeBoundingSphere();
+    // QF-05 (Duy, 20/11: "các khối đá đã không thành hình"): High swaps the faceted prisms for scanned HR rocks.
+    // Low keeps the prisms; colliders stay the layout boxes.
+    bindings.push(bindHrProps(mesh, items.map(item => hrShoreRock(item, sides === 4)), worldHeight, undefined, undefined,
+      { radius: sides === 4 ? 30 : 75 }));
     return mesh;
   }
   function* construct() {
@@ -338,6 +356,7 @@ function deferredShore() {
   const build = construct();
   return { group, colliders, build, dispose() {
     build.return(); placement.return();
+    bindings.forEach(binding => binding.dispose());
     instances.forEach(mesh => mesh.dispose());
     geometries.forEach(geometry => geometry.dispose());
     materials.forEach(material => material.dispose());

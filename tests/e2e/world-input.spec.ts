@@ -36,8 +36,8 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
   await expect(world).toHaveAttribute("data-world-paused", "true");
   // Adaptive quality (L2-007) may already have stepped down under load; the menu pauses it from here on.
   const initial = (await world.getAttribute("data-world-quality")) ?? "";
-  // B2-230: quality is a radio group; focus the checked radio (the control a keyboard user lands on).
-  const select = dialog(page).getByRole("group", { name: "Quality" }).locator(`input[value="${initial}"]`);
+  // QF-01: quality is two toggle buttons; focus the pressed one (the control a keyboard user lands on).
+  const select = dialog(page).getByRole("group", { name: "Quality" }).locator(`button[value="${initial}"]`);
   await select.focus();
   await expect(select).toBeFocused();
 
@@ -47,7 +47,7 @@ test("Q13 (automatable part): W/A/S/D/E typed in the menu <select> neither close
     await expect(world, `"${key}" changed paused`).toHaveAttribute("data-world-paused", "true");
   }
   await expect(select).toBeFocused();
-  await expect(select).toBeChecked();
+  await expect(select).toHaveAttribute("aria-pressed", "true");
   await expect(world).toHaveAttribute("data-world-quality", initial);
   expect(errors, errors.join("\n")).toEqual([]);
 });
