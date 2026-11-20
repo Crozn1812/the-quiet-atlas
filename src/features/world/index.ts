@@ -41,6 +41,7 @@ import { pathLength, pathPointAt } from "./layout/path";
 import { CORRIDOR_POINTS } from "./post/paper";
 import { nearestPath, nearestRiver } from "./terrain/samples";
 import { TERRAIN_RADIUS } from "./terrain/tiles";
+import { createIntroPreparation, introAssetsReady, trackIntroAsset } from "./cinematic/preparation";
 import { createIntroController } from "./cinematic/controller";
 import { createEndingController } from "./cinematic/ending-controller";
 import { endingAtmosphere, type EndingFrame } from "./cinematic/ending";
@@ -150,7 +151,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     for (const zone of zones) scene.add(zone.group);
     for (const group of dressing.groups) scene.add(group);
     // B2-179: the first playable frame only needs the nearby world and fixed colliders.
-    // Optional visuals share a 4 ms queue, started after the intro hands control to the player.
+    // High runs the bounded visual queue behind intro paper; Low waits for control.
     dressing.defer((function* () {
       const shafts = measure("forest-sun", () => createForestSunShafts(surfaceHeight));
       forestSun = { ...shafts, dispose() {
@@ -165,7 +166,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     dressing.defer(farLandscape.build);
     // Optional construction waits while paused, just like simulation: no scenery may pop into a frozen menu view.
     container.dataset.worldBuild = "pending";
-    dressing.startDeferred(() => container.dataset.worldIntro === "done" && canSimulate(state), () => { container.dataset.worldBuild = "done"; });
+    dressing.startDeferred(() => (container.dataset.worldIntro === "done" || container.dataset.worldIntroAssets === "true") && canSimulate(state), () => { container.dataset.worldBuild = "done"; });
     // Fixed cuboids in Rapier; the mesh backend uses these same oriented boxes as raycast obstacles.
     function addZoneColliders(boxes: typeof zoneBoxes) {
       if (opts.collision === "raycast") return;
@@ -780,7 +781,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     return canSimulate(state) && !cinematicLocked() && !teleport.inputLocked && !lookout.active && !isInputTarget(document.activeElement);
   }
   function keydown(event: KeyboardEvent) {
-    if ((intro?.inputLocked || ending?.inputLocked) && (event.code === "Escape" || (event.code === "Enter" && document.activeElement === cinematicUI?.skip))) {
+    if ((introPending() || ending?.inputLocked) && (event.code === "Escape" || (event.code === "Enter" && document.activeElement === cinematicUI?.skip))) {
       event.preventDefault();
       skipCinematic();
       return;
@@ -1083,6 +1084,8 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       cinematicUI.fade.style.opacity = String(pose.paperOpacity);
     }
     if (intro?.state === "done") {
+      delete container.dataset.worldIntroAssets;
+      if (container.dataset.worldIntroWait === "pending") container.dataset.worldIntroWait = "done";
       composed.setPreload(0);
       paper.setCorridor(null);
       removeCinematicUI();
@@ -1095,7 +1098,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function skipCinematic() {
     if (contextLost || disposed) return;
     if (ending?.inputLocked) applyEnding(ending.skip());
-    else if (intro?.inputLocked) applyIntro(intro.skip());
+    else if (introPending()) applyIntro(intro.skip());
   }
   function createCinematicUI(kind: "intro" | "ending") {
     // HUD lives outside the viewport. Scope its visibility to this entry's cinematic state.
@@ -1136,15 +1139,41 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     cinematicUI = { skip, bars, fade };
     return skip;
   }
+  let introPreparation: ReturnType<typeof createIntroPreparation> | undefined;
+  let introPrepareStarted = 0;
+  let introWarmViews = 0;
   function startIntro() {
     if (intro?.state !== "idle" || !canSimulate(state)) return;
     clear();
-    const skip = createCinematicUI("intro");
+    const skip = cinematicUI?.skip ?? createCinematicUI("intro");
+    if (quality === "High" && !reducedMotion && !introPreparation) {
+      introPrepareStarted = performance.now();
+      introPreparation = createIntroPreparation(introPrepareStarted);
+      container.dataset.worldIntroAssets = "true";
+      container.dataset.worldIntroWait = "pending";
+      skip.focus({ preventScroll: true });
+    }
     // The overview shows the first bends of the river: stream them before the first intro frame.
     composed.setPreload(INTRO_PRELOAD_M);
     composed.update(physics.position, 0);
     // Direction R shows the full forest and sky, without the legacy paper corridor.
     paper.setCorridor(WORLD_DIRECTION === STYLE_PRESETS.R ? null : introCorridor(physics.position), TERRAIN_RADIUS);
+    if (introPreparation && !reducedMotion) {
+      // Warm three flight views under paper using gameplay's render-driven HR leases.
+      if (container.dataset.worldBuild === "done" && introWarmViews < 3) introWarmViews++;
+      applyIntro(intro.preview([0, 0.5, 0.9][Math.max(0, introWarmViews - 1)]!));
+      if (cinematicUI) {
+        cinematicUI.fade.style.opacity = "1";
+        for (const bar of cinematicUI.bars) bar.style.height = "12%";
+      }
+      publishIntro("playing");
+      const now = performance.now();
+      if (!introPreparation.ready(now, container.dataset.worldBuild === "done" && introWarmViews >= 3, introAssetsReady(gpu, now))) return;
+    }
+    if (introPreparation) {
+      container.dataset.worldIntroWait = "done";
+      container.dataset.worldIntroWaitMs = String(Math.round(performance.now() - introPrepareStarted));
+    }
     applyIntro(intro.start());
     const active = document.activeElement;
     if (!active || active === document.body || active === gpu.domElement) skip.focus({ preventScroll: true });
@@ -1312,7 +1341,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       introFrame = intro.tick(canSimulate(state) && wasPlaying ? dt : 0);
     } else if (ending?.inputLocked) {
       if (canSimulate(state)) applyEnding(ending.tick(dt));
-    } else if (!lookout.active) updateCamera(animDt);
+    } else if (!lookout.active && !(introPreparation && intro?.state === "idle")) updateCamera(animDt);
     lookout.update(animDt);
     interaction.update();
     composed.update(physics.position, 0);
@@ -1449,14 +1478,18 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
         }
       });
       // Includes off-camera meshes; never await compilation in the frame loop.
-      if (changed && typeof renderer.compileAsync === "function") void renderer.compileAsync(scene, camera).catch(() => {
-        // Context recovery is handled by the existing renderer lifecycle.
-      });
+      if (changed && typeof renderer.compileAsync === "function") {
+        const compiled = renderer.compileAsync(scene, camera);
+        if (introPreparation) trackIntroAsset(renderer, compiled);
+        void compiled.catch(() => {
+          // Context recovery is handled by the existing renderer lifecycle.
+        });
+      }
       if (composed.groundReady && zones.length === ZONES.length) return;
       yield;
     }
   })());
-  zoneScenes.startDeferred(() => container.dataset.worldIntro === "done" && canSimulate(state) && !document.hidden && !contextLost);
+  zoneScenes.startDeferred(() => (container.dataset.worldIntro === "done" || container.dataset.worldIntroAssets === "true") && canSimulate(state) && !document.hidden && !contextLost);
   if (!document.hidden) frame = requestAnimationFrame(tick);
   return () => {
     if (disposed) return;
@@ -1474,6 +1507,9 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     translate.removeEventListener("focus", holdPoem);
     translate.remove();
     delete container.dataset.worldEnding;
+    delete container.dataset.worldIntroAssets;
+    delete container.dataset.worldIntroWait;
+    delete container.dataset.worldIntroWaitMs;
     delete container.dataset.worldIntro;
     delete container.dataset.worldBuild;
     container.removeEventListener(TELEPORT_TO_EVENT, teleportTo);

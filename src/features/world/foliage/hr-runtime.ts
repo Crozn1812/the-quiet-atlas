@@ -1,3 +1,4 @@
+import { introAssetsAllowed, trackIntroAsset } from "../cinematic/preparation";
 import { Box3, BufferGeometry, Color, Frustum, Group, InstancedBufferAttribute, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshDepthMaterial, MeshDistanceMaterial, RGBADepthPacking, Scene, Sphere, Vector2, Vector3, type Material, type WebGLRenderer } from "three";
 import type { Quality } from "../terrain";
 import { acquireHrTree, type HrAsset } from "./hr-library";
@@ -233,6 +234,7 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
     if (leases.has(key) || failed.has(key)) return;
     const generation = revision;
     const lease = acquireHrTree(renderer, selected[0]!.id, level); leases.set(key, lease);
+    trackIntroAsset(renderer, lease.ready);
     void lease.ready.then(asset => {
       if (disposed || generation !== revision || quality === "Low") return;
       batches.set(key, createBatch(asset, selected, level));
@@ -247,10 +249,11 @@ export function bindHrForest(fallbacks: readonly InstancedMesh[], options: { can
     // procedural forest here, as on Low, before requesting/compiling HR assets.
     // This is a renderer capability path, independent of UA, quality pin or QA.
     if (usesSoftwareRasterizer(renderer)) return;
-    // Active simulation also ticks during the cinematic. Network/GPU upgrades
-    // wait until the real viewport has handed control back and finished dressing.
+    // High preparation opts into the same upgrades behind paper; other modes
+    // retain the post-control gate. Paused preparation cannot start new requests.
     const viewport = renderer.domElement?.closest<HTMLElement>(".world-viewport");
-    if (viewport && (viewport.dataset.worldIntro !== "done" || viewport.dataset.worldBuild !== "done")) return;
+    if (viewport && !introAssetsAllowed(viewport) && (viewport.dataset.worldIntro !== "done" || viewport.dataset.worldBuild !== "done")) return;
+    if (introAssetsAllowed(viewport) && viewport?.dataset.worldPaused === "true") return;
     lastFrame = renderer.info.render.frame;
     clock = clocks.get(scene)!;
     const constrained = cadence.get(scene)?.constrained ?? false;

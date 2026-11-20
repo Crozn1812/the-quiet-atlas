@@ -1,3 +1,4 @@
+import { introAssetsAllowed, trackIntroAsset } from "../cinematic/preparation";
 import {
   Box3, BufferAttribute, BufferGeometry, Group, Mesh, Vector3,
   type Material, type Object3D, type Texture, type WebGLRenderer,
@@ -193,6 +194,7 @@ export function bindSetpieces(anchor: Mesh, binding: SetpieceBinding) {
     let ready: Promise<SetpieceAsset>;
     if (binding.load) ready = binding.load(renderer, binding.file).then(asset => { custom = asset; return asset; });
     else { const acquired = acquireSetpiece(renderer, binding.file); lease = acquired; ready = acquired.ready; }
+    trackIntroAsset(renderer, ready);
     void ready.then(asset => {
       if (disposed) { custom?.dispose(); return; }
       binding.place(asset, (object, parent) => {
@@ -210,8 +212,8 @@ export function bindSetpieces(anchor: Mesh, binding: SetpieceBinding) {
     const allowed = bakedPropQuality(anchor) !== "Low" && !!renderer?.domElement && !usesSoftwareRasterizer(renderer);
     if (allowed && state === "idle") {
       const viewport = renderer.domElement.closest?.("[data-world-build]");
-      if (viewport?.getAttribute("data-world-build") === "done" && viewport.getAttribute("data-world-intro") === "done"
-        && viewport.getAttribute("data-world-paused") === "false") start(renderer);
+      if ((introAssetsAllowed(viewport as HTMLElement | null) || (viewport?.getAttribute("data-world-build") === "done" && viewport.getAttribute("data-world-intro") === "done"))
+        && viewport?.getAttribute("data-world-paused") === "false") start(renderer);
     }
     const next = allowed && state === "ready";
     if (next !== active) toggle(next);

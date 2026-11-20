@@ -158,9 +158,9 @@ function advance(ms = 100) {
 const skipButton = () => container.children.find(child => child.dataset.worldIntroSkip === "true");
 const camera = () => harness.camera as PerspectiveCamera;
 const position = () => harness.position as Vector3;
-async function mount() {
+async function mount(quality?: "high" | "low") {
   const { mountWorld } = await import("../../../src/features/world/index");
-  unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast" });
+  unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast", quality });
 }
 beforeEach(() => {
   vi.clearAllMocks();
@@ -490,4 +490,26 @@ it("keeps quality/locale, removes every listener/DOM/rAF on active unmount, and 
   await mount();
   expect(container.dataset.worldIntro).toBe("playing");
   expect(skipButton()).toBeDefined();
+});
+
+for (const key of ["Escape", "Enter"]) it(`keeps High paper opaque and allows ${key} while preparing`, async () => {
+  await mount("high");
+  expect(container.dataset.worldIntroWait).toBe("pending");
+  expect(container.dataset.worldIntroAssets).toBe("true");
+  expect(doc.activeElement).toBe(skipButton());
+  expect(elements.find(element => element.children.some(child => child.tagName === "style"))?.style.opacity).toBe("1");
+  send(win, "keydown", { code: key });
+  expect(container.dataset.worldIntro).toBe("done");
+  expect(container.dataset.worldIntroAssets).toBeUndefined();
+  expect(skipButton()).toBeUndefined();
+});
+it("keeps Low and reduced-motion High on the immediate intro path", async () => {
+  await mount("low");
+  expect(container.dataset.worldIntroWait).toBeUndefined();
+  unmount!();
+  media.matches = true;
+  await mount("high");
+  expect(container.dataset.worldIntroWait).toBeUndefined();
+  for (let i = 0; i < 5; i++) advance();
+  expect(container.dataset.worldIntro).toBe("done");
 });

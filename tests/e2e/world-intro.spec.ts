@@ -42,3 +42,29 @@ test.describe("reduced motion", () => {
     await expect(world!).toHaveAttribute("data-world-intro", "done", { timeout: 15_000 });
   });
 });
+
+test("High prepares scenery behind paper before flight and remains skippable", async ({ page }) => {
+  await page.addInitScript(() => {
+    const dispatch = EventTarget.prototype.dispatchEvent;
+    let selected = false;
+    EventTarget.prototype.dispatchEvent = function (event) {
+      if (event.type === "tqa:world-state" && !selected) {
+        selected = true;
+        dispatch.call(this, new CustomEvent("tqa:set-quality", { detail: { quality: "high" } }));
+      }
+      return dispatch.call(this, event);
+    };
+  });
+  const world = await enterWorld(page, "en");
+  test.skip(!world, "NOT RUN: no WebGL2");
+  await expect(world!).toHaveAttribute("data-world-quality", "high");
+  await expect(world!).toHaveAttribute("data-world-intro-wait", /pending|done/);
+  await expect(world!).toHaveAttribute("data-world-intro-wait", "done", { timeout: 20_000 });
+  const waitMs = Number(await world!.getAttribute("data-world-intro-wait-ms"));
+  expect(waitMs).toBeGreaterThan(0);
+  // RAF observes the wall-clock cap on its next available frame, including software WebGL.
+  expect(waitMs).toBeLessThan(15_000);
+  await page.locator("[data-world-intro-skip]").click();
+  await expect(world!).toHaveAttribute("data-world-intro", "done");
+  await expect(world!).not.toHaveAttribute("data-world-intro-assets");
+});

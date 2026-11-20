@@ -26,6 +26,8 @@ export function createIntroController({ gameplayPose, reducedMotion = false }: I
     get inputLocked(): boolean { return state === "playing"; },
     get elapsed(): number { return elapsed; },
     duration,
+    /** Sample warm-up views without advancing the flight clock. */
+    preview(progress: number): IntroFrame { return intro.sample(progress * intro.duration); },
     /** Idempotent: calling start again never rewinds a playing/completed intro. */
     start(): IntroFrame {
       if (state === "idle") state = "playing";
