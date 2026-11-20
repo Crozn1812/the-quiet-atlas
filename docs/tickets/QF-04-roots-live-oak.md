@@ -1,0 +1,31 @@
+## TICKET QF-04 — Đổi cây cổ thụ khu Roots thành cây sồi cổ thụ tán xòe (kiểu live oak)
+
+- **Lane / milestone:** L3 / playtest Duy 20/11.
+- **Duy:** "Đây là bức ảnh cổ thụ mà mình muốn, hãy thay đổi cổ thụ này bằng cổ thụ trong khu vực."
+- **Hiện tại:** cây đa có thân trụ thẳng to, rễ phụ buông như dây, rễ bạnh dạng tấm phẳng. Nguồn là `tools/assets/blender/roots-tree-generate.mjs`, kết quả nằm ở `public/world/roots/roots-tree-lod0.glb`, `roots-tree-lod1.glb` và `roots-tree.json`. Runtime ở `src/features/world/zones/roots-tree.ts`.
+- **Mẫu Duy muốn** (ảnh chỉ để lấy cảm hứng, không chép hình; Lead mô tả lại bằng lời):
+  - Một cây sồi cổ thụ rất già, **thân ngắn và to**, gốc loe, vỏ nâu xám sần và nứt dọc.
+  - Từ độ cao khoảng 2–3 m, thân **tách ngay thành 6–9 cành chính khổng lồ**. Các cành này **vươn ngang và uốn vặn**. Nhiều cành **trườn sát rồi chạm mặt đất** ở xa gốc, sau đó lại cong vút lên.
+  - Cành chia nhỏ dần thành mạng cành con ngoằn ngoèo, chằng chịt.
+  - **Rêu xanh vàng** phủ mặt trên các cành lớn. Có **dương xỉ bám cành** và vài dải rêu rủ.
+  - **Tán lá xanh non sáng, mỏng, xuyên sáng**, xòe rất rộng: đường kính tán khoảng **2,5–3 lần chiều cao cây**. Dưới tán thoáng, nhìn rõ cấu trúc cành.
+  - Mặt đất quanh gốc là **lá khô nâu đỏ**, không có cỏ trong bán kính tán.
+  - Không có rễ phụ buông dạng dây như cây đa hiện tại.
+- **Được sửa:**
+  - `tools/assets/blender/roots-tree*` (có thể dùng Blender CLI)
+  - `public/world/roots/`
+  - `src/features/world/zones/roots-tree.ts` và `roots-dressing.ts`, chỉ phần cây và nền lá dưới cây
+  - `assets/LICENSES.csv`
+  - test roots tương ứng
+- **Không được sửa:** `roots-sign.ts`, nội dung Roots, `index.ts`, lockfile, `docs/`.
+- **Giữ nguyên:**
+  - vị trí gốc cây, điểm tương tác và bảng kỹ năng; cây không che bảng;
+  - người chơi và xe vẫn đi được dưới tán, giữa các cành. Collider chỉ đặt cho thân và các đoạn cành chạm đất;
+  - texture: dùng lại vỏ, lá, rêu CC0 đã có trong `public/world/lib/hr-*` hoặc Poly Haven CC0, ghi dòng LICENSES;
+  - GLB meshopt + KTX2, LOD0/LOD1, nạp deferred. Low dùng bản rẻ nhưng cùng dáng và màu.
+- **Ngân sách:** LOD0 ≤ 6 MB, LOD1 ≤ 1,5 MB. Đo tam giác và draw call, ghi vào bàn giao.
+- **Điều kiện xong:**
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test` exit 0.
+  - Build một lần sau thay đổi cuối, rồi `E2E_PORT=<cổng riêng> pnpm exec playwright test tests/e2e/world-content.spec.ts` PASS.
+  - Ảnh High trước/sau cùng góc: đứng trước bảng 5 m, và toàn cây từ 25 m. Thêm một ảnh Low. Lưu vào `test-results/qf-04/`.
+- **Bàn giao:** file, output lệnh, ảnh, byte/tam giác/draw call, giới hạn đã biết. Không commit.
