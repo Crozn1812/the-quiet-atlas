@@ -12,7 +12,7 @@ Duy chơi demo và gửi 9 mục. ADR 0020 (xe tự do, chỉ Low/High).
 | QF-04 | Cây sồi cổ thụ Roots | trả lại vòng 1 (dáng cành); Codex C hết lượt tới 23:15, tự chạy lại |
 | QF-05 | Đá ven biển HR + **sửa adaptive quality tụt High→Low** | merged d720110 (Lead) |
 | QF-06 | Piano chơi bằng bàn phím ở Quiet Shore | merged 4d731ba (Lead) |
-| QF-07 | Tàu đắm ngoài khơi có khói | doing (Codex A) |
+| QF-07 | Tàu đắm ngoài khơi có khói | trả lại vòng 1 (khói thành chuỗi chấm); thân tàu đạt |
 | QF-08 | Ảnh Welcome + 8 ảnh khu chụp lại ở High | merged a9ba2b4 (Lead); chụp lại Roots sau QF-04 |
 
 Nguyên nhân gốc của "ảnh/intro thô": adaptive quality hạ High→Low vài giây sau khi vào (giật lúc stream tài nguyên làm p95 > 33 ms), trong khi máy chạy ổn ~100 FPS. Giờ chỉ đánh giá khi thế giới dựng xong và cần 3 cửa sổ liên tiếp có cả median lẫn p95 chậm.
@@ -21,10 +21,12 @@ Nguyên nhân gốc của "ảnh/intro thô": adaptive quality hạ High→Low v
 |---|---|
 | gate merge (lint, typecheck, assets, licenses, unit 2034) | PASS |
 | e2e world (48) trên main 4d731ba+QF-02 | 42 PASS, 6 FAIL vehicle (timeout build khi máy tải nặng); chạy riêng vehicle: 5 PASS + 1 FAIL, chạy lại ca đó PASS → FLAKY dưới tải |
+| Sửa e2e vehicle (QF-E2E, b152e4c): dựng cảnh ở Low trước khi chờ; phanh cho phép lùi | world 46/48 (1 FAIL phanh đã sửa, 1 timeout dưới tải 2 worker); vehicle chạy riêng 6/6 PASS |
+| Next.js 16.4.6 (31820d0, Duy duyệt 20/11) | build 3/3 không còn SecurityFatalError; unit 2033 PASS; e2e 157 PASS + 6 FAIL vehicle (đã sửa ở QF-E2E) |
 | e2e piano + content | PASS (5) |
 | FPS High nhân vật mới | NOT RUN |
 
-Next.js báo SecurityFatalError ngẫu nhiên khi build (chạy lại thì qua) — chờ Duy duyệt nâng.
+Next.js đã nâng 16.4.6 (WASM: AppData/Local/next-swc/wasm-16.4.6/package). Không có tài khoản Codex E (Duy 20/11).
 
 ## HR-FACELESS — 19/11 01:00 (Claude-Lead)
 
