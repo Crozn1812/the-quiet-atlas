@@ -21,6 +21,7 @@ export function loadWorldContent(locale: string) {
   return pending;
 }
 import { pauseWorld, trapFocus } from "./worldMenuControls";
+import { mountPiano } from "./piano/PianoDialog";
 
 export const zoneNames = {
   "first-light": "The First Light",
@@ -53,6 +54,17 @@ export function mountWorldContent(container: HTMLElement, language: string) {
   let failed = false;
   let disposed = false;
   let zoneId: keyof typeof zoneNames | undefined;
+  const piano = mountPiano(container, () => locale);
+
+  /** QF-06: from the Quiet Shore overlay straight into the piano; the world stays paused in between. */
+  function playPiano() {
+    if (!zoneId) return;
+    const closed = zoneId;
+    zoneId = undefined;
+    dialog.close();
+    container.dispatchEvent(new CustomEvent("tqa:content-closed", { detail: { zoneId: closed } }));
+    piano.open();
+  }
 
   function close() {
     if (!zoneId) return;
@@ -113,11 +125,18 @@ export function mountWorldContent(container: HTMLElement, language: string) {
             />
           </>
         ) : data ? (
-          <ZoneContent
-            locale={locale}
-            zoneId={zoneId!}
-            data={data}
-          />
+          <>
+            {zoneId === "quiet-shore" && (
+              <button type="button" className={magazine.pianoButton} data-world-piano-open="true" onClick={playPiano}>
+                {locale === "vi" ? "🎹 Chơi piano" : "🎹 Play the piano"}
+              </button>
+            )}
+            <ZoneContent
+              locale={locale}
+              zoneId={zoneId!}
+              data={data}
+            />
+          </>
         ) : (
           <>
             <p>{failed ? (locale === "vi" ? "Không thể tải nội dung." : "Could not load content.") : (locale === "vi" ? "Đang tải…" : "Loading…")}</p>
@@ -137,7 +156,7 @@ export function mountWorldContent(container: HTMLElement, language: string) {
   function open(event: Event) {
     const requested: unknown = (event as CustomEvent).detail?.zoneId;
     if (typeof requested !== "string" || !Object.hasOwn(zoneNames, requested)) return;
-    if (zoneId || document.querySelector("dialog[open]")) return;
+    if (zoneId || piano.isOpen || document.querySelector("dialog[open]")) return;
     zoneId = requested as keyof typeof zoneNames;
     pauseWorld(container, true);
     dialog.showModal();
@@ -204,5 +223,6 @@ export function mountWorldContent(container: HTMLElement, language: string) {
     document.removeEventListener("keydown", onKey, true);
     root.unmount();
     dialog.remove();
+    piano.dispose();
   }, { setLocale });
 }

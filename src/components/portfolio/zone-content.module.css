@@ -277,3 +277,24 @@
 :global(.world-content) .kicker { display: none; }
 
 :global(.world-content) > div:has(.page) { max-inline-size: 88rem; }
+
+/* QF-06: Quiet Shore invites the viewer to the porch piano. */
+.pianoButton[type="button"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-block-size: 2.75rem;
+  margin: 0.25rem 0 1rem;
+  padding: 0 1.1rem;
+  border: 1px solid #2b2a26;
+  border-radius: 999px;
+  color: #2b2a26;
+  background: #f6efdc;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.pianoButton:focus-visible {
+  outline: 2px solid #2e5e73;
+  outline-offset: 3px;
+}
