@@ -12,7 +12,7 @@ Duy chơi demo và gửi 9 mục. ADR 0020 (xe tự do, chỉ Low/High).
 | QF-04 | Cây sồi cổ thụ Roots | trả lại vòng 1 (dáng cành); Codex C hết lượt tới 23:15, tự chạy lại |
 | QF-05 | Đá ven biển HR + **sửa adaptive quality tụt High→Low** | merged d720110 (Lead) |
 | QF-06 | Piano chơi bằng bàn phím ở Quiet Shore | merged 4d731ba (Lead) |
-| QF-07 | Tàu đắm ngoài khơi có khói | trả lại vòng 1 (khói thành chuỗi chấm); thân tàu đạt |
+| QF-07 | Tàu đắm ngoài khơi có khói | merged 5528847 (Codex A, vòng 2: khói thành cột mềm) |
 | QF-08 | Ảnh Welcome + 8 ảnh khu chụp lại ở High | merged a9ba2b4 (Lead); chụp lại Roots sau QF-04 |
 
 Nguyên nhân gốc của "ảnh/intro thô": adaptive quality hạ High→Low vài giây sau khi vào (giật lúc stream tài nguyên làm p95 > 33 ms), trong khi máy chạy ổn ~100 FPS. Giờ chỉ đánh giá khi thế giới dựng xong và cần 3 cửa sổ liên tiếp có cả median lẫn p95 chậm.
