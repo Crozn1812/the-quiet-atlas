@@ -9,7 +9,7 @@ Duy chơi demo và gửi 9 mục. ADR 0020 (xe tự do, chỉ Low/High).
 | QF-01 | Bỏ Balanced, chỉ Low/High | merged 3ca90dc (Codex A) |
 | QF-02 | Xe lái tự do, qua cầu | merged 5c054f4 (Codex A; Lead cho phép lái khi cruise) |
 | QF-03 | Intro High chờ cảnh dựng xong (trần 8 s) | merged 5c81ca7 (Codex C) |
-| QF-04 | Cây sồi cổ thụ Roots | trả lại vòng 1 (dáng cành); Codex C hết lượt tới 23:15, tự chạy lại |
+| QF-04 | Cây sồi cổ thụ Roots | trả lại vòng 2 (21/11 00:20): dáng xòe đạt nhưng thân/cành quá mảnh, tán xanh nõn; vòng 3 Lead tự sửa |
 | QF-05 | Đá ven biển HR + **sửa adaptive quality tụt High→Low** | merged d720110 (Lead) |
 | QF-06 | Piano chơi bằng bàn phím ở Quiet Shore | merged 4d731ba (Lead) |
 | QF-07 | Tàu đắm ngoài khơi có khói | merged 5528847 (Codex A, vòng 2: khói thành cột mềm) |
