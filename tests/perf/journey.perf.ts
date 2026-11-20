@@ -17,6 +17,9 @@ const distance = (a: Position, b: Position) => Math.hypot(a.x - b.x, a.y - b.y, 
 const wrap = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
 
 // This file alone uses a visible hardware browser; the other perf tests keep their settings.
+// Needs a visible hardware-GPU Edge; GitHub runners have neither a display nor Edge. File-level so no browser
+// launches on CI; reported as skipped (NOT RUN), never PASS.
+test.skip(Boolean(process.env.CI), "NOT RUN on CI: B2-210 runs locally on a hardware-GPU Edge");
 test.use({ headless: false, channel: process.env.PLAYWRIGHT_CHANNEL ?? "msedge", viewport: { width: 1366, height: 800 } });
 
 test("B2-210 main journey at walking speed", async ({ page, browser }) => {
