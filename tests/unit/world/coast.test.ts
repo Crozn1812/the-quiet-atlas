@@ -15,7 +15,7 @@ import { createTileMesh } from "../../../src/features/world/terrain/mesh";
 
 describe("organic coast", () => {
   it("anchors sea foam to the terrain coastline, including the headland", () => {
-    const sea = createSea("Balanced");
+    const sea = createSea("High");
     try {
       const uniforms = sea.mesh.material.uniforms;
       const shore = uniforms.uShoreZ!.value as number[];
@@ -57,7 +57,7 @@ describe("organic coast", () => {
 
   // B2-152b's bay reaches z ≈ −680: every point below sea level near the coast must sit under the sea plane.
   it("covers the whole curved bay with the sea surface (no dry seabed)", () => {
-    const sea = createSea("Balanced");
+    const sea = createSea("High");
     try {
       const box = sea.mesh.geometry.boundingBox!;
       for (let z = routeZ(880); z <= routeZ(500); z += 10) for (let x = -400; x <= 400; x += 10) {

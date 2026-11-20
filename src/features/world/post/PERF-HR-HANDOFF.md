@@ -1,13 +1,13 @@
 # PERF-HR — bàn giao
 
-Trạng thái cuối: **PASS** ba gate (lint 0 warning, typecheck exit 0, unit 183 file / 1.918 test pass + 1 skip, exit 0). Bộ đối chiếu source và kiểm chứng production đều đủ 24 mẫu, High/Balanced 900p ≥60 FPS, Low giữ nguyên draw/tam giác. Lượt gameplay cuối có xác nhận focus/visibility đạt **97,51–100,02 FPS** ở bốn khu High 900p. Build WASM/webpack đúng một lần; e2e world `--workers=2` **43/43**. Không commit; không cần nối thêm `index.ts`.
+Trạng thái cuối: **PASS** ba gate (lint 0 warning, typecheck exit 0, unit 183 file / 1.918 test pass + 1 skip, exit 0). Bộ đối chiếu source và kiểm chứng production đều đủ 24 mẫu, High/balanced (legacy) 900p ≥60 FPS, Low giữ nguyên draw/tam giác. Lượt gameplay cuối có xác nhận focus/visibility đạt **97,51–100,02 FPS** ở bốn khu High 900p. Build WASM/webpack đúng một lần; e2e world `--workers=2` **43/43**. Không commit; không cần nối thêm `index.ts`.
 
 Giới hạn: workstation dùng chung; không khẳng định đã cô lập mọi tải bên ngoài hoặc đo speedup có kiểm soát. Lượt gameplay đầu 38–50 FPS và một timeout unit đã được giữ lại, kèm chẩn đoán và các lượt chạy lại thành công ở dưới.
 
 ## Thay đổi
 
 - `foliage/hr-runtime.ts`: gộp batch cùng kiến trúc/LOD qua các source variant trong mỗi binding; giữ fit, tint, pha gió và fade riêng từng instance. Giữ khoảng cách LOD cây, impostor và chính sách bóng hiện có.
-- `fauna/birds.ts`: LOD hình học cho đàn xa với hysteresis (High: ra 48 m/vào 40 m; Balanced: ra 40 m/vào 32 m), đo tới con gần nhất; frustum cull có bounds mở rộng cho cánh. Low giữ geometry, số chim và chính sách cull cũ.
+- `fauna/birds.ts`: LOD hình học cho đàn xa với hysteresis (High: ra 48 m/vào 40 m; balanced (legacy): ra 40 m/vào 32 m), đo tới con gần nhất; frustum cull có bounds mở rộng cho cánh. Low giữ geometry, số chim và chính sách cull cũ.
 - `water/streambed.ts`, `water/streambed-cull.ts`, `post/runtime.ts`: compact từng viên đá theo frustum trước khi Three upload buffer; giữ đồng bộ matrix/color/bedWet, full bounds và thứ tự nguồn khi về Low. Cây thủy sinh/lá trôi không bị cull theo bounds tĩnh.
 - `zones/first-light-cliff-detail.ts`, `zones/first-light-cliff-cull.ts`: chia index của vách/fern thành ô 16 m theo world scale để cull riêng ở pass màu/bóng; chia sẻ nguyên attribute, normal, texture và toàn bộ tam giác.
 - Test: `tests/unit/world/{birds,hr-tree-runtime,streambed-cull,first-light-cliff-cull}.test.ts`.
@@ -38,7 +38,7 @@ tests/review/perf-hr-report.mjs
 
 Edge local, hardware WebGL, deviceScaleFactor=1, 1600×900 và 1920×1080; tên GPU lấy từ WEBGL_debug_renderer_info. Một browser do phiên này tạo chạy tuần tự; không chạy test/build/e2e đồng thời với đo GPU. Máy dùng chung: không dừng tiến trình ngoài phiên này, không bảo đảm desktop/GPU toàn máy hoàn toàn cô lập.
 
-Trước sửa quét bốn hướng camera ở khoảng cách 9 m tại mỗi khu, chọn hướng có FPS thấp nhất trong lượt quét. Pose được lưu trong JSON và tái dùng nguyên vẹn cho mọi quality, độ phân giải và lượt sau. Đây là bốn góc được chọn từ phép quét, không chứng minh cực tiểu toàn không gian camera. Source warm-up High/Balanced 18 s sau khi đặt pose, Low 2,5 s; lấy mẫu tiếp 5 s. Production tăng warm-up High lên 45 s, Balanced 25 s, Low 5 s để cảnh hội tụ; mỗi mẫu vẫn 5 s. FPS đếm frame có draw / thời gian thực của cửa sổ mẫu. Đếm draw/triangle tại WebGL cho toàn bộ color/shadow/post; source harness gắn tên đối tượng qua Vite transform của Three, không sửa node_modules. Production phân loại pass theo shader/projection.
+Trước sửa quét bốn hướng camera ở khoảng cách 9 m tại mỗi khu, chọn hướng có FPS thấp nhất trong lượt quét. Pose được lưu trong JSON và tái dùng nguyên vẹn cho mọi quality, độ phân giải và lượt sau. Đây là bốn góc được chọn từ phép quét, không chứng minh cực tiểu toàn không gian camera. Source warm-up High/balanced (legacy) 18 s sau khi đặt pose, Low 2,5 s; lấy mẫu tiếp 5 s. Production tăng warm-up High lên 45 s, balanced (legacy) 25 s, Low 5 s để cảnh hội tụ; mỗi mẫu vẫn 5 s. FPS đếm frame có draw / thời gian thực của cửa sổ mẫu. Đếm draw/triangle tại WebGL cho toàn bộ color/shadow/post; source harness gắn tên đối tượng qua Vite transform của Three, không sửa node_modules. Production phân loại pass theo shader/projection.
 
 Raw JSON và ảnh: `test-results/perf-hr/{before,after,production}/`. Report cùng thư mục. Source harness dùng mountWorld trực tiếp, production đi qua Enter World; nhãn được tách rõ. Không dùng số 19,38 FPS lịch sử làm đối chứng để tính speedup. Wind/chim/streaming sống và warm cache có thể làm khác pixel/FPS; các thay đổi cull giữ geometry còn trong khung hình.
 
@@ -55,7 +55,7 @@ Số trên cộng color + shadow, chưa gồm props/terrain/ground khác. Post H
 
 ## Kết quả và lệnh
 
-Đối chiếu source: **PASS** 24 mẫu, High/Balanced 1600×900 ≥60 FPS; Low giữ nguyên draw/triangle ở cả tám mẫu. Không quy phần tăng/giảm FPS thành speedup có kiểm soát trên workstation dùng chung.
+Đối chiếu source: **PASS** 24 mẫu, High/balanced (legacy) 1600×900 ≥60 FPS; Low giữ nguyên draw/triangle ở cả tám mẫu. Không quy phần tăng/giảm FPS thành speedup có kiểm soát trên workstation dùng chung.
 
 ```text
 pnpm.cmd lint: exit 0, 0 warning
@@ -83,9 +83,9 @@ VITEST_MAX_WORKERS=1 pnpm.cmd test:
        Tests 1918 passed | 1 skipped (1919)
   Duration 626.19s; exit 0
 node tests/review/perf-hr-report.mjs after:
-  Samples 24; 1600×900 High/Balanced ≥60 FPS: PASS; Low counts unchanged: PASS; exit 0
+  Samples 24; 1600×900 High/balanced (legacy) ≥60 FPS: PASS; Low counts unchanged: PASS; exit 0
 node tests/review/perf-hr-report.mjs production:
-  Samples 24; 1600×900 High/Balanced ≥60 FPS: PASS; Low counts unchanged: PASS; exit 0
+  Samples 24; 1600×900 High/balanced (legacy) ≥60 FPS: PASS; Low counts unchanged: PASS; exit 0
 git diff --check: exit 0
 ```
 
@@ -128,7 +128,7 @@ Log gate mới: `tmp/perf-hr-resume-{lint,typecheck,test-serial}.log`. Không bu
 
 GPU: `ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) Direct3D11 vs_5_0 ps_5_0, D3D11)`. Edge hardware WebGL2, DPR=1. Capture hoàn tất 2026-11-14T11:55:01.448Z; 24 mẫu, 0 lỗi console/page.
 
-High/Balanced 1600×900: **PASS** (99,96–100,16 FPS). High 1920×1080: 99,94–100,14 FPS; Balanced 77,69–99,58 FPS. Low giữ nguyên draw/tam giác ở cả tám mẫu. Nhiều mẫu sát 100 FPS cho thấy lượt đo có khả năng chạm trần refresh; đây không phải số đo throughput GPU không giới hạn.
+High/balanced (legacy) 1600×900: **PASS** (99,96–100,16 FPS). High 1920×1080: 99,94–100,14 FPS; balanced (legacy) 77,69–99,58 FPS. Low giữ nguyên draw/tam giác ở cả tám mẫu. Nhiều mẫu sát 100 FPS cho thấy lượt đo có khả năng chạm trần refresh; đây không phải số đo throughput GPU không giới hạn.
 
 Bảng dưới chỉ ghi production sau sửa. Baseline trước sửa được lấy bằng source harness ở bảng trên; không coi source → production là phép đo speedup có kiểm soát. Thời gian warm-up cũng khác, nên cây/chim sống có thể đổi số tam giác ở một số pose.
 

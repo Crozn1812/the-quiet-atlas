@@ -48,7 +48,7 @@ it("keeps shrub roots fixed, restores High deterministically and releases every 
   const disposals = grove.meshes.flatMap(m => [vi.spyOn(m.geometry, "dispose"), vi.spyOn(m.material, "dispose"), vi.spyOn(m, "dispose")]);
   try {
     expect(grove.group.children).toHaveLength(3);
-    grove.setQuality("Low"); grove.setQuality("Balanced"); grove.setQuality("High");
+    grove.setQuality("Low"); grove.setQuality("High"); grove.setQuality("High");
     for (const [i, mesh] of grove.meshes.entries()) {
       expect(mesh.instanceMatrix.array).toEqual(original[i]);
       for (let j = 0; j < mesh.count; j++) {

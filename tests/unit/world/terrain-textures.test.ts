@@ -17,7 +17,7 @@ it("ships eight CC0 photo sets and three KTX2 tiers within the world budget", ()
     }
   }
   let bytes = 0;
-  for (const quality of ["Low", "Balanced", "High"] as const) for (const url of photoTextureUrls(quality)) {
+  for (const quality of ["Low", "High"] as const) for (const url of photoTextureUrls(quality)) {
     const data = readFileSync(`public${url}`), size = PHOTO_TILE_SIZE[quality];
     expect(data.subarray(0, 12).toString("hex")).toBe("ab4b5458203230bb0d0a1a0a");
     expect(data.readUInt32LE(20)).toBe(size * 4);

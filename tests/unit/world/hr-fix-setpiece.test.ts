@@ -61,7 +61,7 @@ describe("HR-FIX-SETPIECE runtime", () => {
     setBakedPropQuality(parent, "Low"); draw(anchor);
     expect(anchor.geometry).toBe(geometry);
     expect(model.visible).toBe(false);
-    setBakedPropQuality(parent, "Balanced"); draw(anchor);
+    setBakedPropQuality(parent, "High"); draw(anchor);
     expect(model.visible).toBe(true);
     release(); release();
     expect(anchor.geometry).toBe(geometry);

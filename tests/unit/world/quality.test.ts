@@ -8,7 +8,7 @@ import { createController } from "../../../src/features/world/rapier";
 it("quality updates existing instances without changing the actual controller position or colliders", async () => {
   const terrain = createTerrain();
   const trees = createTrees(terrain);
-  const forest = createForest(trees, "Balanced");
+  const forest = createForest(trees, "High");
   const controller = await createController(terrain, trees);
   const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   addTerrainColliders(world, terrain, trees);
@@ -17,7 +17,7 @@ it("quality updates existing instances without changing the actual controller po
   const position = controller.position.clone();
   const matrix = forest[0].instanceMatrix;
   try {
-    for (const quality of ["Low", "High", "Balanced"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       updateForest(forest, trees, quality);
       expect(forest[0].instanceMatrix).toBe(matrix);
       expect(controller.position).toEqual(position);

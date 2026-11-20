@@ -31,7 +31,7 @@ stone.frustumCulled = false;
 const originalNormals = stone.geometry.getAttribute("normal");
 const zeroNormals = originalNormals.clone(); zeroNormals.array.fill(0);
 const controller = createPhotoSurfaces(scene, renderer);
-for (const quality of ["Low", "Balanced", "High"] as const) {
+for (const quality of ["Low", "High"] as const) {
   await controller.setQuality(quality);
   if (/swiftshader/i.test(String(renderer.getContext().getParameter(renderer.getContext().getExtension("WEBGL_debug_renderer_info")?.UNMASKED_RENDERER_WEBGL ?? renderer.getContext().RENDERER)))
     && terrain.material.type !== "MeshBasicMaterial") throw new Error("Software rasterizer did not retain flat shading");

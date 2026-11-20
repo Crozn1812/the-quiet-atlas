@@ -96,7 +96,7 @@ describe("Last Postcard C dressing", () => {
       const detail = batch.mesh.geometry; expect(detail).not.toBe(fallback);
       expect(detail.getAttribute("position").count / 3).toBe(11 * 12);
       setBakedPropQuality(root, "Low");expect(batch.mesh.geometry).toBe(fallback);
-      setBakedPropQuality(root, "Balanced");expect(batch.mesh.geometry).toBe(detail);
+      setBakedPropQuality(root, "High");expect(batch.mesh.geometry).toBe(detail);
       const camera = new PerspectiveCamera(), scene = new Scene(); batch.mesh.updateMatrixWorld(true);
       const render = () => batch.mesh.onBeforeRender(renderer, scene, camera, batch.mesh.geometry, batch.mesh.material, null!);
       camera.position.set(0, 2, 150);camera.updateMatrixWorld();render();expect(detail.drawRange.count).toBe(0);

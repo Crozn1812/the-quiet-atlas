@@ -117,7 +117,7 @@ describe("coastal mountain and curved bay", () => {
     expect(degrees).toBeGreaterThanOrEqual(30);
     expect(degrees).toBeLessThanOrEqual(70);
     expect(eye.distanceTo(target)).toBeLessThanOrEqual(120);
-    const sea = createSea("Balanced"), material = new MeshBasicMaterial();
+    const sea = createSea("High"), material = new MeshBasicMaterial();
     const terrain = [];
     try {
       // Raycast the actual Float32 tile triangles and sea plane, rather than

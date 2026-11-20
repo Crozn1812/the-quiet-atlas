@@ -167,7 +167,7 @@ function optics(material: WaterMaterial) {
   return { sample, slopes };
 }
 
-const qualities = ["Low", "Balanced", "High"] as const;
+const qualities = ["Low", "High"] as const;
 const luma = (v: Value) => dot(v, [0.2126, 0.7152, 0.0722]);
 const color = (s: Scope) => new Color().fromArray(vector(s.color!));
 const gradeAt = (t: number) => applyCoastAtmosphere(directGrade(lightingAt(timeOfDayAt(t)), timeOfDayAt(t)), t);

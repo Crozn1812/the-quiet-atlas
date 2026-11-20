@@ -8,7 +8,7 @@ import { bakedPropQuality } from "../props/batched";
 
 /** HR-FIX-SETPIECE: authored hero objects (public/world/lib/hr-prop-setpiece-*.glb).
  * The procedural solids stay the Low/software path and keep every collider, pick and
- * interaction anchor; on hardware Balanced/High the authored model replaces only their render.
+ * interaction anchor; on hardware High the authored model replaces only their render.
  */
 export type SetpieceFile = "signpost" | "workshop" | "horizon" | "quiet-shore" | "last-postcard" | "porch" | "mirror";
 export interface SetpieceAsset {

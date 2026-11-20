@@ -35,7 +35,7 @@ export function createPost(renderer: WebGLRenderer, scene: Scene, camera: Perspe
   const aerial = createAerialPass(source.depthTexture, camera, quality === "High");
   let atmosphereGrade = lightingAt(0);
   composer.addPass(new UnrealBloomPass(new Vector2(1, 1), quality === "High" ? 0.13 : 0.08, 0.5, 1.25));
-  // Balanced allocates this pass too, but only cinematic playback may enable it.
+  // High uses this pass for cinematic focus as well as idle gameplay.
   const dof = new ShaderPass({ ...BokehShader, defines: { ...BokehShader.defines, DEPTH_PACKING: 0 } }, "tColor");
   if (dof) {
     dof.enabled = false;

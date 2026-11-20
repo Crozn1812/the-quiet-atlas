@@ -75,10 +75,10 @@ Xem quyết định và số đo tại `docs/adr/0002-physics.draft.md`.
 
 ## P01-B procedural placeholder (L2-003)
 
-`mountWorld(container, { collision: "rapier", quality: "Balanced", debug: false })`
+`mountWorld(container, { collision: "rapier", quality: "High", debug: false })`
 keeps the existing Promise/unmount contract and chunk marker. Quality is optional:
-Low/Balanced/High = 80/140/200 visible trees (40/70/100%), DPR caps 1/1.25/2,
-shadow off/1024/2048. No assets, textures, baked AO or post-processing pipeline;
+Low/High = 80/200 visible trees (40/100%), DPR caps 1/2,
+shadow off/2048. No assets, textures, baked AO or post-processing pipeline;
 all terrain, trunks, crowns and capsule are **procedural placeholders**, not final art.
 Dawn palette: sky/fog #e4c8a5, sun #ffce91, hemisphere #ffe2bb/#43574a,
 terrain #657552, crowns #344e3d. Linear fog near/far 15/65 m, ACES tone mapping.

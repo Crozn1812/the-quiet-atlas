@@ -172,7 +172,7 @@ it("layers a denser, mostly forestDeep inland canopy while keeping the sea view 
   expect(spontaneous.filter(tree => isDeepCrown(tree.x, tree.z)).length / spontaneous.length).toBeGreaterThanOrEqual(0.6);
   try {
     foliage.setTiles(inland);
-    for (const quality of ["Low", "Balanced", "High"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       foliage.setQuality(quality);
       let deepCount = 0, total = 0;
       for (const { crowns } of foliage.species.broadleaf.variants) for (let i = 0; i < crowns.count; i++) {
@@ -208,7 +208,7 @@ it("assigns about 30% forestDeep crowns, preserving per-position colour through 
   try {
     for (const input of [trees, [...trees].reverse(), trees.slice(50, 70)]) {
       foliage.setTiles(input);
-      for (const quality of ["Low", "Balanced", "High"] as const) {
+      for (const quality of ["Low", "High"] as const) {
         foliage.setQuality(quality);
         const indices = new Map<object, number>();
         const count = Math.round(input.length * PRESETS[quality].density);

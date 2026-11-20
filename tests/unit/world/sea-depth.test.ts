@@ -89,7 +89,7 @@ describe("HR-SEA terrain depth and stream ownership", () => {
     } finally { field.texture.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("owns %s depth GPU resources without frame uploads and disposes once", quality => {
+  it.each(["Low", "High"] as const)("owns %s depth GPU resources without frame uploads and disposes once", quality => {
     const sea = createSea(quality), material = sea.mesh.material;
     const texture = material.uniforms.uSeaDepth!.value as DataTexture;
     const dispose = vi.fn();

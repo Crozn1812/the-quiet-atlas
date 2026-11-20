@@ -1,4 +1,4 @@
-export type Quality = "low" | "balanced" | "high";
+export type Quality = "low" | "high";
 
 export function escapeAction(inWorld: boolean, editing: boolean, hasDialog: boolean) {
   if (!inWorld || editing) return "ignore";

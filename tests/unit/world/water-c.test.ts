@@ -55,7 +55,7 @@ describe("C water", () => {
     } finally { material.dispose(); }
   });
 
-  it.each(["Balanced", "High"] as const)("copies the zenith grade on %s and keeps it independent of incident light", quality => {
+  it.each(["High"] as const)("copies the zenith grade on %s and keeps it independent of incident light", quality => {
     const material = createWaterMaterial(quality, { surface: "sea" });
     const grade = lightingAt(1);
     try {

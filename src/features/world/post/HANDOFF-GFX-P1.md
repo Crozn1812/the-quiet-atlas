@@ -4,7 +4,7 @@
 
 ## Hành vi và sửa lỗi startup
 
-Balanced/High dùng GTAO nửa độ phân giải vật lý, bloom nhẹ, grading bóng lạnh/highlight ấm và một OutputPass. High có DOF sau ít nhất 0,3 s đứng yên; tắt khi người chơi/camera di chuyển, cinematic hoặc teleport. AO/DOF chia sẻ depth thật của color pass, giữ alpha-test/discard, không vẽ lại geometry bằng override material. Bóng dùng PCFShadowMap, radius 2,5 của compose.
+balanced (legacy)/High dùng GTAO nửa độ phân giải vật lý, bloom nhẹ, grading bóng lạnh/highlight ấm và một OutputPass. High có DOF sau ít nhất 0,3 s đứng yên; tắt khi người chơi/camera di chuyển, cinematic hoặc teleport. AO/DOF chia sẻ depth thật của color pass, giữ alpha-test/discard, không vẽ lại geometry bằng override material. Bóng dùng PCFShadowMap, radius 2,5 của compose.
 
 Trước worldBuild="done", render trực tiếp, tắt shadow map; chưa cấp post targets, compile shader hậu kỳ, tải HDRI hay tạo PMREM. Chỉ startDeferred ở nhánh gameplay sau mốc done. Low, kể cả tự giảm quality, luôn render trực tiếp và không có post/IBL/bóng.
 
@@ -27,9 +27,9 @@ HDRI fetch dùng AbortController; đổi quality/ẩn tab hủy request và vô 
 | src/features/world/scene/compose.ts | Truyền timeOfDayAt qua optional API |
 | src/features/world/dressing.ts | Lịch chạy hàng đợi 4 ms bằng MessageChannel, cleanup |
 | public/world/env/kiara_1_dawn-2048.ktx2 | HDRI High |
-| public/world/env/kiara_1_dawn-1024.ktx2 | HDRI Balanced |
+| public/world/env/kiara_1_dawn-1024.ktx2 | HDRI balanced (legacy) |
 | public/world/env/venice_sunset-2048.ktx2 | HDRI High |
-| public/world/env/venice_sunset-1024.ktx2 | HDRI Balanced |
+| public/world/env/venice_sunset-1024.ktx2 | HDRI balanced (legacy) |
 | assets/LICENSES.csv | 4 dòng CC0/provenance |
 | tests/unit/world/post-c.test.ts | Pipeline, depth, DOF, startup, shadow/Low và visibility |
 | tests/unit/world/environment-c.test.ts | Asset/license, abort, dispose muộn và cache qua đổi giờ/ẩn tab |
@@ -93,7 +93,7 @@ Lint/typecheck riêng: lint-final.log, typecheck-final.log. Unit cuối: test-pa
 
 ## Load-budget EN/VI trên build cuối
 
-3 cold load mỗi ngôn ngữ, browser/context mới, tắt HTTP cache; 10 Mbps xuống/lên, RTT 100 ms, không CPU throttling. Máy i5-14400F, RAM 32 GB, RTX 3060 D3D11, Edge 157.0.4341.46, Balanced power, 1366×800/DPR 1. Trần 10 s theo ADR 0018 và yêu cầu return1/return2.
+3 cold load mỗi ngôn ngữ, browser/context mới, tắt HTTP cache; 10 Mbps xuống/lên, RTT 100 ms, không CPU throttling. Máy i5-14400F, RAM 32 GB, RTX 3060 D3D11, Edge 157.0.4341.46, balanced (legacy) power, 1366×800/DPR 1. Trần 10 s theo ADR 0018 và yêu cầu return1/return2.
 
 | Locale | Lần 1 (s) | Lần 2 (s) | Lần 3 (s) | Xấu nhất (s) | Kết quả |
 |---|---:|---:|---:|---:|---|
@@ -123,7 +123,7 @@ Nguồn HDRI CC0 Greg Zaal / Poly Haven: Kiara 1 Dawn và Venice Sunset; provena
 | venice_sunset-1024.ktx2 | 407.757 |
 | Tổng thêm | 3.983.457 |
 
-High chọn 3.164.909 B; Balanced 818.548 B; Low 0 B HDRI. Tổng world 4.693.940 / 30.000.000 B. Đây là file asset, không phải tổng mạng JS/WASM.
+High chọn 3.164.909 B; balanced (legacy) 818.548 B; Low 0 B HDRI. Tổng world 4.693.940 / 30.000.000 B. Đây là file asset, không phải tổng mạng JS/WASM.
 
 Ảnh High đủ 8 khu: round2/high/, chạy tools/review/ingame-shots.mjs với TQA_QUALITY=high, 1600×900, exit 0, không pageerror. Low: round2/low-first-light.png. Đã xem trực tiếp cả 8 High và Low. Baseline giữ từ trước ticket ở tmp/gfx-p1/before/, không build lại baseline.
 

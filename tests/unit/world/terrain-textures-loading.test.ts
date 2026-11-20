@@ -71,7 +71,7 @@ it("ignores stale tier completions and disposes assets arriving after teardown",
   const highDisposals = state.resolve.slice(0, 2).map(resolve => { const t = new Texture(); resolve(t); return vi.spyOn(t, "dispose"); });
   await high; expect(mesh.material).toBe(lowMaterial);
   highDisposals.forEach(dispose => expect(dispose).toHaveBeenCalledOnce());
-  const balanced = detail.setQuality("Balanced");
+  const balanced = detail.setQuality("High");
   await vi.waitFor(() => expect(state.requests).toHaveLength(4));
   detail.dispose(); const lateDisposals = settle(2); await balanced;
   lateDisposals.forEach(dispose => expect(dispose).toHaveBeenCalledOnce());
@@ -81,7 +81,7 @@ it("ignores stale tier completions and disposes assets arriving after teardown",
 it("shares materials with streamed tiles and leaves unrelated meshes alone", async () => {
   const { root, mesh, material, renderer } = setup();
   const detail = createTerrainDetail(root, renderer);
-  const loaded = detail.setQuality("Balanced");
+  const loaded = detail.setQuality("High");
   await vi.waitFor(() => expect(state.requests).toHaveLength(2)); settle(); await loaded;
   const next = new Mesh(new BufferGeometry(), material); next.name = "terrain-tile";
   const leaves = new Mesh(new BufferGeometry(), material); leaves.name = "leaves";
@@ -91,27 +91,25 @@ it("shares materials with streamed tiles and leaves unrelated meshes alone", asy
   expect(next.material).toBe(material);
 });
 
-it("keeps the current tier when a different pending tier finishes later", async () => {
+it("keeps Low when pending High finishes later", async () => {
   const { root, mesh, renderer } = setup();
   const detail = createTerrainDetail(root, renderer);
-  const balanced = detail.setQuality("Balanced");
-  await vi.waitFor(() => expect(state.requests).toHaveLength(2)); settle(); await balanced;
-  const current = mesh.material;
   const high = detail.setQuality("High");
-  await vi.waitFor(() => expect(state.requests).toHaveLength(4));
-  await detail.setQuality("Balanced");
-  const stale = settle(2); await high;
+  await vi.waitFor(() => expect(state.requests).toHaveLength(2));
+  await detail.setQuality("Low");
+  const current = mesh.material;
+  const stale = settle(); await high;
   expect(mesh.material).toBe(current);
   stale.forEach(dispose => expect(dispose).toHaveBeenCalledOnce()); detail.dispose();
 });
 
-it("falls back to a supported atlas size on a smaller GPU", async () => {
+it("uses High photos on hardware that met the previous middle-tier threshold", async () => {
   const { root, renderer } = setup();
   renderer.capabilities.maxTextureSize = 4096;
   const detail = createTerrainDetail(root, renderer);
   const ready = detail.setQuality("High");
   await vi.waitFor(() => expect(state.requests).toHaveLength(2));
-  expect(state.requests.every(url => url.includes("1024"))).toBe(true);
+  expect(state.requests.every(url => url.includes("2048"))).toBe(true);
   settle(); await ready; detail.dispose();
 });
 
@@ -123,7 +121,7 @@ it("keeps software rasterizers on flat shaders even when overall High is pinned"
     getParameter: (parameter: number) => parameter === 0x9246 ? "ANGLE (Google, Vulkan SwiftShader Device (Subzero))" : "WebKit WebGL",
   }) as unknown as WebGL2RenderingContext;
   const detail = createTerrainDetail(root, renderer);
-  for (const quality of ["High", "Balanced", "Low", "High"] as const) await detail.setQuality(quality);
+  for (const quality of ["Low", "High", "High"] as const) await detail.setQuality(quality);
   expect(state.requests).toHaveLength(0);
   expect(mesh.material.type).toBe("MeshBasicMaterial");
   const fallback = mesh.material;
@@ -137,7 +135,7 @@ it("keeps photo decoding and shader swaps behind the existing dressing completio
   const { root, material, mesh, geometry, renderer } = setup();
   let phase = "pending";
   renderer.domElement = { closest: () => ({ getAttribute: () => phase }) } as unknown as HTMLCanvasElement;
-  const binding = bindTerrainDetail(root, material, "Balanced", vi.fn(), true);
+  const binding = bindTerrainDetail(root, material, "High", vi.fn(), true);
   await binding.ready(renderer); binding.resume();
   const render = () => material.onBeforeRender(renderer, root, new PerspectiveCamera(), geometry, mesh, new Group());
   render(); await Promise.resolve(); expect(state.requests).toHaveLength(0);

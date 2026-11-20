@@ -36,7 +36,6 @@ export function loadGroundPropDetails(root: Object3D): Promise<boolean[]> {
 }
 export const GROUND_LIMITS = {
   High: { grass: 4200, rock: 40, fern: 100, bush: 160, log: 4, leaf: 160, flower: 16 },
-  Balanced: { grass: 2520, rock: 24, fern: 60, bush: 96, log: 2, leaf: 96, flower: 8 },
   Low: { grass: 840, rock: Math.round(40 * PRESETS.Low.density), fern: 20, bush: 32, log: 1, leaf: 24, flower: 2 },
 } as const;
 

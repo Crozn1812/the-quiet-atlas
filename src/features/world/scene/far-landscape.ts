@@ -24,7 +24,7 @@ export const FAR_LANDSCAPE = Object.freeze({
 
 /** High includes the full backdrop diagonal, so a frustum cannot cut off a
  * range's foot while leaving its summit visible. Low retains its short view. */
-export const GAMEPLAY_FAR = Object.freeze({ Low: 260, Balanced: 500, High: 2400 });
+export const GAMEPLAY_FAR = Object.freeze({ Low: 260, High: 2400 });
 
 const canopyDeep = new Color(hex("forestDeep"));
 const canopyLight = new Color(hex("forestLight"));

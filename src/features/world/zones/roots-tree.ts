@@ -193,7 +193,7 @@ export function createRootsTree(fallback: Mesh, trigger: Mesh, placement: { side
     eye.set(placement.x, placement.y, placement.z).applyMatrix4(group.matrixWorld);
     camera.getWorldPosition(origin);
     const distance = origin.distanceTo(eye);
-    selected = quality === "Balanced" ? 1 : distance > 32 ? 1 : distance < 26 ? 0 : selected;
+    selected = distance > 32 ? 1 : distance < 26 ? 0 : selected;
     refresh();
     if (quality === "Low" || distance > 85) return;
     // onAfterRender of the first playable frame queues decoder imports.

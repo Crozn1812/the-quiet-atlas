@@ -82,7 +82,7 @@ it("uses stable distance hysteresis and restores Low independently of previous L
   expect(treeLibraryLod(100, "High", 2)).toBe(2);
   expect(treeLibraryLod(94, "High", 2)).toBe(1);
   for (const previous of [-1, 0, 1, 2]) expect(treeLibraryLod(300, "Low", previous)).toBe(-1);
-  expect(treeLibraryLod(90, "Balanced", 1)).toBe(2);
+  expect(treeLibraryLod(90, "High", 1)).toBe(1);
 });
 
 function fakeRenderer() {

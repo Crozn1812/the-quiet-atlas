@@ -21,7 +21,7 @@ export function parseQuery(search: string): FrameOptions {
   return {
     preset: preset === "A" || preset === "B" || preset === "C" ? preset : "A",
     shot: SHOT_IDS.find(id => id === shot) ?? "forest-dawn",
-    quality: quality === "Low" || quality === "Balanced" || quality === "High" ? quality : "High",
+    quality: quality === "Low" ? "Low" : "High",
     t: Number.isFinite(time) ? Math.min(VIDEO_SECONDS, time) : 0,
     clean: query.get("clean") === "1",
   };

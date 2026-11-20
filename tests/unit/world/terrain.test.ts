@@ -26,7 +26,7 @@ it("deterministic mesh heights match actual Rapier heightfield and vertical ray 
     }
   } finally { world.free(); mesh.geometry.dispose(); mesh.material.dispose(); }
 });
-it("quality uses 40/70/100 percent instances while actual tree colliders remain identical", async () => {
+it("quality uses 40/100 percent instances while actual tree colliders remain identical", async () => {
   await RAPIER.init();
   const terrain = createTerrain(), trees = createTrees(terrain);
   expect(trees).toEqual(createTrees(createTerrain()));
@@ -42,7 +42,7 @@ it("quality uses 40/70/100 percent instances while actual tree colliders remain 
       expect(snapshot).toHaveLength(201); snapshots.push(snapshot);
     } finally { world.free(); for (const mesh of forest) { mesh.dispose(); mesh.geometry.dispose(); mesh.material.dispose(); } }
   }
-  expect(snapshots[0]).toEqual(snapshots[1]); expect(snapshots[1]).toEqual(snapshots[2]);
+  expect(snapshots).toHaveLength(2); expect(snapshots[0]).toEqual(snapshots[1]);
 });
 it("Rapier KCC stands on terrain and climbs its continuous ramp", async () => {
   const terrain = createTerrain();

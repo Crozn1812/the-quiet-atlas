@@ -152,7 +152,7 @@ it("selects the same authored canopy in colour and shadow passes and keeps conse
 
       expect(material.customProgramCacheKey()).toContain("trail-canopy-shape-v2");
     }
-    for (const quality of ["Low", "Balanced", "High", "Low"] as const) {
+    for (const quality of ["Low", "High", "Low"] as const) {
       foliage.setTiles(canopy);
       foliage.setQuality(quality);
       for (const { crowns, crownBounds } of variants) if (crowns.count) {

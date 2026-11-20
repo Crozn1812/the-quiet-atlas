@@ -83,7 +83,7 @@ describe("Milestones static dressing", () => {
     const detail = batch.mesh.geometry;
     expect(detail).not.toBe(fallback);
     setBakedPropQuality(root, "Low"); expect(batch.mesh.geometry).toBe(fallback);
-    setBakedPropQuality(root, "Balanced"); expect(batch.mesh.geometry).toBe(detail);
+    setBakedPropQuality(root, "High"); expect(batch.mesh.geometry).toBe(detail);
     const camera = new PerspectiveCamera(), scene = new Scene();
     root.updateMatrixWorld(true);
     for (const [distance, count] of [[0, Infinity], [160, 0], [0, Infinity]]) {

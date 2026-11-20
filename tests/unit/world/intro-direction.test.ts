@@ -127,7 +127,7 @@ it("cannot enable the legacy paper corridor in R after quality changes", () => {
   } as unknown as WebGLRenderer;
   const paper = createPaperPass(renderer, { quality: "High", preset: WORLD_DIRECTION });
   try {
-    for (const quality of ["High", "Low", "Balanced"] as const) {
+    for (const quality of ["High", "Low", "High"] as const) {
       paper.setQuality(quality);
       paper.setCorridor([riverPointAt(0), riverPointAt(0.3)], 32);
       paper.render(new Scene(), new PerspectiveCamera());

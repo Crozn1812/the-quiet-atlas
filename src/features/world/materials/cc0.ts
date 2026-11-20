@@ -7,7 +7,7 @@ import { createTerrainCliffs } from "../terrain/cliffs";
 import { groundSurfaceShader } from "./ground";
 
 export type PhotoSurface = "terrain" | "rock" | "road" | "bark" | "ground";
-export const PHOTO_TILE_SIZE = { Low: 512, Balanced: 1024, High: 2048 } as const;
+export const PHOTO_TILE_SIZE = { Low: 512, High: 2048 } as const;
 export const photoTextureUrls = (quality: Quality) => ["color", "surface"].map(kind =>
   `/world/tex/${kind}-${PHOTO_TILE_SIZE[quality]}.ktx2`);
 
@@ -288,7 +288,7 @@ export function createPhotoSurfaces(root: Object3D, renderer: WebGLRenderer) {
     async setQuality(quality: Quality) {
       if (disposed) return;
       const max = renderer.capabilities.maxTextureSize ?? 16384;
-      const selected = software || max < 4096 ? "Low" : quality === "High" && max < 8192 ? "Balanced" : quality;
+      const selected = software || max < 4096 ? "Low" : quality;
       if (selected === "Low") {
         // Adaptive Low must take effect synchronously, including during an
         // outstanding High decode. Late completions cannot replace this fallback.

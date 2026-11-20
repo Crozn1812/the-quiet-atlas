@@ -119,8 +119,8 @@ describe("G-04 depth AO", () => {
     pass.setSize(801, 401);
     expect([aoTarget!.width, aoTarget!.height]).toEqual([501, 251]);
     expect(material.uniforms.aoSize!.value.toArray()).toEqual([501, 251]);
-    pass.setQuality("Balanced");
-    expect(aoMaterial.defines.AO_SAMPLES).toBe(8);
+    pass.setQuality("High");
+    expect(aoMaterial.defines.AO_SAMPLES).toBe(12);
     expect(WebGLRenderTarget).toHaveBeenCalledTimes(2);
     const disposals = [sceneTarget!, sceneTarget!.depthTexture!, aoTarget!, aoMaterial, material, triangle.geometry]
       .map(resource => vi.spyOn(resource, "dispose"));
@@ -129,7 +129,7 @@ describe("G-04 depth AO", () => {
     renderer.render.mockClear();
     pass.render(scene, camera);
     expect(renderer.render).toHaveBeenCalledExactlyOnceWith(scene, camera);
-    pass.setQuality("Balanced");
+    pass.setQuality("High");
     expect(WebGLRenderTarget).toHaveBeenCalledTimes(4);
     pass.dispose();
     pass.dispose();
@@ -138,7 +138,7 @@ describe("G-04 depth AO", () => {
 
   it("restores destination and fog if the AO draw fails", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createGradedPaperPass(gpu, "Balanced");
+    const pass = createGradedPaperPass(gpu, "High");
     const scene = new Scene();
     const fog = new Fog(PALETTE.mist, 10, 100);
     scene.fog = fog;
@@ -209,7 +209,7 @@ function aces(color: Color, exposure: number): Color {
 }
 
 describe("R clear post", () => {
-  it.each(["Balanced", "High"] as const)("%s retains >=85%% green saturation at 40 m, including the screen rim", quality => {
+  it.each(["High"] as const)("%s retains >=85%% green saturation at 40 m, including the screen rim", quality => {
     const { renderer, gpu } = mockRenderer();
     const paper = createGradedPaperPass(gpu, quality);
     const smoothstep = (a: number, b: number, x: number) => {
@@ -262,9 +262,9 @@ describe("R clear post", () => {
 
   it("keeps grain off across quality changes, reads no paper texture, and retains one post triangle", () => {
     const { renderer, gpu } = mockRenderer();
-    const paper = createGradedPaperPass(gpu, "Balanced");
+    const paper = createGradedPaperPass(gpu, "High");
     try {
-      for (const quality of ["High", "Balanced", "Low", "High"] as const) {
+      for (const quality of ["Low", "High"] as const) {
         paper.setQuality(quality);
         renderer.render.mockClear();
         paper.render(new Scene(), new PerspectiveCamera());
@@ -283,13 +283,13 @@ describe("R clear post", () => {
 
   it("keeps actual coast/hill fog blue in both native Low and post rendering", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createGradedPaperPass(gpu, "Balanced");
+    const pass = createGradedPaperPass(gpu, "High");
     const scene = new Scene();
     const native = new Fog(PALETTE.paper, 120, 700);
     scene.fog = native;
     const expected = new Color(PALETTE.skyLow).lerp(new Color(PALETTE.cloud), 0.3);
     try {
-      for (const quality of ["Balanced", "High", "Low", "High"] as const) {
+      for (const quality of ["High", "Low", "High"] as const) {
         pass.setQuality(quality);
         for (const t of [0.5, 0.9, 0.5]) {
           const distances = directedFogAt(t);
@@ -336,7 +336,7 @@ describe("forest depth atmosphere (B2-169)", () => {
   };
   const distance = (a: Color, b: Color) => new Vector3(...a.toArray()).distanceTo(new Vector3(...b.toArray()));
 
-  it.each(["Low", "Balanced", "High"] as const)("%s keeps near trees clear, fades depth layers and restores clear hills", quality => {
+  it.each(["Low", "High"] as const)("%s keeps near trees clear, fades depth layers and restores clear hills", quality => {
     const { renderer, gpu } = mockRenderer();
     const paper = createGradedPaperPass(gpu, quality);
     const scene = new Scene();
@@ -405,7 +405,7 @@ describe("forest depth atmosphere (B2-169)", () => {
 
 describe("position-graded coast clarity", () => {
   const fogAt = (t: number) => directedFogAt(t, STYLE_PRESETS.C);
-  it.each(["Balanced", "High"] as const)("%s preserves at least 75%% contrast at 30 m, with <=25%% of forest mist/fog", quality => {
+  it.each(["High"] as const)("%s preserves at least 75%% contrast at 30 m, with <=25%% of forest mist/fog", quality => {
     const { renderer, gpu } = mockRenderer();
     const paper = createGradedPaperPass(gpu, quality, STYLE_PRESETS.C);
     const smoothstep = (a: number, b: number, x: number) => {
@@ -467,7 +467,7 @@ describe("position-graded coast clarity", () => {
 
   it("leaves forest cinematic mist overrides intact", () => {
     const { renderer, gpu } = mockRenderer();
-    const paper = createGradedPaperPass(gpu, "Balanced", STYLE_PRESETS.C);
+    const paper = createGradedPaperPass(gpu, "High", STYLE_PRESETS.C);
     try {
       paper.setMist({ strength: STYLE_PRESETS.C.background.mist.strength + 0.2 });
       paper.setGrade(applyCoastAtmosphere(lightingAt(0), 0.3));
@@ -498,7 +498,7 @@ describe("paper post pass", () => {
     expect(scene.fog).toBe(fog);
   });
 
-  it.each(["Balanced", "High"] as const)("%s uses one HDR target/depth and one fullscreen triangle", quality => {
+  it.each(["High"] as const)("%s uses one HDR target/depth and one fullscreen triangle", quality => {
     const { renderer, gpu } = mockRenderer();
     const pass = createPaperPass(gpu, { quality });
     pass.render(new Scene(), new PerspectiveCamera(55, 1, 0.2, 120));
@@ -547,7 +547,7 @@ describe("paper post pass", () => {
 
   it("updates mist in place, preserves omitted fields and remembers settings across Low", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     pass.render(new Scene(), new PerspectiveCamera());
     const { material } = screenMaterial(renderer);
     const bands: [number, number, number] = [18, 32, 50];
@@ -574,7 +574,7 @@ describe("paper post pass", () => {
 
   it("requires finite, positive, increasing band distances and validates updates atomically", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     pass.render(new Scene(), new PerspectiveCamera());
     const { material } = screenMaterial(renderer);
     const invalidBands: [number, number, number][] = [
@@ -593,40 +593,20 @@ describe("paper post pass", () => {
     pass.dispose();
   });
 
-  it("High enables mist noise and ink defines without allocating new resources on quality changes", () => {
-    const balanced = mockRenderer();
-    const high = mockRenderer();
-    const balancedPass = createPaperPass(balanced.gpu, { quality: "Balanced" });
-    const highPass = createPaperPass(high.gpu, { quality: "High" });
-    balancedPass.render(new Scene(), new PerspectiveCamera());
-    highPass.render(new Scene(), new PerspectiveCamera());
-    const b = screenMaterial(balanced.renderer).material;
-    const h = screenMaterial(high.renderer).material;
-    expect(b.defines).toEqual({ CORRIDOR_POINTS });
-    expect(h.defines).toEqual({ CORRIDOR_POINTS, MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 });
-    expect(b.uniforms.inkEnabled!.value).toBe(false);
-    expect(h.uniforms.inkEnabled!.value).toBe(true);
-    expect(h.vertexShader).toBe(b.vertexShader);
-    expect(h.fragmentShader).toBe(b.fragmentShader);
-    expect(Object.keys(h.uniforms)).toEqual(Object.keys(b.uniforms));
-    for (const key of Object.keys(h.uniforms)) {
-      if (!["tColor", "tDepth", "inkEnabled"].includes(key)) expect(h.uniforms[key]).toEqual(b.uniforms[key]);
-    }
-    expect(h.fragmentShader).toContain("#ifdef MIST_EDGE_NOISE");
-    expect(h.fragmentShader).toContain("fibers(worldPosition.xz * 0.12)");
-    expect(h.fragmentShader).not.toMatch(/uniform\s+float\s+time/);
-    const version = b.version;
-    balancedPass.setQuality("High");
-    expect(b.defines).toEqual(h.defines);
-    expect(b.uniforms.inkEnabled!.value).toBe(true);
-    expect(b.version).toBe(version + 1);
-    balancedPass.setQuality("Balanced");
-    expect(b.defines).toEqual({ CORRIDOR_POINTS });
-    expect(b.uniforms.inkEnabled!.value).toBe(false);
-    expect(b.version).toBe(version + 2);
-    expect(WebGLRenderTarget).toHaveBeenCalledTimes(2);
-    balancedPass.dispose();
-    highPass.dispose();
+  it("High enables mist noise and ink and reuses resources on repeated selection", () => {
+    const { renderer, gpu } = mockRenderer();
+    const pass = createPaperPass(gpu, { quality: "High" });
+    pass.render(new Scene(), new PerspectiveCamera());
+    const { material } = screenMaterial(renderer);
+    expect(material.defines).toEqual({ CORRIDOR_POINTS, MIST_EDGE_NOISE: 1, INK_OUTLINE: 1 });
+    expect(material.uniforms.inkEnabled!.value).toBe(true);
+    expect(material.fragmentShader).toContain("#ifdef MIST_EDGE_NOISE");
+    expect(material.fragmentShader).not.toMatch(/uniform\s+float\s+time/);
+    const version = material.version;
+    pass.setQuality("High");
+    expect(material.version).toBe(version);
+    expect(WebGLRenderTarget).toHaveBeenCalledTimes(1);
+    pass.dispose();
   });
 
   it("updates edge uniforms in place and remembers partial settings across quality changes and Low", () => {
@@ -644,10 +624,10 @@ describe("paper post pass", () => {
     expect(material.uniforms.inkEnabled!.value).toBe(false);
     expect(material.version).toBe(version); // Uniform edits do not recompile the shader.
     expect(material.defines.INK_OUTLINE).toBe(1);
-    pass.setQuality("Balanced");
+    pass.setQuality("High");
     pass.setEdges({ ink: true });
-    expect(material.uniforms.inkEnabled!.value).toBe(false);
-    expect(material.defines).not.toHaveProperty("INK_OUTLINE");
+    expect(material.uniforms.inkEnabled!.value).toBe(true);
+    expect(material.defines.INK_OUTLINE).toBe(1);
     pass.setQuality("High");
     expect(material.uniforms.inkEnabled!.value).toBe(true);
     expect(WebGLRenderTarget).toHaveBeenCalledTimes(1);
@@ -682,7 +662,7 @@ describe("paper post pass", () => {
     pass.dispose();
   });
 
-  it.each(["Balanced", "High"] as const)("%s limits depth reads to five with a physical one-pixel cross", quality => {
+  it.each(["High"] as const)("%s limits depth reads to five with a physical one-pixel cross", quality => {
     const { renderer, gpu } = mockRenderer();
     const pass = createPaperPass(gpu, { quality });
     pass.render(new Scene(), new PerspectiveCamera());
@@ -756,7 +736,7 @@ describe("paper post pass", () => {
 
   it.each(["perspective", "orthographic"])("refreshes %s reconstruction matrices after the scene render", kind => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     const camera = kind === "perspective"
       ? new PerspectiveCamera(55, 1.5, 0.2, 120)
       : new OrthographicCamera(-12, 12, 8, -8, 0.2, 120);
@@ -790,7 +770,7 @@ describe("paper post pass", () => {
 
   it("guards both fog blends below 8 m while retaining height falloff and narrow band transitions", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     pass.render(new Scene(), new PerspectiveCamera());
     const shader = screenMaterial(renderer).material.fragmentShader;
     expect(shader).toContain("smoothstep(8.0, 12.0, distanceToCamera)");
@@ -804,7 +784,7 @@ describe("paper post pass", () => {
 
   it("sizes to physical pixels, including changed DPR and sizes remembered while Low", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     expect([target().width, target().height]).toEqual([400, 225]);
     pass.render(new Scene(), new PerspectiveCamera());
     const { material } = screenMaterial(renderer);
@@ -832,7 +812,7 @@ describe("paper post pass", () => {
 
   it("reuses Balanced/High resources and releases every resource when switching to Low", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     pass.render(new Scene(), new PerspectiveCamera());
     const { triangle, material } = screenMaterial(renderer);
     const disposals = [target(), target().depthTexture!, material, triangle.geometry].map(resource => vi.spyOn(resource, "dispose"));
@@ -857,7 +837,7 @@ describe("paper post pass", () => {
     pass.dispose();
     pass.dispose();
     pass.setQuality("Low");
-    pass.setQuality("Balanced");
+    pass.setQuality("High");
     pass.setSize(800, 600);
     pass.setMist({ bands: [18, 32, 50], height: 2, strength: 0.8 });
     pass.setEdges({ bleed: 0.2, ink: false });
@@ -872,7 +852,7 @@ describe("paper post pass", () => {
 
   it("uses current camera clipping planes, restores fog/destination and keeps grain static", () => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     const scene = new Scene();
     const fog = new Fog(PALETTE.paper, 15, 65);
     scene.fog = fog;
@@ -903,7 +883,7 @@ describe("paper post pass", () => {
 
   it.each([1, 2])("restores scene fog and render target if render call %i throws", failingCall => {
     const { renderer, gpu } = mockRenderer();
-    const pass = createPaperPass(gpu, { quality: "Balanced" });
+    const pass = createPaperPass(gpu, { quality: "High" });
     const scene = new Scene();
     const fog = new Fog(PALETTE.paper, 15, 65);
     scene.fog = fog;
@@ -933,7 +913,7 @@ describe("opening-cinematic corridor mask (B2-043b review)", () => {
         if (material && "uniforms" in material) shaders.push(material as import("three").ShaderMaterial);
       },
     } as unknown as import("three").WebGLRenderer;
-    const pass = createPaperPass(renderer, { quality: "Balanced" });
+    const pass = createPaperPass(renderer, { quality: "High" });
     try {
       pass.render(new Scene(), new PerspectiveCamera());
       const material = shaders.at(-1)!;

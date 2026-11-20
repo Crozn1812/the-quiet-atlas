@@ -3,10 +3,9 @@ import {
   SkinnedMesh, Texture, type WebGLRenderer,
 } from "three";
 
-/** HR-CHAR photoreal close-up skins (ADR 0019). LOD0 for High, LOD1 for Balanced. */
+/** HR-CHAR photoreal close-up skins (ADR 0019). LOD0 for High. */
 export const HR_CHARACTER_URLS = {
   High: "/world/character/character-hr.glb",
-  Balanced: "/world/character/character-hr-lod1.glb",
 } as const;
 
 export interface HrCharacterSkin {

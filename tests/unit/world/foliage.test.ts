@@ -131,7 +131,7 @@ describe("foliage instances and colliders", () => {
     const original = snapshot();
     const matrix = new Matrix4();
     try {
-      for (const quality of ["Low", "Balanced", "High", "Low"] as Quality[]) {
+      for (const quality of ["Low", "High", "Low"] as Quality[]) {
         foliage.setQuality(quality);
         const count = Math.round(trees.length * PRESETS[quality].density);
         const indices = { pine: foliage.species.pine.variants.map(() => 0), broadleaf: foliage.species.broadleaf.variants.map(() => 0) };
@@ -213,7 +213,7 @@ describe("procedural foliage variants", () => {
       expect(hanging).toBeLessThan(0.43);
       for (const ordered of [input, [...input].reverse(), input.slice(50, 70)]) {
         foliage.setTiles(ordered);
-        for (const quality of ["Low", "Balanced", "High"] as const) {
+        for (const quality of ["Low", "High"] as const) {
           foliage.setQuality(quality);
           const counters = foliage.species.broadleaf.variants.map(() => 0);
           const count = Math.round(ordered.length * PRESETS[quality].density);
@@ -386,7 +386,7 @@ describe("procedural foliage variants", () => {
         expect(species.variants.reduce((n, variant) => n + variant.crowns.count, 0)).toBe(2000);
         for (const variant of species.variants) expect(variant.crowns.count).toBeGreaterThanOrEqual(200);
       }
-      for (const quality of ["Low", "Balanced", "High"] as const) {
+      for (const quality of ["Low", "High"] as const) {
         foliage.setQuality(quality);
         const variants = Object.values(foliage.species).flatMap(s => s.variants);
         const count = Math.round(trees.length * PRESETS[quality].density);

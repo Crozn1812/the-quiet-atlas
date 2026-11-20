@@ -32,7 +32,7 @@ it("never loads on Low, deduplicates requests and keeps Low active after a late 
 it("releases a load completed after disposal and keeps the fallback on network failure", async () => {
   const high = asset(); let finish!: (group: Group) => void;
   const a = fixture(() => new Promise(resolve => { finish = resolve; }));
-  const pending = a.detail.setQuality("Balanced"); a.detail.dispose(); finish(high.root); await pending;
+  const pending = a.detail.setQuality("High"); a.detail.dispose(); finish(high.root); await pending;
   expect(a.root.children).toEqual([a.source]); expect(high.geometry).toHaveBeenCalledTimes(1);
   const load = vi.fn<CliffLoader>().mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(new Group());
   const b = fixture(load); await b.detail.setQuality("High"); expect(b.source.visible).toBe(true);

@@ -5,7 +5,7 @@ import {
 
 /** HR-FIX-SETPIECE A06: camera-facing flame sheets with scrolling turbulence, thin smoke and
  * heat-borne sparks. Everything animates in the shaders from one `time` uniform; three draws
- * for all four fires. Hardware Balanced/High only; Low keeps the cheap faceted tongues.
+ * for all four fires. Hardware High only; Low keeps the cheap faceted tongues.
  */
 export interface FireSource { position: Vector3; width: number; height: number }
 

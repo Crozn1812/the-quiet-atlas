@@ -145,7 +145,7 @@ describe("river ribbon", () => {
 });
 
 describe("painted water material", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s stream banks lighter than the centre without purple or pink pigment", quality => {
+  it.each(["Low", "High"] as const)("keeps %s stream banks lighter than the centre without purple or pink pigment", quality => {
     const material = createWaterMaterial(quality);
     try {
       const uniform = material.uniforms;
@@ -187,7 +187,6 @@ describe("painted water material", () => {
 
   it.each([
     ["Low", { SKY_REFLECTION: 0.72, RIVER_DEPTH: 1 }],
-    ["Balanced", { SKY_REFLECTION: 0.72, RIVER_DEPTH: 1, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1, C_WATER: 1 }],
     ["High", { SKY_REFLECTION: 0.72, RIVER_DEPTH: 1, WATER_FLOW: 1, WATER_REFLECTION: 1, WATER_RIPPLES: 1, C_WATER: 1 }],
   ] as const)("uses the %s shader features and Three fog/colour pipeline", (quality, defines) => {
     const material = createWaterMaterial(quality);
@@ -214,7 +213,7 @@ describe("painted water material", () => {
     material.dispose();
   });
 
-  it.each(["Balanced", "High"] as const)("moves %s strokes at 0.05 m/s and freezes all animation with reduced motion", quality => {
+  it.each(["High"] as const)("moves %s strokes at 0.05 m/s and freezes all animation with reduced motion", quality => {
     const material = createWaterMaterial(quality);
     material.setTime(10);
     material.setTime(10);
@@ -239,8 +238,8 @@ describe("painted water material", () => {
 
   it("keeps Low static and uniforms independent between instances", () => {
     const low = createWaterMaterial("Low");
-    const a = createWaterMaterial("Balanced");
-    const b = createWaterMaterial("Balanced");
+    const a = createWaterMaterial("High");
+    const b = createWaterMaterial("High");
     low.setTime(100);
     low.setReducedMotion(true);
     low.setTime(200);
@@ -284,8 +283,8 @@ describe("painted water material", () => {
 describe("sea and water lifecycle", () => {
   it("takes the reflection direction from the grade and follows subsequent sun changes without aliasing", () => {
     const grade = lightingAt(0.93);
-    const sea = createSea("Balanced", { sunDirection: grade.sunDirection });
-    const other = createWaterMaterial("Balanced", { surface: "sea" });
+    const sea = createSea("High", { sunDirection: grade.sunDirection });
+    const other = createWaterMaterial("High", { surface: "sea" });
     try {
       const material = sea.mesh.material;
       expect(material.defines.SEA_WATER).toBe(1);
@@ -320,7 +319,7 @@ describe("sea and water lifecycle", () => {
     },
   );
 
-  it.each(["Low", "Balanced", "High"] as const)("freezes %s sea waves and foam while keeping the sun wash", quality => {
+  it.each(["Low", "High"] as const)("freezes %s sea waves and foam while keeping the sun wash", quality => {
     const sea = createSea(quality);
     try {
       const material = sea.mesh.material;
@@ -349,7 +348,7 @@ describe("sea and water lifecycle", () => {
     } finally { sea.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s open sea at two triangles and adds one static surf draw", quality => {
+  it.each(["Low", "High"] as const)("keeps %s open sea at two triangles and adds one static surf draw", quality => {
     const sea = createSea(quality);
     try {
       reportBudget("tests/unit/world/water.test.ts:354 sea.mesh.geometry.index!.count / 3", sea.mesh.geometry.index!.count / 3, 2 * 1.1);
@@ -361,7 +360,7 @@ describe("sea and water lifecycle", () => {
   });
 
   it("retains the inland overlap and shore sampling while covering the cinematic sea with one quad", () => {
-    const sea = createSea("Balanced");
+    const sea = createSea("High");
     const mouth = riverPointAt(1);
     const bounds = sea.mesh.geometry.boundingBox!;
     expect(bounds.min.y).toBe(WATER_LEVEL);

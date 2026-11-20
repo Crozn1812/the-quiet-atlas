@@ -8,7 +8,7 @@ import { foliageBiomeAt, isGroundCoverExcluded } from "./scatter";
 
 // Lead render check (2026-11-06): single 5 cm blades at 0.5 m read as bare ground; one 4-blade tuft per
 // 0.7 m cell within 18/12 m reads as a meadow and stays under the 60k-triangle cap.
-export const GRASS_FIELD_RADII = { High: 18, Balanced: 12, Low: 0 } as const;
+export const GRASS_FIELD_RADII = { High: 18, Low: 0 } as const;
 export const GRASS_FIELD_SPACING = 0.7;
 const S = GRASS_FIELD_SPACING;
 

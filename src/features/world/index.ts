@@ -92,12 +92,12 @@ export const WORLD_CHUNK_MARKER = "__TQA_WORLD_CHUNK__";
 export interface WorldOptions {
   locale?: WorldLocale;
   collision?: "rapier" | "raycast";
-  quality?: Quality | "low" | "balanced" | "high";
+  quality?: Quality | "low" | "high";
   debug?: boolean;
 }
 export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}): Promise<() => void> {
   let locale = opts.locale ?? "en";
-  let quality = normalizeQuality(opts.quality ?? "balanced");
+  let quality = normalizeQuality(opts.quality ?? "high");
   const scene = new Scene();
   scene.background = new Color(PALETTE.paper);
   let controller: Controller | undefined;
@@ -1585,5 +1585,5 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
 
 function normalizeQuality(value: NonNullable<WorldOptions["quality"]>): Quality {
   const lower = value.toLowerCase();
-  return lower === "low" ? "Low" : lower === "high" ? "High" : "Balanced";
+  return lower === "low" ? "Low" : "High";
 }

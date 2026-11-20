@@ -7,10 +7,10 @@ Base: `c766002`. Không commit. `index.ts` giữ nguyên.
 - `cinematic/intro.ts`: lens 70° → 58° → 48° → đúng FOV gameplay; giữ spline, thời lượng 22 s, phần trời và camera clearance. Frame mang điểm nét theo khoảng cách tới look-at, giảm look cinematic về 0 ở handoff.
 - `cinematic/ending.ts`: lens 44° → 56° → 48° → đúng FOV gameplay; giữ các mốc 5/17/29/32/36 s, giữ mặt trời trong khung. Frame mang điểm nét và look hoàng hôn.
 - `cinematic/presentation.ts`: profile bình minh/hoàng hôn dùng PALETTE; giảm saturation nhẹ, tách bóng lạnh/highlight ấm, nắng và fill tiết chế.
-- `post/cinematic.ts`: Balanced có Bokeh pass chỉ bật trong cinematic; High giữ DOF idle gameplay. Dùng depth thật chung với AO, không vẽ geometry lần hai. Grading/aperture/blur trở lại mặc định khi xóa cinematic.
+- `post/cinematic.ts`: balanced (legacy) có Bokeh pass chỉ bật trong cinematic; High giữ DOF idle gameplay. Dùng depth thật chung với AO, không vẽ geometry lần hai. Grading/aperture/blur trở lại mặc định khi xóa cinematic.
 - `post/runtime.ts`: **file sát bên ngoài danh sách Được sửa**, cần để nối profile vào pipeline P1: cinematic có DOF khi camera di chuyển, ánh sáng draw-scoped có khôi phục cả khi draw lỗi, Low không cấp post/HDRI. Intro được dùng post sau frame đầu; HDRI/shadow vẫn qua gate deferred cũ. Environment của ending chọn hoàng hôn, trả về time-of-day gameplay khi kết thúc.
 - `tests/unit/world/cinematic-c.test.ts`: focus, strength, skip và reduced-motion.
-- `tests/unit/world/post-c.test.ts`: moving DOF Balanced/High trước deferred; xóa look về gameplay; Low không có post/HDRI; phục hồi đèn khi draw lỗi; cập nhật pass list Balanced.
+- `tests/unit/world/post-c.test.ts`: moving DOF balanced (legacy)/High trước deferred; xóa look về gameplay; Low không có post/HDRI; phục hồi đèn khi draw lỗi; cập nhật pass list balanced (legacy).
 - `cinematic/HANDOFF-GFX-P6.md`: bàn giao này.
 - `docs/showcase/38-c/gfx-p6/`: deliverable ảnh/video được ticket yêu cầu; 14 PNG và 2 WebM. Không đổi tài liệu khác.
 
@@ -82,11 +82,11 @@ Playwright thiếu ffmpeg cache; dùng bản ffmpeg đã cài trên máy, sao ch
 
 Intro lượt đầu dùng cây fallback hiện có vì GFX-P3 chỉ nạp library sau active gameplay; HDRI P1 cũng giữ deferred. Intro không chờ asset C. Vòm cây và khối đá cũ còn che phần lớn dòng suối ở giữa đoạn; không sửa foliage/landscape của ticket khác để đổi điều đó. Ending dùng hệ đã nạp sau gameplay. Chưa nghiệm thu Iris Xe/T08.
 
-Không thêm geometry hoặc byte asset public. DOF thêm một fullscreen draw khi bật; Balanced gameplay pass bị disable. Đây là phân tích pipeline, chưa phải số draw/triangle đo GL trước/sau trên baseline cùng revision.
+Không thêm geometry hoặc byte asset public. DOF thêm một fullscreen draw khi bật; balanced (legacy) gameplay pass bị disable. Đây là phân tích pipeline, chưa phải số draw/triangle đo GL trước/sau trên baseline cùng revision.
 
 ## CPU ABBA
 
-Đã chạy tuần tự main 4180 → ticket 4286 → ticket 4286 → main 4180, Balanced, 1366×800, Edge native GPU. Dùng bản sao `tools/review/cpu-compare.mjs` ở `tmp/gfx-p6/cpu-compare.mjs`, chỉ thay đường resolve package cứng `D:/the-quiet-atlas` thành cwd W-B. Bốn lượt exit 0; log `cpu-0.log` tới `cpu-3.log`. Mỗi vùng đi bộ khoảng 4 s, tính theo CDP Timestamp thật.
+Đã chạy tuần tự main 4180 → ticket 4286 → ticket 4286 → main 4180, balanced (legacy), 1366×800, Edge native GPU. Dùng bản sao `tools/review/cpu-compare.mjs` ở `tmp/gfx-p6/cpu-compare.mjs`, chỉ thay đường resolve package cứng `D:/the-quiet-atlas` thành cwd W-B. Bốn lượt exit 0; log `cpu-0.log` tới `cpu-3.log`. Mỗi vùng đi bộ khoảng 4 s, tính theo CDP Timestamp thật.
 
 | Khu | Main script A1/A2 | Ticket script B1/B2 | Delta trung bình | Delta task trung bình |
 |---|---:|---:|---:|---:|
@@ -94,6 +94,6 @@ Không thêm geometry hoặc byte asset public. DOF thêm một fullscreen draw 
 | Roots | 266 / 204 | 258 / 220 | +4,0 ms/s | +2,5 ms/s |
 | Workshop | 321 / 264 | 343 / 283 | +20,5 ms/s | +21,0 ms/s |
 
-Trung bình ba vùng: **+16,7 ms/s script, +16,2 ms/s task**, vượt trần +10 ms/s. **Chưa đạt gate CPU**. Số đo dao động lớn giữa hai lượt cùng bản; revision của server main chưa xác minh. Không có phép đo đủ để quy kết chênh lệch cho code P6 hay cho khác biệt baseline/asset. Không đổi các hệ foliage/water của ticket khác để hợp thức hóa kết quả. Các phép đo này là gameplay chưa nối cinematic, không chứng minh chi phí GPU của DOF Balanced khi cinematic hoạt động.
+Trung bình ba vùng: **+16,7 ms/s script, +16,2 ms/s task**, vượt trần +10 ms/s. **Chưa đạt gate CPU**. Số đo dao động lớn giữa hai lượt cùng bản; revision của server main chưa xác minh. Không có phép đo đủ để quy kết chênh lệch cho code P6 hay cho khác biệt baseline/asset. Không đổi các hệ foliage/water của ticket khác để hợp thức hóa kết quả. Các phép đo này là gameplay chưa nối cinematic, không chứng minh chi phí GPU của DOF balanced (legacy) khi cinematic hoạt động.
 
 Bàn giao source đã qua ba gate bắt buộc và preview đủ ảnh/video; còn mở gate CPU/luma, đo GL cùng revision và nghiệm thu Iris Xe. Lead cần nối dòng API trên để bật look/DOF cinematic trong ứng dụng.

@@ -35,7 +35,7 @@ it("warms hill instances without adding draws or changing dawn instances across 
   const white = new Color(1, 1, 1), tint = new Color();
   try {
     expect(batch.meshes).toHaveLength(3);
-    for (const quality of ["Low", "Balanced", "High"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       batch.setQuality(quality);
       for (const mesh of batch.meshes) for (let i = 0; i < mesh.count; i++) {
         mesh.getColorAt(i, tint);

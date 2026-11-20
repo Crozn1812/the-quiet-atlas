@@ -477,7 +477,7 @@ export function createWorldScene({ RAPIER, world, scene, quality: initialQuality
     hemisphere.groundColor.copy(grade.hemiGround);
     hemisphere.intensity = grade.hemiIntensity;
     fog.color.copy(grade.fogColor);
-    // AD r3: use the same biome distances for native fog and the High/Balanced paper pass.
+    // AD r3: use the same biome distances for native fog and the High paper pass.
     const distances = fogAt(t);
     fog.near = distances.near + (60 - distances.near) * clearing;
     fog.far = distances.far + (180 - distances.far) * clearing;

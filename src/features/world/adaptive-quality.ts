@@ -22,6 +22,7 @@ export function selectManualQuality(state: AdaptiveState): AdaptiveState {
   return { ...state, manual: true, frames: [], windowTime: 0 };
 }
 export function sampleQuality(state: AdaptiveState, ms: number, quality: Quality): { state: AdaptiveState; quality: Quality } {
+  quality = quality === "Low" ? "Low" : "High";
   if (state.manual || !Number.isFinite(ms) || ms <= 0) return { state, quality };
   const elapsed = state.elapsed + ms;
   if (state.elapsed < state.lockedUntil || quality === "Low") {
@@ -43,6 +44,6 @@ export function sampleQuality(state: AdaptiveState, ms: number, quality: Quality
       frames: [],
       windowTime: 0,
     },
-    quality: lower ? quality === "High" ? "Balanced" : "Low" : quality,
+    quality: lower ? "Low" : quality,
   };
 }

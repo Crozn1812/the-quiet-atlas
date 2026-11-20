@@ -49,7 +49,7 @@ describe("HR-SEA lit ocean optics", () => {
     }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s sea readable under the composed dusk grade and preserves sky radiance", quality => {
+  it.each(["Low", "High"] as const)("keeps %s sea readable under the composed dusk grade and preserves sky radiance", quality => {
     const sea = createSea(quality);
     try {
       const grade = applyCoastAtmosphere(directGrade(lightingAt(1), 1), 1);
@@ -70,7 +70,7 @@ describe("HR-SEA lit ocean optics", () => {
     } finally { sea.dispose(); }
   });
 
-  it.each(["Balanced", "High"] as const)("owns a deterministic tileable %s normal spectrum, mipmaps it, and releases it once", quality => {
+  it.each(["High"] as const)("owns a deterministic tileable %s normal spectrum, mipmaps it, and releases it once", quality => {
     const sea = createSea(quality);
     const texture = sea.mesh.material.uniforms.uSeaNormal!.value as DataTexture;
     const again = createSeaNormal(quality)!;
@@ -181,7 +181,7 @@ function seaPigment(material: WaterMaterial, point: Vector3) {
 }
 
 describe("sea depth and SURF-01", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s finite coast distances for surf independently of pigment", quality => {
+  it.each(["Low", "High"] as const)("keeps %s finite coast distances for surf independently of pigment", quality => {
     const shallow = new Color(PALETTE.seaShallow);
     const deep = new Color(PALETTE.seaDeep);
     for (const slope of [-0.6, 0, 0.6]) {
@@ -210,14 +210,14 @@ describe("sea depth and SURF-01", () => {
   });
 
   it("disables surf when no sampled coast is supplied", () => {
-    const material = createWaterMaterial("Balanced", { surface: "sea" });
+    const material = createWaterMaterial("High", { surface: "sea" });
     try {
       expect(seaPigment(material, new Vector3(0, WATER_LEVEL, -5)).shoreInfluence).toBe(0);
     } finally { material.dispose(); }
   });
 
   it("keeps the eight-second breaking foam and suppresses it at steep coasts", () => {
-    const sea = createSea("Balanced");
+    const sea = createSea("High");
     try {
       const material = sea.mesh.material;
       const foam = (slope: number, surfPhase: number) => scalars(material, "float foam = 0.0;",
@@ -236,7 +236,7 @@ describe("sea depth and SURF-01", () => {
     } finally { sea.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s breaking foam inside the surf zone even with horizon-sized pixel derivatives", quality => {
+  it.each(["Low", "High"] as const)("keeps %s breaking foam inside the surf zone even with horizon-sized pixel derivatives", quality => {
     const sea = createSea(quality);
     try {
       const material = sea.mesh.material;
@@ -279,7 +279,7 @@ describe("SURF-01 replaces the B2-219 static edge with breaking waves", () => {
 
 // RC-14: test the shader scalars at a real coast break, not an injected distance.
 describe("RC-14 finite shore influence", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s reflection and pigment continuous at a coast break without inventing an inlet edge", quality => {
+  it.each(["Low", "High"] as const)("keeps %s reflection and pigment continuous at a coast break without inventing an inlet edge", quality => {
     const valid = Array<number>(SEA_SHORE_SAMPLES).fill(1);
     valid[50] = 0;
     const material = createWaterMaterial(quality, { surface: "sea", shoreline: {
@@ -370,7 +370,7 @@ describe("RC-14 finite shore influence", () => {
 });
 
 describe("SEA-TESTS coastal river regression retained by HR-SEA", () => {
-  it.each(["Low", "Balanced", "High"] as const)("opens only the coastal %s river into indigo and directional sunset", quality => {
+  it.each(["Low", "High"] as const)("opens only the coastal %s river into indigo and directional sunset", quality => {
     const river = createWaterMaterial(quality);
     const reference = createWaterMaterial(quality);
     try {

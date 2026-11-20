@@ -128,7 +128,7 @@ export function createSkyDome(initial: LightingGrade = lightingAt(0), radius = 8
       software = isSoftwareSkyRenderer(renderer);
     }
     const value = contextCanvas.closest<HTMLElement>("[data-world-quality]")?.dataset.worldQuality;
-    quality = qualityOverride ?? (value === "low" ? "Low" : value === "balanced" ? "Balanced" : "High");
+    quality = qualityOverride ?? (value === "low" ? "Low" : "High");
     material.uniforms.cloudTime!.value = quality === "Low" || software ? 0 : seconds;
     // Leave the first playable draw unblocked by noise generation or volume integration.
     if (firstDraw) { firstDraw = false; return; }

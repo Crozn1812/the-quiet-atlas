@@ -74,27 +74,21 @@ export function mountWorldMenu(container: HTMLElement, locale: string, trigger: 
   const qualityText = document.createElement("legend");
   translations.push(() => { qualityText.textContent = copy.quality; });
   qualities.append(qualityText);
-  const radios: HTMLInputElement[] = [];
-  for (const quality of ["low", "balanced", "high"] as const) {
-    const label = document.createElement("label");
-    const radio = document.createElement("input");
-    radio.type = "radio";
-    radio.name = "world-menu-quality";
-    radio.value = quality;
-    const text = document.createElement("span");
-    translations.push(() => { text.textContent = copy[quality]; });
-    radio.addEventListener("change", () => {
-      if (radio.checked) setWorldQuality(container, quality);
-    });
-    radios.push(radio);
-    label.append(radio, text);
-    qualities.append(label);
+  const qualityButtons: HTMLButtonElement[] = [];
+  for (const quality of ["low", "high"] as const) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.value = quality;
+    translations.push(() => { choice.textContent = copy[quality]; });
+    choice.addEventListener("click", () => setWorldQuality(container, quality));
+    qualityButtons.push(choice);
+    qualities.append(choice);
   }
   destination.append(qualities);
   function syncQuality() {
     const value = container.getAttribute("data-world-quality");
-    const quality = value === "low" || value === "high" ? value : "balanced";
-    for (const radio of radios) radio.checked = radio.value === quality;
+    const quality = value === "low" ? "low" : "high";
+    for (const choice of qualityButtons) choice.setAttribute("aria-pressed", String(choice.value === quality));
   }
   syncQuality();
   container.addEventListener("tqa:world-state", syncQuality);

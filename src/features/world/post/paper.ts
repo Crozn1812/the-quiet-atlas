@@ -8,7 +8,7 @@ import { PALETTE } from "../art/palette";
 import { STYLE_PRESETS, type StylePreset } from "../art/direction";
 import { aoCompositeShader, createAOMaterial } from "./ao";
 
-type Quality = "Low" | "Balanced" | "High";
+type Quality = "Low" | "High";
 
 export const DEFAULT_MIST_BANDS = Object.freeze([20, 35, 55] as const);
 // World Y; assumes water at Y = 0. Call setMist({ height: waterY + 1.2 }) otherwise.

@@ -1,7 +1,7 @@
 import { BufferGeometry, Float32BufferAttribute, Mesh, CylinderGeometry, ConeGeometry, InstancedMesh, Object3D } from "three";
 import { createRampMaterial, RAMP_PRESETS } from "./materials/ramp";
-export type Quality = "Low" | "Balanced" | "High";
-export const PRESETS = { Low: { density: 0.4, dpr: 1, shadow: 0 }, Balanced: { density: 0.7, dpr: 1.25, shadow: 1024 }, High: { density: 1, dpr: 2, shadow: 2048 } } as const;
+export type Quality = "Low" | "High";
+export const PRESETS = { Low: { density: 0.4, dpr: 1, shadow: 0 }, High: { density: 1, dpr: 2, shadow: 2048 } } as const;
 export const SIZE = 60;
 export const CELLS = 60;
 export const SEED = 73021;

@@ -32,7 +32,7 @@ describe("deferred CC0 environment", () => {
     expect(environmentUrls("Low")).toEqual([]);
     const licenses = readFileSync("assets/LICENSES.csv", "utf8");
     let bytes = 0;
-    for (const quality of ["High", "Balanced"] as const) for (const url of environmentUrls(quality)) {
+    for (const quality of ["High", "High"] as const) for (const url of environmentUrls(quality)) {
       const file = `public${url}`, binary = readFileSync(file);
       expect(binary.subarray(0, 12).toString("hex")).toBe("ab4b5458203230bb0d0a1a0a");
       const width = quality === "High" ? 2048 : 1024;
@@ -95,7 +95,7 @@ describe("deferred CC0 environment", () => {
     state.pending.forEach((pending, i) => pending.resolve(textures[i]!));
     await vi.waitFor(() => spies.forEach(spy => expect(spy).toHaveBeenCalledOnce()));
     environment.update(); expect(scene.environment).toBeNull();
-    environment.setTimeOfDay(0.7); environment.setQuality("Balanced");
+    environment.setTimeOfDay(0.7); environment.setQuality("High");
     expect(fetch).toHaveBeenCalledTimes(2);
     environment.setActive(true);
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
@@ -106,7 +106,7 @@ describe("deferred CC0 environment", () => {
   it("disposes partial successes and preserves fallback lighting when one HDRI fails", async () => {
     const scene = new Scene(), original = new Texture(); scene.environment = original;
     const environment = createEnvironment({} as WebGLRenderer, scene);
-    environment.setQuality("Balanced");
+    environment.setQuality("High");
     await vi.waitFor(() => expect(state.pending).toHaveLength(2));
     const texture = new Texture(), dispose = vi.spyOn(texture, "dispose");
     state.pending[0]!.resolve(texture); state.pending[1]!.reject(new Error("offline"));

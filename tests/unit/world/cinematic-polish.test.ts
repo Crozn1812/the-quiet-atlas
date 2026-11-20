@@ -89,7 +89,7 @@ it("keeps the postcard foreground on open water or detailed upward-facing terrai
   }
 });
 it("renders intro fog in the current skyHorizon colour at every quality", () => {
-  for (const quality of ["Low", "Balanced", "High"] as const) {
+  for (const quality of ["Low", "High"] as const) {
     let actual: Color | undefined;
     const renderer = {
       getSize: (v: Vector2) => v.set(320, 180), getPixelRatio: () => 1,

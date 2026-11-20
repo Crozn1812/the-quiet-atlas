@@ -30,7 +30,7 @@ it("keeps three instanced silhouettes deterministic across quality switches and 
   const original = forest.meshes.map(mesh => mesh.instanceMatrix.array.slice());
   const dispose = forest.meshes.flatMap(mesh => [vi.spyOn(mesh.geometry, "dispose"), vi.spyOn(mesh.material, "dispose")]);
   try {
-    for (const quality of ["Low", "Balanced", "High"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       forest.setQuality(quality);
       expect(forest.meshes.reduce((sum, mesh) => sum + mesh.count, 0)).toBe(Math.round(trees.length * PRESETS[quality].density));
       for (const mesh of forest.meshes) {

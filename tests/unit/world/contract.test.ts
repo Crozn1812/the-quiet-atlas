@@ -213,7 +213,7 @@ it.each([
     expect(camera.position.distanceTo(position)).toBeLessThan(1e-9);
     expect(container.dataset.worldQuality).toBe("high");
     expect(harness.dpr).toBe(2);
-    expect(states.length).toBe(stateCount + 2);
+    expect(states.length).toBe(stateCount + 1);
     send(container, "tqa:pause", { detail: { reason: "overlay", paused: false } });
     expect(container.dataset.worldPaused).toBe("false");
     document.activeElement = { closest: () => ({}) };

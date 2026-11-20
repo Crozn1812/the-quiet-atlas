@@ -1,9 +1,9 @@
 import { Camera, LinearFilter, Mesh, PlaneGeometry, RepeatWrapping, Scene, ShaderMaterial, Vector3, WebGLRenderTarget, type WebGLRenderer } from "three";
 import { CLOUD_VOLUME_FRAGMENT, createCloudNoise } from "./cloud-volume";
 
-export type SkyQuality = "Low" | "Balanced" | "High";
+export type SkyQuality = "Low" | "High";
 export function skyBakeSize(quality: SkyQuality, software: boolean): number {
-  return software ? 256 : quality === "High" ? 2048 : quality === "Balanced" ? 1024 : 512;
+  return software ? 256 : quality === "High" ? 2048 : 512;
 }
 export function isSoftwareSkyRenderer(renderer: WebGLRenderer): boolean {
   const gl = renderer.getContext();

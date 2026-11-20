@@ -78,7 +78,7 @@ describe("Roots banyan streaming lifecycle", () => {
     s.frame(22); expect(a.group.visible).toBe(true);
     setBakedPropQuality(s.scene, "Low"); expect(s.fallback.visible).toBe(true);
     expect(a.group.visible || b.group.visible).toBe(false);
-    setBakedPropQuality(s.scene, "Balanced"); s.frame(10); expect(b.group.visible).toBe(true);
+    setBakedPropQuality(s.scene, "High"); s.frame(10); expect(a.group.visible).toBe(true);
     s.dispose(); s.dispose(); expect(a.dispose).toHaveBeenCalledTimes(1); expect(b.dispose).toHaveBeenCalledTimes(1);
   });
 

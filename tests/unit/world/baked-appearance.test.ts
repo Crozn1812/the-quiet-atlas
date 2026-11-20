@@ -195,18 +195,20 @@ describe("GFX-P5 deferred appearance and LOD", () => {
     appearance.dispose();
   });
 
-  it("uses separate High/Balanced resources and keeps the bike's geometry/pivots", async () => {
+  it("reuses High resources across Low fallback and keeps the bike's geometry/pivots", async () => {
     vi.useFakeTimers();
-    const f = fixture(), high = bundle(), balanced = bundle();
-    high.geometry = balanced.geometry = undefined;
-    const load = vi.fn().mockResolvedValueOnce(high).mockResolvedValueOnce(balanced);
+    const f = fixture(), high = bundle();
+    high.geometry = undefined;
+    const load = vi.fn().mockResolvedValue(high);
     const appearance = installBakedAppearance(f.mesh, false, load);
     f.render(); await vi.runAllTimersAsync(); f.render();
     expect(f.mesh.geometry).toBe(f.geometry);
     expect(f.mesh.material).toBe(high.material);
-    appearance.setQuality("Balanced"); f.render(); await vi.runAllTimersAsync(); f.render();
-    expect(f.mesh.material).toBe(balanced.material);
-    expect(load.mock.calls.map(call => call[1])).toEqual(["High", "Balanced"]);
+    appearance.setQuality("Low"); f.render();
+    expect(f.mesh.material).toBe(f.material);
+    appearance.setQuality("High"); f.render(); await vi.runAllTimersAsync(); f.render();
+    expect(f.mesh.material).toBe(high.material);
+    expect(load.mock.calls.map(call => call[1])).toEqual(["High"]);
     appearance.dispose();
   });
 });

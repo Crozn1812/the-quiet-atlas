@@ -57,7 +57,7 @@ test("T07 menu: Esc opens (paused, focus on title), Tab/Shift+Tab stay inside, E
   expect(errors, errors.join("\n")).toEqual([]);
 });
 
-test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-state on the same canvas (no remount)", async ({ page }) => {
+test("§6.2.7 quality: two buttons change data-world-quality and emits tqa:world-state on the same canvas (no remount)", async ({ page }) => {
   const errors = trackConsoleErrors(page);
   const world = await setup(page);
   const canvasBefore = await world.locator("canvas").elementHandle();
@@ -70,14 +70,15 @@ test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-s
   await page.keyboard.press("Escape");
   await expect(world).toHaveAttribute("data-world-paused", "true");
   // Adaptive quality (L2-007) may already have stepped down under load, so start from whatever is current.
-  const initial = (await world.getAttribute("data-world-quality")) as "low" | "balanced" | "high";
-  expect(["low", "balanced", "high"]).toContain(initial);
-  // B2-230: quality is a radio group (fieldset legend "Quality") instead of a native select.
+  const initial = (await world.getAttribute("data-world-quality")) as "low" | "high";
+  expect(["low", "high"]).toContain(initial);
+  // Quality keeps native buttons and pressed state within the labelled fieldset.
   const qualities = dialog(page).getByRole("group", { name: "Quality" });
-  await expect(qualities.locator(`input[value="${initial}"]`)).toBeChecked();
-  const sequence = [...(["low", "high", "balanced"] as const).filter(quality => quality !== initial), initial];
+  await expect(qualities.getByRole("button")).toHaveCount(2);
+  await expect(qualities.locator(`button[value="${initial}"]`)).toHaveAttribute("aria-pressed", "true");
+  const sequence = [...(["low", "high"] as const).filter(quality => quality !== initial), initial];
   for (const quality of sequence) {
-    await qualities.locator(`input[value="${quality}"]`).check();
+    await qualities.locator(`button[value="${quality}"]`).click();
     await expect(world).toHaveAttribute("data-world-quality", quality);
   }
 
@@ -87,10 +88,15 @@ test("§6.2.7 quality: <select> changes data-world-quality and emits tqa:world-s
   const states = await page.evaluate(() => (window as unknown as { __tqaStates: unknown[] }).__tqaStates);
   // Opening the menu (overlay pause), then one event per quality change; paused stays true throughout.
   // Earlier entries can be adaptive step-downs before the menu opened, so compare the tail.
-  expect(states.slice(-4)).toEqual([
+  expect(states.slice(-(sequence.length + 1))).toEqual([
     { paused: true, quality: initial },
     ...sequence.map(quality => ({ paused: true, quality })),
   ]);
+  // A queued event from an older session maps straight to High.
+  await qualities.locator('button[value="low"]').click();
+  await world.evaluate(element => element.dispatchEvent(new CustomEvent("tqa:set-quality", { detail: { quality: "balanced" } })));
+  await expect(world).toHaveAttribute("data-world-quality", "high");
+  await expect(qualities.locator('button[value="high"]')).toHaveAttribute("aria-pressed", "true");
   expect(errors, errors.join("\n")).toEqual([]);
 });
 

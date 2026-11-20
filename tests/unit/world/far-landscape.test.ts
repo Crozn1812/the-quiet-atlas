@@ -166,7 +166,7 @@ describe("HR-FAR continuous landscape", () => {
       expect(farNoise(x,z,38)).toBeGreaterThanOrEqual(0);
       expect(farNoise(x,z,38)).toBeLessThanOrEqual(1);
     }
-    expect(GAMEPLAY_FAR.High).toBeGreaterThan(GAMEPLAY_FAR.Balanced);
+    expect(GAMEPLAY_FAR.High).toBeGreaterThan(GAMEPLAY_FAR.Low);
   });
   it("matches deferred construction and releases partial and complete work once", () => {
     const far = createFarLandscape({ deferred: true });

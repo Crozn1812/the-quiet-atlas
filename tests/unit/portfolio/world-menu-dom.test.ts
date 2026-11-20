@@ -249,7 +249,7 @@ it("traps Tab and Shift+Tab with the new controls and restores focus on Escape",
   expect(dom.document.activeElement).toBe(last);
   expect(tab().defaultPrevented).toBe(true);
   expect(dom.document.activeElement).toBe(first);
-  dialog.querySelectorAll("input")[1]!.focus();
+  button("High").focus();
   expect(tab().defaultPrevented).toBe(false);
   expect(tab(true).defaultPrevented).toBe(false);
   button("Reduced motion: Off").focus();
@@ -263,24 +263,21 @@ it("traps Tab and Shift+Tab with the new controls and restores focus on Escape",
   expect(pauses.mock.calls.map(([event]) => event.detail.paused)).toEqual([true, false]);
 });
 
-it("synchronizes quality radios and dispatches the chosen quality without remounting", async () => {
+it("synchronizes quality buttons and dispatches the chosen quality without remounting", async () => {
   dom.container.setAttribute("data-world-quality", "high");
   const received: string[] = [];
   dom.container.addEventListener("tqa:set-quality", event => received.push((event as CustomEvent).detail.quality));
   await mount();
   await click(dom.trigger);
-  const radios = menu().querySelectorAll("input") as (TestElement & { checked: boolean; value: string; type: string; name: string })[];
-  expect(radios.map(radio => [radio.type, radio.name, radio.value, radio.checked])).toEqual([
-    ["radio", "world-menu-quality", "low", false],
-    ["radio", "world-menu-quality", "balanced", false],
-    ["radio", "world-menu-quality", "high", true],
-  ]);
-  radios[0]!.checked = true;
-  radios[0]!.dispatchEvent(new Event("change"));
+  const low = button("Low"), high = button("High");
+  expect(low.getAttribute("aria-pressed")).toBe("false");
+  expect(high.getAttribute("aria-pressed")).toBe("true");
+  await click(low);
   expect(received).toEqual(["low"]);
   dom.container.setAttribute("data-world-quality", "balanced");
   dom.container.dispatchEvent(new Event("tqa:world-state"));
-  expect(radios.map(radio => radio.checked)).toEqual([false, true, false]);
+  expect(low.getAttribute("aria-pressed")).toBe("false");
+  expect(high.getAttribute("aria-pressed")).toBe("true");
   await click(button("Tiếng Việt"));
-  expect(radios.map(radio => radio.parentElement!.textContent)).toEqual(["Thấp", "Cân bằng", "Cao"]);
+  expect([low.textContent, high.textContent]).toEqual(["Thấp", "Cao"]);
 });

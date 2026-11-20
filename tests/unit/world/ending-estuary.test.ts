@@ -79,7 +79,7 @@ it.each([RIBBON_SEGMENTS, 1000, 17, 1])("keeps vertices and triangle interiors b
   } finally { geometry.dispose(); sea.dispose(); }
 });
 
-it.each(["Low", "Balanced", "High"] as const)("uses complete river and sea surfaces in %s gameplay and ending", quality => {
+it.each(["Low", "High"] as const)("uses complete river and sea surfaces in %s gameplay and ending", quality => {
   const river = createRiverRibbon(quality);
   const sea = createSea(quality);
   try {

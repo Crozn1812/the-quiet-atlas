@@ -119,7 +119,7 @@ describe("FISH-01 procedural schools", () => {
       fish.update(0.1, false, new Vector3(1000, 0, 1000), "High");
       expect(fish.mesh.visible).toBe(false);
       expect(fish.mesh.material.uniforms.uLowSchool!.value).toBe(-1);
-      fish.update(0, false, fish.schools[0]!.center, "Balanced");
+      fish.update(0, false, fish.schools[0]!.center, "High");
       expect(fish.mesh.visible).toBe(true);
     } finally { fish.dispose(); }
   });

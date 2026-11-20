@@ -31,7 +31,7 @@ it("shares the R1 dawn-biome treatment and unchanged hill/coast fog with paper a
   const paper = { setGrade: vi.fn(), setMist: vi.fn(), setFog: vi.fn() };
   const composed = createWorldScene({ ...backend, scene, quality: "Low", paper });
   try {
-    for (const quality of ["Low", "Balanced", "High"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       composed.setQuality(quality);
       expect(composed.sun.shadow.radius).toBe(2.5);
       for (const id of ["first-light", "horizon", "quiet-shore", "last-postcard", "roots"] as const) {
@@ -119,7 +119,7 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     scene.traverse(object => { if (object instanceof Mesh) record(object); });
     composed.collisionMeshes.forEach(record);
   };
-  const composed = createWorldScene({ ...physics, scene, quality: "Balanced", paper });
+  const composed = createWorldScene({ ...physics, scene, quality: "High", paper });
   try {
     track(composed);
     const initial = tilesToLoad(0);
@@ -146,7 +146,7 @@ it("preloads spawn, streams 300 m, retains every tree collider at all qualities 
     expect(crown.geometry.getAttribute("crownAlpha").getX(0)).toBeLessThan(0.2);
 
     const handles = new Set(composed.collisionMeshes);
-    for (const quality of ["Low", "High", "Balanced"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       composed.setQuality(quality);
       track(composed);
       expect(new Set(composed.collisionMeshes)).toEqual(handles);
@@ -247,7 +247,7 @@ it.each([1, 3])("cleans up an initial allocation failure on collider %i before h
     if (++allocations === failAt) throw new Error("initial allocation failed");
     return {} as ReturnType<typeof backend.world.createCollider>;
   };
-  expect(() => createWorldScene({ ...backend, scene, quality: "Balanced" })).toThrow("initial allocation failed");
+  expect(() => createWorldScene({ ...backend, scene, quality: "High" })).toThrow("initial allocation failed");
   expect(scene.children).toHaveLength(0);
   expect(removeCollider).toHaveBeenCalledTimes(failAt - 1);
   // The authored grove adds temporary facets and owned meshes; assert complete unique disposal,
@@ -273,14 +273,14 @@ it("grades paper fog without changing the paper pigment, across Low and High rea
       if (camera instanceof OrthographicCamera) materials.push((scene.children[0] as Mesh).material as import("three").ShaderMaterial);
     },
   } as unknown as import("three").WebGLRenderer;
-  const paper = createGradedPaperPass(renderer, "Balanced", WORLD_DIRECTION);
+  const paper = createGradedPaperPass(renderer, "High", WORLD_DIRECTION);
   try {
-    for (const quality of ["Balanced", "Low", "High"] as const) {
+    for (const quality of ["Low", "High"] as const) {
       paper.setQuality(quality);
       paper.setGrade(lightingAt(1));
       paper.render(new Scene(), new PerspectiveCamera());
     }
-    expect(materials).toHaveLength(2);
+    expect(materials).toHaveLength(1);
     for (const material of materials) {
       expect(material.uniforms.paperColor!.value).toEqual(new Color(PALETTE.paper));
       // Grade tints fog + mist through the pass API (survives Low -> High reallocation); paper stays immutable.
@@ -380,7 +380,7 @@ it("defers distant ground, preserves one-shot instance parity, and cancels mid-b
     let steps = 0;
     while (!composed.buildGround.next().done) {
       expect(++steps).toBeLessThan(100000);
-      if (steps === 100) composed.setQuality("Balanced");
+      if (steps === 100) composed.setQuality("High");
       if (steps === 101) composed.setQuality("High");
     }
     expect(steps).toBeGreaterThan(1);
@@ -420,7 +420,7 @@ it("retains the old authored grove after partial deferred collider failure and r
   const active = new Set<ReturnType<typeof world.createCollider>>();
   world.createCollider = () => { const collider = {} as ReturnType<typeof world.createCollider>; active.add(collider); return collider; };
   world.removeCollider = collider => { active.delete(collider); };
-  const composed = createWorldScene({ ...backend, world, scene, quality: "Balanced", zoneBounds: bounds });
+  const composed = createWorldScene({ ...backend, world, scene, quality: "High", zoneBounds: bounds });
   try {
     const before = new Set(active), meshes = [...composed.collisionMeshes];
     const old = scene.getObjectByName("first-light-authored-grove")!;

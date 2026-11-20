@@ -34,14 +34,14 @@ it("dispatches ADR 0008 events on the supplied container only", () => {
   pauseWorld(target, true);
   pauseWorld(target, false);
   setWorldQuality(target, "low");
-  setWorldQuality(target, "balanced");
+  setWorldQuality(target, "high");
   setWorldQuality(target, "high");
   returnToPath(target);
   expect(received).toEqual([
     ["tqa:pause", { reason: "overlay", paused: true }, false],
     ["tqa:pause", { reason: "overlay", paused: false }, false],
     ["tqa:set-quality", { quality: "low" }, false],
-    ["tqa:set-quality", { quality: "balanced" }, false],
+    ["tqa:set-quality", { quality: "high" }, false],
     ["tqa:set-quality", { quality: "high" }, false],
     ["tqa:return-to-path", null, false],
   ]);

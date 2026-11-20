@@ -59,7 +59,7 @@ describe("First Light library dressing", () => {
     expect(triangles(batch.mesh)).toBe(120);
     const detail = batch.mesh.geometry;
     setBakedPropQuality(root, "Low"); expect(batch.mesh.geometry).toBe(original);
-    setBakedPropQuality(root, "Balanced"); expect(batch.mesh.geometry).toBe(detail);
+    setBakedPropQuality(root, "High"); expect(batch.mesh.geometry).toBe(detail);
     const resources = [original, detail, batch.mesh.material];
     const disposals = resources.map(resource => vi.spyOn(resource, "dispose"));
     batch.dispose(); batch.dispose();

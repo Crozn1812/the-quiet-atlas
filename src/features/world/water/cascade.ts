@@ -173,7 +173,7 @@ export function createSpringCascade(origin: Readonly<Vector3>, forward: Readonly
   sheet.onBeforeRender = renderer => {
     sync();
     const target = renderer.getRenderTarget();
-    // The existing High/Balanced post target is linear HDR. Low/direct output
+    // The existing High post target is linear HDR. Low/direct output
     // uses the clear alpha fallback, avoiding a second tone/color conversion.
     sheetMaterial.uniforms.uRefraction!.value = target && uniforms.uMotion.value ? 1 : 0;
     if (!target || !uniforms.uMotion.value) return;

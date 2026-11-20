@@ -137,7 +137,7 @@ it("swaps whole batches after deferred loads and restores the exact fallback syn
     await vi.waitFor(() => expect(meshes.filter((mesh,i) => mesh.geometry !== fallback[i])).toHaveLength(3));
     setBakedPropQuality(scene,"Low");
     meshes.forEach((mesh,i) => expect(mesh.geometry).toBe(fallback[i]));
-    setBakedPropQuality(scene,"Balanced");
+    setBakedPropQuality(scene,"High");
     expect(meshes.filter((mesh,i) => mesh.geometry !== fallback[i])).toHaveLength(3);
     expect(meshes.every(mesh => mesh.geometry.getAttribute("position").array.every(Number.isFinite))).toBe(true);
   } finally { workshop.dispose(); workshop.dispose(); }

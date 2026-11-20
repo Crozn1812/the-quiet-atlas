@@ -28,7 +28,7 @@ export function createStreambed(renderer: WebGLRenderer) {
   let layout: ReturnType<typeof createStreambedLayout> | undefined;
   let rocks: BufferGeometry[] = [], textures: Texture[] = [], photoMaterials: Material[] = [];
   let disposed = false, enabled = false, ready = false, elapsed = 0, frames = 0, reviewEnabled = true;
-  let quality: Quality = software ? "Low" : "Balanced", requested: Quality | undefined, revision = 0;
+  let quality: Quality = software ? "Low" : "High", requested: Quality | undefined, revision = 0;
   let decoder: import("three/addons/loaders/KTX2Loader.js").KTX2Loader | undefined;
   let loadTextures: ((quality: Quality) => Promise<void>) | undefined;
   const transform = new Object3D(), tint = new Color();
@@ -61,7 +61,7 @@ export function createStreambed(renderer: WebGLRenderer) {
         photoMaterials.forEach(m => m.dispose()); photoMaterials = [];
         textures.forEach(t => t.dispose()); textures = []; updateMaterials(); return;
       }
-      const selected = next === "High" && renderer.capabilities.maxTextureSize >= 8192 ? "High" : "Balanced";
+      const selected = "High";
       const results = await Promise.allSettled(photoTextureUrls(selected).map(url => ktx.loadAsync(url)));
       const loaded = results.flatMap(r => r.status === "fulfilled" ? [r.value] : []);
       if (disposed || token !== revision || loaded.length !== 2) { loaded.forEach(t => t.dispose()); return; }
@@ -182,7 +182,7 @@ export function createStreambed(renderer: WebGLRenderer) {
       if (loadTextures && requested !== next) void loadTextures(next).catch(() => {});
       if (Number.isFinite(dt) && dt > 0 && !reducedMotion) elapsed += Math.min(dt, 0.1);
       plant.time.value = leaf.time.value = stoneTime.value = foam.uniforms.bedTime!.value = elapsed;
-      const range = next === "Low" ? 38 : next === "Balanced" ? 65 : 88;
+      const range = next === "Low" ? 38 : 88;
       let candidate = -1, nearest = Infinity;
       for (let id = 0; id < layout!.centers.length; id++) {
         const center = layout!.centers[id]!, dx = center.x - player.x, dz = center.z - player.z, distance = Math.hypot(dx, dz);
@@ -193,7 +193,7 @@ export function createStreambed(renderer: WebGLRenderer) {
           for (const mesh of resident.meshes) {
             const stone = mesh.name === "streambed-pebbles" || mesh.name === "streambed-boulders";
             mesh.visible = next !== "Low" || stone;
-            mesh.count = Math.ceil(mesh.instanceMatrix.count * (next === "Low" && mesh.name === "streambed-pebbles" ? 0.25 : next === "Balanced" && mesh.name === "streambed-pebbles" ? 0.65 : 1));
+            mesh.count = Math.ceil(mesh.instanceMatrix.count * (next === "Low" && mesh.name === "streambed-pebbles" ? 0.25 : 1));
             resident.cullers.get(mesh)?.setLimit(mesh.count, next !== "Low");
           }
         } else if (distance < range && distance < nearest) { nearest = distance; candidate = id; }

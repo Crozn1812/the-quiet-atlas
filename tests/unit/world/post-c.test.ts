@@ -15,7 +15,7 @@ vi.mock("../../../src/features/world/sky/environment", () => ({ createEnvironmen
   setQuality: vi.fn(), setActive: vi.fn(), setTimeOfDay: vi.fn(), update: vi.fn(), dispose: vi.fn(),
 })) }));
 
-function setup(quality: "Low" | "Balanced" | "High", ready = true) {
+function setup(quality: "Low" | "High" | "High", ready = true) {
   const renderer = {
     getSize: (out: Vector2) => out.set(800, 450), getPixelRatio: () => 1.5,
     shadowMap: { autoUpdate: true, enabled: true }, render: vi.fn(),
@@ -64,7 +64,7 @@ describe("direction C runtime", () => {
     pass.setQuality("Low"); pass.startDeferred(scene); pass.render(scene, camera);
     expect(EffectComposer).not.toHaveBeenCalled();
     expect(createEnvironment).not.toHaveBeenCalled();
-    pass.setQuality("Balanced"); pass.render(scene, camera);
+    pass.setQuality("High"); pass.render(scene, camera);
     expect(EffectComposer).toHaveBeenCalledOnce();
     expect(createEnvironment).toHaveBeenCalledOnce();
     expect(scene.getObjectByName("hr-forest-floor")).toBeDefined();
@@ -105,7 +105,7 @@ describe("direction C runtime", () => {
     pass.render(scene, camera);
     expect(renderer.render).toHaveBeenCalledWith(scene, camera);
     expect(EffectComposer).not.toHaveBeenCalled();
-    pass.setQuality("Balanced"); pass.render(scene, camera);
+    pass.setQuality("High"); pass.render(scene, camera);
     const pipeline = composer();
     expect(pipeline.passes.map(item => item.constructor.name)).toEqual(["RenderPass", "GTAOPass", "UnrealBloomPass", "ShaderPass", "ShaderPass", "OutputPass"]);
     const release = pipeline.passes.map(item => vi.spyOn(item, "dispose"));
@@ -139,11 +139,11 @@ describe("direction C runtime", () => {
     expect(dof.enabled).toBe(true);
     pass.setMotion(true, 0.1); pass.render(scene, camera);
     expect(dof.enabled).toBe(false);
-    pass.setQuality("Balanced"); pass.render(scene, camera);
+    pass.setQuality("High"); pass.render(scene, camera);
     expect(bokeh()!.enabled).toBe(false);
     pass.dispose();
   });
-  it.each(["Balanced", "High"] as const)("keeps moving %s cinematic subjects in focus before deferred assets, then restores gameplay", quality => {
+  it.each(["High"] as const)("keeps moving %s cinematic subjects in focus before deferred assets, then restores gameplay", quality => {
     const { scene, camera, pass } = setup(quality, false);
     pass.render(scene, camera);
     pass.setCinematic({ kind: "intro", strength: 1, focus: 75 });

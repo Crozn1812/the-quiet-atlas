@@ -148,7 +148,7 @@ export function installHrVehicle(bike: Group, transitioning: () => boolean, load
   let software: boolean | undefined, disposed = false, pending = false, failed = false;
   let asset: HrVehicleAsset | undefined, attached = false, lod = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let explicitQuality: "low" | "balanced" | "high" | undefined;
+  let explicitQuality: "low" | "high" | undefined;
   const origin = new Vector3(), view = new Vector3();
   let mirrorLease: ReturnType<HrMirrorLoader> | undefined;
   const mirrors: Object3D[] = [];
@@ -225,7 +225,7 @@ export function installHrVehicle(bike: Group, transitioning: () => boolean, load
   fallback.onAfterRender = afterRender;
   return {
     update: refresh,
-    setQuality(quality: "low" | "balanced" | "high") { explicitQuality = quality; refresh(); },
+    setQuality(quality: "low" | "high") { explicitQuality = quality; refresh(); },
     dispose() {
       if (disposed) return;
       disposed = true; cancelScheduled();

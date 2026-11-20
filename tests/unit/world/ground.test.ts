@@ -347,7 +347,7 @@ describe("ground instancing", () => {
       }
       const high = snapshot(meshes);
       const sets = high.map(items => new Set(items.map(matrix => JSON.stringify(matrix))));
-      for (const quality of ["Balanced", "Low", "High"] as Quality[]) {
+      for (const quality of ["Low", "High"] as Quality[]) {
         ground.setQuality(quality);
         expect(renderedTriangles(meshes)).toBeLessThanOrEqual(GROUND_TRIANGLE_LIMIT);
         const selected = snapshot(meshes);
@@ -422,7 +422,7 @@ describe("ground instancing", () => {
       try {
         ground.setFocus(1, 1);
         ground.setTiles(items);
-        for (const quality of ["High", "Balanced", "Low"] as Quality[]) {
+        for (const quality of ["Low", "High"] as Quality[]) {
           ground.setQuality(quality);
           expect(meshesOf(ground).reduce((sum, mesh) => sum + mesh.count, 0)).toBe(GROUND_LIMITS[quality][kind]);
         }

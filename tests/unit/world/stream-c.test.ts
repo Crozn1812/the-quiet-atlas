@@ -48,7 +48,7 @@ describe("STREAM-C", () => {
     } finally { river.dispose(); }
   });
 
-  it.each(["Balanced", "High"] as const)("uses bounded sky Fresnel and releases the %s normal map once", quality => {
+  it.each(["High"] as const)("uses bounded sky Fresnel and releases the %s normal map once", quality => {
     const material = createWaterMaterial(quality);
     const texture = material.uniforms.uFlowNormal!.value;
     try {

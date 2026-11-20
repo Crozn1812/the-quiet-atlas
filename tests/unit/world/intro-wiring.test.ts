@@ -158,7 +158,8 @@ function advance(ms = 100) {
 const skipButton = () => container.children.find(child => child.dataset.worldIntroSkip === "true");
 const camera = () => harness.camera as PerspectiveCamera;
 const position = () => harness.position as Vector3;
-async function mount(quality?: "high" | "low") {
+// QF-01: the old default tier was Balanced; QF-03 only holds the intro on High, so the default mount stays Low.
+async function mount(quality: "high" | "low" = "low") {
   const { mountWorld } = await import("../../../src/features/world/index");
   unmount = await mountWorld(container as unknown as HTMLElement, { collision: "raycast", quality });
 }
@@ -289,7 +290,7 @@ it.each(["Escape", "Enter"])("skips with %s while the Skip button has focus", as
 
 it("freezes the gameplay frame while paused, redraws explicit quality changes, and resumes rendering", async () => {
   win.__tqaSkipIntro = true;
-  await mount();
+  await mount("high");
   advance();
   expect(container.dataset.worldIntro).toBe("done");
   send(container, "tqa:pause", { detail: { reason: "overlay", paused: true } });

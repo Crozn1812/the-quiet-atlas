@@ -151,7 +151,7 @@ export function createSpring() {
     rim.setXYZ(i, rim.getX(i) * factor, rim.getY(i), rim.getZ(i) * factor * 0.86);
   }
   poolGeometry.translate(origin.x, level + 0.01, origin.z);
-  const poolSurface = createWaterSurface(poolGeometry, createWaterMaterial("Balanced"));
+  const poolSurface = createWaterSurface(poolGeometry, createWaterMaterial("High"));
   const pool = poolSurface.mesh;
   pool.name = "spring-cleft-pool";
   group.add(pool);
@@ -182,7 +182,7 @@ export function createSpring() {
   fallGeometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
   fallGeometry.setIndex(indices);
   fallGeometry.computeVertexNormals();
-  const fallSurface = createWaterSurface(fallGeometry, createWaterMaterial("Balanced"));
+  const fallSurface = createWaterSurface(fallGeometry, createWaterMaterial("High"));
   const fall = fallSurface.mesh;
   fall.name = "spring-cleft-flow";
   // Kept for the shared water clock and surface list; the visible fall is the strands in cascade.ts.

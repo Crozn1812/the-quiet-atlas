@@ -6,7 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { HR_CHARACTER_URLS, loadHrCharacterSkin } from "./hr-appearance";
 
-export type AppearanceQuality = "Low" | "Balanced" | "High";
+export type AppearanceQuality = "Low" | "High";
 export type BakedSurface = "linen" | "shorts" | "skin" | "hair" | "glass" | "paint" | "metal" | "rubber" | "leather";
 export const BAKED_SURFACES: readonly BakedSurface[] = ["linen", "shorts", "skin", "hair", "glass", "paint", "metal", "rubber", "leather"];
 
@@ -86,8 +86,8 @@ async function loadAtlas(renderer: WebGLRenderer, size: number): Promise<Texture
 
 export async function loadBakedResources(renderer: WebGLRenderer, quality: AppearanceQuality, character: boolean): Promise<BakedResources> {
   if (character) {
-    // HR-CHAR (ADR 0019): photoreal skin on the same skeleton; High = LOD0, Balanced = LOD1.
-    const skin = await loadHrCharacterSkin(renderer, HR_CHARACTER_URLS[quality === "High" ? "High" : "Balanced"]);
+    // HR-CHAR (ADR 0019): photoreal skin on the same skeleton; High = LOD0.
+    const skin = await loadHrCharacterSkin(renderer, HR_CHARACTER_URLS.High);
     skin.geometry.userData.bones = skin.bones;
     return { material: skin.materials[0] as MeshStandardMaterial, materials: skin.materials, textures: skin.textures, geometry: skin.geometry, dispose: skin.dispose };
   }
@@ -184,7 +184,7 @@ export function installBakedAppearance(mesh: SkinnedMesh, character: boolean, lo
     }
     const container = renderer.domElement?.closest?.("[data-world-quality]");
     const attribute = container?.getAttribute("data-world-quality");
-    const requested = explicitQuality ?? (attribute === "high" ? "High" : attribute === "balanced" ? "Balanced" : "Low");
+    const requested = explicitQuality ?? (attribute === "high" || attribute === "balanced" ? "High" : "Low");
     const quality = software || (renderer.capabilities?.maxTextureSize ?? 16384) < 4096 ? "Low" : requested;
     currentQuality = quality;
     const cancelScheduled = () => {

@@ -79,7 +79,7 @@ describe("Quiet Shore direction-C dressing", () => {
     const detail = batch.mesh.geometry, material = batch.mesh.material;
     const disposals = [fallback, detail, material].map(resource => vi.spyOn(resource, "dispose"));
     setBakedPropQuality(root, "Low"); expect(batch.mesh.geometry).toBe(fallback);
-    setBakedPropQuality(root, "Balanced"); expect(batch.mesh.geometry).toBe(detail);
+    setBakedPropQuality(root, "High"); expect(batch.mesh.geometry).toBe(detail);
     const camera = new PerspectiveCamera(), scene = new Scene(); batch.mesh.updateMatrixWorld(true);
     for (const [z, count] of [[150, 0], [0, Infinity]]) {
       camera.position.set(0, 2, z!); camera.updateMatrixWorld();

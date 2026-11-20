@@ -158,7 +158,7 @@ describe("safe, read-only query input", () => {
   it("supports the specified capture URL and clean mode", () => {
     expect(parseQuery("?preset=A&shot=forest-dawn&quality=High&t=0")).toEqual(defaults);
     expect(parseQuery("?preset=C&shot=coast-dusk&quality=Balanced&t=9.25&clean=1")).toEqual({
-      preset: "C", shot: "coast-dusk", quality: "Balanced", t: 9.25, clean: true,
+      preset: "C", shot: "coast-dusk", quality: "High", t: 9.25, clean: true,
     });
     expect(parseQuery("?preset=B&quality=Low")).toMatchObject({ preset: "B", quality: "Low" });
   });

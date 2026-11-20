@@ -108,7 +108,7 @@ function bankPigment(point: Vector3): Color {
 afterAll(disposeRampGradients);
 
 describe("water receives the player's grade", () => {
-  it.each(["Low", "Balanced", "High"] as const)("bounds the %s dawn reflection against wet banks for pedestrian and downward views", quality => {
+  it.each(["Low", "High"] as const)("bounds the %s dawn reflection against wet banks for pedestrian and downward views", quality => {
     const material = createWaterMaterial(quality);
     try {
       for (const t of [0, 0.02, 0.15]) {
@@ -144,7 +144,7 @@ describe("water receives the player's grade", () => {
     } finally { material.dispose(); }
   });
 
-  it.each(["Low", "Balanced", "High"] as const)("bounds the %s coast-road stream by pigment and reflected sky energy at t=0.86", quality => {
+  it.each(["Low", "High"] as const)("bounds the %s coast-road stream by pigment and reflected sky energy at t=0.86", quality => {
     const t = 0.86, grade = gradeAt(t), road = pathPointAt(t);
     const material = createWaterMaterial(quality, { grade });
     material.setSkyMix(timeOfDayAt(t));
@@ -274,7 +274,7 @@ it("keeps river foam intermittent and within 0.6 m for narrow and wide ribbons",
 
 
 describe("dawn stream under sky reflection", () => {
-  it.each(["Low", "Balanced", "High"] as const)("keeps %s pigment readable while reflecting the warm dawn sky at 5–20 m", quality => {
+  it.each(["Low", "High"] as const)("keeps %s pigment readable while reflecting the warm dawn sky at 5–20 m", quality => {
     const t = 0.02;
     const material = createWaterMaterial(quality, { grade: gradeAt(t), skyMix: timeOfDayAt(t) });
     try {
