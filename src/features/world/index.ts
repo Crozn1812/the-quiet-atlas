@@ -11,6 +11,7 @@ import { springObstacleBounds } from "./terrain/spring";
 import { createFirstLightFish } from "./water/fish";
 import { createStreambed } from "./water/streambed";
 import { createBirds } from "./fauna/birds";
+import { createShipwreck } from "./scene/shipwreck";
 import { updateDawnShafts } from "./post/dawn-shafts";
 import { firstLightGroveWeight } from "./foliage/first-light-grove";
 import { createLocomotion } from "./locomotion";
@@ -252,6 +253,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   const fish = createFirstLightFish(); scene.add(fish.group);
   const streambed = createStreambed(gpu); scene.add(streambed.group); dressing.defer(streambed.build());
   const birds = createBirds(scene); dressing.defer(birds.build);
+  const shipwreck = createShipwreck(gpu); scene.add(shipwreck.group); dressing.defer(shipwreck.build());
   const sun = composed.sun;
   gpu.shadowMap.enabled = sun.castShadow;
   // B2-045: rigged character (D-23) with Idle/Walk/Run; the loader falls back to the capsule on any failure.
@@ -1367,6 +1369,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     fish.update(animDt, reducedMotion, player.position, quality);
     streambed.update(animDt, reducedMotion, player.position, quality);
     birds.update(animDt, reducedMotion, player.position, quality);
+    shipwreck.update(animDt, reducedMotion, player.position, quality);
     updateDawnShafts(animDt, reducedMotion);
     if (vehicleControls.dismountPending) getOffVehicle();
     let introFrame: IntroFrame | undefined;
@@ -1589,6 +1592,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     fish.dispose();
     streambed.dispose();
     birds.dispose();
+    shipwreck.dispose();
     composed.dispose();
     zoneScenes?.dispose();
     removeDressingTrimeshes?.();

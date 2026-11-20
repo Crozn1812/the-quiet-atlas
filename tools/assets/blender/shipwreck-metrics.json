@@ -1,0 +1,11 @@
+{
+  "file": "public/world/props/prop-shipwreck.glb",
+  "bytes": 86564,
+  "triangles": 3256,
+  "materials": 1,
+  "textures": 1,
+  "drawCalls": 1,
+  "lengthMetres": 72,
+  "pitchDegrees": 20,
+  "source": "CC0 coastal-coating hr-wood-ef91dab3c20954fb.ktx2; original code geometry"
+}
