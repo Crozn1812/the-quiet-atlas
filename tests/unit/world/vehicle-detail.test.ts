@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
 import { createGd110, disposeGd110, GD110_SCALE, GD110_WHEEL_RADIUS } from "../../../src/features/world/vehicle/mesh";
 import { createVehicleView } from "../../../src/features/world/vehicle/view";
-import { initialVehicle, type VehicleCorridor } from "../../../src/features/vehicle/model";
+import { initialVehicle } from "../../../src/features/vehicle/model";
 
 type PartRange = { name: string; start: number; count: number; bone: number };
 const bikes: Group[] = [];
@@ -126,9 +126,7 @@ describe("GD110 detailed single batch", () => {
   });
 
   it("rolls the actual batched vertices through the unchanged vehicle view under a transformed parent", () => {
-    const corridor: VehicleCorridor = { length: 100, halfWidthAt: () => 3,
-      pointAt: s => ({ x: 0, z: s }), tangentAt: () => ({ x: 0, z: 1 }) };
-    const view = createVehicleView({ surfaceHeight: () => 2 });
+        const view = createVehicleView({ surfaceHeight: () => 2 });
     const parent = new Group();
     parent.position.set(4, 1, -5);
     parent.rotation.y = .4;
@@ -138,9 +136,9 @@ describe("GD110 detailed single batch", () => {
       const mesh = view.group.getObjectByName("chassis") as SkinnedMesh;
       const attributes = mesh.geometry.getAttribute("position");
       const fixed = ranges(mesh).find(part => part.name === "fuel_tank")!;
-      const state = { ...initialVehicle(corridor, 10), mode: "ride" as const };
-      view.update(state, corridor, 0);
-      view.update({ ...state, s: state.s + GD110_WHEEL_RADIUS * .75 }, corridor, 1 / 60);
+      const state = { ...initialVehicle({ x: 0, z: 10 }), mode: "ride" as const };
+      view.update(state, 0);
+      view.update({ ...state, z: state.z + GD110_WHEEL_RADIUS * .75 }, 1 / 60);
       parent.updateMatrixWorld(true);
       mesh.skeleton.update();
       for (const wheel of mesh.skeleton.bones.slice(1, 3)) {

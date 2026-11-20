@@ -1,6 +1,6 @@
 import { Group } from "three";
-import { VEHICLE_TRANSITION_SECONDS, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
-import { createGd110, disposeGd110, GD110_WHEEL_RADIUS } from "./mesh";
+import { VEHICLE_TRANSITION_SECONDS, vehiclePosition, type VehicleState } from "../../vehicle/model";
+import { createGd110, disposeGd110, GD110_WHEEL_RADIUS, GD110_WHEELBASE } from "./mesh";
 import { vehicleAnimationDelta } from "./transition";
 import { installHrVehicle } from "./hr-runtime";
 import { createKickstand } from "./kickstand";
@@ -30,7 +30,7 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
   let transitionSeconds = 0;
   const wheels = [bike.getObjectByName("rear_wheel")!, bike.getObjectByName("front_wheel")!];
   const steering = bike.getObjectByName("steering")!;
-  let previous: { state: VehicleState; corridor: VehicleCorridor } | undefined;
+  let previous: { state: VehicleState } | undefined;
   let lean = 0;
   let disposed = false;
   const appearance = installHrVehicle(bike, () => transitionSeconds < VEHICLE_TRANSITION_SECONDS);
@@ -47,37 +47,25 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
         bike.rotation.z = previous?.state.mode === "walk" ? PARKED_VEHICLE_LEAN : 0;
       }
     },
-    update(state: VehicleState, corridor: VehicleCorridor, dt: number): void {
+    update(state: VehicleState, dt: number): void {
       if (disposed) return;
-      const position = vehiclePosition(state, corridor);
-      const tangent = corridor.tangentAt(state.s);
-      const heading = Math.atan2(tangent.x, tangent.z);
+      const position = vehiclePosition(state);
       group.position.set(position.x, surfaceHeight(position.x, position.z), position.z);
-      group.rotation.y = heading;
+      group.rotation.y = state.heading;
+      const secondsForTurn = Number.isFinite(dt) && dt > 0 ? dt : 0;
+      const yawRate = previous && secondsForTurn > 0
+        ? angleDelta(state.heading, previous.state.heading) / secondsForTurn : 0;
       const steer = state.mode === "ride" && Math.abs(state.speed) > .01
-        ? clamp(angleDelta(state.heading, heading), -.32, .32) : 0;
+        ? clamp(Math.atan(yawRate * GD110_WHEELBASE / state.speed), -.32, .32) : 0;
       steering.rotation.y = steer;
-
-      // Realized corridor travel, rather than speed * dt: stopped/clamped states
-      // do not spin, and reverse rolls the wheels backwards. A new corridor or
-      // first sample establishes an anchor rather than inventing prior travel.
-      if (previous?.corridor === corridor) {
-        const deltaS = state.s - previous.state.s;
-        const deltaLateral = state.lateral - previous.state.lateral;
-        const distance = Math.sign(deltaS) * Math.hypot(deltaS, deltaLateral);
+      if (previous) {
+        const dx = state.x - previous.state.x, dz = state.z - previous.state.z;
+        const direction = Math.sign(dx * Math.sin(state.heading) + dz * Math.cos(state.heading));
+        const distance = direction * Math.hypot(dx, dz);
         for (const wheel of wheels) wheel.rotation.x += distance / GD110_WHEEL_RADIUS;
       }
-
-      // Estimate local curvature spatially: stable at dt=0 and across heading
-      // wraparound; speed^2 / gravity gives a gentle physically directed bank.
-      const from = Math.max(0, state.s - .5), to = Math.min(corridor.length, state.s + .5);
-      let target = 0;
-      if (!reducedMotion && state.mode === "ride" && to > from) {
-        const a = corridor.tangentAt(from), b = corridor.tangentAt(to);
-        const curvature = angleDelta(Math.atan2(b.x, b.z), Math.atan2(a.x, a.z)) / (to - from);
-        target = clamp(-Math.atan(state.speed * state.speed * curvature / 9.81) - steer * .3,
-          -MAX_VEHICLE_LEAN, MAX_VEHICLE_LEAN);
-      }
+      const target = !reducedMotion && state.mode === "ride"
+        ? clamp(-Math.atan(state.speed * yawRate / 9.81), -MAX_VEHICLE_LEAN, MAX_VEHICLE_LEAN) : 0;
       const seconds = Number.isFinite(dt) ? clamp(dt, 0, .25) : 0;
       if (!previous) transitionSeconds = VEHICLE_TRANSITION_SECONDS;
       else if (previous.state.mode !== state.mode) transitionSeconds = 0;
@@ -93,7 +81,7 @@ export function createVehicleView({ surfaceHeight, reducedMotion = false }: Vehi
       bike.rotation.z = lean + PARKED_VEHICLE_LEAN * (1 - standFold);
       // Rotate about the tyre contact, keeping both rounded tyres on the floor.
       bike.position.y = GD110_WHEEL_RADIUS * (1 - Math.cos(bike.rotation.z));
-      previous = { state: { ...state }, corridor };
+      previous = { state: { ...state } };
       appearance.update();
     },
     dispose(): void {

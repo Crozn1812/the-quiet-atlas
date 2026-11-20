@@ -3,21 +3,13 @@ export interface PlanarPoint {
   z: number;
 }
 
-/** Distances are metres; s is arc length, and tangents must be nonzero. */
-export interface VehicleCorridor {
-  length: number;
-  halfWidthAt(s: number): number;
-  pointAt(s: number): PlanarPoint;
-  tangentAt(s: number): PlanarPoint;
-}
-
 export interface VehicleState {
   readonly mode: "walk" | "ride";
   readonly cruise: boolean;
-  readonly s: number;
-  readonly lateral: number;
+  readonly x: number;
+  readonly z: number;
   readonly speed: number;
-  /** Radians, from +Z toward +X. Positive lateral is the rider's left. */
+  /** Radians, from +Z toward +X. */
   readonly heading: number;
 }
 
@@ -47,8 +39,8 @@ export const VEHICLE_LIMITS = {
   braking: 6,
   reverseAcceleration: 2,
   coastingDeceleration: 2,
-  lateralSpeed: 2,
-  corridorMargin: 0.5,
+  steeringPerMetre: 0.18,
+  maxTurnRate: 1.1,
   mountDistance: 2,
   dismountSpeed: 0.01,
   obstacleSlowDistance: 6,
@@ -63,33 +55,13 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const approach = (value: number, target: number, change: number) =>
   value + clamp(target - value, -change, change);
 
-function lateralLimit(corridor: VehicleCorridor, s: number): number {
-  return Math.max(0, corridor.halfWidthAt(s) - VEHICLE_LIMITS.corridorMargin);
+/** Absolute coordinates; the caller resolves collisions and world bounds. */
+export function initialVehicle(position: PlanarPoint = { x: 0, z: 0 }, heading = 0): VehicleState {
+  return { mode: "walk", cruise: false, x: position.x, z: position.z, speed: 0, heading };
 }
 
-function tangentHeading(corridor: VehicleCorridor, s: number): number {
-  const tangent = corridor.tangentAt(s);
-  return Math.atan2(tangent.x, tangent.z);
-}
-
-export function initialVehicle(corridor: VehicleCorridor, s = 0, lateral = 0): VehicleState {
-  s = clamp(s, 0, corridor.length);
-  const limit = lateralLimit(corridor, s);
-  return {
-    mode: "walk", cruise: false, s, lateral: clamp(lateral, -limit, limit),
-    speed: 0, heading: tangentHeading(corridor, s),
-  };
-}
-
-/** Shared world-space proposal for manual and cruise; Lead resolves it through one collider. */
-export function vehiclePosition(state: VehicleState, corridor: VehicleCorridor): PlanarPoint {
-  const point = corridor.pointAt(state.s);
-  const tangent = corridor.tangentAt(state.s);
-  const magnitude = Math.hypot(tangent.x, tangent.z);
-  return {
-    x: point.x + tangent.z / magnitude * state.lateral,
-    z: point.z - tangent.x / magnitude * state.lateral,
-  };
+export function vehiclePosition(state: VehicleState): PlanarPoint {
+  return { x: state.x, z: state.z };
 }
 
 export type MountResult =
@@ -130,7 +102,7 @@ export function cancelCruise(state: VehicleState, reason: CruiseCancelReason): V
 
 /** Pure motion proposal. dt is seconds; long frames are capped, never replayed after blur. */
 export function step(
-  state: VehicleState, corridor: VehicleCorridor, dt: number, input: VehicleInput,
+  state: VehicleState, dt: number, input: VehicleInput,
 ): VehicleState {
   let next = state;
   if (input.escape) next = cancelCruise(next, "escape");
@@ -178,15 +150,15 @@ export function step(
       }
       distance -= Math.max(0, travel);
     }
-    const s = clamp(next.s + travel, 0, corridor.length);
-    if ((s === 0 && speed < 0) || (s === corridor.length && speed > 0)) speed = 0;
-    const limit = lateralLimit(corridor, s);
-    // Facing +Z, the rider's right is -X (forward cross up).
-    const steering = next.cruise || speed === 0 ? 0 : Number(!!input.a) - Number(!!input.d);
-    const lateral = clamp(next.lateral + steering * VEHICLE_LIMITS.lateralSpeed * h, -limit, limit);
-    const heading = tangentHeading(corridor, s)
-      + (steering === 0 ? 0 : Math.atan2((lateral - next.lateral) / h, Math.abs(speed)));
-    next = { ...next, s, lateral, speed, heading };
+    // Signed speed gives natural reverse steering; no pivot at rest.
+    // Free roam: cruise still steers, or it could only drive straight into the next obstacle.
+    const steering = Number(!!input.a) - Number(!!input.d);
+    const turn = steering * clamp(speed * VEHICLE_LIMITS.steeringPerMetre,
+      -VEHICLE_LIMITS.maxTurnRate, VEHICLE_LIMITS.maxTurnRate) * h;
+    const heading = Math.atan2(Math.sin(next.heading + turn), Math.cos(next.heading + turn));
+    const midHeading = next.heading + turn / 2;
+    next = { ...next, x: next.x + Math.sin(midHeading) * travel,
+      z: next.z + Math.cos(midHeading) * travel, speed, heading };
   }
   return next;
 }

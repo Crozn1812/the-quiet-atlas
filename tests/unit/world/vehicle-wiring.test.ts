@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Box3, BoxGeometry, CylinderGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, Vector3 } from "three";
-import { pathLength, pathPointAt } from "../../../src/features/world/layout/path";
 import { nearestPath } from "../../../src/features/world/terrain/samples";
 import { HEIGHT } from "../../../src/features/world/scene";
 import { DISMOUNT_COPY, DISMOUNT_PENDING_COPY } from "../../../src/features/world/vehicle/dismount";
@@ -22,7 +21,7 @@ const harness = vi.hoisted(() => ({
   update: vi.fn(),
   step: vi.fn(),
   riderUpdate: vi.fn(),
-  teleport: vi.fn(), wet: false, blocked: false, realPhysics: false, collisions: [] as import("three").Mesh[],
+  teleport: vi.fn(), wet: false, outside: false, blocked: false, realPhysics: false, collisions: [] as import("three").Mesh[],
 }));
 
 // B2-045: unit tests never fetch the rigged GLB; the loader's capsule fallback keeps the old player shape.
@@ -77,7 +76,7 @@ vi.mock("../../../src/features/world/scene/compose", () => ({
   createWorldScene: () => ({
     groundReady: true, buildGround: (function* () {})(),
     sun: { castShadow: false }, collisionMeshes: harness.collisions, visibleMeshes: [], foliageMeshes: [],
-    update: harness.update, contains: () => true, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
+    update: harness.update, contains: () => !harness.outside, fadeCrowns() {}, setQuality() {}, setPreload: harness.preload,
     setReducedMotion: harness.reduced, dispose: harness.dispose,
   }),
 }));
@@ -174,7 +173,7 @@ async function mount() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  harness.firstPose = undefined; harness.wet = false; harness.blocked = false; harness.realPhysics = false; harness.collisions = [];
+  harness.firstPose = undefined; harness.wet = false; harness.outside = false; harness.blocked = false; harness.realPhysics = false; harness.collisions = [];
   clock = 100;
   elements = [];
   canvas = new Element("canvas");
@@ -241,9 +240,7 @@ function drive(seconds: number) {
   for (let i = 0; i < seconds * 10; i++) advance();
 }
 function colliderAhead(metres: number) {
-  const start = nearestPath(bike().position.x, bike().position.z);
-  const centre = pathPointAt(start.t);
-  const point = pathPointAt(start.t + metres / pathLength()).add(bike().position.clone().sub(centre).setY(0));
+  const point = bike().position.clone().add(new Vector3(Math.sin(bike().rotation.y), 0, Math.cos(bike().rotation.y)).multiplyScalar(metres));
   const mesh = new Mesh(new CylinderGeometry(0.28, 0.28, 5, 6), new MeshBasicMaterial());
   mesh.position.set(point.x, 102.5, point.z);
   mesh.updateMatrixWorld(true);
@@ -271,14 +268,15 @@ it("parks 2 m off First Light clear of signs, localizes Ride, gates range and mo
   expect(container.dataset.worldVehicle).toBe("manual");
 });
 
-it("moves manually on the corridor, brings the camera closer (B2-238) and limits steering", async () => {
+it("drives freely away from the path and follows the bike with the chase camera", async () => {
   await ride();
   const start = bike().position.clone();
   const zoom = camera().position.distanceTo(position());
   key("KeyW"); key("KeyD");
-  drive(6);
+  drive(1.5); release("KeyD");
+  drive(4.5);
   expect(bike().position.distanceTo(start)).toBeGreaterThan(10);
-  expect(nearestPath(bike().position.x, bike().position.z).distance).toBeLessThanOrEqual(2.01);
+  expect(nearestPath(bike().position.x, bike().position.z).distance).toBeGreaterThan(5);
   expect(position().x).toBeCloseTo(bike().position.x, 3);
   expect(position().z).toBeCloseTo(bike().position.z, 3);
   expect(camera().position.distanceTo(position())).toBeCloseTo(zoom * 0.75, 1);
@@ -303,7 +301,7 @@ it.each([false, true])("stops before the same trunk collider in cruise=%s", asyn
   expect(container.dataset.worldVehicle).toBe(cruise ? "cruise" : "manual");
 });
 
-it("rejects a blocked controller proposal without moving the view or leaving the corridor", async () => {
+it("keeps model and view at a blocked controller position", async () => {
   await ride();
   const start = bike().position.clone();
   harness.blocked = true;
@@ -431,3 +429,15 @@ it("removes all listeners, DOM, dataset, animation frames and bike resources on 
   expect(container.dataset.worldVehicle).toBeUndefined();
 });
 
+
+it.each(["water", "world edge"])("blocks manual and cruise travel at %s", async barrier => {
+  await ride();
+  const start = bike().position.clone();
+  if (barrier === "water") harness.wet = true; else harness.outside = true;
+  key("KeyW"); drive(2); release("KeyW");
+  expect(position().x).toBeCloseTo(start.x, 6);
+  expect(position().z).toBeCloseTo(start.z, 6);
+  key("KeyC"); drive(2);
+  expect(position().x).toBeCloseTo(start.x, 6);
+  expect(position().z).toBeCloseTo(start.z, 6);
+});

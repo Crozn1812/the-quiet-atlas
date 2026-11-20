@@ -10,7 +10,7 @@ export function stepVehicleController(
   target: PlanarPoint, dt: number,
 ) {
   if (controller.grounded && proposal.speed === 0
-    && proposal.s === previous.s && proposal.lateral === previous.lateral) {
+    && proposal.x === previous.x && proposal.z === previous.z) {
     controller.resetVelocity();
     return;
   }

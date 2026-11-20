@@ -1,27 +1,13 @@
 import { reportBudget } from "./report-budget";
 import { Bone, Box3, Color, Group, Mesh, MeshToonMaterial, Vector3 } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initialVehicle, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../../src/features/vehicle/model";
+import { initialVehicle, vehiclePosition, type VehicleState } from "../../../src/features/vehicle/model";
 import { disposeRampGradients } from "../../../src/features/world/materials/ramp";
 import { createGd110, disposeGd110, GD110_COLORS, GD110_WHEEL_RADIUS, GD110_WHEELBASE } from "../../../src/features/world/vehicle/mesh";
 import { createVehicleView, MAX_VEHICLE_LEAN, PARKED_VEHICLE_LEAN } from "../../../src/features/world/vehicle/view";
 
-const straight: VehicleCorridor = {
-  length: 100,
-  halfWidthAt: () => 3,
-  pointAt: s => ({ x: 0, z: s }),
-  tangentAt: () => ({ x: 0, z: 2 }), // Nonunit tangents are valid.
-};
-function curve(radius: number, heading = 0): VehicleCorridor {
-  return {
-    ...straight,
-    pointAt: s => ({ x: radius * (Math.cos(heading) - Math.cos(heading + s / radius)),
-      z: radius * (Math.sin(heading + s / radius) - Math.sin(heading)) }),
-    tangentAt: s => ({ x: Math.sin(heading + s / radius), z: Math.cos(heading + s / radius) }),
-  };
-}
-function riding(corridor = straight, overrides: Partial<VehicleState> = {}): VehicleState {
-  return { ...initialVehicle(corridor, 10), mode: "ride", speed: 5, ...overrides };
+function riding(overrides: Partial<VehicleState> = {}): VehicleState {
+  return { ...initialVehicle({ x: 0, z: 10 }), mode: "ride", speed: 5, ...overrides };
 }
 function meshes(group: Group): Mesh[] {
   const result: Mesh[] = [];
@@ -114,7 +100,7 @@ describe("vehicle view", () => {
   it("parks nine degrees onto the left steel foot at ground height, then stows clear of the road", () => {
     const view = makeView({ surfaceHeight: () => .4 });
     const state = riding();
-    view.update({ ...state, mode: "walk", speed: 0 }, straight, 0);
+    view.update({ ...state, mode: "walk", speed: 0 }, 0);
     const bike = view.riderFrame;
     const stand = bike.getObjectByName("kickstand")!;
     const foot = stand.getObjectByName("black_steel_stand_return_spring") as Mesh;
@@ -124,7 +110,7 @@ describe("vehicle view", () => {
     expect(Math.abs(new Box3().setFromObject(foot, true).min.y - .4)).toBeLessThan(.003);
     view.setReducedMotion(true);
     expect(bike.rotation.z).toBe(PARKED_VEHICLE_LEAN);
-    view.update(state, straight, 0);
+    view.update(state, 0);
     expect(bike.rotation.z).toBe(0);
     view.group.updateMatrixWorld(true);
     expect(new Box3().setFromObject(foot, true).min.y).toBeGreaterThan(.52);
@@ -134,109 +120,93 @@ describe("vehicle view", () => {
     const state = riding();
     const parked = { ...state, mode: "walk" as const, speed: 0 };
     const stand = view.group.getObjectByName("kickstand")!;
-    view.update(parked, straight, 0);
+    view.update(parked, 0);
     expect(stand.rotation.x).toBe(0);
-    view.update(state, straight, 0);
-    for (let i = 0; i < 9; i++) view.update(state, straight, .1);
+    view.update(state, 0);
+    for (let i = 0; i < 9; i++) view.update(state, .1);
     expect(stand.rotation.x).toBe(0);
-    for (let i = 0; i < 4; i++) view.update(state, straight, .1);
+    for (let i = 0; i < 4; i++) view.update(state, .1);
     expect(stand.rotation.x).toBeCloseTo(1.5);
-    view.update(parked, straight, 0);
-    view.update(parked, straight, .15);
+    view.update(parked, 0);
+    view.update(parked, .15);
     expect(stand.rotation.x).toBeCloseTo(.75);
-    view.update(parked, straight, .15);
+    view.update(parked, .15);
     expect(stand.rotation.x).toBe(0);
     view.setReducedMotion(true);
-    view.update(state, straight, 0);
+    view.update(state, 0);
     expect(stand.rotation.x).toBe(1.5);
   });
-  it("uses vehiclePosition, injected terrain height and corridor heading instead of steering heading", () => {
-    const corridor = curve(15);
+  it("uses absolute coordinates, ground height and the vehicle heading", () => {
     const height = vi.fn((x: number, z: number) => x * .2 + z * .1);
     const view = makeView({ surfaceHeight: height });
-    const state = riding(corridor, { s: 20, lateral: 1.2, heading: -2 });
-    view.update(state, corridor, 1 / 60);
-    const point = vehiclePosition(state, corridor);
+    const state = riding({ x: 20, z: 1.2, heading: -2 });
+    view.update(state, 1 / 60);
+    const point = vehiclePosition(state);
     expect(view.group.position.toArray()).toEqual([point.x, height(point.x, point.z), point.z]);
-    expect(view.group.rotation.y).toBeCloseTo(state.s / 15);
-    expect(view.group.getWorldDirection(new Vector3()).x).toBeCloseTo(Math.sin(state.s / 15));
+    expect(view.group.rotation.y).toBeCloseTo(-2);
+    expect(view.group.getWorldDirection(new Vector3()).x).toBeCloseTo(Math.sin(-2));
   });
 
-  it("rolls both wheels by realized signed distance/radius, independent of dt and stale speed", () => {
+  it("rolls wheels by realized signed travel, including reverse, and holds when blocked", () => {
     const view = makeView();
-    const state = riding(straight);
-    view.update(state, straight, 1 / 60);
+    const state = riding();
+    view.update(state, 1 / 60);
     const wheels = ["front_wheel", "rear_wheel"].map(name => view.group.getObjectByName(name)!);
-    wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(0));
-    view.update({ ...state, s: 12 }, straight, .01);
+    view.update({ ...state, z: 12 }, .01);
     wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(2 / GD110_WHEEL_RADIUS));
-    view.update({ ...state, s: 12, speed: 8 }, straight, 10);
+    view.update({ ...state, z: 12, speed: 8 }, 10);
     wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(2 / GD110_WHEEL_RADIUS));
-    view.update({ ...state, s: 11, speed: -1 }, straight, 1 / 30);
+    view.update({ ...state, z: 11, speed: -1 }, 1 / 30);
     wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(1 / GD110_WHEEL_RADIUS));
-    view.update({ ...state, s: 11.3, lateral: .4 }, straight, 1 / 30);
-    wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(1.5 / GD110_WHEEL_RADIUS));
-    view.update(riding(curve(10)), curve(10), 1 / 60);
-    wheels.forEach(wheel => expect(wheel.rotation.x).toBeCloseTo(1.5 / GD110_WHEEL_RADIUS));
   });
 
-  it.each([2, -2])("banks smoothly into a radius %s bend, stays within 12 degrees and settles on straight road", radius => {
-    const corridor = curve(radius);
-    const state = riding(corridor, { speed: 8 });
+  it.each([1, -1])("banks into actual heading changes in direction %s within twelve degrees", direction => {
     const view = makeView();
-    const bike = view.group.getObjectByName("gd110")!;
-    view.update(state, corridor, 1 / 60);
-    const first = bike.rotation.z;
-    expect(Math.sign(first)).toBe(-Math.sign(radius));
-    expect(Math.abs(first)).toBeGreaterThan(0);
-    expect(Math.abs(first)).toBeLessThan(MAX_VEHICLE_LEAN);
-    for (let i = 0; i < 120; i++) {
-      view.update(state, corridor, 1 / 60);
-      expect(Math.abs(bike.rotation.z)).toBeLessThanOrEqual(12 * Math.PI / 180);
+    const state = riding({ speed: 8 });
+    const bike = view.riderFrame;
+    view.update(state, 1 / 60);
+    for (let i = 1; i <= 60; i++) {
+      view.update({ ...state, heading: direction * i / 60 }, 1 / 60);
+      expect(Math.sign(bike.rotation.z)).toBe(-direction);
+      expect(Math.abs(bike.rotation.z)).toBeLessThanOrEqual(MAX_VEHICLE_LEAN);
     }
-    expect(Math.abs(bike.rotation.z)).toBeGreaterThan(Math.abs(first));
-    for (let i = 0; i < 180; i++) view.update(riding(straight), straight, 1 / 60);
+    for (let i = 0; i < 180; i++) view.update({ ...state, heading: direction }, 1 / 60);
     expect(bike.rotation.z).toBe(0);
   });
 
-  it("handles heading wraparound and frame-rate independent bank smoothing", () => {
-    const corridor = curve(10, Math.PI - .01);
-    const state = riding(corridor, { s: .1 });
-    const a = makeView(), b = makeView();
-    for (let i = 0; i < 60; i++) a.update(state, corridor, 1 / 60);
-    for (let i = 0; i < 30; i++) b.update(state, corridor, 1 / 30);
-    const roll = a.group.getObjectByName("gd110")!.rotation.z;
-    expect(roll).toBeLessThan(0);
-    expect(roll).toBeCloseTo(b.group.getObjectByName("gd110")!.rotation.z, 10);
+  it("handles heading wraparound without a full-turn bank", () => {
+    const view = makeView();
+    view.update(riding({ heading: Math.PI - .01 }), .1);
+    view.update(riding({ heading: -Math.PI + .01 }), .1);
+    expect(view.riderFrame.rotation.z).toBeLessThan(0);
+    expect(Math.abs(view.riderFrame.rotation.z)).toBeLessThan(.1);
     for (const dt of [NaN, Infinity, -1, 0, 10]) {
-      a.update(state, corridor, dt);
-      expect(Number.isFinite(a.group.getObjectByName("gd110")!.rotation.z)).toBe(true);
+      view.update(riding(), dt);
+      expect(Number.isFinite(view.riderFrame.rotation.z)).toBe(true);
     }
   });
 
   it("keeps the bike visible while walking and settles parked lean", () => {
-    const corridor = curve(2);
     const view = makeView();
-    const state = riding(corridor);
-    view.update(state, corridor, .25);
-    for (let i = 0; i < 120; i++) view.update({ ...state, mode: "walk", speed: 0 }, corridor, 1 / 60);
+    const state = riding();
+    view.update(state, .25);
+    for (let i = 0; i < 120; i++) view.update({ ...state, mode: "walk", speed: 0 }, 1 / 60);
     expect(view.group.getObjectByName("gd110")!.rotation.z).toBe(PARKED_VEHICLE_LEAN);
     expect(view.group.visible).toBe(true);
   });
 
   it("disables lean immediately for reduced motion, including live preference changes", () => {
-    const corridor = curve(2);
     const view = makeView({ surfaceHeight: () => 0, reducedMotion: true });
-    const state = riding(corridor);
-    view.update(state, corridor, .25);
+    const state = riding();
+    view.update(state, .25);
     const bike = view.group.getObjectByName("gd110")!;
     expect(bike.rotation.z).toBe(0);
     view.setReducedMotion(false);
-    view.update(state, corridor, .25);
+    view.update({ ...state, heading: .2 }, .25);
     expect(bike.rotation.z).not.toBe(0);
     view.setReducedMotion(true);
     expect(bike.rotation.z).toBe(0);
-    view.update({ ...state, s: state.s + 1 }, corridor, .25);
+    view.update({ ...state, z: state.z + 1 }, .25);
     expect(bike.rotation.z).toBe(0);
     expect(view.group.getObjectByName("front_wheel")!.rotation.x).toBeCloseTo(1 / GD110_WHEEL_RADIUS);
   });
@@ -256,7 +226,7 @@ describe("vehicle view", () => {
     expect(otherMaterial.gradientMap).toBe(material.gradientMap);
     a.dispose();
     a.dispose();
-    a.update(riding(), straight, .25);
+    a.update(riding(), .25);
     a.setReducedMotion(true);
     disposeGeometry.forEach(spy => expect(spy).toHaveBeenCalledTimes(1));
     expect(disposeMaterial).toHaveBeenCalledTimes(1);
@@ -266,6 +236,6 @@ describe("vehicle view", () => {
     expect(a.group.children).toHaveLength(0);
     // RC-02 adds the folding kickstand as a second owned mesh.
     expect(meshes(b.group)).toHaveLength(2);
-    b.update(riding(), straight, .25);
+    b.update(riding(), .25);
   });
 });

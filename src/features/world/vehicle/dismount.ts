@@ -1,5 +1,5 @@
 import { Vector3 } from "three";
-import { dismount, vehiclePosition, type VehicleCorridor, type VehicleState } from "../../vehicle/model";
+import { dismount, vehiclePosition, type VehicleState } from "../../vehicle/model";
 import { HEIGHT } from "../scene";
 
 export const DISMOUNT_COPY = {
@@ -25,13 +25,12 @@ export interface DismountGround {
  * Callers teleport only on success and display message on failure.
  */
 export function requestDismount(
-  state: VehicleState, corridor: VehicleCorridor, ground: DismountGround, locale: "vi" | "en",
+  state: VehicleState, ground: DismountGround, locale: "vi" | "en",
 ) {
   const eligibility = dismount(state, true);
   if (!eligibility.ok) return { ...eligibility, message: DISMOUNT_COPY[locale][eligibility.reason] };
-  const centre = vehiclePosition(state, corridor), tangent = corridor.tangentAt(state.s);
-  const length = Math.hypot(tangent.x, tangent.z);
-  const tx = tangent.x / length, tz = tangent.z / length;
+  const centre = vehiclePosition(state);
+  const tx = Math.sin(state.heading), tz = Math.cos(state.heading);
   const from = new Vector3(centre.x, ground.surfaceHeight(centre.x, centre.z), centre.z);
   for (const offset of [0, -.6, .6]) {
     for (const distance of [.9, 1.2, 1.5]) {

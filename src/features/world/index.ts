@@ -58,9 +58,9 @@ import { createVehicleControls } from "./vehicle/controls";
 import { stepVehicleController } from "./vehicle/motion";
 import { createRiderPose } from "./character/ride";
 import { vehicleAnimationDelta } from "./vehicle/transition";
-import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, vehiclePosition, VEHICLE_LIMITS, type VehicleCorridor } from "../vehicle/model";
+import { cancelCruise, dismount, initialVehicle, mount, step as stepVehicle, toggleCruise, VEHICLE_LIMITS } from "../vehicle/model";
 import { VEHICLE_LABELS } from "../vehicle/labels";
-import { PATH_WIDTH, waterLevelAt } from "./terrain/height";
+import { waterLevelAt } from "./terrain/height";
 import { ZONE_HINTS } from "../../i18n/zone-hints";
 import { ambienceMixAt } from "../audio/mix";
 import { surfAt } from "./shore/surf";
@@ -216,7 +216,16 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   let motionOverride: boolean | undefined;
   let reducedMotion = motionPreference?.matches ?? false;
   let syncMotion = () => {};
-  const bike = createVehicleView({ surfaceHeight, reducedMotion });
+  const vehicleBridgeSurfaces = new Set<Mesh>(dressing.surfaces);
+  const deckRay = new Raycaster();
+  const bridgeDecks = dressing.surfaces.filter(mesh => mesh.name.includes("-deck-"));
+  function vehicleSurfaceHeight(x: number, z: number) {
+    const terrain = surfaceHeight(x, z);
+    deckRay.set(new Vector3(x, terrain + 8, z), new Vector3(0, -1, 0));
+    deckRay.far = 8;
+    return Math.max(terrain, deckRay.intersectObjects(bridgeDecks, false)[0]?.point.y ?? terrain);
+  }
+  const bike = createVehicleView({ surfaceHeight: vehicleSurfaceHeight, reducedMotion });
   function updateMotionPreference() {
     const previous = reducedMotion;
     reducedMotion = motionOverride ?? motionPreference?.matches ?? false;
@@ -324,16 +333,12 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const scale = distance > 0 ? travel / distance : 1;
     stepPhysics(x * scale, z * scale, dt);
   };
-  // Include the one-metre dry shoulder: the model's margin leaves a 2 m lateral limit.
-  const corridor: VehicleCorridor = {
-    length: pathLength(),
-    halfWidthAt: () => PATH_WIDTH / 2 + 1,
-    pointAt: s => pathPointAt(s / corridor.length),
-    tangentAt: s => pathPointAt(Math.min(1, (s + 0.1) / corridor.length))
-      .sub(pathPointAt(Math.max(0, (s - 0.1) / corridor.length))).normalize(),
-  };
-  // Downstream and on the outer bank, clear of both First Light signs.
-  const parkedVehicle = initialVehicle(corridor, 6, -2);
+  // Preserve the authored First Light parking location (s=6, lateral=-2).
+  const parkedPoint = pathPointAt(6 / pathLength());
+  const parkedTangent = pathPointAt(6.1 / pathLength())
+    .sub(pathPointAt(5.9 / pathLength())).normalize();
+  const parkedVehicle = initialVehicle({ x: parkedPoint.x - 2 * parkedTangent.z,
+    z: parkedPoint.z + 2 * parkedTangent.x }, Math.atan2(parkedTangent.x, parkedTangent.z));
   let vehicle = parkedVehicle;
   const vehicleControls = createVehicleControls();
   let unsafeStop = false;
@@ -343,7 +348,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     id: "gd110", kind: "vehicle", zoneId: "first-light", position: new Vector3(),
   };
   function publishVehicle(dt = 0, immediate = false) {
-    bike.update(vehicle, corridor, dt);
+    bike.update(vehicle, dt);
     Object.assign(vehicleTarget.position, bike.group.position);
     vehicleTarget.position.y += HEIGHT;
     rider.update(vehicle, bike.riderFrame, dt, reducedMotion || immediate);
@@ -477,11 +482,13 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     visitSecret(id: string): boolean;
     nearVehicle(): void;
     rider(): ReturnType<typeof rider.snapshot>;
+    vehicle(): typeof vehicle;
   } };
   const journey = window.__tqaJourney === true ? Object.freeze({
     position: () => ({ x: physics.position.x, y: physics.position.y, z: physics.position.z }),
     cameraYaw: () => yaw,
     rider: () => rider.snapshot(bike.riderFrame),
+    vehicle: () => ({ ...vehicle }),
     cameraDistance: () => camera.position.distanceTo(physics.position),
     lookoutPosition: (zoneId?: string) => lookout.positionFor(zoneId),
     zone: () => {
@@ -649,7 +656,7 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function solidBounds(radius: number) {
     // Compose exposes terrain in both lists, and trunk collider meshes only in collisionMeshes.
     // Signs use their existing mesh too; both driving modes share this same sweep and controller.
-    return [...composed.collisionMeshes.filter(mesh => !composed.visibleMeshes.includes(mesh)), ...props.map(prop => prop.mesh)].flatMap(mesh => {
+    return [...composed.collisionMeshes.filter(mesh => !composed.visibleMeshes.includes(mesh) && !vehicleBridgeSurfaces.has(mesh)), ...props.map(prop => prop.mesh)].flatMap(mesh => {
       const spring = springObstacleBounds(mesh, radius, HEIGHT);
       if (spring) return spring;
       let cache = obstacleBounds.get(mesh);
@@ -671,8 +678,10 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     }));
   }
   function groundPoint(point: { x: number; z: number }) {
-    return new Vector3(point.x, surfaceHeight(point.x, point.z), point.z);
+    return new Vector3(point.x, vehicleSurfaceHeight(point.x, point.z), point.z);
   }
+  const vehicleRailRay = new Raycaster();
+  const bridgeRails = dressing.surfaces.filter(mesh => !mesh.name.includes("-deck-"));
   function clearance(from: Vector3, to: Vector3, obstacles: readonly Box3[]) {
     const direction = to.clone().sub(from);
     const distance = direction.length();
@@ -684,14 +693,23 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
       const hit = ray.intersectBox(box, new Vector3());
       if (hit) nearest = Math.min(nearest, hit.distanceTo(from));
     }
+    if (distance > 0) {
+      for (const side of [-.4, 0, .4]) {
+        const origin = from.clone().add(new Vector3(-ray.direction.z * side, .45, ray.direction.x * side));
+        vehicleRailRay.set(origin, ray.direction);
+        vehicleRailRay.far = distance + .4;
+        const hit = vehicleRailRay.intersectObjects(bridgeRails, false)[0];
+        if (hit) nearest = Math.min(nearest, Math.max(0, hit.distance - .4));
+      }
+    }
     return nearest;
   }
   function getOffVehicle() {
     if (!vehicleControls.readyToDismount(vehicle, rider.transitioning)) return;
     vehicleControls.finishDismount();
     const obstacles = solidBounds(0.4);
-    const result = requestDismount(vehicle, corridor, {
-      surfaceHeight, waterLevelAt, contains: point => composed.contains(point),
+    const result = requestDismount(vehicle, {
+      surfaceHeight: vehicleSurfaceHeight, waterLevelAt, contains: point => composed.contains(point),
       clear: (from, to) => clearance(from, to, obstacles) > from.distanceTo(to) && clearance(to, to, obstacles) > 0,
     }, locale);
     const safe = result.ok ? result.position : undefined;
@@ -722,36 +740,42 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
   function driveVehicle(dt: number) {
     const obstacles = solidBounds(0.85);
     let obstacleAhead = Infinity;
-    let from = groundPoint(vehiclePosition(vehicle, corridor));
-    // Follow the curve, rather than a straight heading ray that can miss a bend's obstacle.
+    let from = groundPoint(vehicle);
+    const traversable = (point: Vector3) => composed.contains(point)
+      && Number.isFinite(point.y) && point.y > waterLevelAt(point.z) - 0.3;
+    // Cruise samples the current heading, including bridge decks and wet edges.
     if (vehicle.cruise) {
       for (let distance = 0.5; distance <= VEHICLE_LIMITS.obstacleSlowDistance; distance += 0.5) {
-        const to = groundPoint(vehiclePosition({ ...vehicle, s: Math.min(corridor.length, vehicle.s + distance) }, corridor));
+        const to = groundPoint({ x: vehicle.x + Math.sin(vehicle.heading) * distance,
+          z: vehicle.z + Math.cos(vehicle.heading) * distance });
         const hit = clearance(from, to, obstacles);
-        if (hit <= from.distanceTo(to)) { obstacleAhead = distance - 0.5 + hit; break; }
+        if (!traversable(to) || hit <= from.distanceTo(to)) {
+          obstacleAhead = distance - 0.5 + Math.min(0.5, hit); break;
+        }
         from = to;
       }
     }
-    const proposal = stepVehicle(vehicle, corridor, dt, vehicleControls.input(vehicle, {
+    const proposal = stepVehicle(vehicle, dt, vehicleControls.input({
       w: keys.has("KeyW"), s: keys.has("KeyS"), a: keys.has("KeyA"), d: keys.has("KeyD"), obstacleAhead,
     }));
     const before = physics.position.clone();
     from = groundPoint(before);
-    const to = groundPoint(vehiclePosition(proposal, corridor));
+    const to = groundPoint(proposal);
     const distance = from.distanceTo(to);
-    if (distance > 0 && clearance(from, to, obstacles) <= distance) {
-      vehicle = { ...vehicle, speed: 0 };
+    // Fixed 60 Hz proposals are <14 cm; protect the capsule footprint at water/edges.
+    const dry = [[0, 0], [.35, 0], [-.35, 0], [0, .35], [0, -.35]]
+      .every(([dx, dz]) => traversable(groundPoint({ x: to.x + dx!, z: to.z + dz! })));
+    if (!dry || (distance > 0 && clearance(from, to, obstacles) <= distance)) {
+      vehicle = { ...vehicle, heading: proposal.heading, speed: 0 };
       physics.resetVelocity();
       return;
     }
     stepVehicleController(physics, vehicle, proposal, to, dt);
-    if (Math.hypot(physics.position.x - to.x, physics.position.z - to.z) > 0.02) {
-      // Reject any slide outside the proposal, keeping model, collider and view on the corridor.
-      physics.teleport(before);
-      vehicle = { ...vehicle, speed: 0 };
-    } else {
-      vehicle = proposal;
-    }
+    // Accept actual controller travel, including slides and ramp climbing.
+    const realized = Math.hypot(physics.position.x - before.x, physics.position.z - before.z);
+    const requested = Math.hypot(to.x - before.x, to.z - before.z);
+    vehicle = { ...proposal, x: physics.position.x, z: physics.position.z,
+      speed: requested > 1e-6 && realized < requested * .1 ? 0 : proposal.speed };
     state = { ...state, position: { ...physics.position } };
   }
   function clear(action: InputAction = { type: "clear" }) {
@@ -996,6 +1020,11 @@ export async function mountWorld(container: HTMLElement, opts: WorldOptions = {}
     const target = physics.position.clone();
     // B2-238: riding eases into a closer, lower chase framing (bike + rider ~12–18 % of the frame).
     rideBlend += ((vehicle.mode === "ride" ? 1 : 0) - rideBlend) * (1 - Math.exp(-4 * Math.max(0, Math.min(dt, 0.1))));
+    if (vehicle.mode === "ride") {
+      const behind = vehicle.heading + Math.PI;
+      yaw = wrapYaw(yaw + Math.atan2(Math.sin(behind - yaw), Math.cos(behind - yaw))
+        * (1 - Math.exp(-5 * Math.max(0, dt))));
+    }
     const pitch = Math.PI / 10 - rideBlend * RIDE_PITCH_DROP;
     const direction = new Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
     raycaster.set(target, direction);

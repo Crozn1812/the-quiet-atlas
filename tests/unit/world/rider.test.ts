@@ -5,7 +5,7 @@ import { createCharacter } from "../../../src/features/world/character/runtime";
 import { createRiderPose, RIDE_CONTACTS } from "../../../src/features/world/character/ride";
 import { createLeaningPose, createSittingPose, SIT_CONTACTS } from "../../../src/features/world/character/lean";
 import { HEIGHT } from "../../../src/features/world/scene";
-import { initialVehicle, mount, step, type VehicleCorridor } from "../../../src/features/vehicle/model";
+import { initialVehicle, mount, step } from "../../../src/features/vehicle/model";
 import { requestDismount, type DismountGround } from "../../../src/features/world/vehicle/dismount";
 import { createVehicleView } from "../../../src/features/world/vehicle/view";
 import { GD110_SCALE, STEERING_PIVOT } from "../../../src/features/world/vehicle/mesh";
@@ -95,8 +95,10 @@ describe("D-23 mounted pose", () => {
   it.each([1, 5, 8].flatMap(speed => (["a", "d"] as const).map(key => ({ speed, key }))))("keeps both hands on the rotating grips at $speed while steering $key", ({ speed, key }) => {
     const character = rig(), pose = createRiderPose(character);
     const view = createVehicleView({ surfaceHeight: () => 2 });
-    const state = step({ ...riding(), speed }, corridor, .1, { w: true, [key]: true });
-    view.update(state, corridor, .1);
+    const previous = { ...riding(), speed };
+    view.update(previous, 0);
+    const state = step(previous, .1, { w: true, [key]: true });
+    view.update(state, .1);
     pose.update(state, view.riderFrame);
     const angle = view.riderFrame.getObjectByName("steering")!.rotation.y;
     expect(Math.sign(angle)).toBe(key === "a" ? 1 : -1);
@@ -203,34 +205,32 @@ describe("D-23 mounted pose", () => {
   });
 });
 
-const corridor: VehicleCorridor = { length: 100, halfWidthAt: () => 3,
-  pointAt: s => ({ x: 0, z: s }), tangentAt: () => ({ x: 0, z: 2 }) };
 const ground: DismountGround = { surfaceHeight: () => 2, waterLevelAt: () => 0, contains: () => true, clear: () => true };
-const riding = () => mount(initialVehicle(corridor, 20), 1).state;
+const riding = () => mount(initialVehicle({ x: 0, z: 20 }), 1).state;
 
 describe("E dismount transition", () => {
   it("brakes to rest, then E returns walk and a capsule position", () => {
     let state = { ...riding(), speed: 3 };
     // Half a second of S reaches rest; releasing S also coasts any tiny reverse velocity to zero.
-    state = step(state, corridor, .25, { s: true });
-    state = step(state, corridor, .25, { s: true });
-    state = step(state, corridor, .25, {});
+    state = step(state, .25, { s: true });
+    state = step(state, .25, { s: true });
+    state = step(state, .25, {});
     expect(state.speed).toBe(0);
-    const result = requestDismount(state, corridor, ground, "vi");
+    const result = requestDismount(state, ground, "vi");
     expect(result).toMatchObject({ ok: true, state: { mode: "walk", speed: 0, cruise: false } });
     if (result.ok) expect(result.position.y).toBeCloseTo(2 + HEIGHT + .02);
   });
   it("tries the other side and a nearer standing place before rejecting an edge", () => {
-    const result = requestDismount(riding(), corridor, { ...ground,
+    const result = requestDismount(riding(), { ...ground,
       contains: p => p.x < 0 && p.x > -1.3 }, "en");
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.position.x).toBeCloseTo(-.9);
   });
   it.each(["vi", "en"] as const)("explains movement and unsafe ground in %s", locale => {
-    expect(requestDismount({ ...riding(), speed: -1 }, corridor, ground, locale)).toMatchObject({ ok: false, reason: "moving", message: expect.any(String) });
+    expect(requestDismount({ ...riding(), speed: -1 }, ground, locale)).toMatchObject({ ok: false, reason: "moving", message: expect.any(String) });
     for (const override of [{ clear: () => false }, { surfaceHeight: () => 0 }, { contains: () => false },
       { surfaceHeight: (x: number) => 2 + x * 2 }]) {
-      const result = requestDismount(riding(), corridor, { ...ground, ...override }, locale);
+      const result = requestDismount(riding(), { ...ground, ...override }, locale);
       expect(result).toMatchObject({ ok: false, state: { mode: "ride" }, reason: "unsafe-ground", message: expect.any(String) });
     }
   });

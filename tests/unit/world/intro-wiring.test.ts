@@ -372,7 +372,7 @@ it("exposes live journey snapshots and yaw without allowing controller mutation"
   win.__tqaSkipIntro = true;
   await mount();
   const hook = journey()!;
-  expect(Object.keys(hook).sort()).toEqual(["cameraDistance", "cameraYaw", "goTo", "lookoutPosition", "nearVehicle", "position", "rider", "visitSecret", "zone"]);
+  expect(Object.keys(hook).sort()).toEqual(["cameraDistance", "cameraYaw", "goTo", "lookoutPosition", "nearVehicle", "position", "rider", "vehicle", "visitSecret", "zone"]);
   const riderSnapshot = hook.rider();
   riderSnapshot.rootUp = -1;
   expect(hook.rider().rootUp).toBe(1);
