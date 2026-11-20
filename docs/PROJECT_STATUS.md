@@ -1,5 +1,31 @@
 # PROJECT_STATUS — The Quiet Atlas
 
+## Playtest Duy 20/11 — QF-01..08 (Claude-Lead, 20/11 21:30)
+
+Duy chơi demo và gửi 9 mục. ADR 0020 (xe tự do, chỉ Low/High).
+
+| Ticket | Việc | Trạng thái |
+|---|---|---|
+| QF-01 | Bỏ Balanced, chỉ Low/High | merged 3ca90dc (Codex A) |
+| QF-02 | Xe lái tự do, qua cầu | merged 5c054f4 (Codex A; Lead cho phép lái khi cruise) |
+| QF-03 | Intro High chờ cảnh dựng xong (trần 8 s) | merged 5c81ca7 (Codex C) |
+| QF-04 | Cây sồi cổ thụ Roots | trả lại vòng 1 (dáng cành); Codex C hết lượt tới 23:15, tự chạy lại |
+| QF-05 | Đá ven biển HR + **sửa adaptive quality tụt High→Low** | merged d720110 (Lead) |
+| QF-06 | Piano chơi bằng bàn phím ở Quiet Shore | merged 4d731ba (Lead) |
+| QF-07 | Tàu đắm ngoài khơi có khói | doing (Codex A) |
+| QF-08 | Ảnh Welcome + 8 ảnh khu chụp lại ở High | merged a9ba2b4 (Lead); chụp lại Roots sau QF-04 |
+
+Nguyên nhân gốc của "ảnh/intro thô": adaptive quality hạ High→Low vài giây sau khi vào (giật lúc stream tài nguyên làm p95 > 33 ms), trong khi máy chạy ổn ~100 FPS. Giờ chỉ đánh giá khi thế giới dựng xong và cần 3 cửa sổ liên tiếp có cả median lẫn p95 chậm.
+
+| Kiểm tra (main a9ba2b4 trừ ảnh) | Kết quả |
+|---|---|
+| gate merge (lint, typecheck, assets, licenses, unit 2034) | PASS |
+| e2e world (48) trên main 4d731ba+QF-02 | 42 PASS, 6 FAIL vehicle (timeout build khi máy tải nặng); chạy riêng vehicle: 5 PASS + 1 FAIL, chạy lại ca đó PASS → FLAKY dưới tải |
+| e2e piano + content | PASS (5) |
+| FPS High nhân vật mới | NOT RUN |
+
+Next.js báo SecurityFatalError ngẫu nhiên khi build (chạy lại thì qua) — chờ Duy duyệt nâng.
+
 ## HR-FACELESS — 19/11 01:00 (Claude-Lead)
 
 Duy (18/11): nhân vật mặt trơn, tóc rẽ ngôi sắc nét theo ảnh tham chiếu. Lead tự làm (`hr-faceless.py`), merge c49e62d (Duy chọn merge rồi sửa tiếp tóc).
