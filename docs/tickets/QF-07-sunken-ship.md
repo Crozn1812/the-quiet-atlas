@@ -1,0 +1,28 @@
+## TICKET QF-07 — Con tàu đắm ngoài khơi, ống khói còn bốc khói
+
+- **Lane / milestone:** L3 / playtest Duy 20/11.
+- **Duy:** "Ở ngoài biển xa kia, mình muốn có hình con tàu bị chìm ở ngoài kia, kèm hiệu ứng ống khói còn đang xả khói ra."
+- **Vị trí:** ngoài khơi, nhìn thấy rõ từ đoạn đường ven biển và từ Quiet Shore / Last Postcard trong ánh hoàng hôn.
+  - Cách bờ khoảng 250–400 m, lệch khỏi vệt nắng mặt trời để không chói.
+  - Người chơi không tới được; không cần collider.
+- **Hình dạng:**
+  - Một tàu hàng hoặc tàu hơi nước cũ, dài khoảng 60–80 m, **nghiêng khoảng 15–25° và chìm phần đuôi**. Mũi tàu chếch lên khỏi mặt nước, phần đuôi đã ngập.
+  - Thân thép sơn bạc màu, gỉ loang, có mạn khô, cabin và 1–2 ống khói.
+  - Không có chữ, tên tàu, cờ hay logo.
+  - Đường mặt nước quanh thân có bọt trắng nhẹ.
+- **Khói:** từ ống khói nhô khỏi mặt nước có một cột khói xám đen.
+  - Khói bốc lên rồi bị gió kéo dạt sang một phía, loãng dần và tan ở độ cao khoảng 40–60 m.
+  - Làm bằng billboard/sprite instanced: khoảng 40–80 hạt, texture khói thủ tục (noise) sinh trong shader hoặc canvas, không tải file ngoài.
+  - Khói nhận màu hoàng hôn (ấm phía mặt trời) và có fog.
+  - Reduced motion: khói đứng yên hoặc chuyển động rất chậm.
+- **Mesh:** dựng trong Blender (CLI) hoặc sinh hình bằng code; texture gỉ và sơn lấy từ CC0 đã có (`public/world/lib`, `public/world/tex`) hoặc Poly Haven CC0, ghi LICENSES.
+  - GLB meshopt + KTX2 ≤ 1,5 MB, một LOD là đủ vì luôn nhìn từ xa. Nạp deferred.
+  - Ở Low vẫn có tàu, khói ít hạt hơn.
+- **Được sửa:** file mới `src/features/world/scene/shipwreck*.ts`, `public/world/props/shipwreck*`, `tools/assets/blender/shipwreck*`, `assets/LICENSES.csv`, test mới, và `src/features/world/index.ts` (chỉ ≤ 15 dòng nối, ghi rõ).
+- **Không được sửa:** lockfile, `package.json`, `docs/`, phần xe trong `index.ts`.
+- **Điều kiện xong:**
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test` exit 0.
+  - Build một lần; `E2E_PORT=<cổng riêng> pnpm exec playwright test tests/e2e/world.spec.ts` PASS; `pnpm check:licenses` PASS.
+  - Ảnh High từ đường ven biển và từ Last Postcard, cộng một ảnh Low, lưu vào `test-results/qf-07/`.
+  - Ghi byte, tam giác, draw call.
+- **Bàn giao:** file, output, ảnh, số đo. Không commit.

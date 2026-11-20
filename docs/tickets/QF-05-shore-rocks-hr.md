@@ -1,0 +1,22 @@
+## TICKET QF-05 — Đá ven biển và Old Trail còn là khối bát giác thô
+
+- **Lane / milestone:** L3 / playtest Duy 20/11.
+- **Duy:** "các khối đá đã không thành hình". Ảnh Duy chụp: cạnh lối đi ven sông và biển có các tảng đá hình lăng trụ bát giác, phẳng, đen hoặc be trơn, không có texture.
+- **Nguồn:** `src/features/world/dressing.ts`. Hàm rocky shore dùng `createShoreRockGeometry(sides)` của `src/features/world/shore/geometry.ts`, áp cho boulders, cairns và pebbles.
+  - Kiểm tra thêm: các chỗ khác còn dùng geometry đá thủ tục kiểu này (`grep -rn createShoreRockGeometry src`, các viên đá trong `foliage/ground-litter.ts`).
+- **Việc:**
+  - Thay boulders và cairns bằng mesh đá HR đã có: `public/world/lib/hr-rock-*-lod0/lod1.glb` (boulder, slate, river, moss-*) hoặc `rock-boulder-*`.
+    - Mỗi tảng đá được xoay ngẫu nhiên theo seed, scale theo `size` hiện có, và nằm sâu xuống đất 10–20 % để không lơ lửng.
+    - Đá gần nước dùng biến thể moss/wet.
+  - Pebbles có thể giữ dạng instanced nhưng phải dùng mesh đá thật thu nhỏ, không dùng lăng trụ.
+  - Dùng instancing theo loại mesh; LOD0 khi ở gần, LOD1 khi ở xa.
+  - Collider giữ nguyên hộp hiện tại.
+  - Ở Low dùng LOD1, không quay lại dùng lăng trụ.
+- **Được sửa:** `src/features/world/dressing.ts` (chỉ phần rocky shore), `src/features/world/shore/geometry.ts`, `src/features/world/foliage/ground-litter.ts` (nếu cần), test tương ứng.
+- **Không được sửa:** `index.ts`, `public/` (không thêm asset mới), lockfile, `docs/`.
+- **Điều kiện xong:**
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test` exit 0.
+  - Build một lần, rồi `E2E_PORT=<cổng riêng> pnpm exec playwright test tests/e2e/world.spec.ts` PASS.
+  - Ảnh High trước/sau ở Old Trail ven sông và bờ biển gần Quiet Shore, lưu vào `test-results/qf-05/`.
+  - Đo draw call trước/sau.
+- **Bàn giao:** file, output, ảnh, draw call. Không commit.
