@@ -1,7 +1,7 @@
 # Runbook — Terraform (A2): validate tĩnh, thứ tự triển khai, ai được apply
 
 > Spec: §11.2–§11.7, §17 "Trước A2". Ticket: L5-012, REL-02 (rà soát A2, không apply).
-> ADR 0012 cập nhật: credit thực tế **100 USD, hết hạn 2027-05-05**, không dùng giả định 200 USD trong spec.
+> ADR 0012 cập nhật: credit thực tế **100 USD, hết hạn 2027-11-05**, không dùng giả định 200 USD trong spec.
 > **`terraform apply` chỉ do Duy chạy, hoặc Lead khi Duy cho phép TỪNG LẦN** (CLAUDE.md §6). AI/lane không chạy
 > `plan`/`apply`/`import`, không cấu hình credential AWS.
 
@@ -186,7 +186,7 @@ Giả định portfolio nhỏ, S3 tổng cả version < 5 GB, một zone gắn F
 
 Tổng nền mục tiêu ≤ 1 USD/tháng **sau khi** gắn Free plan; khoảng thời gian PAYG có WAF có thể vượt mức này.
 Không coi credit là miễn phí vận hành: budget 10 USD theo chi phí trước credit; credit 100 USD hết hạn
-2027-05-05. Phí gia hạn tên miền nằm ngoài AWS; C1/AI không nằm trong ước tính A2.
+2027-11-05. Phí gia hạn tên miền nằm ngoài AWS; C1/AI không nằm trong ước tính A2.
 
 Nguồn kiểm trước apply: [CloudFront](https://aws.amazon.com/cloudfront/pricing/),
 [WAF](https://aws.amazon.com/waf/pricing/), [Route 53](https://aws.amazon.com/route53/pricing/),

@@ -40,3 +40,5 @@ A2 (đưa lên AWS) bị chặn bởi việc AWS duyệt credit (Q-08) — khôn
 - Theo mục "Hệ quả": **A2 mở lại và ưu tiên hơn ticket B mới.** Ticket B đợt 24 đã giao vẫn làm xong.
 - Bước kế tiếp của A2 là việc của Duy: MFA root + user hằng ngày (Q-20), Budgets 10 USD/tháng (Q-07), xác nhận nhà đăng ký cho đổi nameserver (Q-38). Lead chỉ chuẩn bị (Terraform `validate`, runbook); `apply`, nâng Paid plan, tạo hosted zone vẫn hỏi Duy từng lần.
 - Credit 100 USD với budget 10 USD/tháng đủ khoảng 10 tháng, nhưng credit hết hạn sau khoảng 6 tháng. Kế hoạch chi phí A2 tính theo hạn 2027-05-05.
+
+> **Đính chính 2026-11-22:** hạn credit đọc lại trên console (định dạng MM/DD/YYYY) là **2027-11-05**, không phải 2027-05-05. Thêm 20 USD credit "Explore AWS: Set up a cost budget" (cấp 2026-11-21, cùng hạn) → tổng 120 USD. Tài khoản đã nâng Paid plan và kích hoạt advanced features (AWS Organization, project "Building Things" là tài khoản thành viên chạy site).

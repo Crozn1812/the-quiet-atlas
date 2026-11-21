@@ -3,7 +3,7 @@
 > Người làm: **Duy** (chỉ chủ tài khoản được nâng; AI không làm). Spec: §11.1, §11.2, §11.4, §12 (A2). Hàng đợi: Q-07.
 > Viết 2026-11-04 (L5-010). Dữ kiện về Free/Paid plan trong spec được kiểm ngày 03/11/2026 [S10][S11]; **đọc lại trang điều khoản AWS trên màn hình xác nhận trước khi bấm** — nếu khác những gì ghi ở đây, dừng và báo Lead.
 
-> REL-03: credit thực tế theo ADR 0012 là **100 USD, hết hạn 2027-05-05**; kiểm lại Billing → Credits ngay
+> REL-03: credit thực tế theo ADR 0012 là **100 USD, hết hạn 2027-11-05**; kiểm lại Billing → Credits ngay
 > trước nâng, không suy hạn thực tế từ mốc 12 tháng chung dưới đây. Nâng AWS account Paid plan và chọn
 > CloudFront flat-rate **Free** là hai thao tác khác nhau; hoàn tất Budgets trước, rồi làm theo
 > [checklist phát hành đầu](release-checklist.md).

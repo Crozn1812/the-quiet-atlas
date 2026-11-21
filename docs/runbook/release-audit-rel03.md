@@ -14,7 +14,7 @@ config, ADR, STATUS hay DUY_QUEUE. Không có file nguồn ngoài phạm vi tick
 | `docs/runbook/terraform.md` | Thêm lệnh audit mọi module; sửa `CF_DISTRIBUTION_ID`, init backend sau kiểm tĩnh, biến email bắt buộc, import DNS có sẵn, cách kiểm CAA Windows và trạng thái uptime chưa có. |
 | `docs/runbook/domain-and-acm.md` | Thêm luồng Terraform hiện tại: zone/CAA → NS → ACM/alias; tránh tạo zone/cert trùng; thay lệnh CAA không tương thích Windows bằng Node qua stdin. |
 | `docs/runbook/aws-budgets.md` | Đối chiếu tên anomaly thực tế, guardrail tạo tay và topic vận hành riêng; nêu ngưỡng Terraform là GREATER_THAN. |
-| `docs/runbook/aws-paid-plan.md` | Ghi credit thực tế 100 USD/hạn 2027-05-05 cần Duy kiểm lại; phân biệt account Paid và CloudFront Free; nối bootstrap/prod đã có. |
+| `docs/runbook/aws-paid-plan.md` | Ghi credit thực tế 100 USD/hạn 2027-11-05 cần Duy kiểm lại; phân biệt account Paid và CloudFront Free; nối bootstrap/prod đã có. |
 | `docs/runbook/full-check.md` | Thêm asset budget và lệnh build Windows dùng WASM/Webpack hiện tại để Lead chạy đúng một lần. |
 | `docs/runbook/release-checklist.md` | 17 bước theo thứ tự, mỗi bước một dòng có link runbook, từ MFA/Budgets đến deploy/smoke test. |
 | `docs/runbook/release-audit-rel03.md` | Bàn giao file, lý do, output thật và giới hạn của lượt audit. |

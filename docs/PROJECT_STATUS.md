@@ -238,7 +238,7 @@ Lượt e2e đầu 149 PASS / 2 FAIL và CPU không pin quality bị lệch vẫ
 
 | Track | Mốc | Trạng thái |
 |---|---|---|
-| A — Portfolio | **A1** xong ở local (nội dung đã duyệt, CI xanh). **A2 mở lại** (2026-11-05): credit 100 USD đã có (hạn 2027-05-05), tên miền `nhbduy.id.vn` đã mua | A2 chờ Duy: MFA + user hằng ngày (Q-20), Budgets (`aws-budgets.md`), nameserver (Q-38). Lead không chạm cloud |
+| A — Portfolio | **A1** xong ở local (nội dung đã duyệt, CI xanh). **A2 mở lại** (2026-11-05): credit 100 USD đã có (hạn 2027-11-05), tên miền `nhbduy.id.vn` đã mua | A2 chờ Duy: MFA + user hằng ngày (Q-20), Budgets (`aws-budgets.md`), nameserver (Q-38). Lead không chạm cloud |
 | B — World | **RC-01 đủ gate máy dev** trên clone `lane/RC-01`, nguồn `bbd85a7`; chờ Claude-Lead duyệt/merge main | Duy test trải nghiệm/T10 và đo T08/T09 Iris Xe; chưa có kết quả người thật/laptop |
 
 ## Đã có
@@ -943,7 +943,7 @@ Chi tiết và việc còn chờ: `docs/DUY_QUEUE.md`. Tóm tắt: Lead soạn c
 - **Điện thoại** hiện ở Last Postcard (Duy chọn hiện cả web).
 - **Thơ secrets** (Q-32): thẻ thơ 4 câu, tiếng Anh trước, nút "Tiếng Việt / Bản tiếng Anh"; hiện 14 s, giữ lâu hơn khi rê chuột/focus nút. Bản dịch chờ duyệt (Q-39).
 - **Tên miền** `nhbduy.id.vn` (Q-09): `SITE_URL` mặc định của build; canonical, sitemap, robots dùng tên miền. Hosted zone/ACM để tới A2.
-- **AWS credit** (Q-08): 100 USD, hạn 2027-05-05. Spec giả định 200 USD; kế hoạch A2 tính theo 100 USD.
+- **AWS credit** (Q-08): 100 USD, hạn 2027-11-05. Spec giả định 200 USD; kế hoạch A2 tính theo 100 USD.
 - Sửa test `teleport-loading` (fail cố định khi chạy riêng lẻ do import lạnh).
 - Gate local: lint 0 warning, typecheck, unit 1043/1043: **PASS** (máy dev, trước khi merge đợt Codex).
 - **Codex đang làm (đợt 24):** B2-152 địa hình (núi trái, vịnh cong phải), B2-153 rừng dày bên núi, B2-154 biển phản chiếu hoàng hôn + sóng nhẹ, B2-155 grade hoàng hôn + sương núi, B2-156 Quiet Shore (piano, chó nằm ngủ).

@@ -24,7 +24,7 @@ Mỗi dòng là một việc Duy cần làm hoặc trả lời. Việc chặn A1
 
 | ID | Câu trả lời của Duy | Lead áp dụng thế nào |
 |---|---|---|
-| Q-08 | Credit AWS đã có: **100 USD**, còn 182 ngày (hết hạn **2027-05-05**), tài khoản đang ở Free plan | Ghi vào ADR 0012. Lưu ý spec giả định 200 USD; kế hoạch A2 tính theo 100 USD (budget 10 USD/tháng vẫn đủ ~10 tháng, hạn credit ngắn hơn). Không ghi thông tin tài khoản |
+| Q-08 | Credit AWS đã có: **100 USD**, còn 182 ngày (hết hạn **2027-11-05**), tài khoản đang ở Free plan | Ghi vào ADR 0012. Lưu ý spec giả định 200 USD; kế hoạch A2 tính theo 100 USD (budget 10 USD/tháng vẫn đủ ~10 tháng, hạn credit ngắn hơn). Không ghi thông tin tài khoản |
 | Q-09 | Đã mua **`nhbduy.id.vn`** (xác thực eKYC) | `SITE_URL` mặc định của build = `https://nhbduy.id.vn` (`next.config.ts`): canonical, sitemap, robots. Hosted zone/ACM chờ A2 (Q-38) |
 | Q-32 | 5 bài thơ 4 câu của Duy cho 4 secrets + ghế "chưa đến lúc"; hiện tiếng Anh, có nút dịch sang tiếng Việt | Đã làm: thẻ thơ trong world, nút "Tiếng Việt / Bản tiếng Anh". Bản dịch tiếng Anh chờ duyệt (Q-39) |
 | Q-34 | Kỹ năng theo nhóm, mức đã làm/đã học; muốn học tiếp AIOps | Trang The Roots, giữ đúng mức Duy ghi |

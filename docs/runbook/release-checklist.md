@@ -2,7 +2,7 @@
 
 Mỗi bước chỉ đánh dấu xong khi có kết quả thật; các bước cloud dưới đây không được chạy trong lượt audit REL-03.
 
-1. [Tài khoản/MFA](aws-account-and-credits.md): kiểm MFA, user/SSO hằng ngày, Billing access và credit thực tế 100 USD hết hạn 2027-05-05 trên console.
+1. [Tài khoản/MFA](aws-account-and-credits.md): kiểm MFA, user/SSO hằng ngày, Billing access và credit thực tế 100 USD hết hạn 2027-11-05 trên console.
 2. [Budgets](aws-budgets.md): chốt ngưỡng, bật Free Tier alerts, tạo Budgets trước credit + Cost Anomaly + SNS và xác nhận email thử Q25-a tới hộp thư.
 3. [Paid plan](aws-paid-plan.md): đọc điều khoản hiện tại, kiểm phương thức thanh toán, tự nâng account và kiểm credit/Budgets sau nâng.
 4. [Tên miền](domain-and-acm.md): kiểm `nhbduy.id.vn` Active, quyền sửa NS, ngày gia hạn; thống nhất Terraform quản lý zone/cert, chuẩn bị import nếu đã tạo tay.
