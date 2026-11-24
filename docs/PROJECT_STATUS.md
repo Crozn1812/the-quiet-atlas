@@ -238,7 +238,7 @@ Lượt e2e đầu 149 PASS / 2 FAIL và CPU không pin quality bị lệch vẫ
 
 | Track | Mốc | Trạng thái |
 |---|---|---|
-| A — Portfolio | **A1** xong ở local (nội dung đã duyệt, CI xanh). **A2 mở lại** (2026-11-05): credit 100 USD đã có (hạn 2027-11-05), tên miền `nhbduy.id.vn` đã mua | A2 chờ Duy: MFA + user hằng ngày (Q-20), Budgets (`aws-budgets.md`), nameserver (Q-38). Lead không chạm cloud |
+| A — Portfolio | **A2 phát hành 2026-11-24**: `https://nhbduy.id.vn` (tài khoản AWS mới, project Side Quest Accepted, ap-southeast-2, ADR 0021; credit 120 USD hạn 2027-11-22). Terraform apply do Duy chạy trong CloudShell; deploy qua GitHub Actions OIDC (run #3 xanh). Smoke test Lead 24/11: 10 route đúng mã, canonical/sitemap về tên miền, HSTS + header, CV EN/VI PDF, GLB/KTX2 MIME — PASS; www/http → 301 apex — PASS | Alarm 5xx **DEFERRED** (SCP chặn SNS + CloudWatch alarm us-east-1). World trong trình duyệt trên tên miền: NOT RUN (Duy mở thử). Runbook CloudShell + tflint/Checkov: chưa làm |
 | B — World | **RC-01 đủ gate máy dev** trên clone `lane/RC-01`, nguồn `bbd85a7`; chờ Claude-Lead duyệt/merge main | Duy test trải nghiệm/T10 và đo T08/T09 Iris Xe; chưa có kết quả người thật/laptop |
 
 ## Đã có
