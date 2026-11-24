@@ -25,7 +25,7 @@ jobs:
       id-token: write
     env:
       NEXT_TELEMETRY_DISABLED: '1'
-      AWS_REGION: ap-southeast-1
+      AWS_REGION: ap-southeast-2
       AWS_PAGER: ''
       SITE_BUCKET: ${{ vars.SITE_BUCKET }}
       CF_DISTRIBUTION_ID: ${{ vars.CF_DISTRIBUTION_ID }}

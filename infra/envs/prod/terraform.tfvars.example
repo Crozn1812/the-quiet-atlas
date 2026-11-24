@@ -1,6 +1,6 @@
 # Mẫu — chép thành terraform.tfvars (đã nằm trong .gitignore). Không ghi giá trị thật vào file .example.
 
-region      = "ap-southeast-1"
+region      = "ap-southeast-2"
 name_prefix = "tqa"
 
 # Trùng site_bucket_name của infra/bootstrap.

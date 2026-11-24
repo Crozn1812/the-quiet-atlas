@@ -1,7 +1,7 @@
 variable "region" {
-  description = "Region cho bucket state và các tài nguyên khu vực (spec §11.5: ap-southeast-1)."
+  description = "Region cho bucket state và các tài nguyên khu vực (spec §11.5 ghi ap-southeast-1; ADR 0021 đổi sang ap-southeast-2)."
   type        = string
-  default     = "ap-southeast-1"
+  default     = "ap-southeast-2"
 }
 
 variable "github_repository" {

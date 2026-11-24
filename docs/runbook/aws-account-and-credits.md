@@ -71,7 +71,7 @@ Spec §11.1 mục 4: "IAM Identity Center hoặc ít nhất MFA cho root". Thứ
 
 Để Identity Center cấp quyền vào **chính tài khoản AWS**, cần *organization instance* (bật Identity Center sẽ tạo AWS Organizations với tài khoản của bạn là management account). *Account instance* chỉ dùng cho ứng dụng, **không** cấp quyền vào console AWS. **Chưa chắc** tài khoản Free plan có được tạo AWS Organizations hay không — nếu console báo không được, chuyển sang 6B và làm lại 6A sau khi nâng Paid plan.
 
-1. Console → tìm `IAM Identity Center` → chọn region `ap-southeast-1` (Singapore) ở góc trên phải trước khi bật (region này là nơi lưu danh tính; khó đổi về sau).
+1. Console → tìm `IAM Identity Center`. Tài khoản project mới (2026-11-24) đã có Identity Center do AWS tạo trong project "Identity Delegated Admin"; không bật lại. Region dự án là `ap-southeast-2` (Sydney, ADR 0021).
 2. **Enable** → chọn bật cùng AWS Organizations (organization instance).
 3. **Users → Add user**: username `<tên-đăng-nhập>`, email `<email-của-bạn>` → gửi lời mời qua email; đặt mật khẩu qua link trong email.
 4. **Permission sets → Create permission set** → **Predefined permission set** → `AdministratorAccess` (giai đoạn A2 một người làm; sau A2 có thể thu hẹp). Session duration để mặc định.

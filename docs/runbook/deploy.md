@@ -42,7 +42,7 @@ với phiên AWS riêng của Duy đã được thiết lập theo runbook Terra
 | `CF_DISTRIBUTION_ID` | `infra/envs/prod`: output `distribution_id` |
 | `SITE_URL` | `https://<domain_name>` đã có DNS/ACM; nếu chưa có domain, dùng `https://` + output `distribution_domain_name` của prod |
 
-Region workflow cố định `ap-southeast-1`, khớp mặc định prod/bootstrap; không cần variable region.
+Region workflow cố định `ap-southeast-2`, khớp mặc định prod/bootstrap; không cần variable region.
 Không tạo `AWS_ACCESS_KEY_ID` hoặc `AWS_SECRET_ACCESS_KEY`.
 Không gắn job vào GitHub Environment: token environment có `sub` khác và sẽ bị trust main từ chối.
 REL-01 thay trust environment của riêng `site-deploy` bằng trust main; `tf-apply` vẫn dùng environment `production`.

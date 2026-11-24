@@ -2,4 +2,4 @@
 # bucket = output state_bucket_name của infra/bootstrap.
 bucket = "<ten-bucket-state-duy-nhat>"
 key    = "prod/terraform.tfstate"
-region = "ap-southeast-1"
+region = "ap-southeast-2"

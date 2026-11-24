@@ -111,7 +111,7 @@ Phải thấy đủ các dòng ở trên, không có CA khác.
 
 ## Bước 6 — Chứng chỉ ACM ở **us-east-1**
 
-CloudFront chỉ dùng chứng chỉ ACM ở **US East (N. Virginia) us-east-1** — kể cả khi S3 ở ap-southeast-1 (§11.5).
+CloudFront chỉ dùng chứng chỉ ACM ở **US East (N. Virginia) us-east-1** — kể cả khi S3 ở ap-southeast-2 (§11.5).
 
 1. Góc trên phải console → chọn region **US East (N. Virginia)**. (Sai region là lỗi thường gặp nhất: chứng chỉ ở region khác sẽ không hiện khi gắn CloudFront.)
 2. `Certificate Manager` → **Request a certificate** → **Request a public certificate** → Next.
