@@ -20,7 +20,7 @@ data "aws_iam_policy_document" "trust_site_deploy" {
     condition {
       test     = "StringEquals"
       variable = "${local.github_oidc_host}:sub"
-      values   = ["repo:${var.github_repository}:ref:refs/heads/main"]
+      values   = local.sub_main
     }
   }
 }

@@ -125,8 +125,16 @@ describe("infra/ safety invariants (static)", () => {
     expect(oidc).not.toMatch(/StringLike/);
     expect(oidc.match(/variable = "\$\{local.github_oidc_host\}:aud"/g)?.length).toBe(2);
     expect(oidc.match(/values   = \["sts.amazonaws.com"\]/g)?.length).toBe(2);
-    expect(oidc).toContain('sub_pull_request = "repo:${var.github_repository}:pull_request"');
-    expect(oidc).toContain('sub_production   = "repo:${var.github_repository}:environment:${var.github_environment}"');
+    // GitHub sub có 2 dạng (cũ owner/repo, mới owner@id/repo@id); cả hai khớp chính xác.
+    expect(oidc).toContain('github_sub_repos = compact([var.github_repository, var.github_repository_with_ids])');
+    expect(oidc).toContain('sub_pull_request = [for r in local.github_sub_repos : "repo:${r}:pull_request"]');
+    expect(oidc).toContain('sub_production   = [for r in local.github_sub_repos : "repo:${r}:environment:${var.github_environment}"]');
+    expect(oidc).toContain('sub_main         = [for r in local.github_sub_repos : "repo:${r}:ref:refs/heads/main"]');
+    const deploy = readFileSync(path.join(repo, "infra/bootstrap/deploy-oidc.tf"), "utf8");
+    expect(deploy).not.toMatch(/StringLike/);
+    expect(deploy).toContain("values   = local.sub_main");
+    const vars = readFileSync(path.join(repo, "infra/bootstrap/variables.tf"), "utf8");
+    expect(vars).toMatch(/default\s+=\s+"[A-Za-z0-9_.-]+@[0-9]+\/[A-Za-z0-9_.-]+@[0-9]+"/);
   });
 
   it("no long-lived keys, public ACLs or committed secrets in infra/", () => {

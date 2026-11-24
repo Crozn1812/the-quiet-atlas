@@ -35,3 +35,10 @@ Cùng ngày: `PutMetricAlarm` ở us-east-1 cũng bị từ chối (AccessDenied
 tài khoản project đặt `false` → không có alarm 5xx. Giám sát lỗi website: **DEFERRED** (smoke test sau deploy +
 CloudFront console). Rủi ro cần theo dõi: ACM ở us-east-1 (bắt buộc cho HTTPS tên miền) có thể bị chặn tương tự —
 kiểm khi bật `dns_certificate_enabled`.
+
+## Phụ lục 2026-11-24 — OIDC `sub` dạng có ID bất biến
+
+Deploy #1 bị `AccessDenied` ở `sts:AssumeRoleWithWebIdentity`. CloudTrail cho thấy GitHub phát `sub` dạng
+`repo:<owner>@<owner_id>/<repo>@<repo_id>:ref:refs/heads/main`, không khớp trust policy dạng cũ `repo:<owner>/<repo>:...`.
+Quyết định: 3 role (tf-plan, tf-apply, site-deploy) tin **cả hai dạng**, vẫn `StringEquals` khớp chính xác, không wildcard.
+ID lấy từ CloudTrail và khớp API GitHub công khai (`/repos/Crozn1812/the-quiet-atlas`).

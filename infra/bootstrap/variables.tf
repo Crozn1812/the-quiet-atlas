@@ -15,6 +15,17 @@ variable "github_repository" {
   }
 }
 
+variable "github_repository_with_ids" {
+  description = "Dạng sub mới của GitHub có ID bất biến: <owner>@<owner_id>/<repo>@<repo_id> (lấy từ CloudTrail hoặc API GitHub công khai). Rỗng = chỉ tin dạng cũ."
+  type        = string
+  default     = "Crozn1812@137226643/the-quiet-atlas@1444975904"
+
+  validation {
+    condition     = var.github_repository_with_ids == "" || can(regex("^[A-Za-z0-9_.-]+@[0-9]+/[A-Za-z0-9_.-]+@[0-9]+$", var.github_repository_with_ids))
+    error_message = "github_repository_with_ids phải rỗng hoặc có dạng <owner>@<id>/<repo>@<id>, không ký tự đại diện."
+  }
+}
+
 variable "github_environment" {
   description = "GitHub Environment (duyệt tay) cho tf-apply (spec §11.6); site-deploy tin nhánh main (REL-01)."
   type        = string
