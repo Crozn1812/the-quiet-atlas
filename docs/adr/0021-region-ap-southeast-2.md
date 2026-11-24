@@ -30,3 +30,8 @@ chặn (explicit deny). Alarm CloudFront 5xx bắt buộc ở us-east-1 và ch�
 Quyết định: thêm biến `site_alarm_notifications_enabled` (mặc định true). Tài khoản project đặt `false`:
 alarm vẫn tạo, trạng thái xem trong CloudWatch console, **không gửi email** (DEFERRED: tìm kênh thông báo
 được SCP cho phép, ví dụ AWS User Notifications). Không sửa SCP.
+
+Cùng ngày: `PutMetricAlarm` ở us-east-1 cũng bị từ chối (AccessDenied). Thêm biến prod `site_monitoring_enabled`;
+tài khoản project đặt `false` → không có alarm 5xx. Giám sát lỗi website: **DEFERRED** (smoke test sau deploy +
+CloudFront console). Rủi ro cần theo dõi: ACM ở us-east-1 (bắt buộc cho HTTPS tên miền) có thể bị chặn tương tự —
+kiểm khi bật `dns_certificate_enabled`.

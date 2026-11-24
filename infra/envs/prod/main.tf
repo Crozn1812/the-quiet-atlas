@@ -15,6 +15,7 @@ module "monitoring" {
   distribution_id    = module.static_site.distribution_id
   alarm_topic_arn    = var.operational_alert_topic_arn
 
+  site_monitoring_enabled          = var.site_monitoring_enabled
   site_alarm_notifications_enabled = var.site_alarm_notifications_enabled
 }
 

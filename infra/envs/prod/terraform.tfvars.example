@@ -24,3 +24,4 @@ operational_alert_topic_arn = ""
 
 # false nếu SCP tài khoản project chặn SNS ở us-east-1 (ADR 0021).
 site_alarm_notifications_enabled = true
+site_monitoring_enabled          = true

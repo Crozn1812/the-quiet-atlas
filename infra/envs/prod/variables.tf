@@ -62,3 +62,9 @@ variable "site_alarm_notifications_enabled" {
   type        = bool
   default     = true
 }
+
+variable "site_monitoring_enabled" {
+  description = "false khi SCP tài khoản project chặn CloudWatch PutMetricAlarm ở us-east-1 (ADR 0021): không tạo alarm 5xx."
+  type        = bool
+  default     = true
+}
