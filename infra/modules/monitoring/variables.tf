@@ -39,6 +39,12 @@ variable "site_monitoring_enabled" {
   default     = true
 }
 
+variable "site_alarm_notifications_enabled" {
+  description = "Gắn SNS vào alarm 5xx. false khi SCP chặn SNS (ADR 0021): alarm vẫn tạo, không gửi thông báo."
+  type        = bool
+  default     = true
+}
+
 variable "monthly_budget_usd" {
   description = "Ngưỡng budget hằng tháng (USD) — Q-07: 10."
   type        = number

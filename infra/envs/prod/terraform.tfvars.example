@@ -21,3 +21,6 @@ monthly_budget_usd                   = 10
 # Điền alert_email thật trong file .tfvars riêng để đăng ký SNS vận hành, hoặc dùng topic có sẵn
 # (us-east-1, subscriber đã Confirmed, cho phép cloudwatch.amazonaws.com publish với SourceAccount).
 operational_alert_topic_arn = ""
+
+# false nếu SCP tài khoản project chặn SNS ở us-east-1 (ADR 0021).
+site_alarm_notifications_enabled = true

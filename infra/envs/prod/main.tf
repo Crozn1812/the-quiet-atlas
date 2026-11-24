@@ -14,6 +14,8 @@ module "monitoring" {
   monthly_budget_usd = var.monthly_budget_usd
   distribution_id    = module.static_site.distribution_id
   alarm_topic_arn    = var.operational_alert_topic_arn
+
+  site_alarm_notifications_enabled = var.site_alarm_notifications_enabled
 }
 
 module "dns" {

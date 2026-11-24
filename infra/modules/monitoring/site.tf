@@ -1,8 +1,10 @@
 # Basic CloudFront metrics are free; no paid additional metrics or access logs.
 # Root passes aws.us_east_1: CloudFront metrics use Region=Global in us-east-1.
 locals {
-  create_site_topic = var.site_monitoring_enabled && var.alarm_topic_arn == ""
+  create_site_topic = var.site_monitoring_enabled && var.site_alarm_notifications_enabled && var.alarm_topic_arn == ""
   site_topic_arn    = var.alarm_topic_arn != "" ? var.alarm_topic_arn : try(aws_sns_topic.site_alerts[0].arn, "")
+  # ADR 0021: project SCP denies SNS in us-east-1; alarm can run without actions (state visible in console).
+  site_alarm_actions = var.site_alarm_notifications_enabled ? [local.site_topic_arn] : []
 }
 
 resource "aws_sns_topic" "site_alerts" {
@@ -58,8 +60,8 @@ resource "aws_cloudwatch_metric_alarm" "site_5xx" {
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [local.site_topic_arn]
-  ok_actions          = [local.site_topic_arn]
+  alarm_actions       = local.site_alarm_actions
+  ok_actions          = local.site_alarm_actions
 
   dimensions = {
     DistributionId = var.distribution_id

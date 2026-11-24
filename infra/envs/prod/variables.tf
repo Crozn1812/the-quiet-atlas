@@ -56,3 +56,9 @@ variable "monthly_budget_usd" {
   type        = number
   default     = 10
 }
+
+variable "site_alarm_notifications_enabled" {
+  description = "false khi SCP của tài khoản project chặn SNS ở us-east-1 (ADR 0021); alarm 5xx vẫn tạo nhưng không gửi email."
+  type        = bool
+  default     = true
+}

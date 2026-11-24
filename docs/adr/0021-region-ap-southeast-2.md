@@ -22,3 +22,11 @@ us-east-1, us-west-2, ap-southeast-2. Singapore (ap-southeast-1) thuộc nhóm "
 - Giá S3 ở Sydney chênh không đáng kể với quy mô site tĩnh; budget 10 USD/tháng giữ nguyên.
 - Đã đổi: `infra/**/variables.tf`, `*.tfvars.example`, `backend.hcl.example`, `.github/workflows/deploy.yml`,
   runbook deploy/domain-and-acm/aws-account-and-credits.
+
+## Bổ sung 2026-11-24: SCP chặn SNS ở us-east-1
+
+Prod apply lần đầu (Duy, CloudShell) tạo 14/18 resource; `SNS:CreateTopic` ở us-east-1 bị SCP của tổ chức
+chặn (explicit deny). Alarm CloudFront 5xx bắt buộc ở us-east-1 và chỉ gửi được SNS cùng region.
+Quyết định: thêm biến `site_alarm_notifications_enabled` (mặc định true). Tài khoản project đặt `false`:
+alarm vẫn tạo, trạng thái xem trong CloudWatch console, **không gửi email** (DEFERRED: tìm kênh thông báo
+được SCP cho phép, ví dụ AWS User Notifications). Không sửa SCP.
